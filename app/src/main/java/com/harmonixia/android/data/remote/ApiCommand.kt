@@ -1,0 +1,28 @@
+package com.harmonixia.android.data.remote
+
+object ApiCommand {
+    const val PLAYERS_FETCH_STATE = "players/all"
+    const val PLAYERS_VOLUME_SET = "players/cmd/volume_set"
+    const val PLAYER_QUEUES_FETCH_STATE = "player_queues/get_active_queue"
+    const val PLAYER_QUEUES_ITEMS = "player_queues/items"
+    const val MUSIC_GET_LIBRARY_ALBUMS = "music/albums/library_items"
+    const val MUSIC_GET_LIBRARY_ARTISTS = "music/artists/library_items"
+    const val MUSIC_GET_LIBRARY_PLAYLISTS = "music/playlists/library_items"
+    const val MUSIC_RECENTLY_PLAYED = "music/recently_played_items"
+    const val MUSIC_GET_ALBUM = "music/albums/get"
+    const val MUSIC_SEARCH = "music/search"
+    const val PLAYER_QUEUES_PLAY_MEDIA = "player_queues/play_media"
+    const val PLAYER_QUEUES_PAUSE = "player_queues/pause"
+    const val PLAYER_QUEUES_RESUME = "player_queues/resume"
+    const val PLAYER_QUEUES_NEXT = "player_queues/next"
+    const val PLAYER_QUEUES_PREVIOUS = "player_queues/previous"
+    const val PLAYER_QUEUES_SEEK = "player_queues/seek"
+    const val PLAYER_QUEUES_PLAY_INDEX = "player_queues/play_index"
+    const val PLAYER_QUEUES_CLEAR = "player_queues/clear"
+    const val MUSIC_GET_ALBUM_TRACKS = "music/albums/album_tracks"
+    const val MUSIC_GET_PLAYLIST_TRACKS = "music/playlists/playlist_tracks"
+    const val MUSIC_CREATE_PLAYLIST = "music/playlists/create_playlist"
+    const val MUSIC_ADD_PLAYLIST_TRACKS = "music/playlists/add_playlist_tracks"
+    const val MUSIC_REMOVE_PLAYLIST_TRACKS = "music/playlists/remove_playlist_tracks"
+    const val MUSIC_DELETE_PLAYLIST = "music/playlists/remove"
+}
