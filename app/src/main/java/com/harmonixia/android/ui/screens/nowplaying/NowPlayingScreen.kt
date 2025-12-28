@@ -1,6 +1,7 @@
 package com.harmonixia.android.ui.screens.nowplaying
 
 import android.app.Activity
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.ExperimentalSharedTransitionApi
@@ -68,6 +69,7 @@ import coil3.request.bitmapConfig
 import com.harmonixia.android.R
 import com.harmonixia.android.ui.components.PlaybackControls
 import com.harmonixia.android.ui.components.SeekBar
+import com.harmonixia.android.ui.components.formatTrackQualityLabel
 import com.harmonixia.android.ui.playback.NowPlayingUiState
 import com.harmonixia.android.ui.playback.PlaybackInfo
 import com.harmonixia.android.ui.playback.PlaybackViewModel
@@ -79,12 +81,14 @@ import kotlinx.coroutines.launch
 @Composable
 fun SharedTransitionScope.NowPlayingScreen(
     onNavigateBack: () -> Unit,
-    viewModel: PlaybackViewModel = hiltViewModel()
+    viewModel: PlaybackViewModel = hiltViewModel(),
+    enableSharedArtworkTransition: Boolean = true
 ) {
     val nowPlayingUiState by viewModel.nowPlayingUiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     val context = LocalContext.current
     val haptic = LocalHapticFeedback.current
+    BackHandler(onBack = onNavigateBack)
 
     LaunchedEffect(viewModel) {
         viewModel.events.collect { event ->
@@ -143,7 +147,8 @@ fun SharedTransitionScope.NowPlayingScreen(
         title = displayInfo.title,
         artist = displayInfo.artist,
         album = displayInfo.album,
-        artworkUrl = displayInfo.artworkUrl
+        artworkUrl = displayInfo.artworkUrl,
+        quality = displayInfo.quality
     )
 
     Scaffold(
@@ -197,6 +202,7 @@ fun SharedTransitionScope.NowPlayingScreen(
                         haptic = haptic,
                         dragOffsetX = dragOffsetX,
                         swipeThreshold = swipeThreshold,
+                        enableSharedArtworkTransition = enableSharedArtworkTransition,
                         sharedArtworkState = sharedArtworkState,
                         placeholderPainter = placeholderPainter
                     )
@@ -232,6 +238,7 @@ fun SharedTransitionScope.NowPlayingScreen(
                         haptic = haptic,
                         dragOffsetX = dragOffsetX,
                         swipeThreshold = swipeThreshold,
+                        enableSharedArtworkTransition = enableSharedArtworkTransition,
                         sharedArtworkState = sharedArtworkState,
                         placeholderPainter = placeholderPainter
                     )
@@ -295,6 +302,7 @@ private fun SharedTransitionScope.ArtworkPanel(
     haptic: androidx.compose.ui.hapticfeedback.HapticFeedback,
     dragOffsetX: Animatable<Float, *>,
     swipeThreshold: Float,
+    enableSharedArtworkTransition: Boolean,
     sharedArtworkState: SharedTransitionScope.SharedContentState,
     placeholderPainter: ColorPainter
 ) {
@@ -303,7 +311,15 @@ private fun SharedTransitionScope.ArtworkPanel(
     val qualityManager = remember(context) { ImageQualityManager(context) }
     val optimizedSize = qualityManager.getOptimalImageSize(artworkSize)
     val sizePx = with(LocalDensity.current) { optimizedSize.roundToPx() }
+    val baseArtworkModifier = Modifier
+        .size(optimizedSize)
+        .clip(RoundedCornerShape(24.dp))
     AnimatedVisibility(visible = true) {
+        val artworkModifier = if (enableSharedArtworkTransition) {
+            baseArtworkModifier.sharedElement(sharedArtworkState, this@AnimatedVisibility)
+        } else {
+            baseArtworkModifier
+        }
         Box(
             contentAlignment = Alignment.Center,
             modifier = Modifier
@@ -341,10 +357,7 @@ private fun SharedTransitionScope.ArtworkPanel(
                 }
         ) {
             Box(
-                modifier = Modifier
-                    .size(optimizedSize)
-                    .clip(RoundedCornerShape(24.dp))
-                    .sharedElement(sharedArtworkState, this@AnimatedVisibility)
+                modifier = artworkModifier
             ) {
                 AnimatedContent(
                     targetState = trackIdentity.artworkUrl,
@@ -388,6 +401,7 @@ private fun ControlsPanel(
     onPrevious: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
     Column(
         modifier = modifier
             .fillMaxWidth()
@@ -399,6 +413,7 @@ private fun ControlsPanel(
             transitionSpec = { fadeIn() togetherWith fadeOut() },
             label = "trackText"
         ) { identity ->
+            val qualityLabel = formatTrackQualityLabel(identity.quality, context::getString)
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 if (identity.title.isNotBlank()) {
                     Text(
@@ -423,6 +438,16 @@ private fun ControlsPanel(
                     Text(
                         text = identity.album,
                         style = albumStyle,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        textAlign = TextAlign.Center
+                    )
+                }
+                if (qualityLabel != null) {
+                    Text(
+                        text = qualityLabel,
+                        style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
@@ -456,7 +481,8 @@ private data class TrackIdentity(
     val title: String,
     val artist: String,
     val album: String,
-    val artworkUrl: String?
+    val artworkUrl: String?,
+    val quality: String?
 )
 
 private fun emptyPlaybackInfo(): PlaybackInfo =
@@ -465,6 +491,7 @@ private fun emptyPlaybackInfo(): PlaybackInfo =
         artist = "",
         album = "",
         artworkUrl = null,
+        quality = null,
         duration = 0L,
         currentPosition = 0L,
         isPlaying = false,

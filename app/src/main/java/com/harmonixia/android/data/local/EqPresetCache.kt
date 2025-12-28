@@ -76,18 +76,28 @@ class EqPresetCache @Inject constructor(
                 val element = runCatching { json.parseToJsonElement(trimmed) }.getOrNull()
                     ?: return@forEach
                 val obj = element as? JsonObject ?: return@forEach
+                val data = obj["data"] as? JsonObject
                 val type = obj.stringOrNull("type", "entry_type")?.lowercase()
                 when {
                     type != null && type in vendorTypes -> {
-                        val id = obj.stringOrNull("id", "vendor_id") ?: return@forEach
-                        val name = obj.stringOrNull("name", "manufacturer", "brand") ?: return@forEach
+                        val id = obj.stringOrNull("id", "vendor_id")
+                            ?: data?.stringOrNull("id", "vendor_id")
+                            ?: return@forEach
+                        val name = data?.stringOrNull("name", "manufacturer", "brand")
+                            ?: obj.stringOrNull("name", "manufacturer", "brand")
+                            ?: return@forEach
                         vendors[id] = name
                     }
                     type != null && type in productTypes -> {
-                        val id = obj.stringOrNull("id", "product_id") ?: return@forEach
-                        val vendorId = obj.stringOrNull("vendor_id", "manufacturer_id")
-                        val model = obj.stringOrNull("model", "name")
-                        val manufacturer = obj.stringOrNull("manufacturer", "brand")
+                        val id = obj.stringOrNull("id", "product_id")
+                            ?: data?.stringOrNull("id", "product_id")
+                            ?: return@forEach
+                        val vendorId = data?.stringOrNull("vendor_id", "manufacturer_id")
+                            ?: obj.stringOrNull("vendor_id", "manufacturer_id")
+                        val model = data?.stringOrNull("model", "name")
+                            ?: obj.stringOrNull("model", "name")
+                        val manufacturer = data?.stringOrNull("manufacturer", "brand")
+                            ?: obj.stringOrNull("manufacturer", "brand")
                         products[id] = OpraProduct(
                             id = id,
                             vendorId = vendorId,
@@ -113,7 +123,29 @@ class EqPresetCache @Inject constructor(
     }
 
     private fun hasFilterPayload(obj: JsonObject): Boolean {
-        return obj.containsKey("filters") || obj.containsKey("eq") || obj.containsKey("bands") || obj.containsKey("peqs")
+        if (obj.containsKey("filters")
+            || obj.containsKey("eq")
+            || obj.containsKey("bands")
+            || obj.containsKey("peqs")
+            || obj.containsKey("filters_biquad")
+        ) {
+            return true
+        }
+        val data = obj["data"] as? JsonObject ?: return false
+        if (data.containsKey("filters")
+            || data.containsKey("eq")
+            || data.containsKey("bands")
+            || data.containsKey("peqs")
+            || data.containsKey("filters_biquad")
+        ) {
+            return true
+        }
+        val parameters = data["parameters"] as? JsonObject ?: return false
+        return parameters.containsKey("filters")
+            || parameters.containsKey("eq")
+            || parameters.containsKey("bands")
+            || parameters.containsKey("peqs")
+            || parameters.containsKey("filters_biquad")
     }
 
     private fun JsonObject.stringOrNull(vararg keys: String): String? {
@@ -123,7 +155,7 @@ class EqPresetCache @Inject constructor(
     }
 
     companion object {
-        const val OPRA_DATABASE_URL = "https://raw.githubusercontent.com/opra-project/OPRA/main/opra.jsonl"
+        const val OPRA_DATABASE_URL = "https://raw.githubusercontent.com/opra-project/OPRA/main/dist/database_v1.jsonl"
         const val OPRA_CACHE_FILE = "opra-presets.jsonl"
         const val OPRA_CACHE_EXPIRY_DAYS = 7
         private const val TAG = "EqPresetCache"

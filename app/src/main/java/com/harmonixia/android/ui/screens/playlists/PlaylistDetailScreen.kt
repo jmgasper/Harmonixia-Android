@@ -40,6 +40,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -70,7 +71,11 @@ import com.harmonixia.android.ui.components.PlaylistPickerDialog
 import com.harmonixia.android.ui.components.RenamePlaylistDialog
 import com.harmonixia.android.ui.components.TrackList
 import com.harmonixia.android.ui.theme.rememberAdaptiveSpacing
+import com.harmonixia.android.ui.util.PlaylistCoverEntryPoint
+import com.harmonixia.android.ui.util.PlaylistCoverGenerator
 import com.harmonixia.android.util.ImageQualityManager
+import dagger.hilt.android.EntryPointAccessors
+import java.io.File
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -617,8 +622,29 @@ private fun PlaylistHeader(
     val qualityManager = remember(context) { ImageQualityManager(context) }
     val optimizedSize = qualityManager.getOptimalImageSize(artworkSize)
     val sizePx = with(LocalDensity.current) { optimizedSize.roundToPx() }
+    val needsGeneratedCover = playlist?.imageUrl.isNullOrBlank()
+    val entryPoint = remember(context) {
+        EntryPointAccessors.fromApplication(context, PlaylistCoverEntryPoint::class.java)
+    }
+    val generator = remember(context) {
+        PlaylistCoverGenerator(context, entryPoint.repository(), entryPoint.imageLoader())
+    }
+    val coverPath by produceState<String?>(
+        initialValue = null,
+        playlist?.itemId,
+        playlist?.provider,
+        sizePx,
+        needsGeneratedCover
+    ) {
+        value = if (playlist != null && needsGeneratedCover) {
+            generator.getCoverPath(playlist, sizePx)
+        } else {
+            null
+        }
+    }
+    val imageData = coverPath?.let { File(it) } ?: playlist?.imageUrl
     val imageRequest = ImageRequest.Builder(context)
-        .data(playlist?.imageUrl)
+        .data(imageData)
         .size(sizePx)
         .bitmapConfig(qualityManager.getOptimalBitmapConfig())
         .build()

@@ -27,18 +27,23 @@ class EqPresetParser @Inject constructor() {
         vendors: Map<String, String>,
         products: Map<String, OpraProduct>
     ): EqPreset? {
-        val name = entry.stringOrNull("name", "preset_name", "title") ?: "EQ Preset"
-        val description = entry.stringOrNull("description", "notes")
-        val creator = entry.stringOrNull("creator", "author", "by")
-        val productId = entry.stringOrNull("product_id", "device_id")
-        val vendorId = entry.stringOrNull("vendor_id", "manufacturer_id")
+        val data = entry["data"] as? JsonObject
+        fun stringOrNull(vararg keys: String): String? {
+            return data?.stringOrNull(*keys) ?: entry.stringOrNull(*keys)
+        }
+
+        val name = stringOrNull("name", "preset_name", "title") ?: "EQ Preset"
+        val description = stringOrNull("description", "notes", "details")
+        val creator = stringOrNull("creator", "author", "by")
+        val productId = stringOrNull("product_id", "device_id")
+        val vendorId = stringOrNull("vendor_id", "manufacturer_id")
         val product = productId?.let { products[it] }
 
-        val manufacturer = entry.stringOrNull("manufacturer", "brand")
+        val manufacturer = stringOrNull("manufacturer", "brand")
             ?: product?.manufacturer
             ?: vendorId?.let { vendors[it] }
             ?: product?.vendorId?.let { vendors[it] }
-        val model = entry.stringOrNull("model", "device") ?: product?.model
+        val model = stringOrNull("model", "device") ?: product?.model
 
         val filters = extractFilterElements(entry).mapNotNull { filterElement ->
             when (filterElement) {
@@ -50,7 +55,7 @@ class EqPresetParser @Inject constructor() {
 
         if (filters.isEmpty()) return null
 
-        val presetId = entry.stringOrNull("id", "preset_id")
+        val presetId = stringOrNull("id", "preset_id")
             ?: generatePresetId(name, manufacturer, model, creator)
         val displayName = buildDisplayName(manufacturer, model, creator, name)
 
@@ -139,9 +144,20 @@ class EqPresetParser @Inject constructor() {
     }
 
     private fun extractFilterElements(entry: JsonObject): List<JsonElement> {
+        val data = entry["data"] as? JsonObject
+        val parameters = data?.get("parameters") as? JsonObject
+        val containers = listOfNotNull(entry, data, parameters)
+        for (container in containers) {
+            val elements = extractFilterElementsFrom(container)
+            if (elements.isNotEmpty()) return elements
+        }
+        return emptyList()
+    }
+
+    private fun extractFilterElementsFrom(container: JsonObject): List<JsonElement> {
         val candidates = listOf("filters", "eq", "eqs", "bands", "peqs", "filters_biquad")
         for (key in candidates) {
-            val element = entry[key] ?: continue
+            val element = container[key] ?: continue
             when (element) {
                 is JsonArray -> return element
                 is JsonObject -> {

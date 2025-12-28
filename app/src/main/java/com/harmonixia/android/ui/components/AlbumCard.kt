@@ -5,10 +5,11 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -30,10 +31,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
-import coil3.request.ImageRequest
-import coil3.request.bitmapConfig
 import com.harmonixia.android.R
 import com.harmonixia.android.domain.model.Album
+import com.harmonixia.android.ui.util.buildAlbumArtworkRequest
 import com.harmonixia.android.util.ImageQualityManager
 
 @Composable
@@ -58,11 +58,13 @@ fun AlbumCard(
     val qualityManager = remember(context) { ImageQualityManager(context) }
     val optimizedSize = qualityManager.getOptimalImageSize(artworkSize)
     val sizePx = with(LocalDensity.current) { optimizedSize.roundToPx() }
-    val imageRequest = ImageRequest.Builder(context)
-        .data(album.imageUrl)
-        .size(sizePx)
-        .bitmapConfig(qualityManager.getOptimalBitmapConfig())
-        .build()
+    val bitmapConfig = qualityManager.getOptimalBitmapConfig()
+    val imageRequest = buildAlbumArtworkRequest(
+        context = context,
+        album = album,
+        sizePx = sizePx,
+        bitmapConfig = bitmapConfig
+    )
 
     Card(
         modifier = interactionModifier.fillMaxWidth(),
@@ -79,7 +81,8 @@ fun AlbumCard(
                 model = imageRequest,
                 contentDescription = stringResource(R.string.content_desc_album_artwork),
                 modifier = Modifier
-                    .size(optimizedSize)
+                    .sizeIn(maxWidth = optimizedSize, maxHeight = optimizedSize)
+                    .aspectRatio(1f)
                     .clip(RoundedCornerShape(12.dp)),
                 placeholder = placeholder,
                 error = placeholder,

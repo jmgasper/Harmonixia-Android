@@ -6,11 +6,12 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
@@ -20,16 +21,19 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.paging.LoadState
 import androidx.paging.compose.LazyPagingItems
 import coil3.imageLoader
-import coil3.request.ImageRequest
 import com.harmonixia.android.domain.model.Album
+import com.harmonixia.android.ui.util.buildAlbumArtworkRequest
+import com.harmonixia.android.util.ImageQualityManager
 
 private val AlbumGridSpacing = 8.dp
 private const val PREFETCH_START_OFFSET = 10
@@ -50,10 +54,14 @@ fun AlbumGrid(
     val gridState = rememberLazyGridState()
     val context = LocalContext.current
     val imageLoader = context.imageLoader
+    val qualityManager = remember(context) { ImageQualityManager(context) }
+    val optimizedSize = qualityManager.getOptimalImageSize(artworkSize)
+    val sizePx = with(LocalDensity.current) { optimizedSize.roundToPx() }
+    val bitmapConfig = qualityManager.getOptimalBitmapConfig()
     val isLoading = albums.loadState.refresh is LoadState.Loading ||
         albums.loadState.append is LoadState.Loading
 
-    LaunchedEffect(albums.itemCount, gridState.firstVisibleItemIndex, isLoading) {
+    LaunchedEffect(albums.itemCount, gridState.firstVisibleItemIndex, isLoading, sizePx, bitmapConfig) {
         if (isLoading || albums.itemCount == 0) return@LaunchedEffect
         val startIndex = (gridState.firstVisibleItemIndex + PREFETCH_START_OFFSET)
             .coerceAtMost(albums.itemCount - 1)
@@ -61,11 +69,15 @@ fun AlbumGrid(
             .coerceAtMost(albums.itemCount - 1)
         if (startIndex > endIndex) return@LaunchedEffect
         for (index in startIndex..endIndex) {
-            val imageUrl = albums[index]?.imageUrl ?: continue
+            val album = albums[index] ?: continue
+            if (album.imageUrl.isNullOrBlank()) continue
             imageLoader.enqueue(
-                ImageRequest.Builder(context)
-                    .data(imageUrl)
-                    .build()
+                buildAlbumArtworkRequest(
+                    context = context,
+                    album = album,
+                    sizePx = sizePx,
+                    bitmapConfig = bitmapConfig
+                )
             )
         }
     }
@@ -152,7 +164,8 @@ private fun AlbumCardPlaceholder(
         ) {
             Box(
                 modifier = Modifier
-                    .size(artworkSize)
+                    .sizeIn(maxWidth = artworkSize, maxHeight = artworkSize)
+                    .aspectRatio(1f)
                     .clip(RoundedCornerShape(12.dp))
                     .background(MaterialTheme.colorScheme.surfaceVariant)
             )

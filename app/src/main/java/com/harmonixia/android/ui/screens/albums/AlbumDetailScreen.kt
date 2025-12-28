@@ -14,6 +14,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
@@ -39,8 +41,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.painter.ColorPainter
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.graphics.painter.ColorPainter
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
@@ -56,8 +59,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import coil3.compose.AsyncImage
-import coil3.request.ImageRequest
-import coil3.request.bitmapConfig
 import com.harmonixia.android.R
 import com.harmonixia.android.domain.model.Album
 import com.harmonixia.android.domain.model.Track
@@ -66,6 +67,7 @@ import com.harmonixia.android.ui.components.PlaylistPickerDialog
 import com.harmonixia.android.ui.components.TrackList
 import com.harmonixia.android.ui.screens.playlists.CreatePlaylistDialog
 import com.harmonixia.android.ui.theme.rememberAdaptiveSpacing
+import com.harmonixia.android.ui.util.buildAlbumArtworkRequest
 import com.harmonixia.android.util.ImageQualityManager
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -152,6 +154,20 @@ fun AlbumDetailScreen(
     } else {
         null
     }
+    val density = LocalDensity.current
+    val listState = rememberLazyListState()
+    val minArtworkSize = 32.dp
+    val titleRevealRangePx = with(density) { 48.dp.toPx().coerceAtLeast(1f) }
+    val appBarThumbnailAlpha by remember(listState, titleRevealRangePx, isVeryWide) {
+        derivedStateOf {
+            if (isVeryWide || listState.firstVisibleItemIndex == 0) {
+                0f
+            } else {
+                (listState.firstVisibleItemScrollOffset / titleRevealRangePx)
+                    .coerceIn(0f, 1f)
+            }
+        }
+    }
 
     val titleText = album?.name?.ifBlank {
         stringResource(R.string.album_detail_title)
@@ -161,11 +177,24 @@ fun AlbumDetailScreen(
         topBar = {
             TopAppBar(
                 title = {
-                    Text(
-                        text = titleText,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        if (appBarThumbnailAlpha > 0f) {
+                            AlbumArtwork(
+                                album = album,
+                                displaySize = minArtworkSize,
+                                requestSize = minArtworkSize,
+                                cornerRadius = 8.dp,
+                                useOptimizedDisplaySize = false,
+                                modifier = Modifier.alpha(appBarThumbnailAlpha)
+                            )
+                            Spacer(modifier = Modifier.width(spacing.small))
+                        }
+                        Text(
+                            text = titleText,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
                 },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
@@ -245,10 +274,6 @@ fun AlbumDetailScreen(
                 val rightTracks = remember(tracks) {
                     tracks.filterIndexed { index, _ -> index % 2 == 1 }
                 }
-                val contentPadding = PaddingValues(
-                    horizontal = horizontalPadding,
-                    vertical = spacing.large
-                )
                 if (isVeryWide) {
                     Column(
                         modifier = Modifier
@@ -338,46 +363,99 @@ fun AlbumDetailScreen(
                         }
                     }
                 } else {
-                    TrackList(
-                        tracks = tracks,
-                        onTrackClick = viewModel::playTrack,
-                        showContextMenu = true,
-                        isEditable = false,
-                        onAddToPlaylist = { track ->
-                            pendingTrack = track
-                            viewModel.refreshPlaylists()
-                            showPlaylistPicker = true
-                        },
+                    val collapseRangePx = with(density) {
+                        (artworkSize - minArtworkSize).coerceAtLeast(0.dp).toPx()
+                    }
+                    val scrollOffsetPx by remember(listState, collapseRangePx) {
+                        derivedStateOf {
+                            if (collapseRangePx == 0f) {
+                                0f
+                            } else if (listState.firstVisibleItemIndex == 0) {
+                                listState.firstVisibleItemScrollOffset.toFloat()
+                            } else {
+                                collapseRangePx
+                            }
+                        }
+                    }
+                    val collapseFraction = if (collapseRangePx == 0f) {
+                        1f
+                    } else {
+                        (scrollOffsetPx / collapseRangePx).coerceIn(0f, 1f)
+                    }
+                    val currentArtworkSize = (
+                        artworkSize.value +
+                            (minArtworkSize.value - artworkSize.value) * collapseFraction
+                    ).dp
+                    val initialArtworkTopPadding = spacing.large
+                    val artworkTopPadding = (initialArtworkTopPadding.value * (1f - collapseFraction)).dp
+                    val spacerHeight = artworkTopPadding + currentArtworkSize + spacing.medium
+                    val collapsedCornerRadius = 8.dp
+                    val pinnedCornerRadius = (
+                        20.dp.value +
+                            (collapsedCornerRadius.value - 20.dp.value) * collapseFraction
+                    ).dp
+                    val pinnedArtworkAlpha = (1f - appBarThumbnailAlpha).coerceIn(0f, 1f)
+                    val contentPadding = PaddingValues(
+                        start = horizontalPadding,
+                        end = horizontalPadding,
+                        bottom = spacing.large
+                    )
+
+                    Box(
                         modifier = Modifier
                             .fillMaxSize()
-                            .padding(paddingValues),
-                        contentPadding = contentPadding,
-                        headerContent = {
-                            item {
-                                AlbumHeader(
-                                    album = album,
-                                    artworkSize = artworkSize,
-                                    useWideLayout = useWideLayout,
-                                    onPlayAlbum = { viewModel.playAlbum() },
-                                    titleStyle = albumTitleStyle,
-                                    artistStyle = artistNameStyle,
-                                    rowSpacing = if (isExpanded) 32.dp else 24.dp
-                                )
-                            }
-                            item { Spacer(modifier = Modifier.height(spacing.extraLarge)) }
-                            item {
-                                Text(
-                                    text = stringResource(R.string.album_detail_tracks),
-                                    style = sectionHeaderStyle
-                                )
-                            }
-                            item { Spacer(modifier = Modifier.height(spacing.medium)) }
-                        },
-                        trackTitleTextStyle = trackTitleStyle,
-                        trackSupportingTextStyle = trackMetaStyle,
-                        trackMetadataTextStyle = trackMetaStyle,
-                        indexProvider = indexProvider
-                    )
+                            .padding(paddingValues)
+                    ) {
+                        TrackList(
+                            tracks = tracks,
+                            onTrackClick = viewModel::playTrack,
+                            showContextMenu = true,
+                            isEditable = false,
+                            onAddToPlaylist = { track ->
+                                pendingTrack = track
+                                viewModel.refreshPlaylists()
+                                showPlaylistPicker = true
+                            },
+                            modifier = Modifier.fillMaxSize(),
+                            listState = listState,
+                            contentPadding = contentPadding,
+                            headerContent = {
+                                item { Spacer(modifier = Modifier.height(spacerHeight)) }
+                                item {
+                                    AlbumDetails(
+                                        album = album,
+                                        titleStyle = albumTitleStyle,
+                                        artistStyle = artistNameStyle,
+                                        onPlayAlbum = { viewModel.playAlbum() }
+                                    )
+                                }
+                                item { Spacer(modifier = Modifier.height(spacing.extraLarge)) }
+                                item {
+                                    Text(
+                                        text = stringResource(R.string.album_detail_tracks),
+                                        style = sectionHeaderStyle
+                                    )
+                                }
+                                item { Spacer(modifier = Modifier.height(spacing.medium)) }
+                            },
+                            trackTitleTextStyle = trackTitleStyle,
+                            trackSupportingTextStyle = trackMetaStyle,
+                            trackMetadataTextStyle = trackMetaStyle,
+                            indexProvider = indexProvider
+                        )
+                        if (pinnedArtworkAlpha > 0f) {
+                            AlbumArtwork(
+                                album = album,
+                                displaySize = currentArtworkSize,
+                                requestSize = artworkSize,
+                                cornerRadius = pinnedCornerRadius,
+                                modifier = Modifier
+                                    .align(Alignment.TopCenter)
+                                    .padding(top = artworkTopPadding)
+                                    .alpha(pinnedArtworkAlpha)
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -416,6 +494,89 @@ fun AlbumDetailScreen(
 }
 
 @Composable
+private fun AlbumArtwork(
+    album: Album?,
+    displaySize: Dp,
+    requestSize: Dp = displaySize,
+    cornerRadius: Dp,
+    useOptimizedDisplaySize: Boolean = requestSize == displaySize,
+    modifier: Modifier = Modifier
+) {
+    val placeholder = ColorPainter(MaterialTheme.colorScheme.surfaceVariant)
+    val context = LocalContext.current
+    val qualityManager = remember(context) { ImageQualityManager(context) }
+    val optimizedRequestSize = qualityManager.getOptimalImageSize(requestSize)
+    val optimizedDisplaySize = if (useOptimizedDisplaySize) {
+        optimizedRequestSize
+    } else {
+        displaySize
+    }
+    val sizePx = with(LocalDensity.current) { optimizedRequestSize.roundToPx() }
+    val bitmapConfig = qualityManager.getOptimalBitmapConfig()
+    val imageRequest = buildAlbumArtworkRequest(
+        context = context,
+        album = album,
+        sizePx = sizePx,
+        bitmapConfig = bitmapConfig
+    )
+
+    AsyncImage(
+        model = imageRequest,
+        contentDescription = stringResource(R.string.content_desc_album_artwork),
+        placeholder = placeholder,
+        error = placeholder,
+        contentScale = ContentScale.Crop,
+        modifier = modifier
+            .size(optimizedDisplaySize)
+            .clip(RoundedCornerShape(cornerRadius))
+    )
+}
+
+@Composable
+private fun AlbumDetails(
+    album: Album?,
+    titleStyle: TextStyle,
+    artistStyle: TextStyle,
+    onPlayAlbum: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val spacing = rememberAdaptiveSpacing()
+    val artistNames = album?.artists?.joinToString(", ").orEmpty()
+    val albumTitle = album?.name?.ifBlank {
+        stringResource(R.string.album_detail_title)
+    } ?: stringResource(R.string.album_detail_title)
+
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(spacing.medium)
+    ) {
+        Text(
+            text = albumTitle,
+            style = titleStyle,
+            textAlign = TextAlign.Center,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis
+        )
+        if (artistNames.isNotBlank()) {
+            Text(
+                text = artistNames,
+                style = artistStyle,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center
+            )
+        }
+        FilledTonalButton(
+            onClick = onPlayAlbum,
+            enabled = album != null,
+            modifier = Modifier.fillMaxWidth(0.8f)
+        ) {
+            Text(text = stringResource(R.string.album_detail_play))
+        }
+    }
+}
+
+@Composable
 private fun AlbumHeader(
     album: Album?,
     artworkSize: Dp,
@@ -427,16 +588,6 @@ private fun AlbumHeader(
     modifier: Modifier = Modifier
 ) {
     val spacing = rememberAdaptiveSpacing()
-    val placeholder = ColorPainter(MaterialTheme.colorScheme.surfaceVariant)
-    val context = LocalContext.current
-    val qualityManager = remember(context) { ImageQualityManager(context) }
-    val optimizedSize = qualityManager.getOptimalImageSize(artworkSize)
-    val sizePx = with(LocalDensity.current) { optimizedSize.roundToPx() }
-    val imageRequest = ImageRequest.Builder(context)
-        .data(album?.imageUrl)
-        .size(sizePx)
-        .bitmapConfig(qualityManager.getOptimalBitmapConfig())
-        .build()
     val artistNames = album?.artists?.joinToString(", ").orEmpty()
     val albumTitle = album?.name?.ifBlank {
         stringResource(R.string.album_detail_title)
@@ -448,15 +599,11 @@ private fun AlbumHeader(
             horizontalArrangement = Arrangement.spacedBy(rowSpacing),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            AsyncImage(
-                model = imageRequest,
-                contentDescription = stringResource(R.string.content_desc_album_artwork),
-                placeholder = placeholder,
-                error = placeholder,
-                contentScale = ContentScale.Crop,
-                modifier = Modifier
-                    .size(optimizedSize)
-                    .clip(RoundedCornerShape(20.dp))
+            AlbumArtwork(
+                album = album,
+                displaySize = artworkSize,
+                requestSize = artworkSize,
+                cornerRadius = 20.dp
             )
             Column(
                 modifier = Modifier.weight(1f),
@@ -489,15 +636,11 @@ private fun AlbumHeader(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(spacing.medium)
         ) {
-            AsyncImage(
-                model = imageRequest,
-                contentDescription = stringResource(R.string.content_desc_album_artwork),
-                placeholder = placeholder,
-                error = placeholder,
-                contentScale = ContentScale.Crop,
-                modifier = Modifier
-                    .size(optimizedSize)
-                    .clip(RoundedCornerShape(20.dp))
+            AlbumArtwork(
+                album = album,
+                displaySize = artworkSize,
+                requestSize = artworkSize,
+                cornerRadius = 20.dp
             )
             Text(
                 text = albumTitle,

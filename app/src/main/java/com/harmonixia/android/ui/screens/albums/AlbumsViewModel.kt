@@ -39,7 +39,8 @@ class AlbumsViewModel @Inject constructor(
         AlbumType.ALBUM,
         AlbumType.SINGLE,
         AlbumType.EP,
-        AlbumType.COMPILATION
+        AlbumType.COMPILATION,
+        AlbumType.UNKNOWN
     )
 
     private val selectedAlbumTypes = MutableStateFlow(defaultAlbumTypes)

@@ -41,6 +41,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
@@ -60,6 +61,7 @@ fun SharedTransitionScope.MiniPlayer(
     isVisible: Boolean = true,
     isLoading: Boolean = false,
     isExpandedLayout: Boolean = false,
+    enableSharedArtworkTransition: Boolean = true,
     modifier: Modifier = Modifier
 ) {
     val progress = if (playbackInfo.duration > 0L) {
@@ -67,10 +69,7 @@ fun SharedTransitionScope.MiniPlayer(
     } else {
         0f
     }
-    val configuration = LocalConfiguration.current
-    val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
-    val baseHeight = if (isExpandedLayout) 88.dp else 72.dp
-    val rowHeight = if (isLandscape) baseHeight * 0.8f else baseHeight
+    val rowHeight = MiniPlayerDefaults.rowHeight(isExpandedLayout)
     val horizontalPadding = if (isExpandedLayout) 24.dp else 16.dp
     val artworkSize = if (isExpandedLayout) 48.dp else 40.dp
     val controlSize = if (isExpandedLayout) 48.dp else 40.dp
@@ -81,6 +80,7 @@ fun SharedTransitionScope.MiniPlayer(
     val artist = playbackInfo.artist
     val album = playbackInfo.album
     val context = LocalContext.current
+    val qualityLabel = formatTrackQualityLabel(playbackInfo.quality, context::getString)
     val qualityManager = remember(context) { ImageQualityManager(context) }
     val optimizedSize = qualityManager.getOptimalImageSize(artworkSize)
     val sizePx = with(LocalDensity.current) { optimizedSize.roundToPx() }
@@ -89,12 +89,20 @@ fun SharedTransitionScope.MiniPlayer(
         .size(sizePx)
         .bitmapConfig(qualityManager.getOptimalBitmapConfig())
         .build()
+    val baseArtworkModifier = Modifier
+        .size(optimizedSize)
+        .clip(RoundedCornerShape(8.dp))
 
     AnimatedVisibility(
         visible = isVisible,
         enter = slideInVertically { it } + fadeIn(),
         exit = slideOutVertically { it } + fadeOut()
     ) {
+        val artworkModifier = if (enableSharedArtworkTransition) {
+            baseArtworkModifier.sharedElement(sharedArtworkState, this@AnimatedVisibility)
+        } else {
+            baseArtworkModifier
+        }
         Surface(
             modifier = modifier
                 .fillMaxWidth()
@@ -111,14 +119,14 @@ fun SharedTransitionScope.MiniPlayer(
                     LinearProgressIndicator(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(2.dp)
+                            .height(MiniPlayerDefaults.ProgressHeight)
                     )
                 } else {
                     LinearProgressIndicator(
                         progress = progress,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(2.dp)
+                            .height(MiniPlayerDefaults.ProgressHeight)
                     )
                 }
                 Row(
@@ -133,10 +141,7 @@ fun SharedTransitionScope.MiniPlayer(
                         contentDescription = stringResource(R.string.content_desc_mini_player_artwork),
                         placeholder = placeholderPainter,
                         error = placeholderPainter,
-                        modifier = Modifier
-                            .size(optimizedSize)
-                            .clip(RoundedCornerShape(8.dp))
-                            .sharedElement(sharedArtworkState, this@AnimatedVisibility)
+                        modifier = artworkModifier
                     )
                     Column(
                         modifier = Modifier.weight(1f),
@@ -154,6 +159,15 @@ fun SharedTransitionScope.MiniPlayer(
                             Text(
                                 text = artist,
                                 style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                        if (qualityLabel != null) {
+                            Text(
+                                text = qualityLabel,
+                                style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
@@ -224,3 +238,18 @@ fun SharedTransitionScope.MiniPlayer(
 }
 
 private const val SHARED_ARTWORK_KEY = "shared_playback_artwork"
+
+internal object MiniPlayerDefaults {
+    val ProgressHeight = 2.dp
+
+    @Composable
+    fun rowHeight(isExpandedLayout: Boolean): Dp {
+        val configuration = LocalConfiguration.current
+        val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
+        val baseHeight = if (isExpandedLayout) 88.dp else 72.dp
+        return if (isLandscape) baseHeight * 0.8f else baseHeight
+    }
+
+    @Composable
+    fun totalHeight(isExpandedLayout: Boolean): Dp = rowHeight(isExpandedLayout) + ProgressHeight
+}

@@ -8,7 +8,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -49,7 +52,7 @@ fun NavGraph(
         Screen.Home.route
     }
     val windowSizeClass = calculateWindowSizeClass(activity = LocalContext.current as Activity)
-    val mainNavController = rememberNavController()
+    var enableSharedArtworkTransition by rememberSaveable { mutableStateOf(false) }
 
     NavHost(navController = navController, startDestination = startDestination) {
         composable(Screen.Onboarding.route) {
@@ -84,11 +87,15 @@ fun NavGraph(
             )
         }
         composable(Screen.Home.route) {
+            // Scope the nested NavHostController to this back stack entry to avoid viewModelStore mismatch.
+            val mainNavController = rememberNavController()
             NavigationPerformanceLogger(screenName = "Main")
             MainScaffold(
                 navController = mainNavController,
                 windowSizeClass = windowSizeClass,
-                modifier = Modifier.fillMaxSize()
+                modifier = Modifier.fillMaxSize(),
+                enableSharedArtworkTransition = enableSharedArtworkTransition,
+                onSharedArtworkTransitionChange = { enableSharedArtworkTransition = it }
             ) { playbackViewModel ->
                 NavHost(
                     navController = mainNavController,
@@ -160,8 +167,12 @@ fun NavGraph(
                     composable(Screen.NowPlaying.route) {
                         NavigationPerformanceLogger(screenName = "NowPlaying")
                         NowPlayingScreen(
-                            onNavigateBack = { mainNavController.popBackStack() },
-                            viewModel = playbackViewModel
+                            onNavigateBack = {
+                                enableSharedArtworkTransition = false
+                                mainNavController.popBackStack()
+                            },
+                            viewModel = playbackViewModel,
+                            enableSharedArtworkTransition = enableSharedArtworkTransition
                         )
                     }
                     composable(

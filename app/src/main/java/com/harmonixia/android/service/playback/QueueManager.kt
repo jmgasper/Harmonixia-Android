@@ -1,6 +1,7 @@
 package com.harmonixia.android.service.playback
 
 import android.net.Uri
+import android.os.Bundle
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
@@ -10,6 +11,7 @@ import com.harmonixia.android.domain.model.Queue
 import com.harmonixia.android.domain.model.QueueOption
 import com.harmonixia.android.domain.model.Track
 import com.harmonixia.android.domain.repository.MusicAssistantRepository
+import com.harmonixia.android.util.EXTRA_TRACK_QUALITY
 import com.harmonixia.android.util.Logger
 
 class QueueManager(
@@ -41,18 +43,21 @@ class QueueManager(
             .takeIf { it > 0 }
             ?.toLong()
             ?.times(1000L)
+        val metadataBuilder = MediaMetadata.Builder()
+            .setTitle(track.title)
+            .setArtist(track.artist)
+            .setAlbumTitle(track.album)
+            .setArtworkUri(track.imageUrl?.let { Uri.parse(it) })
+            .setDurationMs(durationMs)
+        if (!track.quality.isNullOrBlank()) {
+            val extras = Bundle()
+            extras.putString(EXTRA_TRACK_QUALITY, track.quality)
+            metadataBuilder.setExtras(extras)
+        }
         return MediaItem.Builder()
             .setUri(track.uri)
             .setMediaId(track.itemId)
-            .setMediaMetadata(
-                MediaMetadata.Builder()
-                    .setTitle(track.title)
-                    .setArtist(track.artist)
-                    .setAlbumTitle(track.album)
-                    .setArtworkUri(track.imageUrl?.let { Uri.parse(it) })
-                    .setDurationMs(durationMs)
-                    .build()
-            )
+            .setMediaMetadata(metadataBuilder.build())
             .build()
     }
 

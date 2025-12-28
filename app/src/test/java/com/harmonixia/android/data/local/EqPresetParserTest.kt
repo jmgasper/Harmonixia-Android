@@ -75,6 +75,56 @@ class EqPresetParserTest {
     }
 
     @Test
+    fun normalizeOpraDatabaseEntry_readsNestedDataPayload() {
+        val entry = buildJsonObject {
+            put("id", JsonPrimitive("preset-1"))
+            put("type", JsonPrimitive("eq"))
+            put(
+                "data",
+                buildJsonObject {
+                    put("author", JsonPrimitive("AutoEQ"))
+                    put("details", JsonPrimitive("Measured by Example"))
+                    put("product_id", JsonPrimitive("prod-1"))
+                    put(
+                        "parameters",
+                        buildJsonObject {
+                            put(
+                                "bands",
+                                buildJsonArray {
+                                    add(
+                                        buildJsonObject {
+                                            put("type", JsonPrimitive("peak_dip"))
+                                            put("frequency", JsonPrimitive(1000))
+                                            put("gain_db", JsonPrimitive(3.0))
+                                            put("q", JsonPrimitive(1.2))
+                                        }
+                                    )
+                                }
+                            )
+                        }
+                    )
+                }
+            )
+        }
+        val vendors = mapOf("vendor-1" to "Brand X")
+        val products = mapOf(
+            "prod-1" to OpraProduct(
+                id = "prod-1",
+                vendorId = "vendor-1",
+                model = "Model One",
+                manufacturer = null
+            )
+        )
+
+        val preset = parser.normalizeOpraDatabaseEntry(entry, vendors, products)
+
+        assertNotNull(preset)
+        assertEquals("Brand X Model One - AutoEQ", preset?.displayName)
+        assertEquals("Measured by Example", preset?.description)
+        assertEquals(1, preset?.filters?.size)
+    }
+
+    @Test
     fun normalizeFilter_shelfDefaultsToPeaking() {
         val filter = buildJsonObject {
             put("frequency", JsonPrimitive(100))

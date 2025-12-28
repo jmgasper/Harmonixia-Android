@@ -122,6 +122,7 @@
     <string name="album_type_single">Single</string>
     <string name="album_type_ep">EP</string>
     <string name="album_type_compilation">Compilation</string>
+    <string name="album_type_unknown">Unknown</string>
     <string name="performance_settings_title">Performance</string>
     <string name="performance_settings_playback_latency">Average playback start latency: %1$d ms</string>
     <string name="performance_settings_cache_hit_rate_unavailable">Image cache hit rate: N/A</string>

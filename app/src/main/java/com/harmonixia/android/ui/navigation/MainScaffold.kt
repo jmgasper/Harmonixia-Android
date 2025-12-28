@@ -4,15 +4,19 @@ import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionLayout
 import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Icon
+import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarDefaults
+import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationRail
+import androidx.compose.material3.NavigationRailItem
 import androidx.compose.material3.Text
-import androidx.compose.material3.adaptive.navigationsuite.ExperimentalMaterial3AdaptiveNavigationSuiteApi
-import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffold
-import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteType
 import androidx.compose.material3.windowsizeclass.WindowSizeClass
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
@@ -20,6 +24,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -35,30 +40,30 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import com.harmonixia.android.R
 import com.harmonixia.android.ui.components.MiniPlayer
+import com.harmonixia.android.ui.components.MiniPlayerDefaults
 import com.harmonixia.android.ui.playback.NowPlayingUiState
 import com.harmonixia.android.ui.playback.PlaybackViewModel
 
-@OptIn(ExperimentalMaterial3AdaptiveNavigationSuiteApi::class, ExperimentalSharedTransitionApi::class)
+@OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 fun MainScaffold(
     navController: NavHostController,
     windowSizeClass: WindowSizeClass,
     modifier: Modifier = Modifier,
+    enableSharedArtworkTransition: Boolean,
+    onSharedArtworkTransitionChange: (Boolean) -> Unit,
     content: @Composable SharedTransitionScope.(PlaybackViewModel) -> Unit
 ) {
     val destinations = mainNavigationDestinations()
     val configuration = LocalConfiguration.current
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
-    val layoutType by remember(windowSizeClass, configuration) {
+    val isCompactLayout by remember(windowSizeClass, configuration) {
         derivedStateOf {
-            when (windowSizeClass.widthSizeClass) {
-                WindowWidthSizeClass.Compact -> NavigationSuiteType.NavigationBar
-                else -> NavigationSuiteType.NavigationRail
-            }
+            windowSizeClass.widthSizeClass == WindowWidthSizeClass.Compact
         }
     }
-    val isExpandedLayout = layoutType == NavigationSuiteType.NavigationRail
+    val isExpandedLayout = !isCompactLayout
     val topLevelRoutes = remember(destinations) { destinations.map { it.screen.route }.toSet() }
     val currentTopLevelRoute = currentDestination
         ?.hierarchy
@@ -82,93 +87,177 @@ fun MainScaffold(
         ?.any { it.route == Screen.NowPlaying.route } == true
     val showMiniPlayer = nowPlayingUiState !is NowPlayingUiState.Idle && !isNowPlayingDestination
     val isLoading = nowPlayingUiState is NowPlayingUiState.Loading
+    val miniPlayerBottomPadding = if (isCompactLayout) {
+        NavigationBarDefaults.windowInsets
+            .asPaddingValues()
+            .calculateBottomPadding()
+    } else {
+        0.dp
+    }
+    val miniPlayerContentPadding = if (showMiniPlayer) {
+        MiniPlayerDefaults.totalHeight(isExpandedLayout) + miniPlayerBottomPadding
+    } else {
+        0.dp
+    }
     SharedTransitionLayout {
-        NavigationSuiteScaffold(
-            modifier = modifier,
-            layoutType = layoutType,
-            navigationSuiteItems = {
-                destinations.forEach { destination ->
-                    val selected = currentDestination
-                        ?.hierarchy
-                        ?.any { it.route == destination.screen.route } == true ||
-                        savedTopLevelRoute == destination.screen.route
-                    val contentDescriptionRes = when (destination.screen) {
-                        Screen.Home -> R.string.content_desc_nav_home
-                        Screen.Albums -> R.string.content_desc_nav_albums
-                        Screen.Artists -> R.string.content_desc_nav_artists
-                        Screen.Playlists -> R.string.content_desc_nav_playlists
-                        Screen.Search -> R.string.content_desc_nav_search
-                        Screen.Onboarding,
-                        Screen.Settings,
-                        Screen.SettingsEqualizer,
-                        Screen.PerformanceSettings,
-                        Screen.NowPlaying,
-                        Screen.AlbumDetail,
-                        Screen.ArtistDetail,
-                        Screen.PlaylistDetail -> null
-                    }
-
-                    item(
-                        icon = {
-                            val contentDescription =
-                                contentDescriptionRes?.let { stringResource(it) } ?: destination.label
-                            Icon(
-                                imageVector = if (selected) {
-                                    destination.selectedIcon
-                                } else {
-                                    destination.unselectedIcon
-                                },
-                                contentDescription = contentDescription
-                            )
-                        },
-                        label = { Text(text = destination.label) },
-                        selected = selected,
-                        onClick = {
-                            when (destination.screen) {
-                                Screen.Home -> navController.navigateToHome()
-                                Screen.Albums -> navController.navigateToAlbums()
-                                Screen.Artists -> navController.navigateToArtists()
-                                Screen.Playlists -> navController.navigateToPlaylists()
-                                Screen.Search -> navController.navigateToSearch()
-                                Screen.Onboarding,
-                                Screen.Settings,
-                                Screen.SettingsEqualizer,
-                                Screen.PerformanceSettings,
-                                Screen.NowPlaying,
-                                Screen.AlbumDetail,
-                                Screen.ArtistDetail,
-                                Screen.PlaylistDetail -> Unit
-                            }
+        Row(modifier = modifier) {
+            if (isExpandedLayout) {
+                NavigationRail {
+                    destinations.forEach { destination ->
+                        val selected = currentDestination
+                            ?.hierarchy
+                            ?.any { it.route == destination.screen.route } == true ||
+                            savedTopLevelRoute == destination.screen.route
+                        val contentDescriptionRes = when (destination.screen) {
+                            Screen.Home -> R.string.content_desc_nav_home
+                            Screen.Albums -> R.string.content_desc_nav_albums
+                            Screen.Artists -> R.string.content_desc_nav_artists
+                            Screen.Playlists -> R.string.content_desc_nav_playlists
+                            Screen.Search -> R.string.content_desc_nav_search
+                            Screen.Onboarding,
+                            Screen.Settings,
+                            Screen.SettingsEqualizer,
+                            Screen.PerformanceSettings,
+                            Screen.NowPlaying,
+                            Screen.AlbumDetail,
+                            Screen.ArtistDetail,
+                            Screen.PlaylistDetail -> null
                         }
-                    )
+                        NavigationRailItem(
+                            selected = selected,
+                            onClick = {
+                                when (destination.screen) {
+                                    Screen.Home -> navController.navigateToHome()
+                                    Screen.Albums -> navController.navigateToAlbums()
+                                    Screen.Artists -> navController.navigateToArtists()
+                                    Screen.Playlists -> navController.navigateToPlaylists()
+                                    Screen.Search -> navController.navigateToSearch()
+                                    Screen.Onboarding,
+                                    Screen.Settings,
+                                    Screen.SettingsEqualizer,
+                                    Screen.PerformanceSettings,
+                                    Screen.NowPlaying,
+                                    Screen.AlbumDetail,
+                                    Screen.ArtistDetail,
+                                    Screen.PlaylistDetail -> Unit
+                                }
+                            },
+                            icon = {
+                                val contentDescription =
+                                    contentDescriptionRes?.let { stringResource(it) } ?: destination.label
+                                Icon(
+                                    imageVector = if (selected) {
+                                        destination.selectedIcon
+                                    } else {
+                                        destination.unselectedIcon
+                                    },
+                                    contentDescription = contentDescription
+                                )
+                            },
+                            label = { Text(text = destination.label) }
+                        )
+                    }
                 }
             }
-        ) {
-            Box(modifier = Modifier.fillMaxSize()) {
-                content(playbackViewModel)
-                if (playbackInfo != null) {
-                    val bottomPadding = if (layoutType == NavigationSuiteType.NavigationBar) {
-                        NavigationBarDefaults.windowInsets
-                            .asPaddingValues()
-                            .calculateBottomPadding()
-                    } else {
-                        0.dp
-                    }
+            key("main_content") {
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxSize()
+                ) {
                     Box(
                         modifier = Modifier
-                            .align(Alignment.BottomCenter)
-                            .padding(bottom = bottomPadding)
+                            .weight(1f)
+                            .fillMaxWidth()
                     ) {
-                        MiniPlayer(
-                            playbackInfo = playbackInfo,
-                            onPlayPauseClick = { playbackViewModel.togglePlayPause() },
-                            onPreviousClick = { playbackViewModel.previous() },
-                            onNextClick = { playbackViewModel.next() },
-                            onExpandClick = { navController.navigateToNowPlaying() },
-                            isVisible = showMiniPlayer,
-                            isLoading = isLoading,
-                            isExpandedLayout = isExpandedLayout
-                        )
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(bottom = miniPlayerContentPadding)
+                        ) {
+                            content(playbackViewModel)
+                        }
+                        if (playbackInfo != null) {
+                            Box(
+                                modifier = Modifier
+                                    .align(Alignment.BottomCenter)
+                                    .padding(bottom = miniPlayerBottomPadding)
+                            ) {
+                                MiniPlayer(
+                                    playbackInfo = playbackInfo,
+                                    onPlayPauseClick = { playbackViewModel.togglePlayPause() },
+                                    onPreviousClick = { playbackViewModel.previous() },
+                                    onNextClick = { playbackViewModel.next() },
+                                    onExpandClick = {
+                                        onSharedArtworkTransitionChange(true)
+                                        navController.navigateToNowPlaying()
+                                    },
+                                    isVisible = showMiniPlayer,
+                                    isLoading = isLoading,
+                                    isExpandedLayout = isExpandedLayout,
+                                    enableSharedArtworkTransition = enableSharedArtworkTransition
+                                )
+                            }
+                        }
+                    }
+                    if (isCompactLayout) {
+                        NavigationBar {
+                            destinations.forEach { destination ->
+                                val selected = currentDestination
+                                    ?.hierarchy
+                                    ?.any { it.route == destination.screen.route } == true ||
+                                    savedTopLevelRoute == destination.screen.route
+                                val contentDescriptionRes = when (destination.screen) {
+                                    Screen.Home -> R.string.content_desc_nav_home
+                                    Screen.Albums -> R.string.content_desc_nav_albums
+                                    Screen.Artists -> R.string.content_desc_nav_artists
+                                    Screen.Playlists -> R.string.content_desc_nav_playlists
+                                    Screen.Search -> R.string.content_desc_nav_search
+                                    Screen.Onboarding,
+                                    Screen.Settings,
+                                    Screen.SettingsEqualizer,
+                                    Screen.PerformanceSettings,
+                                    Screen.NowPlaying,
+                                    Screen.AlbumDetail,
+                                    Screen.ArtistDetail,
+                                    Screen.PlaylistDetail -> null
+                                }
+                                NavigationBarItem(
+                                    selected = selected,
+                                    onClick = {
+                                        when (destination.screen) {
+                                            Screen.Home -> navController.navigateToHome()
+                                            Screen.Albums -> navController.navigateToAlbums()
+                                            Screen.Artists -> navController.navigateToArtists()
+                                            Screen.Playlists -> navController.navigateToPlaylists()
+                                            Screen.Search -> navController.navigateToSearch()
+                                            Screen.Onboarding,
+                                            Screen.Settings,
+                                            Screen.SettingsEqualizer,
+                                            Screen.PerformanceSettings,
+                                            Screen.NowPlaying,
+                                            Screen.AlbumDetail,
+                                            Screen.ArtistDetail,
+                                            Screen.PlaylistDetail -> Unit
+                                        }
+                                    },
+                                    icon = {
+                                        val contentDescription =
+                                            contentDescriptionRes?.let { stringResource(it) }
+                                                ?: destination.label
+                                        Icon(
+                                            imageVector = if (selected) {
+                                                destination.selectedIcon
+                                            } else {
+                                                destination.unselectedIcon
+                                            },
+                                            contentDescription = contentDescription
+                                        )
+                                    },
+                                    label = { Text(text = destination.label) }
+                                )
+                            }
+                        }
                     }
                 }
             }

@@ -62,8 +62,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.paging.LoadState
 import androidx.paging.compose.collectAsLazyPagingItems
 import coil3.compose.AsyncImage
-import coil3.request.ImageRequest
-import coil3.request.bitmapConfig
 import com.harmonixia.android.R
 import com.harmonixia.android.domain.model.Album
 import com.harmonixia.android.domain.model.AlbumType
@@ -71,6 +69,7 @@ import com.harmonixia.android.ui.components.AlbumGrid
 import com.harmonixia.android.ui.components.AlbumTypeFilterMenu
 import com.harmonixia.android.ui.components.ErrorCard
 import com.harmonixia.android.ui.theme.rememberAdaptiveSpacing
+import com.harmonixia.android.ui.util.buildAlbumArtworkRequest
 import com.harmonixia.android.util.ImageQualityManager
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
@@ -147,7 +146,13 @@ fun AlbumsScreen(
     }
 
     val defaultTypes = remember {
-        setOf(AlbumType.ALBUM, AlbumType.SINGLE, AlbumType.EP, AlbumType.COMPILATION)
+        setOf(
+            AlbumType.ALBUM,
+            AlbumType.SINGLE,
+            AlbumType.EP,
+            AlbumType.COMPILATION,
+            AlbumType.UNKNOWN
+        )
     }
     val selectedTypes = (uiState as? AlbumsUiState.Success)?.selectedAlbumTypes ?: defaultTypes
 
@@ -421,6 +426,7 @@ private fun AlbumDetailPane(
     val optimizedSize = qualityManager.getOptimalImageSize(artworkSize)
     val sizePx = with(LocalDensity.current) { optimizedSize.roundToPx() }
     val placeholder = ColorPainter(MaterialTheme.colorScheme.surfaceVariant)
+    val bitmapConfig = qualityManager.getOptimalBitmapConfig()
 
     Column(
         modifier = modifier
@@ -429,11 +435,12 @@ private fun AlbumDetailPane(
         verticalArrangement = Arrangement.spacedBy(spacing.large)
     ) {
         AsyncImage(
-            model = ImageRequest.Builder(context)
-                .data(album.imageUrl)
-                .size(sizePx)
-                .bitmapConfig(qualityManager.getOptimalBitmapConfig())
-                .build(),
+            model = buildAlbumArtworkRequest(
+                context = context,
+                album = album,
+                sizePx = sizePx,
+                bitmapConfig = bitmapConfig
+            ),
             contentDescription = stringResource(R.string.content_desc_album_artwork),
             placeholder = placeholder,
             error = placeholder,

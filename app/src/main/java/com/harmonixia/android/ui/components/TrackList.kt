@@ -11,8 +11,10 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
@@ -25,6 +27,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
@@ -32,7 +35,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.harmonixia.android.R
 import com.harmonixia.android.domain.model.Track
-import java.util.Locale
 
 @Composable
 @OptIn(ExperimentalFoundationApi::class)
@@ -40,6 +42,7 @@ fun TrackList(
     tracks: List<Track>,
     onTrackClick: (Track) -> Unit,
     modifier: Modifier = Modifier,
+    listState: LazyListState? = null,
     contentPadding: PaddingValues = PaddingValues(0.dp),
     headerContent: (LazyListScope.() -> Unit)? = null,
     showContextMenu: Boolean = false,
@@ -55,8 +58,10 @@ fun TrackList(
 ) {
     var contextMenuTrackId by remember { mutableStateOf<String?>(null) }
     var contextMenuIndex by remember { mutableStateOf(-1) }
+    val resolvedListState = listState ?: rememberLazyListState()
     LazyColumn(
         modifier = modifier,
+        state = resolvedListState,
         contentPadding = contentPadding,
         verticalArrangement = Arrangement.spacedBy(0.dp)
     ) {
@@ -147,9 +152,9 @@ private fun TrackListItem(
     metadataTextStyle: TextStyle?,
     modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
     val durationText = formatDuration(track.lengthSeconds)
-    val qualityLabel = qualityDetailLabel(track.quality)
-        ?: qualityLabelRes(track.quality)?.let { stringResource(it) }
+    val qualityLabel = formatTrackQualityLabel(track.quality, context::getString)
     val title = if (track.title.isNotBlank()) track.title else track.uri
     val artist = if (track.artist.isNotBlank()) track.artist else track.album
 
@@ -242,92 +247,3 @@ private fun formatDuration(seconds: Int): String {
     val remainingSeconds = safeSeconds % 60
     return "%d:%02d".format(minutes, remainingSeconds)
 }
-
-private fun qualityLabelRes(quality: String?): Int? {
-    val normalized = quality?.lowercase()?.trim().orEmpty()
-    return when {
-        normalized.contains("hi_res") ||
-            normalized.contains("hi-res") ||
-            normalized.contains("hires") ||
-            normalized.contains("hi res") ->
-            R.string.track_quality_hires
-        normalized.contains("lossless") -> R.string.track_quality_lossless
-        else -> null
-    }
-}
-
-private fun qualityDetailLabel(quality: String?): String? {
-    val normalized = quality?.lowercase()?.trim().orEmpty()
-    if (normalized.isBlank()) return null
-    val sampleRateKhz = parseSampleRateKhz(normalized)
-    val bitrateKbps = parseBitrateKbps(normalized)
-    return when {
-        isLosslessQuality(normalized) -> sampleRateKhz?.let { formatKhz(it) }
-            ?: bitrateKbps?.let { formatKbps(it) }
-        isLossyQuality(normalized) -> bitrateKbps?.let { formatKbps(it) }
-            ?: sampleRateKhz?.let { formatKhz(it) }
-        sampleRateKhz != null -> formatKhz(sampleRateKhz)
-        bitrateKbps != null -> formatKbps(bitrateKbps)
-        else -> null
-    }
-}
-
-private fun parseSampleRateKhz(quality: String): Double? {
-    khzRegex.find(quality)?.groupValues?.getOrNull(1)?.toDoubleOrNull()?.let { return it }
-    hzRegex.find(quality)?.groupValues?.getOrNull(1)?.toDoubleOrNull()?.let { return it / 1000.0 }
-    val match = bitDepthSampleRateRegex.find(quality)
-    val bitDepth = match?.groupValues?.getOrNull(1)?.toIntOrNull()
-    val sampleRate = match?.groupValues?.getOrNull(2)?.toDoubleOrNull()
-    if (bitDepth != null && bitDepth <= 32 && sampleRate != null && sampleRate >= 30) {
-        return sampleRate
-    }
-    return null
-}
-
-private fun parseBitrateKbps(quality: String): Double? {
-    return bitrateRegex.find(quality)?.groupValues?.getOrNull(1)?.toDoubleOrNull()
-}
-
-private fun formatKhz(value: Double): String {
-    val rounded = if (value % 1.0 == 0.0) value.toInt().toString() else String.format(Locale.US, "%.1f", value)
-    return "$rounded kHz"
-}
-
-private fun formatKbps(value: Double): String {
-    val rounded = if (value % 1.0 == 0.0) value.toInt().toString() else String.format(Locale.US, "%.1f", value)
-    return "$rounded kbps"
-}
-
-private fun isLosslessQuality(quality: String): Boolean {
-    return quality.contains("lossless") ||
-        quality.contains("hi_res") ||
-        quality.contains("hi-res") ||
-        quality.contains("hires") ||
-        quality.contains("flac") ||
-        quality.contains("alac") ||
-        quality.contains("wav") ||
-        quality.contains("aiff") ||
-        quality.contains("pcm") ||
-        quality.contains("dsd")
-}
-
-private fun isLossyQuality(quality: String): Boolean {
-    return quality.contains("mp3") ||
-        quality.contains("aac") ||
-        quality.contains("ogg") ||
-        quality.contains("opus") ||
-        quality.contains("vorbis") ||
-        quality.contains("wma") ||
-        quality.contains("m4a")
-}
-
-private val khzRegex = Regex("""(\d+(?:\.\d+)?)\s*k\s*hz""", RegexOption.IGNORE_CASE)
-private val hzRegex = Regex("""(\d{4,6})\s*hz""", RegexOption.IGNORE_CASE)
-private val bitrateRegex = Regex(
-    """(\d+(?:\.\d+)?)\s*(kbps|kbit/s|kbits/s|kb/s)""",
-    RegexOption.IGNORE_CASE
-)
-private val bitDepthSampleRateRegex = Regex(
-    """\b(\d{2})\s*[/x]\s*(\d{2,3}(?:\.\d)?)\b""",
-    RegexOption.IGNORE_CASE
-)

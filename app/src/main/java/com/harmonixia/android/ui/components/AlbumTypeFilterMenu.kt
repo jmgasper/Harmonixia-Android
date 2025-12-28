@@ -45,7 +45,8 @@ fun AlbumTypeFilterMenu(
             AlbumType.ALBUM,
             AlbumType.SINGLE,
             AlbumType.EP,
-            AlbumType.COMPILATION
+            AlbumType.COMPILATION,
+            AlbumType.UNKNOWN
         )
     }
 
@@ -140,6 +141,6 @@ private fun albumTypeLabel(type: AlbumType): String {
         AlbumType.SINGLE -> stringResource(R.string.album_type_single)
         AlbumType.EP -> stringResource(R.string.album_type_ep)
         AlbumType.COMPILATION -> stringResource(R.string.album_type_compilation)
-        AlbumType.UNKNOWN -> type.name
+        AlbumType.UNKNOWN -> stringResource(R.string.album_type_unknown)
     }
 }

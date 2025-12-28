@@ -28,6 +28,7 @@ class MainActivity : ComponentActivity() {
         WindowCompat.setDecorFitsSystemWindows(window, false)
         window.statusBarColor = Color.TRANSPARENT
         window.navigationBarColor = Color.TRANSPARENT
+        applyHighRefreshRatePreference()
         setContent {
             HarmonixiaTheme {
                 val navController = rememberNavController()
@@ -42,5 +43,23 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+    }
+
+    private fun applyHighRefreshRatePreference() {
+        val activityDisplay = display ?: return
+        val currentMode = activityDisplay.mode
+        val preferredMode = activityDisplay.supportedModes
+            .filter { mode ->
+                mode.physicalWidth == currentMode.physicalWidth &&
+                    mode.physicalHeight == currentMode.physicalHeight
+            }
+            .maxByOrNull { it.refreshRate }
+            ?: activityDisplay.supportedModes.maxByOrNull { it.refreshRate }
+            ?: return
+        val params = window.attributes
+        if (params.preferredDisplayModeId == preferredMode.modeId) return
+        params.preferredDisplayModeId = preferredMode.modeId
+        params.preferredRefreshRate = preferredMode.refreshRate
+        window.attributes = params
     }
 }

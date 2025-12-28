@@ -2,6 +2,7 @@ package com.harmonixia.android.ui.playback
 
 import androidx.media3.common.MediaItem
 import com.harmonixia.android.domain.model.PlaybackState
+import com.harmonixia.android.util.EXTRA_TRACK_QUALITY
 
 sealed class NowPlayingUiState {
     data class Loading(val info: PlaybackInfo) : NowPlayingUiState()
@@ -14,6 +15,7 @@ data class PlaybackInfo(
     val artist: String,
     val album: String,
     val artworkUrl: String?,
+    val quality: String?,
     val duration: Long,
     val currentPosition: Long,
     val isPlaying: Boolean,
@@ -61,6 +63,7 @@ fun MediaItem.toPlaybackInfo(
         artist = metadata.artist?.toString().orEmpty(),
         album = metadata.albumTitle?.toString().orEmpty(),
         artworkUrl = metadata.artworkUri?.toString(),
+        quality = metadata.extras?.getString(EXTRA_TRACK_QUALITY),
         duration = duration,
         currentPosition = currentPosition,
         isPlaying = playbackState == PlaybackState.PLAYING,
