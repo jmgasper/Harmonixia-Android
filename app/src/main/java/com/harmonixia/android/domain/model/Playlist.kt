@@ -18,3 +18,6 @@ data class Playlist(
     @SerialName("image_url")
     val imageUrl: String? = null
 )
+
+val Playlist.downloadId: String
+    get() = "$itemId-$provider"

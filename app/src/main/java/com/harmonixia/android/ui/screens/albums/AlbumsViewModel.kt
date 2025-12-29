@@ -11,8 +11,10 @@ import com.harmonixia.android.data.paging.AlbumsPagingSource
 import com.harmonixia.android.data.remote.ConnectionState
 import com.harmonixia.android.domain.model.Album
 import com.harmonixia.android.domain.model.AlbumType
+import com.harmonixia.android.domain.repository.DownloadRepository
 import com.harmonixia.android.domain.repository.MusicAssistantRepository
 import com.harmonixia.android.domain.usecase.GetConnectionStateUseCase
+import com.harmonixia.android.util.NetworkConnectivityManager
 import com.harmonixia.android.util.PagingStatsTracker
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
@@ -22,15 +24,30 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.SharingStarted
 
 @HiltViewModel
 class AlbumsViewModel @Inject constructor(
     private val repository: MusicAssistantRepository,
+    private val downloadRepository: DownloadRepository,
     getConnectionStateUseCase: GetConnectionStateUseCase,
+    private val networkConnectivityManager: NetworkConnectivityManager,
     private val pagingStatsTracker: PagingStatsTracker
 ) : ViewModel() {
     val connectionState: StateFlow<ConnectionState> = getConnectionStateUseCase()
+    val isOfflineMode: StateFlow<Boolean> = combine(
+        connectionState,
+        networkConnectivityManager.networkAvailabilityFlow
+    ) { state, networkAvailable ->
+        state !is ConnectionState.Connected || !networkAvailable
+    }.stateIn(
+        viewModelScope,
+        SharingStarted.WhileSubscribed(5_000),
+        connectionState.value !is ConnectionState.Connected ||
+            !networkConnectivityManager.networkAvailabilityFlow.value
+    )
 
     private val _uiState = MutableStateFlow<AlbumsUiState>(AlbumsUiState.Loading)
     val uiState: StateFlow<AlbumsUiState> = _uiState.asStateFlow()
@@ -65,7 +82,7 @@ class AlbumsViewModel @Inject constructor(
             }.flow
         }
 
-    val albumsFlow: Flow<PagingData<Album>> = combine(baseFlow, selectedAlbumTypes) {
+    private val onlineAlbumsFlow: Flow<PagingData<Album>> = combine(baseFlow, selectedAlbumTypes) {
             pagingData,
             types
         ->
@@ -74,20 +91,54 @@ class AlbumsViewModel @Inject constructor(
         } else {
             pagingData.filter { album -> types.contains(album.albumType) }
         }
-    }.cachedIn(viewModelScope)
+    }
+
+    private val offlineAlbumsFlow: Flow<PagingData<Album>> = combine(
+        downloadRepository.getDownloadedAlbums(),
+        selectedAlbumTypes
+    ) { albums, types ->
+        val filtered = if (types.isEmpty()) {
+            emptyList()
+        } else {
+            albums.filter { album -> types.contains(album.albumType) }
+        }
+        PagingData.from(filtered)
+    }
+
+    val albumsFlow: Flow<PagingData<Album>> = isOfflineMode
+        .flatMapLatest { offline ->
+            if (offline) offlineAlbumsFlow else onlineAlbumsFlow
+        }
+        .cachedIn(viewModelScope)
 
     init {
         viewModelScope.launch {
-            connectionState.collect { state ->
-                _uiState.value = when (state) {
-                    is ConnectionState.Connected -> AlbumsUiState.Success(
+            isOfflineMode.collect { offline ->
+                if (offline) {
+                    pagingSource?.invalidate()
+                }
+            }
+        }
+        viewModelScope.launch {
+            combine(connectionState, isOfflineMode) { state, offline ->
+                if (offline) {
+                    AlbumsUiState.Success(
                         albums = albumsFlow,
                         selectedAlbumTypes = selectedAlbumTypes.value
                     )
-                    is ConnectionState.Connecting -> AlbumsUiState.Loading
-                    is ConnectionState.Disconnected -> AlbumsUiState.Empty
-                    is ConnectionState.Error -> AlbumsUiState.Error(state.message)
+                } else {
+                    when (state) {
+                        is ConnectionState.Connected -> AlbumsUiState.Success(
+                            albums = albumsFlow,
+                            selectedAlbumTypes = selectedAlbumTypes.value
+                        )
+                        is ConnectionState.Connecting -> AlbumsUiState.Loading
+                        is ConnectionState.Disconnected -> AlbumsUiState.Empty
+                        is ConnectionState.Error -> AlbumsUiState.Error(state.message)
+                    }
                 }
+            }.collect { newState ->
+                _uiState.value = newState
             }
         }
     }

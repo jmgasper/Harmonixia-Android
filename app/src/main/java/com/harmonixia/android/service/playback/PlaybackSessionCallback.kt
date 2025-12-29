@@ -2,18 +2,30 @@ package com.harmonixia.android.service.playback
 
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
+import androidx.media3.common.MediaMetadata
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
+import androidx.media3.session.LibraryResult
+import androidx.media3.session.MediaLibraryService.LibraryParams
+import androidx.media3.session.MediaLibraryService.MediaLibrarySession
 import androidx.media3.session.MediaSession
 import androidx.media3.session.SessionResult
+import com.google.common.collect.ImmutableList
 import com.google.common.util.concurrent.Futures
 import com.google.common.util.concurrent.ListenableFuture
+import com.google.common.util.concurrent.SettableFuture
 import com.harmonixia.android.domain.model.QueueOption
 import com.harmonixia.android.domain.repository.MusicAssistantRepository
+import com.harmonixia.android.util.EXTRA_PARENT_MEDIA_ID
+import com.harmonixia.android.util.EXTRA_STREAM_URI
 import com.harmonixia.android.util.Logger
 import com.harmonixia.android.util.PerformanceMonitor
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 
 @UnstableApi
 class PlaybackSessionCallback(
@@ -21,9 +33,10 @@ class PlaybackSessionCallback(
     private val repository: MusicAssistantRepository,
     private val playbackStateManager: PlaybackStateManager,
     private val queueManager: QueueManager,
+    private val mediaLibraryBrowser: MediaLibraryBrowser,
     private val performanceMonitor: PerformanceMonitor,
     private val scope: CoroutineScope
-) : MediaSession.Callback {
+) : MediaLibrarySession.Callback {
 
     private val playerListener = object : Player.Listener {
         override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
@@ -71,23 +84,111 @@ class PlaybackSessionCallback(
         return SessionResult.RESULT_SUCCESS
     }
 
+    override fun onGetLibraryRoot(
+        session: MediaLibrarySession,
+        browser: MediaSession.ControllerInfo,
+        params: LibraryParams?
+    ): ListenableFuture<LibraryResult<MediaItem>> {
+        val future = SettableFuture.create<LibraryResult<MediaItem>>()
+        scope.launch(Dispatchers.IO) {
+            val root = runCatching { mediaLibraryBrowser.getLibraryRoot(params?.extras) }
+                .getOrElse {
+                    Logger.w(TAG, "Failed to load library root", it)
+                    val metadata = MediaMetadata.Builder()
+                        .setTitle("Harmonixia")
+                        .setIsBrowsable(true)
+                        .setIsPlayable(false)
+                        .build()
+                    MediaItem.Builder()
+                        .setMediaId("root")
+                        .setMediaMetadata(metadata)
+                        .build()
+                }
+            future.set(LibraryResult.ofItem(root, params))
+        }
+        return future
+    }
+
+    override fun onGetChildren(
+        session: MediaLibrarySession,
+        browser: MediaSession.ControllerInfo,
+        parentId: String,
+        page: Int,
+        pageSize: Int,
+        params: LibraryParams?
+    ): ListenableFuture<LibraryResult<ImmutableList<MediaItem>>> {
+        val future = SettableFuture.create<LibraryResult<ImmutableList<MediaItem>>>()
+        scope.launch(Dispatchers.IO) {
+            val children = runCatching {
+                mediaLibraryBrowser.getChildren(parentId, page, pageSize)
+            }.getOrElse {
+                Logger.w(TAG, "Failed to load children for $parentId", it)
+                emptyList()
+            }
+            future.set(LibraryResult.ofItemList(ImmutableList.copyOf(children), params))
+        }
+        return future
+    }
+
+    override fun onSearch(
+        session: MediaLibrarySession,
+        browser: MediaSession.ControllerInfo,
+        query: String,
+        params: LibraryParams?
+    ): ListenableFuture<LibraryResult<Void>> {
+        val future = SettableFuture.create<LibraryResult<Void>>()
+        scope.launch(Dispatchers.IO) {
+            val results = runCatching { mediaLibraryBrowser.getSearchResults(query) }
+                .getOrElse {
+                    Logger.w(TAG, "Failed to search library for $query", it)
+                    null
+                }
+            val count = results?.let { it.albums.size + it.artists.size + it.playlists.size + it.tracks.size } ?: 0
+            session.notifySearchResultChanged(browser, query, count, params)
+            future.set(LibraryResult.ofVoid(params))
+        }
+        return future
+    }
+
+    override fun onGetSearchResult(
+        session: MediaLibrarySession,
+        browser: MediaSession.ControllerInfo,
+        query: String,
+        page: Int,
+        pageSize: Int,
+        params: LibraryParams?
+    ): ListenableFuture<LibraryResult<ImmutableList<MediaItem>>> {
+        val future = SettableFuture.create<LibraryResult<ImmutableList<MediaItem>>>()
+        scope.launch(Dispatchers.IO) {
+            val items = runCatching {
+                mediaLibraryBrowser.search(query, page, pageSize)
+            }.getOrElse {
+                Logger.w(TAG, "Failed to load search results for $query", it)
+                emptyList()
+            }
+            future.set(LibraryResult.ofItemList(ImmutableList.copyOf(items), params))
+        }
+        return future
+    }
+
     override fun onAddMediaItems(
         mediaSession: MediaSession,
         controller: MediaSession.ControllerInfo,
         mediaItems: List<MediaItem>
     ): ListenableFuture<List<MediaItem>> {
+        val resolvedItems = resolveMediaItems(mediaItems)
         playbackStateManager.notifyUserInitiatedPlayback()
-        markPlaybackRequestedForMediaItem(mediaItems.firstOrNull())
+        markPlaybackRequestedForMediaItem(resolvedItems.firstOrNull())
         val queueId = playbackStateManager.currentQueueId
         if (queueId != null) {
-            val uris = mediaItems.mapNotNull { it.localConfiguration?.uri?.toString() }
+            val uris = resolvedItems.mapNotNull { it.streamUri() }
             scope.launch {
                 repository.playMedia(queueId, uris, QueueOption.ADD)
                     .onFailure { Logger.w(TAG, "Add to queue failed", it) }
             }
         }
-        queueManager.addMediaItems(mediaItems)
-        return Futures.immediateFuture(mediaItems)
+        queueManager.addMediaItems(resolvedItems)
+        return Futures.immediateFuture(resolvedItems)
     }
 
     override fun onSetMediaItems(
@@ -97,19 +198,29 @@ class PlaybackSessionCallback(
         startIndex: Int,
         startPositionMs: Long
     ): ListenableFuture<MediaSession.MediaItemsWithStartPosition> {
-        playbackStateManager.notifyUserInitiatedPlayback()
-        markPlaybackRequestedForStartItem(mediaItems, startIndex)
-        val queueId = playbackStateManager.currentQueueId
-        if (queueId != null) {
-            val uris = mediaItems.mapNotNull { it.localConfiguration?.uri?.toString() }
-            scope.launch {
-                repository.playMedia(queueId, uris, QueueOption.REPLACE)
-                    .onFailure { Logger.w(TAG, "Replace queue failed", it) }
+        val future = SettableFuture.create<MediaSession.MediaItemsWithStartPosition>()
+        scope.launch {
+            val resolvedItems = resolveMediaItems(mediaItems)
+            val (queueItems, queueStartIndex) = runCatching {
+                resolveRemainingQueue(resolvedItems, startIndex)
+            }.getOrElse { error ->
+                Logger.w(TAG, "Failed to build queue from parent media", error)
+                resolvedItems to startIndex
             }
+            playbackStateManager.notifyUserInitiatedPlayback()
+            markPlaybackRequestedForStartItem(queueItems, queueStartIndex)
+            val queueId = playbackStateManager.currentQueueId
+            if (queueId != null) {
+                val uris = queueItems.mapNotNull { it.streamUri() }
+                scope.launch(Dispatchers.IO) {
+                    repository.playMedia(queueId, uris, QueueOption.REPLACE)
+                        .onFailure { Logger.w(TAG, "Replace queue failed", it) }
+                }
+            }
+            queueManager.replaceQueue(queueItems, queueStartIndex, startPositionMs)
+            future.set(MediaSession.MediaItemsWithStartPosition(queueItems, queueStartIndex, startPositionMs))
         }
-        queueManager.replaceQueue(mediaItems, startIndex, startPositionMs)
-        val result = MediaSession.MediaItemsWithStartPosition(mediaItems, startIndex, startPositionMs)
-        return Futures.immediateFuture(result)
+        return future
     }
 
     private fun markPlaybackRequestedForMediaItem(mediaItem: MediaItem?) {
@@ -128,12 +239,65 @@ class PlaybackSessionCallback(
         markPlaybackRequestedForMediaItem(player.getMediaItemAt(index))
     }
 
+    private fun resolveMediaItems(mediaItems: List<MediaItem>): List<MediaItem> {
+        if (mediaItems.isEmpty()) return mediaItems
+        return mediaItems.map { item ->
+            if (item.streamUri() != null) {
+                item
+            } else {
+                mediaLibraryBrowser.resolveMediaItem(item.mediaId) ?: item
+            }
+        }
+    }
+
+    private fun MediaItem.streamUri(): String? {
+        val streamingUri = mediaMetadata.extras?.getString(EXTRA_STREAM_URI)
+        return if (!streamingUri.isNullOrBlank()) {
+            streamingUri
+        } else {
+            localConfiguration?.uri?.toString()
+        }
+    }
+
+    private suspend fun resolveRemainingQueue(
+        resolvedItems: List<MediaItem>,
+        startIndex: Int
+    ): Pair<List<MediaItem>, Int> {
+        if (resolvedItems.isEmpty()) return resolvedItems to startIndex
+        val safeIndex = if (startIndex in resolvedItems.indices) startIndex else 0
+        val startItem = resolvedItems[safeIndex]
+        val parentMediaId = startItem.mediaMetadata.extras?.getString(EXTRA_PARENT_MEDIA_ID)
+        if (parentMediaId.isNullOrBlank()) return resolvedItems to startIndex
+        val resolvedMatchesParent = resolvedItems.size > 1 && resolvedItems.all { item ->
+            item.mediaMetadata.extras?.getString(EXTRA_PARENT_MEDIA_ID) == parentMediaId
+        }
+        val parentItems = if (resolvedMatchesParent) {
+            resolvedItems
+        } else {
+            withContext(Dispatchers.IO) {
+                mediaLibraryBrowser.getParentTrackItems(parentMediaId)
+            }
+        }
+        if (parentItems.isEmpty()) return resolvedItems to startIndex
+        val matchIndex = if (parentItems === resolvedItems && startIndex in resolvedItems.indices) {
+            startIndex
+        } else {
+            parentItems.indexOfFirst { it.mediaId == startItem.mediaId }
+        }
+        if (matchIndex == -1) return resolvedItems to startIndex
+        return parentItems.subList(matchIndex, parentItems.size) to 0
+    }
+
     private fun handlePlay() {
         playbackStateManager.notifyUserInitiatedPlayback()
         markPlaybackRequestedForMediaItem(player.currentMediaItem)
         player.play()
-        val queueId = playbackStateManager.currentQueueId ?: return
         scope.launch {
+            val queueId = playbackStateManager.currentQueueId ?: awaitQueueId()
+            if (queueId.isNullOrBlank()) {
+                Logger.w(TAG, "No active queue available for resume")
+                return@launch
+            }
             repository.resumeQueue(queueId)
                 .onFailure { Logger.w(TAG, "Resume command failed", it) }
         }
@@ -178,7 +342,14 @@ class PlaybackSessionCallback(
         }
     }
 
+    private suspend fun awaitQueueId(): String? {
+        return withTimeoutOrNull(QUEUE_ID_WAIT_TIMEOUT_MS) {
+            playbackStateManager.queueIdFlow.first { !it.isNullOrBlank() }
+        }
+    }
+
     companion object {
         private const val TAG = "PlaybackSessionCallback"
+        private const val QUEUE_ID_WAIT_TIMEOUT_MS = 3000L
     }
 }

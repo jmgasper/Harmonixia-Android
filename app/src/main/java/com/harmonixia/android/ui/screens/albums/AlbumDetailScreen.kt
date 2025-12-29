@@ -20,6 +20,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -27,6 +28,7 @@ import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -44,6 +46,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.painter.ColorPainter
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
@@ -63,6 +66,7 @@ import com.harmonixia.android.R
 import com.harmonixia.android.domain.model.Album
 import com.harmonixia.android.domain.model.Track
 import com.harmonixia.android.ui.components.ErrorCard
+import com.harmonixia.android.ui.components.OfflineModeBanner
 import com.harmonixia.android.ui.components.PlaylistPickerDialog
 import com.harmonixia.android.ui.components.TrackList
 import com.harmonixia.android.ui.screens.playlists.CreatePlaylistDialog
@@ -80,6 +84,8 @@ fun AlbumDetailScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val album by viewModel.album.collectAsStateWithLifecycle()
     val playlists by viewModel.playlists.collectAsStateWithLifecycle()
+    val isOfflineMode by viewModel.isOfflineMode.collectAsStateWithLifecycle()
+    val isAlbumDownloaded by viewModel.isAlbumDownloaded.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
 
@@ -87,6 +93,7 @@ fun AlbumDetailScreen(
     var pendingTrack by remember { mutableStateOf<Track?>(null) }
     var showCreateDialog by remember { mutableStateOf(false) }
     var playlistName by remember { mutableStateOf("") }
+    var showRemoveDownloadDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(viewModel) {
         viewModel.events.collect { event ->
@@ -100,6 +107,9 @@ fun AlbumDetailScreen(
                     if (pendingTrack != null) {
                         showPlaylistPicker = true
                     }
+                }
+                AlbumDetailUiEvent.ShowConfirmRemoveDownload -> {
+                    showRemoveDownloadDialog = true
                 }
             }
         }
@@ -156,15 +166,62 @@ fun AlbumDetailScreen(
     }
     val density = LocalDensity.current
     val listState = rememberLazyListState()
-    val minArtworkSize = 32.dp
-    val titleRevealRangePx = with(density) { 48.dp.toPx().coerceAtLeast(1f) }
-    val appBarThumbnailAlpha by remember(listState, titleRevealRangePx, isVeryWide) {
+    var albumDetailsHeightPx by remember { mutableStateOf(0) }
+    val minArtworkSize = 24.dp
+    val collapseRangePx = with(density) {
+        (artworkSize - minArtworkSize).coerceAtLeast(0.dp).toPx()
+    }
+    val effectiveCollapseRangePx = if (albumDetailsHeightPx > 0) {
+        minOf(collapseRangePx, albumDetailsHeightPx.toFloat())
+    } else {
+        collapseRangePx
+    }
+    val scrollOffsetPx by remember(listState, effectiveCollapseRangePx) {
         derivedStateOf {
-            if (isVeryWide || listState.firstVisibleItemIndex == 0) {
+            if (effectiveCollapseRangePx == 0f) {
+                0f
+            } else if (listState.firstVisibleItemIndex == 0) {
+                listState.firstVisibleItemScrollOffset
+                    .toFloat()
+                    .coerceIn(0f, effectiveCollapseRangePx)
+            } else {
+                effectiveCollapseRangePx
+            }
+        }
+    }
+    val collapseFraction = if (effectiveCollapseRangePx == 0f) {
+        1f
+    } else {
+        (scrollOffsetPx / effectiveCollapseRangePx).coerceIn(0f, 1f)
+    }
+    val currentArtworkSize = (
+        artworkSize.value +
+            (minArtworkSize.value - artworkSize.value) * collapseFraction
+    ).dp
+    val artworkTopPadding = (spacing.large.value * (1f - collapseFraction)).dp
+    val overlapFraction = ((collapseFraction - 0.2f) / 0.8f).coerceIn(0f, 1f)
+    val artworkOverlap = (spacing.large.value * overlapFraction).dp
+    val desiredTop = (artworkTopPadding + currentArtworkSize + spacing.medium - artworkOverlap)
+        .coerceAtLeast(0.dp)
+    val appBarThumbnailAlpha by remember(
+        listState,
+        albumDetailsHeightPx,
+        isVeryWide
+    ) {
+        derivedStateOf {
+            if (isVeryWide || albumDetailsHeightPx == 0) {
                 0f
             } else {
-                (listState.firstVisibleItemScrollOffset / titleRevealRangePx)
-                    .coerceIn(0f, 1f)
+                val detailsInfo = listState.layoutInfo.visibleItemsInfo
+                    .firstOrNull { it.index == 0 }
+                val detailsHeight = albumDetailsHeightPx.toFloat().coerceAtLeast(1f)
+                if (detailsInfo == null && listState.firstVisibleItemIndex == 0) {
+                    0f
+                } else {
+                    val layoutOffset = detailsInfo?.offset?.toFloat() ?: -detailsHeight
+                    val progress = (-layoutOffset / detailsHeight).coerceIn(0f, 1f)
+                    ((progress - 0.2f) / 0.8f).coerceIn(0f, 1f)
+                }
             }
         }
     }
@@ -175,44 +232,53 @@ fun AlbumDetailScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        if (appBarThumbnailAlpha > 0f) {
-                            AlbumArtwork(
-                                album = album,
-                                displaySize = minArtworkSize,
-                                requestSize = minArtworkSize,
-                                cornerRadius = 8.dp,
-                                useOptimizedDisplaySize = false,
-                                modifier = Modifier.alpha(appBarThumbnailAlpha)
+            Column {
+                TopAppBar(
+                    title = {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            if (appBarThumbnailAlpha > 0f) {
+                                AlbumArtwork(
+                                    album = album,
+                                    displaySize = minArtworkSize,
+                                    requestSize = minArtworkSize,
+                                    cornerRadius = 8.dp,
+                                    useOptimizedDisplaySize = false,
+                                    modifier = Modifier.alpha(appBarThumbnailAlpha)
+                                )
+                                Spacer(modifier = Modifier.width(spacing.small))
+                            }
+                            Text(
+                                text = titleText,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
                             )
-                            Spacer(modifier = Modifier.width(spacing.small))
                         }
-                        Text(
-                            text = titleText,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
+                    },
+                    navigationIcon = {
+                        IconButton(onClick = onNavigateBack) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Outlined.ArrowBack,
+                                contentDescription = stringResource(R.string.action_back)
+                            )
+                        }
+                    },
+                    actions = {
+                        IconButton(onClick = onNavigateToSettings) {
+                            Icon(
+                                imageVector = Icons.Outlined.Settings,
+                                contentDescription = stringResource(R.string.action_open_settings)
+                            )
+                        }
                     }
-                },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Outlined.ArrowBack,
-                            contentDescription = stringResource(R.string.action_back)
-                        )
-                    }
-                },
-                actions = {
-                    IconButton(onClick = onNavigateToSettings) {
-                        Icon(
-                            imageVector = Icons.Outlined.Settings,
-                            contentDescription = stringResource(R.string.action_open_settings)
-                        )
-                    }
+                )
+                if (isOfflineMode) {
+                    OfflineModeBanner(
+                        text = stringResource(R.string.offline_mode_active),
+                        modifier = Modifier
+                            .padding(horizontal = horizontalPadding, vertical = spacing.small)
+                    )
                 }
-            )
+            }
         },
         snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { paddingValues ->
@@ -286,6 +352,10 @@ fun AlbumDetailScreen(
                                 artworkSize = artworkSize,
                                 useWideLayout = useWideLayout,
                                 onPlayAlbum = { viewModel.playAlbum() },
+                                onDownloadAlbum = { viewModel.downloadAlbum() },
+                                onRemoveDownload = { showRemoveDownloadDialog = true },
+                                isDownloaded = isAlbumDownloaded,
+                                isOfflineMode = isOfflineMode,
                                 titleStyle = albumTitleStyle,
                                 artistStyle = artistNameStyle,
                                 rowSpacing = if (isExpanded) 32.dp else 24.dp
@@ -305,7 +375,11 @@ fun AlbumDetailScreen(
                                 contentAlignment = Alignment.Center
                             ) {
                                 Text(
-                                    text = stringResource(R.string.album_detail_no_tracks),
+                                    text = if (isOfflineMode) {
+                                        stringResource(R.string.no_downloaded_content)
+                                    } else {
+                                        stringResource(R.string.album_detail_no_tracks)
+                                    },
                                     style = sectionHeaderStyle,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     textAlign = TextAlign.Center
@@ -329,6 +403,7 @@ fun AlbumDetailScreen(
                                         viewModel.refreshPlaylists()
                                         showPlaylistPicker = true
                                     },
+                                    onDownloadTrack = viewModel::downloadTrack,
                                     modifier = Modifier
                                         .weight(1f)
                                         .fillMaxHeight(),
@@ -337,6 +412,8 @@ fun AlbumDetailScreen(
                                     trackSupportingTextStyle = trackMetaStyle,
                                     trackMetadataTextStyle = trackMetaStyle,
                                     indexProvider = indexProvider,
+                                    getTrackDownloadStatus = viewModel::getTrackDownloadStatus,
+                                    getTrackDownloadProgress = viewModel::getTrackDownloadProgress,
                                     showEmptyState = false
                                 )
                                 TrackList(
@@ -349,6 +426,7 @@ fun AlbumDetailScreen(
                                         viewModel.refreshPlaylists()
                                         showPlaylistPicker = true
                                     },
+                                    onDownloadTrack = viewModel::downloadTrack,
                                     modifier = Modifier
                                         .weight(1f)
                                         .fillMaxHeight(),
@@ -357,38 +435,14 @@ fun AlbumDetailScreen(
                                     trackSupportingTextStyle = trackMetaStyle,
                                     trackMetadataTextStyle = trackMetaStyle,
                                     indexProvider = indexProvider,
+                                    getTrackDownloadStatus = viewModel::getTrackDownloadStatus,
+                                    getTrackDownloadProgress = viewModel::getTrackDownloadProgress,
                                     showEmptyState = false
                                 )
                             }
                         }
                     }
                 } else {
-                    val collapseRangePx = with(density) {
-                        (artworkSize - minArtworkSize).coerceAtLeast(0.dp).toPx()
-                    }
-                    val scrollOffsetPx by remember(listState, collapseRangePx) {
-                        derivedStateOf {
-                            if (collapseRangePx == 0f) {
-                                0f
-                            } else if (listState.firstVisibleItemIndex == 0) {
-                                listState.firstVisibleItemScrollOffset.toFloat()
-                            } else {
-                                collapseRangePx
-                            }
-                        }
-                    }
-                    val collapseFraction = if (collapseRangePx == 0f) {
-                        1f
-                    } else {
-                        (scrollOffsetPx / collapseRangePx).coerceIn(0f, 1f)
-                    }
-                    val currentArtworkSize = (
-                        artworkSize.value +
-                            (minArtworkSize.value - artworkSize.value) * collapseFraction
-                    ).dp
-                    val initialArtworkTopPadding = spacing.large
-                    val artworkTopPadding = (initialArtworkTopPadding.value * (1f - collapseFraction)).dp
-                    val spacerHeight = artworkTopPadding + currentArtworkSize + spacing.medium
                     val collapsedCornerRadius = 8.dp
                     val pinnedCornerRadius = (
                         20.dp.value +
@@ -398,6 +452,7 @@ fun AlbumDetailScreen(
                     val contentPadding = PaddingValues(
                         start = horizontalPadding,
                         end = horizontalPadding,
+                        top = desiredTop,
                         bottom = spacing.large
                     )
 
@@ -416,17 +471,25 @@ fun AlbumDetailScreen(
                                 viewModel.refreshPlaylists()
                                 showPlaylistPicker = true
                             },
-                            modifier = Modifier.fillMaxSize(),
+                            onDownloadTrack = viewModel::downloadTrack,
+                            modifier = Modifier
+                                .fillMaxSize(),
                             listState = listState,
                             contentPadding = contentPadding,
                             headerContent = {
-                                item { Spacer(modifier = Modifier.height(spacerHeight)) }
                                 item {
                                     AlbumDetails(
                                         album = album,
                                         titleStyle = albumTitleStyle,
                                         artistStyle = artistNameStyle,
-                                        onPlayAlbum = { viewModel.playAlbum() }
+                                        onPlayAlbum = { viewModel.playAlbum() },
+                                        onDownloadAlbum = { viewModel.downloadAlbum() },
+                                        onRemoveDownload = { showRemoveDownloadDialog = true },
+                                        isDownloaded = isAlbumDownloaded,
+                                        isOfflineMode = isOfflineMode,
+                                        modifier = Modifier.onSizeChanged {
+                                            albumDetailsHeightPx = it.height
+                                        }
                                     )
                                 }
                                 item { Spacer(modifier = Modifier.height(spacing.extraLarge)) }
@@ -441,7 +504,9 @@ fun AlbumDetailScreen(
                             trackTitleTextStyle = trackTitleStyle,
                             trackSupportingTextStyle = trackMetaStyle,
                             trackMetadataTextStyle = trackMetaStyle,
-                            indexProvider = indexProvider
+                            indexProvider = indexProvider,
+                            getTrackDownloadStatus = viewModel::getTrackDownloadStatus,
+                            getTrackDownloadProgress = viewModel::getTrackDownloadProgress
                         )
                         if (pinnedArtworkAlpha > 0f) {
                             AlbumArtwork(
@@ -449,6 +514,7 @@ fun AlbumDetailScreen(
                                 displaySize = currentArtworkSize,
                                 requestSize = artworkSize,
                                 cornerRadius = pinnedCornerRadius,
+                                useOptimizedDisplaySize = false,
                                 modifier = Modifier
                                     .align(Alignment.TopCenter)
                                     .padding(top = artworkTopPadding)
@@ -478,6 +544,29 @@ fun AlbumDetailScreen(
                 }
             )
         }
+    }
+
+    if (showRemoveDownloadDialog) {
+        AlertDialog(
+            onDismissRequest = { showRemoveDownloadDialog = false },
+            title = { Text(text = stringResource(R.string.album_download_confirm_remove_title)) },
+            text = { Text(text = stringResource(R.string.album_download_confirm_remove_message)) },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showRemoveDownloadDialog = false
+                        viewModel.removeAlbumDownload()
+                    }
+                ) {
+                    Text(text = stringResource(R.string.album_detail_remove_download))
+                }
+            },
+            dismissButton = {
+                OutlinedButton(onClick = { showRemoveDownloadDialog = false }) {
+                    Text(text = stringResource(R.string.action_back))
+                }
+            }
+        )
     }
 
     if (showCreateDialog) {
@@ -538,6 +627,10 @@ private fun AlbumDetails(
     titleStyle: TextStyle,
     artistStyle: TextStyle,
     onPlayAlbum: () -> Unit,
+    onDownloadAlbum: () -> Unit,
+    onRemoveDownload: () -> Unit,
+    isDownloaded: Boolean,
+    isOfflineMode: Boolean,
     modifier: Modifier = Modifier
 ) {
     val spacing = rememberAdaptiveSpacing()
@@ -545,6 +638,8 @@ private fun AlbumDetails(
     val albumTitle = album?.name?.ifBlank {
         stringResource(R.string.album_detail_title)
     } ?: stringResource(R.string.album_detail_title)
+    val buttonModifier = Modifier.fillMaxWidth(0.8f)
+    val downloadEnabled = album != null && (isDownloaded || !isOfflineMode)
 
     Column(
         modifier = modifier.fillMaxWidth(),
@@ -566,12 +661,34 @@ private fun AlbumDetails(
                 textAlign = TextAlign.Center
             )
         }
-        FilledTonalButton(
-            onClick = onPlayAlbum,
-            enabled = album != null,
-            modifier = Modifier.fillMaxWidth(0.8f)
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(spacing.small)
         ) {
-            Text(text = stringResource(R.string.album_detail_play))
+            FilledTonalButton(
+                onClick = onPlayAlbum,
+                enabled = album != null,
+                modifier = buttonModifier
+            ) {
+                Text(text = stringResource(R.string.album_detail_play))
+            }
+            if (isDownloaded) {
+                OutlinedButton(
+                    onClick = onRemoveDownload,
+                    enabled = album != null,
+                    modifier = buttonModifier
+                ) {
+                    Text(text = stringResource(R.string.album_detail_remove_download))
+                }
+            } else {
+                FilledTonalButton(
+                    onClick = onDownloadAlbum,
+                    enabled = downloadEnabled,
+                    modifier = buttonModifier
+                ) {
+                    Text(text = stringResource(R.string.album_detail_download))
+                }
+            }
         }
     }
 }
@@ -582,6 +699,10 @@ private fun AlbumHeader(
     artworkSize: Dp,
     useWideLayout: Boolean,
     onPlayAlbum: () -> Unit,
+    onDownloadAlbum: () -> Unit,
+    onRemoveDownload: () -> Unit,
+    isDownloaded: Boolean,
+    isOfflineMode: Boolean,
     titleStyle: TextStyle,
     artistStyle: TextStyle,
     rowSpacing: Dp,
@@ -592,6 +713,8 @@ private fun AlbumHeader(
     val albumTitle = album?.name?.ifBlank {
         stringResource(R.string.album_detail_title)
     } ?: stringResource(R.string.album_detail_title)
+    val downloadEnabled = album != null && (isDownloaded || !isOfflineMode)
+    val buttonModifier = if (useWideLayout) Modifier else Modifier.fillMaxWidth(0.8f)
 
     if (useWideLayout) {
         Row(
@@ -622,11 +745,31 @@ private fun AlbumHeader(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
-                FilledTonalButton(
-                    onClick = onPlayAlbum,
-                    enabled = album != null
-                ) {
-                    Text(text = stringResource(R.string.album_detail_play))
+                Column(verticalArrangement = Arrangement.spacedBy(spacing.small)) {
+                    FilledTonalButton(
+                        onClick = onPlayAlbum,
+                        enabled = album != null,
+                        modifier = buttonModifier
+                    ) {
+                        Text(text = stringResource(R.string.album_detail_play))
+                    }
+                    if (isDownloaded) {
+                        OutlinedButton(
+                            onClick = onRemoveDownload,
+                            enabled = album != null,
+                            modifier = buttonModifier
+                        ) {
+                            Text(text = stringResource(R.string.album_detail_remove_download))
+                        }
+                    } else {
+                        FilledTonalButton(
+                            onClick = onDownloadAlbum,
+                            enabled = downloadEnabled,
+                            modifier = buttonModifier
+                        ) {
+                            Text(text = stringResource(R.string.album_detail_download))
+                        }
+                    }
                 }
             }
         }
@@ -657,12 +800,34 @@ private fun AlbumHeader(
                     textAlign = TextAlign.Center
                 )
             }
-            FilledTonalButton(
-                onClick = onPlayAlbum,
-                enabled = album != null,
-                modifier = Modifier.fillMaxWidth(0.8f)
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(spacing.small)
             ) {
-                Text(text = stringResource(R.string.album_detail_play))
+                FilledTonalButton(
+                    onClick = onPlayAlbum,
+                    enabled = album != null,
+                    modifier = buttonModifier
+                ) {
+                    Text(text = stringResource(R.string.album_detail_play))
+                }
+                if (isDownloaded) {
+                    OutlinedButton(
+                        onClick = onRemoveDownload,
+                        enabled = album != null,
+                        modifier = buttonModifier
+                    ) {
+                        Text(text = stringResource(R.string.album_detail_remove_download))
+                    }
+                } else {
+                    FilledTonalButton(
+                        onClick = onDownloadAlbum,
+                        enabled = downloadEnabled,
+                        modifier = buttonModifier
+                    ) {
+                        Text(text = stringResource(R.string.album_detail_download))
+                    }
+                }
             }
         }
     }

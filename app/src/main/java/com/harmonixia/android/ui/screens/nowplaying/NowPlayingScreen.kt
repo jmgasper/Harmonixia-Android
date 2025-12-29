@@ -402,6 +402,7 @@ private fun ControlsPanel(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
+    val qualityLabel = formatTrackQualityLabel(trackIdentity.quality, context::getString)
     Column(
         modifier = modifier
             .fillMaxWidth()
@@ -413,7 +414,6 @@ private fun ControlsPanel(
             transitionSpec = { fadeIn() togetherWith fadeOut() },
             label = "trackText"
         ) { identity ->
-            val qualityLabel = formatTrackQualityLabel(identity.quality, context::getString)
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 if (identity.title.isNotBlank()) {
                     Text(
@@ -444,16 +444,6 @@ private fun ControlsPanel(
                         textAlign = TextAlign.Center
                     )
                 }
-                if (qualityLabel != null) {
-                    Text(
-                        text = qualityLabel,
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        textAlign = TextAlign.Center
-                    )
-                }
             }
         }
         Spacer(modifier = Modifier.height(24.dp))
@@ -464,6 +454,17 @@ private fun ControlsPanel(
             enabled = controlsEnabled,
             modifier = Modifier.fillMaxWidth()
         )
+        if (qualityLabel != null) {
+            Spacer(modifier = Modifier.height(12.dp))
+            Text(
+                text = qualityLabel,
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                textAlign = TextAlign.Center
+            )
+        }
         Spacer(modifier = Modifier.height(24.dp))
         PlaybackControls(
             isPlaying = playbackInfo.isPlaying,

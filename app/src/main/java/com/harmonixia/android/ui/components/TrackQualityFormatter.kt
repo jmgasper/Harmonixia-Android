@@ -5,18 +5,26 @@ import java.util.Locale
 
 fun formatTrackQualityLabel(
     quality: String?,
-    resolveLabel: (Int) -> String
+    resolveLabel: (Int) -> String,
+    showLosslessDetail: Boolean = true
 ): String? {
-    val normalized = quality?.lowercase()?.trim().orEmpty()
+    val raw = quality?.trim().orEmpty()
+    val normalized = raw.lowercase().trim()
     if (normalized.isBlank()) return null
     val labelRes = qualityLabelRes(normalized)
-    val detail = qualityDetailLabel(normalized)
-    return when {
-        labelRes != null && detail != null -> "${resolveLabel(labelRes)} $detail"
-        labelRes != null -> resolveLabel(labelRes)
+    val label = labelRes?.let(resolveLabel)
+    val detail = if (!showLosslessDetail && labelRes == R.string.track_quality_lossless) {
+        null
+    } else {
+        qualityDetailLabel(normalized)
+    }
+    val resolved = when {
+        label != null && detail != null -> "$label $detail"
+        label != null -> label
         detail != null -> detail
         else -> null
     }
+    return resolved ?: raw.takeIf { it.isNotBlank() }
 }
 
 private fun qualityLabelRes(normalized: String): Int? {

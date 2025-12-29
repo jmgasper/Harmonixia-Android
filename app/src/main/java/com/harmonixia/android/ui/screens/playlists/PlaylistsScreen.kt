@@ -64,9 +64,11 @@ import androidx.paging.compose.collectAsLazyPagingItems
 import com.harmonixia.android.R
 import com.harmonixia.android.domain.model.Playlist
 import com.harmonixia.android.ui.components.ErrorCard
+import com.harmonixia.android.ui.components.OfflineModeBanner
 import com.harmonixia.android.ui.components.PlaylistCard
 import com.harmonixia.android.ui.components.PlaylistOptionsMenu
 import com.harmonixia.android.ui.components.RenamePlaylistDialog
+import com.harmonixia.android.ui.navigation.MainScaffoldActions
 import com.harmonixia.android.ui.theme.rememberAdaptiveSpacing
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -79,6 +81,7 @@ fun PlaylistsScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val isRenaming by viewModel.isRenaming.collectAsStateWithLifecycle()
     val renameErrorMessageResId by viewModel.renameErrorMessageResId.collectAsStateWithLifecycle()
+    val isOfflineMode by viewModel.isOfflineMode.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
 
@@ -188,6 +191,7 @@ fun PlaylistsScreen(
             TopAppBar(
                 title = { Text(text = stringResource(R.string.playlists_title)) },
                 actions = {
+                    MainScaffoldActions()
                     IconButton(onClick = onNavigateToSettings) {
                         Icon(
                             imageVector = Icons.Outlined.Settings,
@@ -215,10 +219,22 @@ fun PlaylistsScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-            when (val state = uiState) {
+            Column(modifier = Modifier.fillMaxSize()) {
+                if (isOfflineMode) {
+                    OfflineModeBanner(
+                        text = stringResource(R.string.offline_mode_active),
+                        modifier = Modifier
+                            .padding(horizontal = horizontalPadding)
+                            .padding(top = spacing.medium)
+                    )
+                    Spacer(modifier = Modifier.height(spacing.small))
+                }
+                when (val state = uiState) {
                 PlaylistsUiState.Loading -> {
                     Box(
-                        modifier = Modifier.fillMaxSize(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f),
                         contentAlignment = Alignment.Center
                     ) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -237,7 +253,8 @@ fun PlaylistsScreen(
                     }
                     Box(
                         modifier = Modifier
-                            .fillMaxSize()
+                            .fillMaxWidth()
+                            .weight(1f)
                             .padding(horizontal = horizontalPadding),
                         contentAlignment = Alignment.Center
                     ) {
@@ -255,15 +272,21 @@ fun PlaylistsScreen(
                 PlaylistsUiState.Empty -> {
                     PlaylistsEmptyState(
                         horizontalPadding = horizontalPadding,
-                        onCreatePlaylist = { showCreateDialog = true }
+                        isOfflineMode = isOfflineMode,
+                        onCreatePlaylist = { showCreateDialog = true },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f)
                     )
                 }
                 is PlaylistsUiState.Success -> {
-                    val items = lazyPagingItems ?: return@PullToRefreshBox
+                    val items = lazyPagingItems ?: return@Column
                     when {
                         items.loadState.refresh is LoadState.Loading -> {
                             Box(
-                                modifier = Modifier.fillMaxSize(),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .weight(1f),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -280,7 +303,8 @@ fun PlaylistsScreen(
                             val error = items.loadState.refresh as LoadState.Error
                             Box(
                                 modifier = Modifier
-                                    .fillMaxSize()
+                                    .fillMaxWidth()
+                                    .weight(1f)
                                     .padding(horizontal = horizontalPadding),
                                 contentAlignment = Alignment.Center
                             ) {
@@ -301,7 +325,11 @@ fun PlaylistsScreen(
                         items.itemCount == 0 -> {
                             PlaylistsEmptyState(
                                 horizontalPadding = horizontalPadding,
-                                onCreatePlaylist = { showCreateDialog = true }
+                                isOfflineMode = isOfflineMode,
+                                onCreatePlaylist = { showCreateDialog = true },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .weight(1f)
                             )
                         }
                         isGrid -> {
@@ -310,7 +338,9 @@ fun PlaylistsScreen(
                                 contentPadding = gridPadding,
                                 verticalArrangement = Arrangement.spacedBy(gridSpacing),
                                 horizontalArrangement = Arrangement.spacedBy(gridSpacing),
-                                modifier = Modifier.fillMaxSize()
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .weight(1f)
                             ) {
                                 items(
                                     count = items.itemCount,
@@ -365,7 +395,9 @@ fun PlaylistsScreen(
                         }
                         else -> {
                             LazyColumn(
-                                modifier = Modifier.fillMaxSize(),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .weight(1f),
                                 contentPadding = listPadding,
                                 verticalArrangement = Arrangement.spacedBy(listSpacing)
                             ) {
@@ -421,6 +453,7 @@ fun PlaylistsScreen(
                             }
                         }
                     }
+                }
                 }
             }
         }
@@ -560,6 +593,7 @@ private fun PlaylistCardPlaceholder(
 @Composable
 private fun PlaylistsEmptyState(
     horizontalPadding: Dp,
+    isOfflineMode: Boolean,
     onCreatePlaylist: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -575,12 +609,18 @@ private fun PlaylistsEmptyState(
             verticalArrangement = Arrangement.spacedBy(spacing.medium)
         ) {
             Text(
-                text = stringResource(R.string.playlists_empty),
+                text = if (isOfflineMode) {
+                    stringResource(R.string.no_downloaded_content)
+                } else {
+                    stringResource(R.string.playlists_empty)
+                },
                 style = MaterialTheme.typography.bodyMedium,
                 textAlign = TextAlign.Center
             )
-            Button(onClick = onCreatePlaylist) {
-                Text(text = stringResource(R.string.playlists_create))
+            if (!isOfflineMode) {
+                Button(onClick = onCreatePlaylist) {
+                    Text(text = stringResource(R.string.playlists_create))
+                }
             }
         }
     }

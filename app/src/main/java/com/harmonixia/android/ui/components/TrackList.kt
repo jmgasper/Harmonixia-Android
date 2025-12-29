@@ -9,13 +9,18 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.CheckCircle
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -27,14 +32,22 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.harmonixia.android.R
+import com.harmonixia.android.domain.model.DownloadProgress
+import com.harmonixia.android.domain.model.DownloadStatus
 import com.harmonixia.android.domain.model.Track
+import com.harmonixia.android.domain.model.downloadId
+import kotlinx.coroutines.flow.Flow
 
 @Composable
 @OptIn(ExperimentalFoundationApi::class)
@@ -50,6 +63,9 @@ fun TrackList(
     onTrackLongClick: ((Track, Int) -> Unit)? = null,
     onAddToPlaylist: ((Track) -> Unit)? = null,
     onRemoveFromPlaylist: ((Track, Int) -> Unit)? = null,
+    onDownloadTrack: ((Track) -> Unit)? = null,
+    getTrackDownloadStatus: ((String) -> Flow<DownloadStatus?>)? = null,
+    getTrackDownloadProgress: ((String) -> Flow<DownloadProgress?>)? = null,
     trackTitleTextStyle: TextStyle? = null,
     trackSupportingTextStyle: TextStyle? = null,
     trackMetadataTextStyle: TextStyle? = null,
@@ -95,6 +111,15 @@ fun TrackList(
                 } else {
                     effectiveIndex + 1
                 }
+                val downloadStatusState = getTrackDownloadStatus?.invoke(track.downloadId)
+                    ?.collectAsStateWithLifecycle(initialValue = null)
+                val downloadProgressState = getTrackDownloadProgress?.invoke(track.downloadId)
+                    ?.collectAsStateWithLifecycle(initialValue = null)
+                val downloadStatus by (downloadStatusState
+                    ?: remember { mutableStateOf<DownloadStatus?>(null) })
+                val downloadProgress by (downloadProgressState
+                    ?: remember { mutableStateOf<DownloadProgress?>(null) })
+                val isDownloaded = downloadStatus == DownloadStatus.COMPLETED
                 val hasLongClick = showContextMenu || onTrackLongClick != null
                 val interactionModifier = if (hasLongClick) {
                     Modifier.combinedClickable(
@@ -114,6 +139,8 @@ fun TrackList(
                     TrackListItem(
                         track = track,
                         trackNumber = displayNumber,
+                        downloadStatus = downloadStatus,
+                        downloadProgress = downloadProgress,
                         titleTextStyle = trackTitleTextStyle,
                         supportingTextStyle = trackSupportingTextStyle,
                         metadataTextStyle = trackMetadataTextStyle,
@@ -131,7 +158,9 @@ fun TrackList(
                             onAddToPlaylist = { onAddToPlaylist?.invoke(track) },
                             onRemoveFromPlaylist = {
                                 onRemoveFromPlaylist?.invoke(track, contextMenuIndex)
-                            }
+                            },
+                            onDownload = { onDownloadTrack?.invoke(track) },
+                            isDownloaded = isDownloaded
                         )
                     }
                 }
@@ -147,6 +176,8 @@ fun TrackList(
 private fun TrackListItem(
     track: Track,
     trackNumber: Int,
+    downloadStatus: DownloadStatus?,
+    downloadProgress: DownloadProgress?,
     titleTextStyle: TextStyle?,
     supportingTextStyle: TextStyle?,
     metadataTextStyle: TextStyle?,
@@ -154,10 +185,14 @@ private fun TrackListItem(
 ) {
     val context = LocalContext.current
     val durationText = formatDuration(track.lengthSeconds)
-    val qualityLabel = formatTrackQualityLabel(track.quality, context::getString)
+    val qualityLabel = formatTrackQualityLabel(
+        track.quality,
+        context::getString,
+        showLosslessDetail = false
+    )
     val title = if (track.title.isNotBlank()) track.title else track.uri
     val artist = if (track.artist.isNotBlank()) track.artist else track.album
-
+    val downloadingDescription = stringResource(R.string.content_desc_track_downloading)
     ListItem(
         modifier = modifier,
         leadingContent = {
@@ -209,8 +244,43 @@ private fun TrackListItem(
         },
         trailingContent = {
             Column(horizontalAlignment = Alignment.End) {
+                when (downloadStatus) {
+                    DownloadStatus.COMPLETED -> {
+                        Icon(
+                            imageVector = Icons.Outlined.CheckCircle,
+                            contentDescription = stringResource(R.string.content_desc_track_downloaded),
+                            tint = Color(0xFF2E7D32),
+                            modifier = Modifier
+                                .padding(bottom = 4.dp)
+                                .size(20.dp)
+                        )
+                    }
+                    DownloadStatus.IN_PROGRESS -> {
+                        DownloadProgressIndicator(
+                            progress = downloadProgress?.progress ?: 0,
+                            size = 20.dp,
+                            showLabel = false,
+                            modifier = Modifier.padding(bottom = 4.dp)
+                        )
+                    }
+                    DownloadStatus.PENDING -> {
+                        CircularProgressIndicator(
+                            modifier = Modifier
+                                .padding(bottom = 4.dp)
+                                .size(20.dp)
+                                .semantics {
+                                    contentDescription = downloadingDescription
+                                },
+                            strokeWidth = 2.dp
+                        )
+                    }
+                    else -> Unit
+                }
                 if (qualityLabel != null) {
-                    TrackQualityBadge(text = qualityLabel)
+                    TrackQualityBadge(
+                        text = qualityLabel,
+                        modifier = Modifier.padding(bottom = 4.dp)
+                    )
                 }
                 Text(
                     text = durationText,
@@ -223,7 +293,7 @@ private fun TrackListItem(
 }
 
 @Composable
-private fun TrackQualityBadge(
+internal fun TrackQualityBadge(
     text: String,
     modifier: Modifier = Modifier
 ) {
@@ -231,11 +301,13 @@ private fun TrackQualityBadge(
         color = MaterialTheme.colorScheme.secondaryContainer,
         contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
         shape = MaterialTheme.shapes.small,
-        modifier = modifier.padding(bottom = 4.dp)
+        modifier = modifier
     ) {
         Text(
             text = text,
             style = MaterialTheme.typography.labelSmall,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
             modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
         )
     }

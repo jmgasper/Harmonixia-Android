@@ -20,6 +20,7 @@ import com.harmonixia.android.util.Logger
 import com.harmonixia.android.util.NetworkError
 import com.harmonixia.android.util.toNetworkError
 import java.net.URLEncoder
+import java.util.Locale
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.flow.StateFlow
@@ -443,7 +444,8 @@ class MusicAssistantRepositoryImpl @Inject constructor(
             album = "",
             lengthSeconds = jsonObject.intOrZero("duration"),
             imageUrl = extractImageUrl(jsonObject),
-            quality = null
+            quality = jsonObject.stringOrNull("quality")
+                ?: describeTrackQuality(jsonObject["provider_mappings"])
         )
     }
 
@@ -538,6 +540,7 @@ class MusicAssistantRepositoryImpl @Inject constructor(
             imageUrl = extractImageUrl(jsonObject)
                 ?: (jsonObject["album"] as? JsonObject)?.let { extractImageUrl(it) },
             quality = jsonObject.stringOrNull("quality")
+                ?: describeTrackQuality(jsonObject["provider_mappings"])
         )
     }
 
@@ -559,12 +562,17 @@ class MusicAssistantRepositoryImpl @Inject constructor(
     private fun parseQueue(jsonObject: JsonObject): Queue {
         val currentItem = (jsonObject["current_item"] as? JsonObject)?.let { parseQueueItemTrack(it) }
         val items = parseQueueItems(jsonObject["items"])
+        val elapsedTimeLastUpdated = jsonObject["elapsed_time_last_updated"]
+            ?.jsonPrimitive
+            ?.contentOrNull
+            ?.toDoubleOrNull()
         return Queue(
             queueId = jsonObject.stringOrEmpty("queue_id"),
             state = parsePlaybackState(jsonObject.stringOrNull("state")),
             currentItem = currentItem,
             currentIndex = jsonObject.intOrZero("current_index"),
             elapsedTime = jsonObject.intOrZero("elapsed_time"),
+            elapsedTimeLastUpdated = elapsedTimeLastUpdated,
             items = items
         )
     }
@@ -579,6 +587,83 @@ class MusicAssistantRepositoryImpl @Inject constructor(
                 providerDomain = obj.stringOrEmpty("provider_domain"),
                 available = obj.booleanOrFalse("available")
             )
+        }
+    }
+
+    private fun describeTrackQuality(providerMappings: JsonElement?): String? {
+        val mappings = providerMappings as? JsonArray ?: return null
+        val bestMapping = mappings
+            .mapNotNull { it as? JsonObject }
+            .maxByOrNull { it.doubleOrZero("quality") }
+            ?: return null
+        val audioFormat = bestMapping["audio_format"] as? JsonObject ?: return null
+        val contentType = audioFormat["content_type"]
+        val isLossless = isLosslessContentType(contentType)
+        if (isLossless) {
+            val sampleRate = audioFormat.intOrZero("sample_rate")
+            val bitDepth = audioFormat.intOrZero("bit_depth")
+            if (sampleRate > 0 && bitDepth > 0) {
+                val rateText = formatSampleRateKhz(sampleRate)
+                return "Lossless ${rateText}kHz/${bitDepth}-bit"
+            }
+            return "Lossless"
+        }
+        val bitRate = audioFormat.intOrZero("bit_rate", "bitrate")
+        if (bitRate > 0) {
+            return "${bitRate} kbps"
+        }
+        val outputFormat = audioFormat.stringOrNull("output_format_str")
+        if (!outputFormat.isNullOrBlank()) {
+            return outputFormat
+        }
+        val contentTypeLabel = contentTypeString(contentType)
+        return contentTypeLabel?.takeIf { it.isNotBlank() }
+    }
+
+    private fun isLosslessContentType(contentType: JsonElement?): Boolean {
+        when (contentType) {
+            is JsonObject -> {
+                val explicit = contentType["is_lossless"]?.jsonPrimitive?.booleanOrNull
+                if (explicit != null) return explicit
+                val value = contentType.stringOrNull("value", "name", "content_type", "type")
+                return isLosslessContentTypeString(value)
+            }
+            is JsonPrimitive -> return isLosslessContentTypeString(contentType.contentOrNull)
+            else -> return false
+        }
+    }
+
+    private fun isLosslessContentTypeString(value: String?): Boolean {
+        val normalized = value?.lowercase()?.trim().orEmpty()
+        if (normalized.isBlank()) return false
+        return normalized.contains("lossless") ||
+            normalized.contains("hi_res") ||
+            normalized.contains("hi-res") ||
+            normalized.contains("hires") ||
+            normalized.contains("hi res") ||
+            normalized.contains("flac") ||
+            normalized.contains("alac") ||
+            normalized.contains("wav") ||
+            normalized.contains("aiff") ||
+            normalized.contains("pcm") ||
+            normalized.contains("dsd")
+    }
+
+    private fun contentTypeString(contentType: JsonElement?): String? {
+        return when (contentType) {
+            is JsonObject -> contentType.stringOrNull("value", "name", "content_type", "type")
+            is JsonPrimitive -> contentType.contentOrNull
+            else -> null
+        }
+    }
+
+    private fun formatSampleRateKhz(sampleRate: Int): String {
+        val rateKhz = if (sampleRate >= 1000) sampleRate / 1000.0 else sampleRate.toDouble()
+        val rounded = kotlin.math.round(rateKhz)
+        return if (kotlin.math.abs(rateKhz - rounded) < 0.01) {
+            rounded.toInt().toString()
+        } else {
+            String.format(Locale.US, "%.1f", rateKhz)
         }
     }
 
@@ -689,6 +774,14 @@ class MusicAssistantRepositoryImpl @Inject constructor(
             if (doubleValue != null) return doubleValue.toInt()
         }
         return 0
+    }
+
+    private fun JsonObject.doubleOrZero(vararg keys: String): Double {
+        for (key in keys) {
+            val value = this[key]?.jsonPrimitive?.contentOrNull?.toDoubleOrNull()
+            if (value != null) return value
+        }
+        return 0.0
     }
 
     private fun JsonObject.booleanOrFalse(key: String): Boolean {

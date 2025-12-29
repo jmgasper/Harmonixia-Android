@@ -68,6 +68,8 @@ import com.harmonixia.android.domain.model.AlbumType
 import com.harmonixia.android.ui.components.AlbumGrid
 import com.harmonixia.android.ui.components.AlbumTypeFilterMenu
 import com.harmonixia.android.ui.components.ErrorCard
+import com.harmonixia.android.ui.components.OfflineModeBanner
+import com.harmonixia.android.ui.navigation.MainScaffoldActions
 import com.harmonixia.android.ui.theme.rememberAdaptiveSpacing
 import com.harmonixia.android.ui.util.buildAlbumArtworkRequest
 import com.harmonixia.android.util.ImageQualityManager
@@ -83,6 +85,7 @@ fun AlbumsScreen(
     viewModel: AlbumsViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val isOfflineMode by viewModel.isOfflineMode.collectAsStateWithLifecycle()
 
     val windowSizeClass = calculateWindowSizeClass(activity = LocalContext.current as Activity)
     val configuration = LocalConfiguration.current
@@ -239,6 +242,7 @@ fun AlbumsScreen(
                             )
                         }
                     }
+                    MainScaffoldActions()
                     IconButton(onClick = onNavigateToSettings) {
                         Icon(
                             imageVector = Icons.Outlined.Settings,
@@ -249,20 +253,32 @@ fun AlbumsScreen(
             )
         }
     ) { paddingValues ->
-        PullToRefreshBox(
-            isRefreshing = isRefreshing,
-            onRefresh = {
-                lazyPagingItems?.refresh() ?: viewModel.refresh()
-            },
-            state = rememberPullToRefreshState(),
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-        ) {
+    PullToRefreshBox(
+        isRefreshing = isRefreshing,
+        onRefresh = {
+            lazyPagingItems?.refresh() ?: viewModel.refresh()
+        },
+        state = rememberPullToRefreshState(),
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(paddingValues)
+    ) {
+        Column(modifier = Modifier.fillMaxSize()) {
+            if (isOfflineMode) {
+                OfflineModeBanner(
+                    text = stringResource(R.string.offline_mode_active),
+                    modifier = Modifier
+                        .padding(horizontal = horizontalPadding)
+                        .padding(top = spacing.medium)
+                )
+                Spacer(modifier = Modifier.height(spacing.small))
+            }
             when (val state = uiState) {
                 AlbumsUiState.Loading -> {
                     Box(
-                        modifier = Modifier.fillMaxSize(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f),
                         contentAlignment = Alignment.Center
                     ) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -281,7 +297,8 @@ fun AlbumsScreen(
                     }
                     Box(
                         modifier = Modifier
-                            .fillMaxSize()
+                            .fillMaxWidth()
+                            .weight(1f)
                             .padding(horizontal = horizontalPadding),
                         contentAlignment = Alignment.Center
                     ) {
@@ -297,14 +314,22 @@ fun AlbumsScreen(
                     }
                 }
                 AlbumsUiState.Empty -> {
-                    AlbumsEmptyState(horizontalPadding = horizontalPadding)
+                    AlbumsEmptyState(
+                        horizontalPadding = horizontalPadding,
+                        isOfflineMode = isOfflineMode,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f)
+                    )
                 }
                 is AlbumsUiState.Success -> {
-                    val items = lazyPagingItems ?: return@PullToRefreshBox
+                    val items = lazyPagingItems ?: return@Column
                     when {
                         items.loadState.refresh is LoadState.Loading -> {
                             Box(
-                                modifier = Modifier.fillMaxSize(),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .weight(1f),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -321,7 +346,8 @@ fun AlbumsScreen(
                             val error = items.loadState.refresh as LoadState.Error
                             Box(
                                 modifier = Modifier
-                                    .fillMaxSize()
+                                    .fillMaxWidth()
+                                    .weight(1f)
                                     .padding(horizontal = horizontalPadding),
                                 contentAlignment = Alignment.Center
                             ) {
@@ -340,13 +366,22 @@ fun AlbumsScreen(
                             }
                         }
                         items.itemCount == 0 -> {
-                            AlbumsEmptyState(horizontalPadding = horizontalPadding)
+                            AlbumsEmptyState(
+                                horizontalPadding = horizontalPadding,
+                                isOfflineMode = isOfflineMode,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .weight(1f)
+                            )
                         }
                         else -> {
                             AnimatedContent(
                                 targetState = isExpanded,
                                 transitionSpec = { fadeIn() togetherWith fadeOut() },
-                                label = "albumsLayout"
+                                label = "albumsLayout",
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .weight(1f)
                             ) { expanded ->
                                 if (expanded) {
                                     Row(
@@ -394,6 +429,7 @@ fun AlbumsScreen(
             }
         }
     }
+}
 }
 
 @Composable
@@ -464,10 +500,14 @@ private fun AlbumDetailPane(
 }
 
 @Composable
-private fun AlbumsEmptyState(horizontalPadding: Dp) {
+private fun AlbumsEmptyState(
+    horizontalPadding: Dp,
+    isOfflineMode: Boolean,
+    modifier: Modifier = Modifier
+) {
     val spacing = rememberAdaptiveSpacing()
     Box(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxSize()
             .padding(horizontal = horizontalPadding),
         contentAlignment = Alignment.Center
@@ -482,7 +522,11 @@ private fun AlbumsEmptyState(horizontalPadding: Dp) {
                 tint = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Text(
-                text = stringResource(R.string.albums_empty),
+                text = if (isOfflineMode) {
+                    stringResource(R.string.no_downloaded_content)
+                } else {
+                    stringResource(R.string.albums_empty)
+                },
                 style = MaterialTheme.typography.bodyMedium,
                 textAlign = TextAlign.Center
             )

@@ -5,14 +5,19 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.harmonixia.android.R
 import com.harmonixia.android.data.remote.WebSocketMessage
+import com.harmonixia.android.domain.model.DownloadProgress
+import com.harmonixia.android.domain.model.DownloadStatus
 import com.harmonixia.android.domain.model.Playlist
 import com.harmonixia.android.domain.model.Track
+import com.harmonixia.android.domain.model.downloadId
+import com.harmonixia.android.domain.repository.DownloadRepository
 import com.harmonixia.android.domain.repository.MusicAssistantRepository
 import com.harmonixia.android.domain.usecase.DeletePlaylistUseCase
 import com.harmonixia.android.domain.usecase.ManagePlaylistTracksUseCase
 import com.harmonixia.android.domain.usecase.PlayPlaylistUseCase
 import com.harmonixia.android.domain.usecase.RenamePlaylistUseCase
 import com.harmonixia.android.ui.navigation.Screen
+import com.harmonixia.android.util.NetworkConnectivityManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.async
@@ -21,6 +26,15 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.supervisorScope
 import kotlinx.serialization.json.JsonObject
@@ -32,15 +46,18 @@ sealed class PlaylistDetailUiEvent {
     data object PlaylistCreated : PlaylistDetailUiEvent()
     data object PlaylistDeleted : PlaylistDetailUiEvent()
     data class PlaylistRenamed(val playlist: Playlist) : PlaylistDetailUiEvent()
+    data object ShowConfirmRemoveDownload : PlaylistDetailUiEvent()
 }
 
 @HiltViewModel
 class PlaylistDetailViewModel @Inject constructor(
     private val repository: MusicAssistantRepository,
+    private val downloadRepository: DownloadRepository,
     private val playPlaylistUseCase: PlayPlaylistUseCase,
     private val managePlaylistTracksUseCase: ManagePlaylistTracksUseCase,
     private val deletePlaylistUseCase: DeletePlaylistUseCase,
     private val renamePlaylistUseCase: RenamePlaylistUseCase,
+    private val networkConnectivityManager: NetworkConnectivityManager,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
     private val playlistId: String =
@@ -67,9 +84,57 @@ class PlaylistDetailViewModel @Inject constructor(
     val events = _events.asSharedFlow()
 
     private var tracks: List<Track> = emptyList()
+    private val playlistTracksFlow: Flow<List<Track>> = uiState.map { state ->
+        if (state is PlaylistDetailUiState.Success) state.tracks else emptyList()
+    }
+    val isOfflineMode: StateFlow<Boolean> = networkConnectivityManager.networkAvailabilityFlow
+        .map { networkConnectivityManager.isOfflineMode() }
+        .distinctUntilChanged()
+        .stateIn(
+            viewModelScope,
+            SharingStarted.WhileSubscribed(5_000),
+            networkConnectivityManager.isOfflineMode()
+        )
+    val playlistDownloadStatus: StateFlow<DownloadStatus?> = playlist
+        .map { it?.downloadId }
+        .distinctUntilChanged()
+        .flatMapLatest { downloadId ->
+            if (downloadId.isNullOrBlank()) {
+                flowOf(null)
+            } else {
+                downloadRepository.getDownloadStatus(downloadId)
+            }
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+    val playlistDownloadProgress: StateFlow<DownloadProgress?> = playlist
+        .map { it?.downloadId }
+        .distinctUntilChanged()
+        .flatMapLatest { downloadId ->
+            if (downloadId.isNullOrBlank()) {
+                flowOf(null)
+            } else {
+                downloadRepository.getDownloadProgress(downloadId)
+            }
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+    val isPlaylistDownloaded: StateFlow<Boolean> = combine(
+        playlistTracksFlow,
+        downloadRepository.getDownloadedTracks()
+    ) { playlistTracks, downloadedTracks ->
+        if (playlistTracks.isEmpty()) {
+            false
+        } else {
+            val downloadedIds = downloadedTracks.map { it.downloadId }.toSet()
+            playlistTracks.all { track -> track.downloadId in downloadedIds }
+        }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
 
     init {
-        loadPlaylistTracks()
+        viewModelScope.launch {
+            isOfflineMode.collect {
+                loadPlaylistTracks()
+            }
+        }
         viewModelScope.launch {
             repository.observeEvents().collect { event ->
                 if (isPlaylistEvent(event)) {
@@ -87,6 +152,31 @@ class PlaylistDetailViewModel @Inject constructor(
                 return@launch
             }
             _uiState.value = PlaylistDetailUiState.Loading
+            if (isOfflineMode.value) {
+                val downloadId = "$playlistId-$provider"
+                val downloadedPlaylists = downloadRepository.getDownloadedPlaylists().first()
+                val selected = downloadedPlaylists.firstOrNull { playlist ->
+                    playlist.itemId == playlistId && playlist.provider == provider
+                }
+                _playlists.value = downloadedPlaylists
+                _playlist.value = selected
+                if (selected == null) {
+                    tracks = emptyList()
+                    _uiState.value = PlaylistDetailUiState.Empty
+                    return@launch
+                }
+                val downloadedTracks = downloadRepository.getAllCompletedDownloads()
+                    .first()
+                    .filter { track -> downloadId in track.playlistIds }
+                    .map { track -> track.track }
+                tracks = downloadedTracks
+                _uiState.value = if (downloadedTracks.isEmpty()) {
+                    PlaylistDetailUiState.Empty
+                } else {
+                    PlaylistDetailUiState.Success(downloadedTracks)
+                }
+                return@launch
+            }
             supervisorScope {
                 val playlistsDeferred = async { repository.fetchPlaylists(PLAYLIST_LIST_LIMIT, 0) }
                 val tracksDeferred = async { repository.getPlaylistTracks(playlistId, provider) }
@@ -120,6 +210,10 @@ class PlaylistDetailViewModel @Inject constructor(
 
     fun refreshPlaylists() {
         viewModelScope.launch {
+            if (isOfflineMode.value) {
+                _events.tryEmit(PlaylistDetailUiEvent.ShowMessage(R.string.offline_feature_unavailable))
+                return@launch
+            }
             val result = repository.fetchPlaylists(PLAYLIST_LIST_LIMIT, 0)
             result.onSuccess { playlists ->
                 _playlists.value = playlists
@@ -132,6 +226,10 @@ class PlaylistDetailViewModel @Inject constructor(
     fun refreshPlaylist(showLoading: Boolean = false) {
         if (playlistId.isBlank() || provider.isBlank()) return
         viewModelScope.launch {
+            if (isOfflineMode.value) {
+                _events.tryEmit(PlaylistDetailUiEvent.ShowMessage(R.string.offline_feature_unavailable))
+                return@launch
+            }
             if (showLoading) {
                 _uiState.value = PlaylistDetailUiState.Loading
             }
@@ -163,6 +261,14 @@ class PlaylistDetailViewModel @Inject constructor(
     fun playPlaylist(startIndex: Int = 0) {
         if (playlistId.isBlank() || provider.isBlank()) return
         viewModelScope.launch {
+            if (isOfflineMode.value) {
+                val downloadId = "$playlistId-$provider"
+                val isDownloaded = downloadRepository.isPlaylistDownloaded(downloadId)
+                if (!isDownloaded) {
+                    _events.tryEmit(PlaylistDetailUiEvent.ShowMessage(R.string.no_downloaded_content))
+                    return@launch
+                }
+            }
             playPlaylistUseCase(playlistId, provider, startIndex)
         }
     }
@@ -192,6 +298,10 @@ class PlaylistDetailViewModel @Inject constructor(
             return
         }
         viewModelScope.launch {
+            if (isOfflineMode.value) {
+                _events.tryEmit(PlaylistDetailUiEvent.ShowMessage(R.string.offline_feature_unavailable))
+                return@launch
+            }
             val result = managePlaylistTracksUseCase.addTrackToPlaylist(
                 playlistId = targetPlaylistId,
                 trackUri = uri,
@@ -217,6 +327,10 @@ class PlaylistDetailViewModel @Inject constructor(
         val resolvedPosition = resolveTrackPosition(track, position)
         if (resolvedPosition < 0) return
         viewModelScope.launch {
+            if (isOfflineMode.value) {
+                _events.tryEmit(PlaylistDetailUiEvent.ShowMessage(R.string.offline_feature_unavailable))
+                return@launch
+            }
             val result = managePlaylistTracksUseCase.removeTrackFromPlaylist(playlistId, resolvedPosition)
             result.onSuccess {
                 val updated = tracks.toMutableList()
@@ -244,6 +358,10 @@ class PlaylistDetailViewModel @Inject constructor(
             return
         }
         viewModelScope.launch {
+            if (isOfflineMode.value) {
+                _events.tryEmit(PlaylistDetailUiEvent.ShowMessage(R.string.offline_feature_unavailable))
+                return@launch
+            }
             val result = deletePlaylistUseCase(playlist.itemId)
             result.onSuccess {
                 _events.emit(PlaylistDetailUiEvent.ShowMessage(R.string.playlist_delete_success))
@@ -258,6 +376,10 @@ class PlaylistDetailViewModel @Inject constructor(
         val trimmed = name.trim()
         if (trimmed.isBlank()) return
         viewModelScope.launch {
+            if (isOfflineMode.value) {
+                _events.emit(PlaylistDetailUiEvent.ShowMessage(R.string.offline_feature_unavailable))
+                return@launch
+            }
             val result = repository.createPlaylist(trimmed)
             result.onSuccess { playlist ->
                 _playlists.value = listOf(playlist) + _playlists.value
@@ -288,6 +410,12 @@ class PlaylistDetailViewModel @Inject constructor(
         viewModelScope.launch {
             _isRenaming.value = true
             _renameErrorMessageResId.value = null
+            if (isOfflineMode.value) {
+                _isRenaming.value = false
+                _renameErrorMessageResId.value = R.string.offline_feature_unavailable
+                _events.emit(PlaylistDetailUiEvent.ShowMessage(R.string.offline_feature_unavailable))
+                return@launch
+            }
             val result = renamePlaylistUseCase(playlist.itemId, playlist.provider, trimmed)
             result.onSuccess { newPlaylist ->
                 _isRenaming.value = false
@@ -305,6 +433,59 @@ class PlaylistDetailViewModel @Inject constructor(
 
     fun clearRenameError() {
         _renameErrorMessageResId.value = null
+    }
+
+    fun downloadPlaylist() {
+        val currentPlaylist = playlist.value ?: return
+        viewModelScope.launch {
+            if (isOfflineMode.value) {
+                _events.tryEmit(PlaylistDetailUiEvent.ShowMessage(R.string.offline_feature_unavailable))
+                return@launch
+            }
+            val result = downloadRepository.queuePlaylistDownload(currentPlaylist, tracks)
+            result.onSuccess {
+                _events.tryEmit(PlaylistDetailUiEvent.ShowMessage(R.string.playlist_download_success))
+            }.onFailure {
+                _events.tryEmit(PlaylistDetailUiEvent.ShowMessage(R.string.playlist_download_error))
+            }
+        }
+    }
+
+    fun removePlaylistDownload() {
+        val downloadId = playlist.value?.downloadId ?: "$playlistId-$provider"
+        if (downloadId.isBlank()) return
+        viewModelScope.launch {
+            val result = downloadRepository.deletePlaylistDownload(downloadId)
+            result.onSuccess {
+                _events.tryEmit(PlaylistDetailUiEvent.ShowMessage(R.string.playlist_download_removed))
+            }.onFailure {
+                _events.tryEmit(PlaylistDetailUiEvent.ShowMessage(R.string.playlist_download_remove_error))
+            }
+        }
+    }
+
+    fun downloadTrack(track: Track) {
+        viewModelScope.launch {
+            if (isOfflineMode.value) {
+                _events.tryEmit(PlaylistDetailUiEvent.ShowMessage(R.string.offline_feature_unavailable))
+                return@launch
+            }
+            val playlistDownloadId = playlist.value?.downloadId ?: "$playlistId-$provider"
+            val result = downloadRepository.queueTrackDownload(track, null, listOf(playlistDownloadId))
+            result.onSuccess {
+                _events.tryEmit(PlaylistDetailUiEvent.ShowMessage(R.string.track_download_success))
+            }.onFailure {
+                _events.tryEmit(PlaylistDetailUiEvent.ShowMessage(R.string.track_download_error))
+            }
+        }
+    }
+
+    fun getTrackDownloadStatus(trackId: String): Flow<DownloadStatus?> {
+        return downloadRepository.getDownloadStatus(trackId)
+    }
+
+    fun getTrackDownloadProgress(trackId: String): Flow<DownloadProgress?> {
+        return downloadRepository.getDownloadProgress(trackId)
     }
 
     private fun resolveTrackPosition(track: Track, position: Int): Int {

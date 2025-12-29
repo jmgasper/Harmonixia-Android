@@ -12,32 +12,32 @@ class AlbumsPagingSource(
     private val statsTracker: PagingStatsTracker
 ) : PagingSource<Int, Album>() {
     override suspend fun load(params: LoadParams<Int>): LoadResult<Int, Album> {
-        val offset = params.key ?: 0
-        val limit = params.loadSize.coerceAtLeast(1)
-        return repository.fetchAlbums(limit, offset)
-            .fold(
-                onSuccess = { albums ->
-                    statsTracker.recordPageLoaded(albums.size)
-                    val prevKey = if (offset == 0) null else (offset - limit).coerceAtLeast(0)
-                    val nextKey = if (albums.size < limit) null else offset + limit
-                    LoadResult.Page(
-                        data = albums,
-                        prevKey = prevKey,
-                        nextKey = nextKey
-                    )
-                },
-                onFailure = { error -> LoadResult.Error(error) }
+        val limit = maxOf(pageSize, FETCH_PAGE_SIZE).coerceAtLeast(1)
+        return runCatching {
+            val albums = mutableListOf<Album>()
+            var offset = 0
+            while (true) {
+                val page = repository.fetchAlbums(limit, offset).getOrThrow()
+                if (page.isEmpty()) break
+                statsTracker.recordPageLoaded(page.size)
+                albums.addAll(page)
+                if (page.size < limit) break
+                offset += limit
+            }
+            LoadResult.Page<Int, Album>(
+                data = albums,
+                prevKey = null,
+                nextKey = null
             )
+        }.getOrElse { error -> LoadResult.Error(error) }
     }
 
     override fun getRefreshKey(state: PagingState<Int, Album>): Int? {
-        val anchorPosition = state.anchorPosition ?: return null
-        val closestPage = state.closestPageToPosition(anchorPosition)
-        return closestPage?.prevKey?.plus(pageSize)
-            ?: closestPage?.nextKey?.minus(pageSize)
+        return null
     }
 
     companion object {
         const val PAGE_SIZE = 100
+        private const val FETCH_PAGE_SIZE = 200
     }
 }

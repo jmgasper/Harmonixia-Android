@@ -8,8 +8,10 @@ import coil3.ImageLoader
 import coil3.request.ImageRequest
 import com.harmonixia.android.data.remote.ConnectionState
 import com.harmonixia.android.domain.model.SearchResults
+import com.harmonixia.android.domain.repository.OfflineLibraryRepository
 import com.harmonixia.android.domain.usecase.GetConnectionStateUseCase
 import com.harmonixia.android.domain.usecase.SearchLibraryUseCase
+import com.harmonixia.android.util.NetworkConnectivityManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
@@ -17,18 +19,35 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.launch
 
 @HiltViewModel
 class SearchViewModel @Inject constructor(
     private val searchLibraryUseCase: SearchLibraryUseCase,
+    private val offlineLibraryRepository: OfflineLibraryRepository,
     getConnectionStateUseCase: GetConnectionStateUseCase,
     private val savedStateHandle: SavedStateHandle,
     @ApplicationContext private val context: Context,
-    private val imageLoader: ImageLoader
+    private val imageLoader: ImageLoader,
+    private val networkConnectivityManager: NetworkConnectivityManager
 ) : ViewModel() {
     val connectionState: StateFlow<ConnectionState> = getConnectionStateUseCase()
+    val isOfflineMode: StateFlow<Boolean> = combine(
+        connectionState,
+        networkConnectivityManager.networkAvailabilityFlow
+    ) { state, networkAvailable ->
+        state !is ConnectionState.Connected || !networkAvailable
+    }.stateIn(
+        viewModelScope,
+        SharingStarted.WhileSubscribed(5_000),
+        connectionState.value !is ConnectionState.Connected ||
+            !networkConnectivityManager.networkAvailabilityFlow.value
+    )
 
     private val _uiState = MutableStateFlow<SearchUiState>(SearchUiState.Idle)
     val uiState: StateFlow<SearchUiState> = _uiState.asStateFlow()
@@ -44,6 +63,15 @@ class SearchViewModel @Inject constructor(
     private var lastQuery: String? = null
 
     init {
+        viewModelScope.launch {
+            isOfflineMode.collect { offline ->
+                if (offline) {
+                    cache.clear()
+                    lastResults = null
+                    lastQuery = null
+                }
+            }
+        }
         viewModelScope.launch {
             searchQuery
                 .debounce(SEARCH_DEBOUNCE_MS)
@@ -117,20 +145,23 @@ class SearchViewModel @Inject constructor(
     }
 
     private suspend fun performSearch(query: String) {
-        if (connectionState.value !is ConnectionState.Connected) {
-            return
-        }
+        val offline = networkConnectivityManager.isOfflineMode() ||
+            connectionState.value !is ConnectionState.Connected
         _uiState.value = SearchUiState.Loading
-        val cached = cache[query]
-        val results = if (cached != null && cached.isFresh()) {
-            cached.results
+        val results = if (offline) {
+            offlineLibraryRepository.searchDownloadedContent(query).first()
         } else {
-            val result = searchLibraryUseCase(query, SEARCH_RESULT_LIMIT)
-            result.getOrElse {
-                _uiState.value = SearchUiState.Error(it.message.orEmpty())
-                return
-            }.also { fresh ->
-                cache[query] = CachedResult(fresh, System.currentTimeMillis())
+            val cached = cache[query]
+            if (cached != null && cached.isFresh()) {
+                cached.results
+            } else {
+                val result = searchLibraryUseCase(query, SEARCH_RESULT_LIMIT)
+                result.getOrElse {
+                    _uiState.value = SearchUiState.Error(it.message.orEmpty())
+                    return
+                }.also { fresh ->
+                    cache[query] = CachedResult(fresh, System.currentTimeMillis())
+                }
             }
         }
         lastResults = results
@@ -145,7 +176,9 @@ class SearchViewModel @Inject constructor(
             playlistLimit = limits.playlistLimit,
             trackLimit = limits.trackLimit
         )
-        prefetchImages(results)
+        if (!offline) {
+            prefetchImages(results)
+        }
     }
 
     private fun prefetchImages(results: SearchResults) {

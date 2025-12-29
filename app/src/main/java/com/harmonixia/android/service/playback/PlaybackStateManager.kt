@@ -107,7 +107,7 @@ class PlaybackStateManager(
         return selected.playerId
     }
 
-    private fun handleQueue(queue: Queue?) {
+    private suspend fun handleQueue(queue: Queue?) {
         if (queue == null) {
             _queueId.value = null
             _playbackState.value = PlaybackState.IDLE
@@ -133,7 +133,7 @@ class PlaybackStateManager(
         syncPlayerState(queue, allowPlay = true)
     }
 
-    private fun syncPlayerState(queue: Queue, allowPlay: Boolean) {
+    private suspend fun syncPlayerState(queue: Queue, allowPlay: Boolean) {
         val player = player ?: return
         val remoteTrack = queue.currentItem
         val localMediaId = player.currentMediaItem?.mediaId
@@ -145,7 +145,7 @@ class PlaybackStateManager(
             player.seekTo(queue.currentIndex, C.TIME_UNSET)
         }
 
-        val remotePositionMs = queue.elapsedTime * 1000L
+        val remotePositionMs = resolveRemotePositionMs(queue)
         val localPositionMs = player.currentPosition
         if (abs(remotePositionMs - localPositionMs) > POSITION_TOLERANCE_MS) {
             player.seekTo(remotePositionMs)
@@ -169,6 +169,15 @@ class PlaybackStateManager(
             repository.pauseQueue(queueId)
                 .onFailure { Logger.w(TAG, "Failed to pause queue on startup", it) }
         }
+    }
+
+    private fun resolveRemotePositionMs(queue: Queue): Long {
+        val baseMs = queue.elapsedTime.coerceAtLeast(0) * 1000L
+        val lastUpdatedSeconds = queue.elapsedTimeLastUpdated ?: return baseMs
+        if (queue.state != PlaybackState.PLAYING) return baseMs
+        val nowSeconds = System.currentTimeMillis() / 1000.0
+        val deltaSeconds = (nowSeconds - lastUpdatedSeconds).coerceAtLeast(0.0)
+        return (baseMs + (deltaSeconds * 1000.0)).toLong()
     }
 
     companion object {

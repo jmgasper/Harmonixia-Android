@@ -8,8 +8,9 @@ import androidx.media3.common.C
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.session.MediaLibraryService
+import androidx.media3.session.MediaLibraryService.MediaLibrarySession
 import androidx.media3.session.MediaSession
-import androidx.media3.session.MediaSessionService
 import com.harmonixia.android.domain.repository.MusicAssistantRepository
 import com.harmonixia.android.util.Logger
 import com.harmonixia.android.util.PerformanceMonitor
@@ -23,7 +24,7 @@ import kotlinx.coroutines.launch
 
 @UnstableApi
 @AndroidEntryPoint
-class PlaybackService : MediaSessionService() {
+class PlaybackService : MediaLibraryService() {
     @Inject lateinit var repository: MusicAssistantRepository
     @Inject lateinit var playbackStateManager: PlaybackStateManager
     @Inject lateinit var queueManager: QueueManager
@@ -33,11 +34,12 @@ class PlaybackService : MediaSessionService() {
     @Inject lateinit var equalizerManager: EqualizerManager
     @Inject lateinit var sendspinPlaybackManager: SendspinPlaybackManager
     @Inject lateinit var performanceMonitor: PerformanceMonitor
+    @Inject lateinit var mediaLibraryBrowser: MediaLibraryBrowser
 
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
 
     private lateinit var player: ExoPlayer
-    private var mediaSession: MediaSession? = null
+    private var mediaSession: MediaLibrarySession? = null
     private var wakeLock: PowerManager.WakeLock? = null
 
     override fun onCreate() {
@@ -102,12 +104,12 @@ class PlaybackService : MediaSessionService() {
             repository = repository,
             playbackStateManager = playbackStateManager,
             queueManager = queueManager,
+            mediaLibraryBrowser = mediaLibraryBrowser,
             performanceMonitor = performanceMonitor,
             scope = serviceScope
         )
 
-        mediaSession = MediaSession.Builder(this, player)
-            .setCallback(sessionCallback)
+        mediaSession = MediaLibrarySession.Builder(this, player, sessionCallback)
             .build()
 
         playbackNotificationManager.ensureNotificationChannel()
@@ -131,7 +133,7 @@ class PlaybackService : MediaSessionService() {
         }
     }
 
-    override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaSession? {
+    override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaLibrarySession? {
         return mediaSession
     }
 

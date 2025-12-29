@@ -165,12 +165,9 @@ fun SharedTransitionScope.MiniPlayer(
                             )
                         }
                         if (qualityLabel != null) {
-                            Text(
+                            TrackQualityBadge(
                                 text = qualityLabel,
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
+                                modifier = Modifier.padding(top = 4.dp)
                             )
                         }
                         if (isExpandedLayout && album.isNotBlank()) {

@@ -5,6 +5,7 @@ import coil3.ImageLoader
 import coil3.SingletonImageLoader
 import com.harmonixia.android.data.local.SettingsDataStore
 import com.harmonixia.android.data.remote.ConnectionState
+import com.harmonixia.android.domain.manager.DownloadManager
 import com.harmonixia.android.domain.usecase.ConnectToServerUseCase
 import com.harmonixia.android.domain.usecase.GetConnectionStateUseCase
 import com.harmonixia.android.util.Logger
@@ -26,12 +27,15 @@ class HarmonixiaApplication : Application() {
     lateinit var connectToServerUseCase: ConnectToServerUseCase
     @Inject
     lateinit var getConnectionStateUseCase: GetConnectionStateUseCase
+    @Inject
+    lateinit var downloadManager: DownloadManager
 
     private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     override fun onCreate() {
         super.onCreate()
         SingletonImageLoader.setSafe { imageLoader }
+        downloadManager.start()
         applicationScope.launch {
             val serverUrl = settingsDataStore.getServerUrl().first()
             if (serverUrl.isBlank()) return@launch

@@ -62,6 +62,7 @@ import com.harmonixia.android.domain.model.Album
 import com.harmonixia.android.domain.model.Artist
 import com.harmonixia.android.ui.components.AlbumGridStatic
 import com.harmonixia.android.ui.components.ErrorCard
+import com.harmonixia.android.ui.components.OfflineModeBanner
 import com.harmonixia.android.ui.components.PlaylistPickerDialog
 import com.harmonixia.android.ui.screens.playlists.CreatePlaylistDialog
 import com.harmonixia.android.ui.theme.rememberAdaptiveSpacing
@@ -78,6 +79,7 @@ fun ArtistDetailScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val artist by viewModel.artist.collectAsStateWithLifecycle()
     val playlists by viewModel.playlists.collectAsStateWithLifecycle()
+    val isOfflineMode by viewModel.isOfflineMode.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
 
@@ -160,31 +162,40 @@ fun ArtistDetailScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        text = titleText,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
+            Column {
+                TopAppBar(
+                    title = {
+                        Text(
+                            text = titleText,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    },
+                    navigationIcon = {
+                        IconButton(onClick = onNavigateBack) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Outlined.ArrowBack,
+                                contentDescription = stringResource(R.string.action_back)
+                            )
+                        }
+                    },
+                    actions = {
+                        IconButton(onClick = onNavigateToSettings) {
+                            Icon(
+                                imageVector = Icons.Outlined.Settings,
+                                contentDescription = stringResource(R.string.action_open_settings)
+                            )
+                        }
+                    }
+                )
+                if (isOfflineMode) {
+                    OfflineModeBanner(
+                        text = stringResource(R.string.offline_mode_active),
+                        modifier = Modifier
+                            .padding(horizontal = horizontalPadding, vertical = spacing.small)
                     )
-                },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Outlined.ArrowBack,
-                            contentDescription = stringResource(R.string.action_back)
-                        )
-                    }
-                },
-                actions = {
-                    IconButton(onClick = onNavigateToSettings) {
-                        Icon(
-                            imageVector = Icons.Outlined.Settings,
-                            contentDescription = stringResource(R.string.action_open_settings)
-                        )
-                    }
                 }
-            )
+            }
         },
         snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { paddingValues ->
@@ -232,6 +243,7 @@ fun ArtistDetailScreen(
                 ArtistDetailContent(
                     artist = artist,
                     albums = emptyList(),
+                    isOfflineMode = isOfflineMode,
                     columns = columns,
                     horizontalPadding = horizontalPadding,
                     gridPadding = gridPadding,
@@ -255,6 +267,7 @@ fun ArtistDetailScreen(
                 ArtistDetailContent(
                     artist = state.artist,
                     albums = state.albums,
+                    isOfflineMode = isOfflineMode,
                     columns = columns,
                     horizontalPadding = horizontalPadding,
                     gridPadding = gridPadding,
@@ -313,6 +326,7 @@ fun ArtistDetailScreen(
 private fun ArtistDetailContent(
     artist: Artist?,
     albums: List<Album>,
+    isOfflineMode: Boolean,
     columns: Int,
     horizontalPadding: Dp,
     gridPadding: PaddingValues,
@@ -340,6 +354,7 @@ private fun ArtistDetailContent(
         Spacer(modifier = Modifier.height(spacing.large))
         if (albums.isEmpty()) {
             ArtistAlbumsEmptyState(
+                isOfflineMode = isOfflineMode,
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxWidth()
@@ -441,6 +456,7 @@ private fun ArtistHeader(
 
 @Composable
 private fun ArtistAlbumsEmptyState(
+    isOfflineMode: Boolean,
     textStyle: androidx.compose.ui.text.TextStyle,
     modifier: Modifier = Modifier
 ) {
@@ -459,7 +475,11 @@ private fun ArtistAlbumsEmptyState(
                 tint = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Text(
-                text = stringResource(R.string.artist_detail_no_albums),
+                text = if (isOfflineMode) {
+                    stringResource(R.string.no_downloaded_content)
+                } else {
+                    stringResource(R.string.artist_detail_no_albums)
+                },
                 style = textStyle,
                 textAlign = TextAlign.Center
             )

@@ -1,7 +1,10 @@
 package com.harmonixia.android.ui.components
 
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -16,6 +19,8 @@ fun TrackContextMenu(
     onPlay: () -> Unit,
     onAddToPlaylist: () -> Unit,
     onRemoveFromPlaylist: () -> Unit,
+    onDownload: () -> Unit,
+    isDownloaded: Boolean,
     modifier: Modifier = Modifier
 ) {
     DropdownMenu(
@@ -37,6 +42,24 @@ fun TrackContextMenu(
                 onDismissRequest()
             }
         )
+        if (!isDownloaded) {
+            DropdownMenuItem(
+                text = { Text(text = stringResource(R.string.track_action_download)) },
+                onClick = {
+                    onDownload()
+                    onDismissRequest()
+                }
+            )
+        } else {
+            DropdownMenuItem(
+                text = { Text(text = stringResource(R.string.downloads_completed)) },
+                onClick = {},
+                enabled = false,
+                leadingIcon = {
+                    Icon(imageVector = Icons.Outlined.CheckCircle, contentDescription = null)
+                }
+            )
+        }
         if (isEditable) {
             DropdownMenuItem(
                 text = { Text(text = stringResource(R.string.track_action_remove_from_playlist)) },

@@ -14,5 +14,7 @@ data class Queue(
     val currentIndex: Int = 0,
     @SerialName("elapsed_time")
     val elapsedTime: Int = 0,
+    @SerialName("elapsed_time_last_updated")
+    val elapsedTimeLastUpdated: Double? = null,
     val items: List<Track> = emptyList()
 )

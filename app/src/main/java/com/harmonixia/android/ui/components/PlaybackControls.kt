@@ -1,6 +1,5 @@
 package com.harmonixia.android.ui.components
 
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.size
@@ -15,7 +14,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
@@ -34,11 +32,6 @@ fun PlaybackControls(
     modifier: Modifier = Modifier
 ) {
     val haptic = LocalHapticFeedback.current
-    val rotation = animateFloatAsState(
-        targetValue = if (isPlaying) 0f else 180f,
-        label = "playPauseRotation"
-    )
-
     Row(
         modifier = modifier,
         horizontalArrangement = Arrangement.Center,
@@ -76,8 +69,7 @@ fun PlaybackControls(
                     } else {
                         R.string.action_play
                     }
-                ),
-                modifier = Modifier.graphicsLayer { rotationZ = rotation.value }
+                )
             )
         }
         IconButton(

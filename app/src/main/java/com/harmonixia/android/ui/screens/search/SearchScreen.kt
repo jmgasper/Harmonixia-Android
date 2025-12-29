@@ -47,13 +47,13 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.harmonixia.android.R
-import com.harmonixia.android.data.remote.ConnectionState
 import com.harmonixia.android.domain.model.Album
 import com.harmonixia.android.domain.model.Artist
 import com.harmonixia.android.domain.model.Playlist
 import com.harmonixia.android.domain.model.Track
-import com.harmonixia.android.ui.components.ConnectionStatusIndicator
 import com.harmonixia.android.ui.components.ErrorCard
+import com.harmonixia.android.ui.components.OfflineModeBanner
+import com.harmonixia.android.ui.navigation.MainScaffoldActions
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -67,7 +67,7 @@ fun SearchScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val searchQuery by viewModel.searchQuery.collectAsStateWithLifecycle()
-    val connectionState by viewModel.connectionState.collectAsStateWithLifecycle()
+    val isOfflineMode by viewModel.isOfflineMode.collectAsStateWithLifecycle()
 
     val windowSizeClass = calculateWindowSizeClass(activity = LocalContext.current as Activity)
     val horizontalPadding by remember(windowSizeClass) {
@@ -146,6 +146,7 @@ fun SearchScreen(
                     )
                 },
                 actions = {
+                    MainScaffoldActions()
                     IconButton(onClick = onNavigateToSettings) {
                         Icon(
                             imageVector = Icons.Outlined.Settings,
@@ -163,20 +164,15 @@ fun SearchScreen(
             contentPadding = listPadding,
             verticalArrangement = Arrangement.spacedBy(sectionSpacing)
         ) {
-            if (connectionState !is ConnectionState.Connected) {
+            if (isOfflineMode) {
                 item {
-                    ConnectionStatusIndicator(
-                        connectionState = connectionState,
+                    OfflineModeBanner(
+                        text = stringResource(R.string.offline_search_active),
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
-                item {
-                    SearchCenteredMessage(
-                        text = stringResource(R.string.search_no_connection)
-                    )
-                }
-            } else {
-                when (val state = uiState) {
+            }
+            when (val state = uiState) {
                     SearchUiState.Idle -> {
                         item {
                             SearchCenteredMessage(
@@ -329,7 +325,6 @@ fun SearchScreen(
             }
         }
     }
-}
 
 @Composable
 private fun ShowMoreButton(onClick: () -> Unit) {

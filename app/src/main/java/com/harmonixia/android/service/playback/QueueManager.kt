@@ -10,12 +10,20 @@ import androidx.media3.exoplayer.ExoPlayer
 import com.harmonixia.android.domain.model.Queue
 import com.harmonixia.android.domain.model.QueueOption
 import com.harmonixia.android.domain.model.Track
+import com.harmonixia.android.domain.model.downloadId
+import com.harmonixia.android.domain.repository.DownloadRepository
 import com.harmonixia.android.domain.repository.MusicAssistantRepository
+import com.harmonixia.android.util.EXTRA_IS_LOCAL_FILE
+import com.harmonixia.android.util.EXTRA_STREAM_URI
 import com.harmonixia.android.util.EXTRA_TRACK_QUALITY
 import com.harmonixia.android.util.Logger
+import java.io.File
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 class QueueManager(
-    private val repository: MusicAssistantRepository
+    private val repository: MusicAssistantRepository,
+    private val downloadRepository: DownloadRepository
 ) {
     private val queueItems = mutableListOf<MediaItem>()
     private var currentIndex: Int = 0
@@ -38,7 +46,9 @@ class QueueManager(
         this.queueId = queueId
     }
 
-    fun buildMediaItem(track: Track): MediaItem {
+    suspend fun buildMediaItem(track: Track): MediaItem {
+        val localFile = resolveLocalFile(track)
+        val isLocalFile = localFile != null
         val durationMs = track.lengthSeconds
             .takeIf { it > 0 }
             ?.toLong()
@@ -49,20 +59,26 @@ class QueueManager(
             .setAlbumTitle(track.album)
             .setArtworkUri(track.imageUrl?.let { Uri.parse(it) })
             .setDurationMs(durationMs)
-        if (!track.quality.isNullOrBlank()) {
-            val extras = Bundle()
-            extras.putString(EXTRA_TRACK_QUALITY, track.quality)
-            metadataBuilder.setExtras(extras)
+        val extras = Bundle().apply {
+            if (!track.quality.isNullOrBlank()) {
+                putString(EXTRA_TRACK_QUALITY, track.quality)
+            }
+            putBoolean(EXTRA_IS_LOCAL_FILE, isLocalFile)
+            putString(EXTRA_STREAM_URI, track.uri)
         }
+        metadataBuilder.setExtras(extras)
         return MediaItem.Builder()
-            .setUri(track.uri)
+            .setUri(localFile?.let { Uri.fromFile(it) } ?: Uri.parse(track.uri))
             .setMediaId(track.itemId)
             .setMediaMetadata(metadataBuilder.build())
             .build()
     }
 
-    fun updateFromRemote(queue: Queue) {
-        val items = queue.items.map { buildMediaItem(it) }
+    suspend fun updateFromRemote(queue: Queue) {
+        val items = mutableListOf<MediaItem>()
+        for (track in queue.items) {
+            items.add(buildMediaItem(track))
+        }
         if (items.isEmpty()) {
             queueItems.clear()
             currentIndex = 0
@@ -103,7 +119,7 @@ class QueueManager(
     suspend fun playAlbum(tracks: List<Track>, startIndex: Int = 0): Result<Unit> {
         val queueId = queueId ?: return Result.failure(IllegalStateException("Queue ID unavailable"))
         val uris = tracks.map { it.uri }
-        val mediaItems = tracks.map { buildMediaItem(it) }
+        val mediaItems = buildMediaItems(tracks)
         queueItems.clear()
         queueItems.addAll(mediaItems)
         currentIndex = startIndex.coerceAtLeast(0).coerceAtMost((mediaItems.lastIndex).coerceAtLeast(0))
@@ -120,7 +136,7 @@ class QueueManager(
     suspend fun addToQueue(tracks: List<Track>): Result<Unit> {
         val queueId = queueId ?: return Result.failure(IllegalStateException("Queue ID unavailable"))
         val uris = tracks.map { it.uri }
-        val mediaItems = tracks.map { buildMediaItem(it) }
+        val mediaItems = buildMediaItems(tracks)
         queueItems.addAll(mediaItems)
         player?.addMediaItems(mediaItems)
         return repository.playMedia(queueId, uris, QueueOption.ADD)
@@ -129,7 +145,7 @@ class QueueManager(
     suspend fun playNext(tracks: List<Track>): Result<Unit> {
         val queueId = queueId ?: return Result.failure(IllegalStateException("Queue ID unavailable"))
         val uris = tracks.map { it.uri }
-        val mediaItems = tracks.map { buildMediaItem(it) }
+        val mediaItems = buildMediaItems(tracks)
         playNextMediaItems(mediaItems)
         return repository.playMedia(queueId, uris, QueueOption.NEXT)
     }
@@ -144,6 +160,28 @@ class QueueManager(
     fun currentQueue(): List<MediaItem> = queueItems.toList()
 
     fun currentIndex(): Int = currentIndex
+
+    private suspend fun buildMediaItems(tracks: List<Track>): List<MediaItem> {
+        val items = mutableListOf<MediaItem>()
+        for (track in tracks) {
+            items.add(buildMediaItem(track))
+        }
+        return items
+    }
+
+    private suspend fun resolveLocalFile(track: Track): File? {
+        val localPath = withContext(Dispatchers.IO) {
+            downloadRepository.getLocalFilePath(track.downloadId)
+        }
+        if (localPath.isNullOrBlank()) return null
+        val file = File(localPath)
+        return if (file.exists() && file.length() > 0L) {
+            file
+        } else {
+            Logger.w(TAG, "Local file missing or empty for ${track.itemId}; falling back to stream")
+            null
+        }
+    }
 
     companion object {
         private const val TAG = "QueueManager"

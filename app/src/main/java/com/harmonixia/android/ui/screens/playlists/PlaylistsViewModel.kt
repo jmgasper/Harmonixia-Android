@@ -11,10 +11,12 @@ import com.harmonixia.android.data.paging.PlaylistsPagingSource
 import com.harmonixia.android.data.remote.WebSocketMessage
 import com.harmonixia.android.data.remote.ConnectionState
 import com.harmonixia.android.domain.model.Playlist
+import com.harmonixia.android.domain.repository.DownloadRepository
 import com.harmonixia.android.domain.repository.MusicAssistantRepository
 import com.harmonixia.android.domain.usecase.DeletePlaylistUseCase
 import com.harmonixia.android.domain.usecase.GetConnectionStateUseCase
 import com.harmonixia.android.domain.usecase.RenamePlaylistUseCase
+import com.harmonixia.android.util.NetworkConnectivityManager
 import com.harmonixia.android.util.PagingStatsTracker
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
@@ -24,7 +26,11 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.contentOrNull
@@ -40,12 +46,25 @@ sealed class PlaylistsUiEvent {
 @HiltViewModel
 class PlaylistsViewModel @Inject constructor(
     private val repository: MusicAssistantRepository,
+    private val downloadRepository: DownloadRepository,
     private val deletePlaylistUseCase: DeletePlaylistUseCase,
     private val renamePlaylistUseCase: RenamePlaylistUseCase,
     getConnectionStateUseCase: GetConnectionStateUseCase,
+    private val networkConnectivityManager: NetworkConnectivityManager,
     private val pagingStatsTracker: PagingStatsTracker
 ) : ViewModel() {
     val connectionState: StateFlow<ConnectionState> = getConnectionStateUseCase()
+    val isOfflineMode: StateFlow<Boolean> = combine(
+        connectionState,
+        networkConnectivityManager.networkAvailabilityFlow
+    ) { state, networkAvailable ->
+        state !is ConnectionState.Connected || !networkAvailable
+    }.stateIn(
+        viewModelScope,
+        SharingStarted.WhileSubscribed(5_000),
+        connectionState.value !is ConnectionState.Connected ||
+            !networkConnectivityManager.networkAvailabilityFlow.value
+    )
 
     private val _uiState = MutableStateFlow<PlaylistsUiState>(PlaylistsUiState.Loading)
     val uiState: StateFlow<PlaylistsUiState> = _uiState.asStateFlow()
@@ -70,7 +89,7 @@ class PlaylistsViewModel @Inject constructor(
 
     private var pagingSource: PlaylistsPagingSource? = null
 
-    val playlistsFlow: Flow<PagingData<Playlist>> = pagingConfig
+    private val onlinePlaylistsFlow: Flow<PagingData<Playlist>> = pagingConfig
         .flatMapLatest { config ->
             Pager(config) {
                 PlaylistsPagingSource(repository, config.pageSize, pagingStatsTracker).also {
@@ -78,17 +97,40 @@ class PlaylistsViewModel @Inject constructor(
                 }
             }.flow
         }
+
+    private val offlinePlaylistsFlow: Flow<PagingData<Playlist>> =
+        downloadRepository.getDownloadedPlaylists().map { playlists ->
+            PagingData.from(playlists)
+        }
+
+    val playlistsFlow: Flow<PagingData<Playlist>> = isOfflineMode
+        .flatMapLatest { offline ->
+            if (offline) offlinePlaylistsFlow else onlinePlaylistsFlow
+        }
         .cachedIn(viewModelScope)
 
     init {
         viewModelScope.launch {
-            connectionState.collect { state ->
-                _uiState.value = when (state) {
-                    is ConnectionState.Connected -> PlaylistsUiState.Success(playlistsFlow)
-                    is ConnectionState.Connecting -> PlaylistsUiState.Loading
-                    is ConnectionState.Disconnected -> PlaylistsUiState.Empty
-                    is ConnectionState.Error -> PlaylistsUiState.Error(state.message)
+            isOfflineMode.collect { offline ->
+                if (offline) {
+                    pagingSource?.invalidate()
                 }
+            }
+        }
+        viewModelScope.launch {
+            combine(connectionState, isOfflineMode) { state, offline ->
+                if (offline) {
+                    PlaylistsUiState.Success(playlistsFlow)
+                } else {
+                    when (state) {
+                        is ConnectionState.Connected -> PlaylistsUiState.Success(playlistsFlow)
+                        is ConnectionState.Connecting -> PlaylistsUiState.Loading
+                        is ConnectionState.Disconnected -> PlaylistsUiState.Empty
+                        is ConnectionState.Error -> PlaylistsUiState.Error(state.message)
+                    }
+                }
+            }.collect { newState ->
+                _uiState.value = newState
             }
         }
         viewModelScope.launch {
@@ -118,8 +160,8 @@ class PlaylistsViewModel @Inject constructor(
         val trimmed = name.trim()
         if (trimmed.isBlank()) return
         viewModelScope.launch {
-            if (connectionState.value !is ConnectionState.Connected) {
-                _events.emit(PlaylistsUiEvent.ShowMessage(R.string.playlists_create_error))
+            if (isOfflineMode.value) {
+                _events.emit(PlaylistsUiEvent.ShowMessage(R.string.offline_feature_unavailable))
                 return@launch
             }
             val result = repository.createPlaylist(trimmed)
@@ -141,8 +183,8 @@ class PlaylistsViewModel @Inject constructor(
             return
         }
         viewModelScope.launch {
-            if (connectionState.value !is ConnectionState.Connected) {
-                _events.emit(PlaylistsUiEvent.ShowMessage(R.string.playlist_delete_error))
+            if (isOfflineMode.value) {
+                _events.emit(PlaylistsUiEvent.ShowMessage(R.string.offline_feature_unavailable))
                 return@launch
             }
             val result = deletePlaylistUseCase(playlist.itemId)
@@ -173,10 +215,10 @@ class PlaylistsViewModel @Inject constructor(
         viewModelScope.launch {
             _isRenaming.value = true
             _renameErrorMessageResId.value = null
-            if (connectionState.value !is ConnectionState.Connected) {
+            if (isOfflineMode.value) {
                 _isRenaming.value = false
-                _renameErrorMessageResId.value = R.string.playlist_rename_error
-                _events.emit(PlaylistsUiEvent.ShowMessage(R.string.playlist_rename_error))
+                _renameErrorMessageResId.value = R.string.offline_feature_unavailable
+                _events.emit(PlaylistsUiEvent.ShowMessage(R.string.offline_feature_unavailable))
                 return@launch
             }
             val result = renamePlaylistUseCase(playlist.itemId, playlist.provider, trimmed)

@@ -5,6 +5,7 @@ import android.graphics.Bitmap
 import coil3.request.ImageRequest
 import coil3.request.bitmapConfig
 import com.harmonixia.android.domain.model.Album
+import java.io.File
 
 fun buildAlbumArtworkRequest(
     context: Context,
@@ -12,8 +13,15 @@ fun buildAlbumArtworkRequest(
     sizePx: Int,
     bitmapConfig: Bitmap.Config
 ): ImageRequest {
+    val data = album?.imageUrl
+        ?.trim()
+        ?.takeIf { it.isNotBlank() }
+        ?.let { url ->
+            val file = File(url)
+            if (file.exists()) file else url
+        }
     val builder = ImageRequest.Builder(context)
-        .data(album?.imageUrl)
+        .data(data)
         .size(sizePx)
         .bitmapConfig(bitmapConfig)
 

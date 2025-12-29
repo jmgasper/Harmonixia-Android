@@ -25,6 +25,9 @@ data class Album(
     val lastPlayed: String? = null
 )
 
+val Album.downloadId: String
+    get() = "$itemId-$provider"
+
 @Serializable
 enum class AlbumType {
     @SerialName("album")

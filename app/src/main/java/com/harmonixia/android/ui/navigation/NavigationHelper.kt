@@ -82,6 +82,16 @@ fun NavController.navigateToSearch() {
     )
 }
 
+fun NavController.navigateToDownloads() {
+    Logger.i(TAG, "Navigate to Downloads")
+    navigate(
+        Screen.Downloads.route,
+        navOptions {
+            launchSingleTop = true
+        }
+    )
+}
+
 fun NavController.navigateToNowPlaying() {
     Logger.i(TAG, "Navigate to Now Playing")
     navigate(

@@ -47,6 +47,7 @@ import com.harmonixia.android.R
 import com.harmonixia.android.domain.model.Album
 import com.harmonixia.android.ui.components.AlbumGridStatic
 import com.harmonixia.android.ui.components.ErrorCard
+import com.harmonixia.android.ui.navigation.MainScaffoldActions
 import com.harmonixia.android.ui.theme.rememberAdaptiveSpacing
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -107,6 +108,7 @@ fun HomeScreen(
             TopAppBar(
                 title = { Text(text = stringResource(R.string.nav_home)) },
                 actions = {
+                    MainScaffoldActions()
                     IconButton(onClick = onNavigateToSettings) {
                         Icon(
                             imageVector = Icons.Outlined.Settings,

@@ -27,3 +27,6 @@ data class Track(
     val imageUrl: String? = null,
     val quality: String? = null
 )
+
+val Track.downloadId: String
+    get() = "$itemId-$provider"

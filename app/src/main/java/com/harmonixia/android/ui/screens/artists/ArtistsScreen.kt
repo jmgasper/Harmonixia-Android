@@ -74,6 +74,8 @@ import com.harmonixia.android.R
 import com.harmonixia.android.domain.model.Artist
 import com.harmonixia.android.ui.components.ArtistListItem
 import com.harmonixia.android.ui.components.ErrorCard
+import com.harmonixia.android.ui.components.OfflineModeBanner
+import com.harmonixia.android.ui.navigation.MainScaffoldActions
 import com.harmonixia.android.ui.theme.rememberAdaptiveSpacing
 import com.harmonixia.android.util.ImageQualityManager
 import kotlinx.serialization.decodeFromString
@@ -89,6 +91,7 @@ fun ArtistsScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val albumCounts by viewModel.artistAlbumCounts.collectAsStateWithLifecycle()
+    val isOfflineMode by viewModel.isOfflineMode.collectAsStateWithLifecycle()
 
     val windowSizeClass = calculateWindowSizeClass(activity = LocalContext.current as Activity)
     val configuration = LocalConfiguration.current
@@ -142,6 +145,7 @@ fun ArtistsScreen(
             TopAppBar(
                 title = { Text(text = titleText) },
                 actions = {
+                    MainScaffoldActions()
                     IconButton(onClick = onNavigateToSettings) {
                         Icon(
                             imageVector = Icons.Outlined.Settings,
@@ -160,104 +164,176 @@ fun ArtistsScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-            when (val state = uiState) {
-                ArtistsUiState.Loading -> {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            CircularProgressIndicator()
-                            Spacer(modifier = Modifier.height(spacing.medium))
-                            Text(
-                                text = stringResource(R.string.artists_loading),
-                                style = MaterialTheme.typography.bodyMedium
-                            )
-                        }
-                    }
-                }
-                is ArtistsUiState.Error -> {
-                    val message = state.message.ifBlank {
-                        stringResource(R.string.artists_error)
-                    }
-                    Box(
+            Column(modifier = Modifier.fillMaxSize()) {
+                if (isOfflineMode) {
+                    OfflineModeBanner(
+                        text = stringResource(R.string.offline_mode_active),
                         modifier = Modifier
-                            .fillMaxSize()
-                            .padding(horizontal = horizontalPadding),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(spacing.medium)
+                            .padding(horizontal = horizontalPadding)
+                            .padding(top = spacing.medium)
+                    )
+                    Spacer(modifier = Modifier.height(spacing.small))
+                }
+                when (val state = uiState) {
+                    ArtistsUiState.Loading -> {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .weight(1f),
+                            contentAlignment = Alignment.Center
                         ) {
-                            ErrorCard(message = message)
-                            Button(onClick = { lazyPagingItems?.retry() }) {
-                                Text(text = stringResource(R.string.action_retry))
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                CircularProgressIndicator()
+                                Spacer(modifier = Modifier.height(spacing.medium))
+                                Text(
+                                    text = stringResource(R.string.artists_loading),
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
                             }
                         }
                     }
-                }
-                ArtistsUiState.Empty -> {
-                    ArtistsEmptyState(horizontalPadding = horizontalPadding)
-                }
-                is ArtistsUiState.Success -> {
-                    val items = lazyPagingItems ?: return@PullToRefreshBox
-                    when {
-                        items.loadState.refresh is LoadState.Loading -> {
-                            Box(
-                                modifier = Modifier.fillMaxSize(),
-                                contentAlignment = Alignment.Center
+                    is ArtistsUiState.Error -> {
+                        val message = state.message.ifBlank {
+                            stringResource(R.string.artists_error)
+                        }
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .weight(1f)
+                                .padding(horizontal = horizontalPadding),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(spacing.medium)
                             ) {
-                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                    CircularProgressIndicator()
-                                    Spacer(modifier = Modifier.height(spacing.medium))
-                                    Text(
-                                        text = stringResource(R.string.artists_loading),
-                                        style = MaterialTheme.typography.bodyMedium
-                                    )
+                                ErrorCard(message = message)
+                                Button(onClick = { lazyPagingItems?.retry() }) {
+                                    Text(text = stringResource(R.string.action_retry))
                                 }
                             }
                         }
-                        items.loadState.refresh is LoadState.Error -> {
-                            val error = items.loadState.refresh as LoadState.Error
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .padding(horizontal = horizontalPadding),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Column(
-                                    horizontalAlignment = Alignment.CenterHorizontally,
-                                    verticalArrangement = Arrangement.spacedBy(spacing.medium)
+                    }
+                    ArtistsUiState.Empty -> {
+                        ArtistsEmptyState(
+                            horizontalPadding = horizontalPadding,
+                            isOfflineMode = isOfflineMode,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .weight(1f)
+                        )
+                    }
+                    is ArtistsUiState.Success -> {
+                        val items = lazyPagingItems ?: return@Column
+                        when {
+                            items.loadState.refresh is LoadState.Loading -> {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .weight(1f),
+                                    contentAlignment = Alignment.Center
                                 ) {
-                                    ErrorCard(
-                                        message = error.error.message
-                                            ?: stringResource(R.string.artists_error)
-                                    )
-                                    Button(onClick = { items.retry() }) {
-                                        Text(text = stringResource(R.string.action_retry))
+                                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                        CircularProgressIndicator()
+                                        Spacer(modifier = Modifier.height(spacing.medium))
+                                        Text(
+                                            text = stringResource(R.string.artists_loading),
+                                            style = MaterialTheme.typography.bodyMedium
+                                        )
                                     }
                                 }
                             }
-                        }
-                        items.itemCount == 0 -> {
-                            ArtistsEmptyState(horizontalPadding = horizontalPadding)
-                        }
-                        else -> {
-                            AnimatedContent(
-                                targetState = isExpanded,
-                                transitionSpec = { fadeIn() togetherWith fadeOut() },
-                                label = "artistsLayout"
-                            ) { expanded ->
-                                if (expanded) {
-                                    Row(
-                                        modifier = Modifier.fillMaxSize(),
-                                        horizontalArrangement = Arrangement.spacedBy(spacing.large)
+                            items.loadState.refresh is LoadState.Error -> {
+                                val error = items.loadState.refresh as LoadState.Error
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .weight(1f)
+                                        .padding(horizontal = horizontalPadding),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Column(
+                                        horizontalAlignment = Alignment.CenterHorizontally,
+                                        verticalArrangement = Arrangement.spacedBy(spacing.medium)
                                     ) {
+                                        ErrorCard(
+                                            message = error.error.message
+                                                ?: stringResource(R.string.artists_error)
+                                        )
+                                        Button(onClick = { items.retry() }) {
+                                            Text(text = stringResource(R.string.action_retry))
+                                        }
+                                    }
+                                }
+                            }
+                            items.itemCount == 0 -> {
+                                ArtistsEmptyState(
+                                    horizontalPadding = horizontalPadding,
+                                    isOfflineMode = isOfflineMode,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .weight(1f)
+                                )
+                            }
+                            else -> {
+                                AnimatedContent(
+                                    targetState = isExpanded,
+                                    transitionSpec = { fadeIn() togetherWith fadeOut() },
+                                    label = "artistsLayout",
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .weight(1f)
+                                ) { expanded ->
+                                    if (expanded) {
+                                        Row(
+                                            modifier = Modifier.fillMaxSize(),
+                                            horizontalArrangement = Arrangement.spacedBy(spacing.large)
+                                        ) {
+                                            LazyColumn(
+                                                modifier = Modifier
+                                                    .weight(0.6f)
+                                                    .fillMaxHeight(),
+                                                contentPadding = listPadding
+                                            ) {
+                                                items(
+                                                    count = items.itemCount,
+                                                    key = { index ->
+                                                        items[index]?.let { artist ->
+                                                            "${artist.provider}:${artist.itemId}"
+                                                        } ?: "placeholder_$index"
+                                                    }
+                                                ) { index ->
+                                                    val artist = items[index]
+                                                    if (artist != null) {
+                                                        ArtistListItem(
+                                                            artist = artist,
+                                                            onClick = { handleArtistClick(artist) },
+                                                            showDivider = index < items.itemCount - 1
+                                                        )
+                                                    } else {
+                                                        ArtistListItemPlaceholder(
+                                                            showDivider = index < items.itemCount - 1
+                                                        )
+                                                    }
+                                                }
+                                            }
+                                            ArtistDetailPane(
+                                                artist = selectedArtist,
+                                                albumCount = selectedAlbumCount,
+                                                onViewAlbums = onArtistClick,
+                                                modifier = Modifier
+                                                    .weight(0.4f)
+                                                    .fillMaxHeight()
+                                                    .padding(
+                                                        top = listVerticalPadding,
+                                                        bottom = listVerticalPadding,
+                                                        end = horizontalPadding
+                                                    )
+                                            )
+                                        }
+                                    } else {
                                         LazyColumn(
-                                            modifier = Modifier
-                                                .weight(0.6f)
-                                                .fillMaxHeight(),
+                                            modifier = Modifier.fillMaxSize(),
                                             contentPadding = listPadding
                                         ) {
                                             items(
@@ -280,46 +356,6 @@ fun ArtistsScreen(
                                                         showDivider = index < items.itemCount - 1
                                                     )
                                                 }
-                                            }
-                                        }
-                                        ArtistDetailPane(
-                                            artist = selectedArtist,
-                                            albumCount = selectedAlbumCount,
-                                            onViewAlbums = onArtistClick,
-                                            modifier = Modifier
-                                                .weight(0.4f)
-                                                .fillMaxHeight()
-                                                .padding(
-                                                    top = listVerticalPadding,
-                                                    bottom = listVerticalPadding,
-                                                    end = horizontalPadding
-                                                )
-                                        )
-                                    }
-                                } else {
-                                    LazyColumn(
-                                        modifier = Modifier.fillMaxSize(),
-                                        contentPadding = listPadding
-                                    ) {
-                                        items(
-                                            count = items.itemCount,
-                                            key = { index ->
-                                                items[index]?.let { artist ->
-                                                    "${artist.provider}:${artist.itemId}"
-                                                } ?: "placeholder_$index"
-                                            }
-                                        ) { index ->
-                                            val artist = items[index]
-                                            if (artist != null) {
-                                                ArtistListItem(
-                                                    artist = artist,
-                                                    onClick = { handleArtistClick(artist) },
-                                                    showDivider = index < items.itemCount - 1
-                                                )
-                                            } else {
-                                                ArtistListItemPlaceholder(
-                                                    showDivider = index < items.itemCount - 1
-                                                )
                                             }
                                         }
                                     }
@@ -367,10 +403,14 @@ private fun ArtistListItemPlaceholder(
 }
 
 @Composable
-private fun ArtistsEmptyState(horizontalPadding: Dp) {
+private fun ArtistsEmptyState(
+    horizontalPadding: Dp,
+    isOfflineMode: Boolean,
+    modifier: Modifier = Modifier
+) {
     val spacing = rememberAdaptiveSpacing()
     Box(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxSize()
             .padding(horizontal = horizontalPadding),
         contentAlignment = Alignment.Center
@@ -385,7 +425,11 @@ private fun ArtistsEmptyState(horizontalPadding: Dp) {
                 tint = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Text(
-                text = stringResource(R.string.artists_empty),
+                text = if (isOfflineMode) {
+                    stringResource(R.string.no_downloaded_content)
+                } else {
+                    stringResource(R.string.artists_empty)
+                },
                 style = MaterialTheme.typography.bodyMedium,
                 textAlign = TextAlign.Center
             )

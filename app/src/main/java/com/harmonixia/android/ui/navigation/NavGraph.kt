@@ -14,6 +14,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
@@ -27,6 +28,8 @@ import com.harmonixia.android.ui.screens.albums.AlbumDetailScreen
 import com.harmonixia.android.ui.screens.albums.AlbumsScreen
 import com.harmonixia.android.ui.screens.artists.ArtistDetailScreen
 import com.harmonixia.android.ui.screens.artists.ArtistsScreen
+import com.harmonixia.android.ui.screens.downloads.DownloadsScreen
+import com.harmonixia.android.ui.screens.downloads.DownloadsViewModel
 import com.harmonixia.android.ui.screens.home.HomeScreen
 import com.harmonixia.android.ui.screens.nowplaying.NowPlayingScreen
 import com.harmonixia.android.ui.screens.onboarding.OnboardingScreen
@@ -45,7 +48,8 @@ fun NavGraph(
     navController: NavHostController,
     settingsDataStore: SettingsDataStore
 ) {
-    val serverUrl by settingsDataStore.getServerUrl().collectAsStateWithLifecycle(initialValue = "")
+    val serverUrl by settingsDataStore.getServerUrl()
+        .collectAsStateWithLifecycle(initialValue = "")
     val startDestination = if (serverUrl.isBlank()) {
         Screen.Onboarding.route
     } else {
@@ -162,6 +166,27 @@ fun NavGraph(
                                 )
                             },
                             onTrackClick = { }
+                        )
+                    }
+                    composable(Screen.Downloads.route) {
+                        NavigationPerformanceLogger(screenName = "Downloads")
+                        val downloadsViewModel: DownloadsViewModel = hiltViewModel()
+                        DownloadsScreen(
+                            onNavigateBack = { mainNavController.popBackStack() },
+                            onNavigateToSettings = { navController.navigateToSettings() },
+                            onPlaylistClick = { playlist ->
+                                mainNavController.navigate(
+                                    Screen.PlaylistDetail.createRoute(
+                                        playlist.itemId,
+                                        playlist.provider
+                                    )
+                                )
+                            },
+                            onAlbumClick = { album ->
+                                mainNavController.navigateToAlbumDetail(album.itemId, album.provider)
+                            },
+                            onTrackClick = downloadsViewModel::playTrack,
+                            viewModel = downloadsViewModel
                         )
                     }
                     composable(Screen.NowPlaying.route) {
