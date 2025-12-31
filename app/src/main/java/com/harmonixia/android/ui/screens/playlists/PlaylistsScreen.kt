@@ -20,6 +20,7 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.Settings
@@ -69,12 +70,13 @@ import com.harmonixia.android.ui.components.PlaylistCard
 import com.harmonixia.android.ui.components.PlaylistOptionsMenu
 import com.harmonixia.android.ui.components.RenamePlaylistDialog
 import com.harmonixia.android.ui.navigation.MainScaffoldActions
+import com.harmonixia.android.ui.screens.settings.SettingsTab
 import com.harmonixia.android.ui.theme.rememberAdaptiveSpacing
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PlaylistsScreen(
-    onNavigateToSettings: () -> Unit,
+    onNavigateToSettings: (SettingsTab?) -> Unit,
     onPlaylistClick: (Playlist) -> Unit,
     viewModel: PlaylistsViewModel = hiltViewModel()
 ) {
@@ -84,6 +86,17 @@ fun PlaylistsScreen(
     val isOfflineMode by viewModel.isOfflineMode.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
+    val favoritesPlaylist = remember {
+        Playlist(
+            itemId = "favorites",
+            provider = "harmonixia",
+            uri = "harmonixia://favorites",
+            name = "Favorites",
+            owner = null,
+            isEditable = false,
+            imageUrl = null
+        )
+    }
 
     var showCreateDialog by remember { mutableStateOf(false) }
     var playlistName by remember { mutableStateOf("") }
@@ -192,7 +205,7 @@ fun PlaylistsScreen(
                 title = { Text(text = stringResource(R.string.playlists_title)) },
                 actions = {
                     MainScaffoldActions()
-                    IconButton(onClick = onNavigateToSettings) {
+                    IconButton(onClick = { onNavigateToSettings(null) }) {
                         Icon(
                             imageVector = Icons.Outlined.Settings,
                             contentDescription = stringResource(R.string.action_open_settings)
@@ -342,6 +355,14 @@ fun PlaylistsScreen(
                                     .fillMaxWidth()
                                     .weight(1f)
                             ) {
+                                item(key = "favorites") {
+                                    PlaylistCard(
+                                        playlist = favoritesPlaylist,
+                                        onClick = { onPlaylistClick(favoritesPlaylist) },
+                                        isGrid = true,
+                                        placeholderIcon = Icons.Filled.Favorite
+                                    )
+                                }
                                 items(
                                     count = items.itemCount,
                                     key = { index ->
@@ -401,6 +422,14 @@ fun PlaylistsScreen(
                                 contentPadding = listPadding,
                                 verticalArrangement = Arrangement.spacedBy(listSpacing)
                             ) {
+                                item(key = "favorites") {
+                                    PlaylistCard(
+                                        playlist = favoritesPlaylist,
+                                        onClick = { onPlaylistClick(favoritesPlaylist) },
+                                        isGrid = false,
+                                        placeholderIcon = Icons.Filled.Favorite
+                                    )
+                                }
                                 items(
                                     count = items.itemCount,
                                     key = { index ->
@@ -610,7 +639,7 @@ private fun PlaylistsEmptyState(
         ) {
             Text(
                 text = if (isOfflineMode) {
-                    stringResource(R.string.no_downloaded_content)
+                    stringResource(R.string.playlists_offline_unavailable)
                 } else {
                     stringResource(R.string.playlists_empty)
                 },

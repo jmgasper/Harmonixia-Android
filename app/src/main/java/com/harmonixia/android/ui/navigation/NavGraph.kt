@@ -14,22 +14,20 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import androidx.navigation.navArgument
 import androidx.navigation.navDeepLink
 import androidx.navigation.NavType
+import androidx.navigation.navArgument
+import com.harmonixia.android.HarmonixiaApplication
 import com.harmonixia.android.data.local.SettingsDataStore
 import com.harmonixia.android.ui.screens.albums.AlbumDetailScreen
 import com.harmonixia.android.ui.screens.albums.AlbumsScreen
 import com.harmonixia.android.ui.screens.artists.ArtistDetailScreen
 import com.harmonixia.android.ui.screens.artists.ArtistsScreen
-import com.harmonixia.android.ui.screens.downloads.DownloadsScreen
-import com.harmonixia.android.ui.screens.downloads.DownloadsViewModel
 import com.harmonixia.android.ui.screens.home.HomeScreen
 import com.harmonixia.android.ui.screens.nowplaying.NowPlayingScreen
 import com.harmonixia.android.ui.screens.onboarding.OnboardingScreen
@@ -38,7 +36,7 @@ import com.harmonixia.android.ui.screens.playlists.PlaylistsScreen
 import com.harmonixia.android.ui.screens.search.SearchScreen
 import com.harmonixia.android.ui.screens.settings.PerformanceSettingsScreen
 import com.harmonixia.android.ui.screens.settings.SettingsScreen
-import com.harmonixia.android.ui.screens.settings.eq.EqSettingsScreen
+import com.harmonixia.android.ui.screens.settings.SettingsTab
 import com.harmonixia.android.util.Logger
 import kotlinx.coroutines.android.awaitFrame
 
@@ -48,6 +46,7 @@ fun NavGraph(
     navController: NavHostController,
     settingsDataStore: SettingsDataStore
 ) {
+    val context = LocalContext.current
     val serverUrl by settingsDataStore.getServerUrl()
         .collectAsStateWithLifecycle(initialValue = "")
     val startDestination = if (serverUrl.isBlank()) {
@@ -55,8 +54,11 @@ fun NavGraph(
     } else {
         Screen.Home.route
     }
-    val windowSizeClass = calculateWindowSizeClass(activity = LocalContext.current as Activity)
+    val windowSizeClass = calculateWindowSizeClass(activity = context as Activity)
     var enableSharedArtworkTransition by rememberSaveable { mutableStateOf(false) }
+    val getConnectionStateUseCase = remember(context) {
+        (context.applicationContext as HarmonixiaApplication).getConnectionStateUseCase
+    }
 
     NavHost(navController = navController, startDestination = startDestination) {
         composable(Screen.Onboarding.route) {
@@ -67,23 +69,31 @@ fun NavGraph(
         }
         composable(
             route = Screen.Settings.route,
-            deepLinks = listOf(navDeepLink { uriPattern = "harmonixia://settings" })
-        ) {
+            arguments = listOf(
+                navArgument(Screen.Settings.ARG_TAB) {
+                    type = NavType.StringType
+                    nullable = true
+                }
+            ),
+            deepLinks = listOf(
+                navDeepLink { uriPattern = "harmonixia://settings" },
+                navDeepLink { uriPattern = "harmonixia://settings?tab={tab}" }
+            )
+        ) { backStackEntry ->
             NavigationPerformanceLogger(screenName = "Settings")
+            val tabArg = backStackEntry.arguments?.getString(Screen.Settings.ARG_TAB)
+            val initialTab = tabArg?.let { value ->
+                runCatching { SettingsTab.valueOf(value) }.getOrNull()
+            } ?: SettingsTab.CONNECTION
             SettingsScreen(
                 onNavigateBack = { navController.popBackStack() },
-                onNavigateToEqSettings = { navController.navigate(Screen.SettingsEqualizer.route) },
                 onNavigateToPerformanceSettings = {
                     navController.navigate(Screen.PerformanceSettings.route)
-                }
+                },
+                initialTab = initialTab
             )
         }
-        composable(Screen.SettingsEqualizer.route) {
-            NavigationPerformanceLogger(screenName = "SettingsEqualizer")
-            EqSettingsScreen(
-                onNavigateBack = { navController.popBackStack() }
-            )
-        }
+        // SettingsEqualizer route deprecated; EQ settings are inline on Settings.
         composable(Screen.PerformanceSettings.route) {
             NavigationPerformanceLogger(screenName = "PerformanceSettings")
             PerformanceSettingsScreen(
@@ -97,6 +107,8 @@ fun NavGraph(
             MainScaffold(
                 navController = mainNavController,
                 windowSizeClass = windowSizeClass,
+                getConnectionStateUseCase = getConnectionStateUseCase,
+                onNavigateToSettings = { tab -> navController.navigateToSettings(tab) },
                 modifier = Modifier.fillMaxSize(),
                 enableSharedArtworkTransition = enableSharedArtworkTransition,
                 onSharedArtworkTransitionChange = { enableSharedArtworkTransition = it }
@@ -109,7 +121,7 @@ fun NavGraph(
                     composable(Screen.Home.route) {
                         NavigationPerformanceLogger(screenName = "Home")
                         HomeScreen(
-                            onNavigateToSettings = { navController.navigateToSettings() },
+                            onNavigateToSettings = { tab -> navController.navigateToSettings(tab) },
                             onAlbumClick = { album ->
                                 mainNavController.navigateToAlbumDetail(album.itemId, album.provider)
                             }
@@ -118,7 +130,7 @@ fun NavGraph(
                     composable(Screen.Albums.route) {
                         NavigationPerformanceLogger(screenName = "Albums")
                         AlbumsScreen(
-                            onNavigateToSettings = { navController.navigateToSettings() },
+                            onNavigateToSettings = { tab -> navController.navigateToSettings(tab) },
                             onAlbumClick = { album ->
                                 mainNavController.navigateToAlbumDetail(album.itemId, album.provider)
                             }
@@ -127,7 +139,7 @@ fun NavGraph(
                     composable(Screen.Artists.route) {
                         NavigationPerformanceLogger(screenName = "Artists")
                         ArtistsScreen(
-                            onNavigateToSettings = { navController.navigateToSettings() },
+                            onNavigateToSettings = { tab -> navController.navigateToSettings(tab) },
                             onArtistClick = { artist ->
                                 mainNavController.navigateToArtistDetail(artist.itemId, artist.provider)
                             }
@@ -136,7 +148,7 @@ fun NavGraph(
                     composable(Screen.Playlists.route) {
                         NavigationPerformanceLogger(screenName = "Playlists")
                         PlaylistsScreen(
-                            onNavigateToSettings = { navController.navigateToSettings() },
+                            onNavigateToSettings = { tab -> navController.navigateToSettings(tab) },
                             onPlaylistClick = { playlist ->
                                 mainNavController.navigate(
                                     Screen.PlaylistDetail.createRoute(
@@ -150,7 +162,7 @@ fun NavGraph(
                     composable(Screen.Search.route) {
                         NavigationPerformanceLogger(screenName = "Search")
                         SearchScreen(
-                            onNavigateToSettings = { navController.navigateToSettings() },
+                            onNavigateToSettings = { tab -> navController.navigateToSettings(tab) },
                             onAlbumClick = { album ->
                                 mainNavController.navigateToAlbumDetail(album.itemId, album.provider)
                             },
@@ -166,27 +178,6 @@ fun NavGraph(
                                 )
                             },
                             onTrackClick = { }
-                        )
-                    }
-                    composable(Screen.Downloads.route) {
-                        NavigationPerformanceLogger(screenName = "Downloads")
-                        val downloadsViewModel: DownloadsViewModel = hiltViewModel()
-                        DownloadsScreen(
-                            onNavigateBack = { mainNavController.popBackStack() },
-                            onNavigateToSettings = { navController.navigateToSettings() },
-                            onPlaylistClick = { playlist ->
-                                mainNavController.navigate(
-                                    Screen.PlaylistDetail.createRoute(
-                                        playlist.itemId,
-                                        playlist.provider
-                                    )
-                                )
-                            },
-                            onAlbumClick = { album ->
-                                mainNavController.navigateToAlbumDetail(album.itemId, album.provider)
-                            },
-                            onTrackClick = downloadsViewModel::playTrack,
-                            viewModel = downloadsViewModel
                         )
                     }
                     composable(Screen.NowPlaying.route) {
@@ -210,7 +201,7 @@ fun NavGraph(
                         NavigationPerformanceLogger(screenName = "AlbumDetail")
                         AlbumDetailScreen(
                             onNavigateBack = { mainNavController.popBackStack() },
-                            onNavigateToSettings = { navController.navigateToSettings() }
+                            onNavigateToSettings = { tab -> navController.navigateToSettings(tab) }
                         )
                     }
                     composable(
@@ -223,7 +214,7 @@ fun NavGraph(
                         NavigationPerformanceLogger(screenName = "ArtistDetail")
                         ArtistDetailScreen(
                             onNavigateBack = { mainNavController.popBackStack() },
-                            onNavigateToSettings = { navController.navigateToSettings() },
+                            onNavigateToSettings = { tab -> navController.navigateToSettings(tab) },
                             onAlbumClick = { album ->
                                 mainNavController.navigateToAlbumDetail(album.itemId, album.provider)
                             }
@@ -239,7 +230,7 @@ fun NavGraph(
                         NavigationPerformanceLogger(screenName = "PlaylistDetail")
                         PlaylistDetailScreen(
                             onNavigateBack = { mainNavController.popBackStack() },
-                            onNavigateToSettings = { navController.navigateToSettings() },
+                            onNavigateToSettings = { tab -> navController.navigateToSettings(tab) },
                             onNavigateToPlaylist = { playlist ->
                                 mainNavController.popBackStack()
                                 mainNavController.navigate(

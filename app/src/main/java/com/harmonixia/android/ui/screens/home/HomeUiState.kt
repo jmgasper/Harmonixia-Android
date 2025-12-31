@@ -14,5 +14,11 @@ sealed interface HomeUiState {
         val message: String
     ) : HomeUiState
 
+    data class Offline(
+        val albumCount: Int,
+        val artistCount: Int,
+        val trackCount: Int
+    ) : HomeUiState
+
     object Empty : HomeUiState
 }

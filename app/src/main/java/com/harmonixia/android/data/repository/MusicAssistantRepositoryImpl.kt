@@ -13,6 +13,7 @@ import com.harmonixia.android.domain.model.Player
 import com.harmonixia.android.domain.model.ProviderMapping
 import com.harmonixia.android.domain.model.Queue
 import com.harmonixia.android.domain.model.QueueOption
+import com.harmonixia.android.domain.model.RepeatMode
 import com.harmonixia.android.domain.model.SearchResults
 import com.harmonixia.android.domain.model.Track
 import com.harmonixia.android.domain.repository.MusicAssistantRepository
@@ -294,6 +295,71 @@ class MusicAssistantRepositoryImpl @Inject constructor(
         )
     }
 
+    override suspend fun reportPlaybackProgress(
+        queueId: String,
+        track: Track,
+        positionSeconds: Int
+    ): Result<Unit> {
+        val mediaItem = buildTrackPayload(track)
+            ?: return Result.failure(IllegalArgumentException("Missing track metadata for playback reporting"))
+        val result = sendMarkPlayed(
+            mediaItem = mediaItem,
+            queueId = queueId,
+            isPlaying = true,
+            secondsPlayed = positionSeconds
+        )
+        val albumItem = buildAlbumPayload(track)
+        if (albumItem != null) {
+            sendMarkPlayed(
+                mediaItem = albumItem,
+                queueId = queueId,
+                isPlaying = true,
+                secondsPlayed = positionSeconds
+            ).onFailure { Logger.w(TAG, "Failed to report album playback progress", it) }
+        }
+        return result
+    }
+
+    override suspend fun reportTrackCompleted(
+        queueId: String,
+        track: Track,
+        durationSeconds: Int
+    ): Result<Unit> {
+        val mediaItem = buildTrackPayload(track)
+            ?: return Result.failure(IllegalArgumentException("Missing track metadata for playback reporting"))
+        val result = sendMarkPlayed(
+            mediaItem = mediaItem,
+            queueId = queueId,
+            isPlaying = false,
+            secondsPlayed = durationSeconds,
+            fullyPlayed = true
+        )
+        val albumItem = buildAlbumPayload(track)
+        if (albumItem != null) {
+            sendMarkPlayed(
+                mediaItem = albumItem,
+                queueId = queueId,
+                isPlaying = false,
+                secondsPlayed = durationSeconds
+            ).onFailure { Logger.w(TAG, "Failed to report album completion", it) }
+        }
+        return result
+    }
+
+    override suspend fun setRepeatMode(queueId: String, repeatMode: RepeatMode): Result<Unit> {
+        return sendCommand(
+            ApiCommand.PLAYER_QUEUES_REPEAT,
+            mapOf("queue_id" to queueId, "repeat_mode" to repeatMode.toApiValue())
+        )
+    }
+
+    override suspend fun setShuffleMode(queueId: String, shuffle: Boolean): Result<Unit> {
+        return sendCommand(
+            ApiCommand.PLAYER_QUEUES_SHUFFLE,
+            mapOf("queue_id" to queueId, "shuffle_enabled" to shuffle)
+        )
+    }
+
     override suspend fun clearQueue(queueId: String): Result<Unit> {
         return sendCommand(
             ApiCommand.PLAYER_QUEUES_CLEAR,
@@ -360,6 +426,45 @@ class MusicAssistantRepositoryImpl @Inject constructor(
         )
     }
 
+    override suspend fun addToFavorites(
+        itemId: String,
+        provider: String,
+        mediaType: String
+    ): Result<Unit> {
+        return sendCommand(
+            ApiCommand.MUSIC_FAVORITES_ADD_ITEM,
+            mapOf(
+                "item_id" to itemId,
+                "provider_instance_id_or_domain" to provider,
+                "media_type" to mediaType
+            )
+        )
+    }
+
+    override suspend fun removeFromFavorites(
+        itemId: String,
+        provider: String,
+        mediaType: String
+    ): Result<Unit> {
+        return sendCommand(
+            ApiCommand.MUSIC_FAVORITES_REMOVE_ITEM,
+            mapOf(
+                "item_id" to itemId,
+                "provider_instance_id_or_domain" to provider,
+                "media_type" to mediaType
+            )
+        )
+    }
+
+    override suspend fun fetchFavorites(limit: Int, offset: Int): Result<List<Track>> {
+        return fetchPaged(
+            command = ApiCommand.MUSIC_FAVORITES_LIBRARY_ITEMS,
+            limit = limit,
+            offset = offset,
+            extraParams = mapOf("media_type" to "track")
+        ) { parseTrack(it) }
+    }
+
     private suspend fun sendCommand(
         command: String,
         params: Map<String, Any?>
@@ -367,6 +472,116 @@ class MusicAssistantRepositoryImpl @Inject constructor(
         return runCatching {
             webSocketClient.sendRequest(command, params).getOrThrow()
             Unit
+        }
+    }
+
+    private suspend fun sendMarkPlayed(
+        mediaItem: Map<String, Any?>,
+        queueId: String,
+        isPlaying: Boolean? = null,
+        secondsPlayed: Int? = null,
+        fullyPlayed: Boolean? = null
+    ): Result<Unit> {
+        val params = buildMap {
+            put("media_item", mediaItem)
+            if (secondsPlayed != null) {
+                put("seconds_played", secondsPlayed.coerceAtLeast(0))
+            }
+            if (fullyPlayed != null) {
+                put("fully_played", fullyPlayed)
+            }
+            if (isPlaying != null) {
+                put("is_playing", isPlaying)
+            }
+            if (queueId.isNotBlank()) {
+                put("queue_id", queueId)
+            }
+        }
+        return sendCommand(ApiCommand.MUSIC_MARK_PLAYED, params)
+    }
+
+    private fun buildTrackPayload(track: Track): Map<String, Any?>? {
+        val itemId = track.itemId
+        if (itemId.isBlank()) return null
+        val provider = track.provider.ifBlank {
+            track.providerMappings.firstOrNull()?.providerDomain
+                ?: track.providerMappings.firstOrNull()?.providerInstance
+                ?: ""
+        }
+        if (provider.isBlank()) return null
+        val providerMappings = if (track.providerMappings.isNotEmpty()) {
+            track.providerMappings.map { mapping ->
+                mapOf(
+                    "item_id" to mapping.itemId,
+                    "provider_domain" to mapping.providerDomain,
+                    "provider_instance" to mapping.providerInstance,
+                    "available" to mapping.available
+                )
+            }
+        } else {
+            listOf(
+                mapOf(
+                    "item_id" to itemId,
+                    "provider_domain" to provider,
+                    "provider_instance" to provider,
+                    "available" to true
+                )
+            )
+        }
+        val name = track.title.ifBlank { itemId }
+        return buildMap {
+            put("item_id", itemId)
+            put("provider", provider)
+            put("name", name)
+            put("provider_mappings", providerMappings)
+            put("media_type", "track")
+            if (track.uri.isNotBlank()) {
+                put("uri", track.uri)
+            }
+            if (track.lengthSeconds > 0) {
+                put("duration", track.lengthSeconds)
+            }
+        }
+    }
+
+    private fun buildAlbumPayload(track: Track): Map<String, Any?>? {
+        val itemId = track.albumItemId
+        if (itemId.isBlank()) return null
+        val provider = track.albumProvider.ifBlank {
+            track.albumProviderMappings.firstOrNull()?.providerDomain
+                ?: track.albumProviderMappings.firstOrNull()?.providerInstance
+                ?: track.provider
+        }
+        if (provider.isBlank()) return null
+        val providerMappings = if (track.albumProviderMappings.isNotEmpty()) {
+            track.albumProviderMappings.map { mapping ->
+                mapOf(
+                    "item_id" to mapping.itemId,
+                    "provider_domain" to mapping.providerDomain,
+                    "provider_instance" to mapping.providerInstance,
+                    "available" to mapping.available
+                )
+            }
+        } else {
+            listOf(
+                mapOf(
+                    "item_id" to itemId,
+                    "provider_domain" to provider,
+                    "provider_instance" to provider,
+                    "available" to true
+                )
+            )
+        }
+        val name = track.album.ifBlank { itemId }
+        return buildMap {
+            put("item_id", itemId)
+            put("provider", provider)
+            put("name", name)
+            put("provider_mappings", providerMappings)
+            put("media_type", "album")
+            if (track.albumUri.isNotBlank()) {
+                put("uri", track.albumUri)
+            }
         }
     }
 
@@ -438,6 +653,7 @@ class MusicAssistantRepositoryImpl @Inject constructor(
         return Track(
             itemId = jsonObject.stringOrEmpty("queue_item_id", "item_id"),
             provider = jsonObject.stringOrEmpty("provider"),
+            providerMappings = parseProviderMappings(jsonObject["provider_mappings"]),
             uri = uri,
             title = name,
             artist = "",
@@ -524,13 +740,22 @@ class MusicAssistantRepositoryImpl @Inject constructor(
             artists.isNotEmpty() -> artists.joinToString(", ")
             else -> jsonObject.stringOrEmpty("artist_str", "artist")
         }
-        val albumName = (jsonObject["album"] as? JsonObject)
+        val albumObject = jsonObject["album"] as? JsonObject
+        val albumName = albumObject
             ?.stringOrEmpty("name")
             ?.takeIf { it.isNotBlank() }
             ?: jsonObject.stringOrEmpty("album", "album_name")
+        val albumItemId = albumObject?.stringOrEmpty("item_id").orEmpty()
+        val albumProvider = albumObject?.stringOrEmpty("provider").orEmpty()
+        val albumUri = albumObject?.stringOrEmpty("uri").orEmpty()
+        val albumProviderMappings = parseProviderMappings(albumObject?.get("provider_mappings"))
+        val isFavorite = jsonObject["is_favorite"]?.jsonPrimitive?.booleanOrNull
+            ?: jsonObject["favorite"]?.jsonPrimitive?.booleanOrNull
+            ?: false
         return Track(
             itemId = jsonObject.stringOrEmpty("item_id"),
             provider = jsonObject.stringOrEmpty("provider"),
+            providerMappings = parseProviderMappings(jsonObject["provider_mappings"]),
             uri = jsonObject.stringOrEmpty("uri"),
             trackNumber = jsonObject.intOrZero("track_number"),
             title = jsonObject.stringOrEmpty("name", "title"),
@@ -538,9 +763,14 @@ class MusicAssistantRepositoryImpl @Inject constructor(
             album = albumName,
             lengthSeconds = jsonObject.intOrZero("length_seconds", "duration"),
             imageUrl = extractImageUrl(jsonObject)
-                ?: (jsonObject["album"] as? JsonObject)?.let { extractImageUrl(it) },
+                ?: albumObject?.let { extractImageUrl(it) },
             quality = jsonObject.stringOrNull("quality")
-                ?: describeTrackQuality(jsonObject["provider_mappings"])
+                ?: describeTrackQuality(jsonObject["provider_mappings"]),
+            isFavorite = isFavorite,
+            albumItemId = albumItemId,
+            albumProvider = albumProvider,
+            albumProviderMappings = albumProviderMappings,
+            albumUri = albumUri
         )
     }
 
@@ -566,9 +796,13 @@ class MusicAssistantRepositoryImpl @Inject constructor(
             ?.jsonPrimitive
             ?.contentOrNull
             ?.toDoubleOrNull()
+        val repeatMode = parseRepeatMode(jsonObject.stringOrNull("repeat_mode"))
+        val shuffle = jsonObject.booleanOrFalse("shuffle")
         return Queue(
             queueId = jsonObject.stringOrEmpty("queue_id"),
             state = parsePlaybackState(jsonObject.stringOrNull("state")),
+            repeatMode = repeatMode,
+            shuffle = shuffle,
             currentItem = currentItem,
             currentIndex = jsonObject.intOrZero("current_index"),
             elapsedTime = jsonObject.intOrZero("elapsed_time"),
@@ -697,6 +931,15 @@ class MusicAssistantRepositoryImpl @Inject constructor(
         }
     }
 
+    private fun parseRepeatMode(value: String?): RepeatMode {
+        return when (value?.lowercase()) {
+            "one" -> RepeatMode.ONE
+            "all" -> RepeatMode.ALL
+            "off" -> RepeatMode.OFF
+            else -> RepeatMode.OFF
+        }
+    }
+
     private fun resolveImageUrl(raw: String?): String? {
         if (raw.isNullOrBlank()) return null
         if (raw.startsWith("http://") || raw.startsWith("https://")) return raw
@@ -742,6 +985,14 @@ class MusicAssistantRepositoryImpl @Inject constructor(
         val encodedPath = runCatching { URLEncoder.encode(path, "UTF-8") }.getOrElse { path }
         val providerParam = provider?.ifBlank { "builtin" } ?: "builtin"
         return "$base/imageproxy?path=$encodedPath&provider=$providerParam"
+    }
+
+    private fun RepeatMode.toApiValue(): String {
+        return when (this) {
+            RepeatMode.OFF -> "off"
+            RepeatMode.ONE -> "one"
+            RepeatMode.ALL -> "all"
+        }
     }
 
     private fun QueueOption.toApiValue(): String {

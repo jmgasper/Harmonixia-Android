@@ -70,6 +70,7 @@ import com.harmonixia.android.ui.components.AlbumTypeFilterMenu
 import com.harmonixia.android.ui.components.ErrorCard
 import com.harmonixia.android.ui.components.OfflineModeBanner
 import com.harmonixia.android.ui.navigation.MainScaffoldActions
+import com.harmonixia.android.ui.screens.settings.SettingsTab
 import com.harmonixia.android.ui.theme.rememberAdaptiveSpacing
 import com.harmonixia.android.ui.util.buildAlbumArtworkRequest
 import com.harmonixia.android.util.ImageQualityManager
@@ -80,7 +81,7 @@ import kotlinx.serialization.json.Json
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AlbumsScreen(
-    onNavigateToSettings: () -> Unit,
+    onNavigateToSettings: (SettingsTab?) -> Unit,
     onAlbumClick: (Album) -> Unit,
     viewModel: AlbumsViewModel = hiltViewModel()
 ) {
@@ -243,7 +244,7 @@ fun AlbumsScreen(
                         }
                     }
                     MainScaffoldActions()
-                    IconButton(onClick = onNavigateToSettings) {
+                    IconButton(onClick = { onNavigateToSettings(null) }) {
                         Icon(
                             imageVector = Icons.Outlined.Settings,
                             contentDescription = stringResource(R.string.action_open_settings)
@@ -325,7 +326,7 @@ fun AlbumsScreen(
                 is AlbumsUiState.Success -> {
                     val items = lazyPagingItems ?: return@Column
                     when {
-                        items.loadState.refresh is LoadState.Loading -> {
+                        !isOfflineMode && items.loadState.refresh is LoadState.Loading -> {
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth()

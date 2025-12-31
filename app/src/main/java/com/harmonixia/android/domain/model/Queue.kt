@@ -8,6 +8,10 @@ data class Queue(
     @SerialName("queue_id")
     val queueId: String,
     val state: PlaybackState = PlaybackState.IDLE,
+    @SerialName("repeat_mode")
+    val repeatMode: RepeatMode = RepeatMode.OFF,
+    @SerialName("shuffle")
+    val shuffle: Boolean = false,
     @SerialName("current_item")
     val currentItem: Track? = null,
     @SerialName("current_index")

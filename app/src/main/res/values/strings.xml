@@ -2,6 +2,10 @@
     <string name="app_name">Harmonixia</string>
     <string name="onboarding_title">Welcome to Harmonixia</string>
     <string name="settings_title">Settings</string>
+    <string name="settings_tab_connection">Connection</string>
+    <string name="settings_tab_equalizer">Equalizer</string>
+    <string name="settings_tab_local_media">Local Media</string>
+    <string name="settings_edit_connection">Edit connection settings</string>
     <string name="eq_settings_title">Equalizer</string>
     <string name="eq_enable_label">Enable equalizer</string>
     <string name="eq_search_hint">Search presets by name, brand, or creator</string>
@@ -17,6 +21,18 @@
     <string name="eq_success_applied">EQ preset applied</string>
     <string name="eq_configure_button">Configure Equalizer</string>
     <string name="eq_enabled_badge">Enabled</string>
+    <!-- Local Media Section -->
+    <string name="section_local_media">Local Media</string>
+    <string name="local_media_folder_label">Music Folder</string>
+    <string name="local_media_no_folder_selected">No folder selected</string>
+    <string name="local_media_select_folder">Select Folder</string>
+    <string name="local_media_refresh">Scan Folder</string>
+    <string name="local_media_scanning">Scanning: %1$d / %2$d files</string>
+    <string name="local_media_scan_complete">Scan complete: %1$d tracks, %2$d albums, %3$d artists</string>
+    <string name="local_media_scan_error">Scan failed: %1$s</string>
+    <string name="local_media_scan_idle">Ready to scan</string>
+    <string name="local_media_permission_required">Storage permission required</string>
+    <string name="content_desc_local_media_folder">Local media folder path</string>
     <string name="label_server_url">Server URL</string>
     <string name="label_access_token">Access Token</string>
     <string name="placeholder_server_url">http://192.168.1.29:8095</string>
@@ -33,6 +49,8 @@
     <string name="status_connection_failed">Connection failed</string>
     <string name="status_auth_failed">Authentication failed</string>
     <string name="status_disconnected">Disconnected</string>
+    <string name="status_music_assistant_connected">Music Assistant connected</string>
+    <string name="status_music_assistant_disconnected">Music Assistant disconnected</string>
     <string name="help_onboarding">Enter your Music Assistant server address and optional access token</string>
     <string name="error_server_url_required">Server URL is required</string>
     <string name="error_invalid_url">Invalid URL format</string>
@@ -55,6 +73,7 @@
     <string name="content_desc_error_icon">Error</string>
     <string name="content_desc_success_icon">Success</string>
     <string name="content_desc_connection_status">Connection status</string>
+    <string name="content_desc_connection_indicator">Connection status indicator. Tap to open settings.</string>
     <string name="content_desc_expand_section">Expand section</string>
     <string name="content_desc_collapse_section">Collapse section</string>
     <string name="content_desc_close">Dismiss</string>
@@ -77,6 +96,8 @@
     <string name="offline_mode_active">Offline Mode - Showing downloaded content only</string>
     <string name="offline_search_active">Offline - Searching downloaded content</string>
     <string name="offline_feature_unavailable">This feature is unavailable in offline mode</string>
+    <string name="playlist_offline_unavailable">This playlist requires an online connection</string>
+    <string name="playlists_offline_unavailable">Playlists require an online connection</string>
     <string name="no_downloaded_content">No downloaded content available</string>
     <string name="playing_from_download">Playing from download</string>
     <string name="content_desc_clear_search">Clear search</string>
@@ -93,6 +114,10 @@
     <string name="home_empty_no_connection">Connect to your Music Assistant server to see your music.</string>
     <string name="home_loading">Loading your music...</string>
     <string name="home_error_load_failed">Unable to load home data</string>
+    <string name="home_offline_title">You\'re Offline</string>
+    <string name="home_offline_message">Connect to see recently played and added albums.</string>
+    <string name="home_offline_stats">%1$d albums, %2$d artists, %3$d tracks available offline</string>
+    <string name="home_offline_no_content">No offline content available. Download albums to listen offline.</string>
     <string name="action_retry">Retry</string>
     <string name="content_desc_album_artwork">Album artwork</string>
     <string name="action_open_settings">Open Settings</string>
@@ -185,6 +210,12 @@
     <string name="track_action_download">Download</string>
     <string name="track_action_add_to_playlist">Add to Playlist</string>
     <string name="track_action_remove_from_playlist">Remove from Playlist</string>
+    <string name="track_action_add_to_favorites">Add to Favorites</string>
+    <string name="track_action_remove_from_favorites">Remove from Favorites</string>
+    <string name="track_favorite_add_success">Added to favorites</string>
+    <string name="track_favorite_add_error">Unable to add to favorites</string>
+    <string name="track_favorite_remove_success">Removed from favorites</string>
+    <string name="track_favorite_remove_error">Unable to remove from favorites</string>
     <string name="track_remove_success">Removed track from playlist</string>
     <string name="track_remove_error">Unable to remove track from playlist</string>
     <string name="track_add_success">Added track to playlist</string>
@@ -209,6 +240,15 @@
     <string name="action_pause">Pause</string>
     <string name="action_next_track">Next track</string>
     <string name="action_previous_track">Previous track</string>
+    <string name="action_repeat">Repeat</string>
+    <string name="action_repeat_off">Repeat off</string>
+    <string name="action_repeat_all">Repeat all</string>
+    <string name="action_repeat_one">Repeat one</string>
+    <string name="action_shuffle">Shuffle</string>
+    <string name="action_shuffle_on">Shuffle on</string>
+    <string name="action_shuffle_off">Shuffle off</string>
+    <string name="content_desc_repeat_button">Repeat mode</string>
+    <string name="content_desc_shuffle_button">Shuffle mode</string>
     <string name="label_seek">Seek</string>
     <string name="label_volume">Volume</string>
     <string name="content_desc_now_playing_artwork">Now playing artwork</string>

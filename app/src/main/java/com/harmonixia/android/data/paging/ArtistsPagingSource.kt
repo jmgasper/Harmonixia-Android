@@ -9,9 +9,17 @@ import com.harmonixia.android.util.PagingStatsTracker
 class ArtistsPagingSource(
     private val repository: MusicAssistantRepository,
     private val pageSize: Int = PAGE_SIZE,
-    private val statsTracker: PagingStatsTracker
+    private val statsTracker: PagingStatsTracker,
+    private val isOfflineMode: () -> Boolean
 ) : PagingSource<Int, Artist>() {
     override suspend fun load(params: LoadParams<Int>): LoadResult<Int, Artist> {
+        if (isOfflineMode()) {
+            return LoadResult.Page(
+                data = emptyList(),
+                prevKey = null,
+                nextKey = null
+            )
+        }
         val offset = params.key ?: 0
         val limit = params.loadSize.coerceAtLeast(1)
         return repository.fetchArtists(limit, offset)

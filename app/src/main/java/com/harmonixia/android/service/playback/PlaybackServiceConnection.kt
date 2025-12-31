@@ -10,6 +10,8 @@ import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
 import com.google.common.util.concurrent.ListenableFuture
 import com.harmonixia.android.domain.model.PlaybackState
+import com.harmonixia.android.domain.model.RepeatMode
+import com.harmonixia.android.domain.repository.MusicAssistantRepository
 import com.harmonixia.android.util.Logger
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -20,10 +22,13 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 @UnstableApi
 class PlaybackServiceConnection(
-    private val context: Context
+    private val context: Context,
+    private val repository: MusicAssistantRepository,
+    private val playbackStateManager: PlaybackStateManager
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private val controllerState = MutableStateFlow<MediaController?>(null)
@@ -40,6 +45,12 @@ class PlaybackServiceConnection(
 
     private val _queue = MutableStateFlow<List<MediaItem>>(emptyList())
     val queue: StateFlow<List<MediaItem>> = _queue.asStateFlow()
+
+    private val _repeatMode = MutableStateFlow(RepeatMode.OFF)
+    val repeatMode: StateFlow<RepeatMode> = _repeatMode.asStateFlow()
+
+    private val _shuffle = MutableStateFlow(false)
+    val shuffle: StateFlow<Boolean> = _shuffle.asStateFlow()
 
     private val _volume = MutableStateFlow(1f)
     val volume: StateFlow<Float> = _volume.asStateFlow()
@@ -69,6 +80,15 @@ class PlaybackServiceConnection(
         }
     }
 
+    init {
+        scope.launch {
+            playbackStateManager.repeatMode.collect { _repeatMode.value = it }
+        }
+        scope.launch {
+            playbackStateManager.shuffle.collect { _shuffle.value = it }
+        }
+    }
+
     fun connect() {
         if (controllerState.value != null) return
         val sessionToken = SessionToken(context, ComponentName(context, PlaybackService::class.java))
@@ -85,6 +105,8 @@ class PlaybackServiceConnection(
         _currentMediaItem.value = null
         _playbackPosition.value = 0L
         _queue.value = emptyList()
+        _repeatMode.value = RepeatMode.OFF
+        _shuffle.value = false
         _volume.value = 1f
         stopPositionUpdates()
     }
@@ -117,6 +139,22 @@ class PlaybackServiceConnection(
         val controller = controllerState.value ?: return Result.failure(IllegalStateException("Not connected"))
         controller.seekTo(positionMs)
         return Result.success(Unit)
+    }
+
+    suspend fun setRepeatMode(repeatMode: RepeatMode): Result<Unit> {
+        val queueId = playbackStateManager.currentQueueId
+            ?: return Result.failure(IllegalStateException("Queue ID unavailable"))
+        return withContext(Dispatchers.IO) {
+            repository.setRepeatMode(queueId, repeatMode)
+        }
+    }
+
+    suspend fun setShuffleMode(shuffle: Boolean): Result<Unit> {
+        val queueId = playbackStateManager.currentQueueId
+            ?: return Result.failure(IllegalStateException("Queue ID unavailable"))
+        return withContext(Dispatchers.IO) {
+            repository.setShuffleMode(queueId, shuffle)
+        }
     }
 
     private fun attachController(future: ListenableFuture<MediaController>) {

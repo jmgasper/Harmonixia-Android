@@ -15,6 +15,7 @@ import com.google.common.util.concurrent.Futures
 import com.google.common.util.concurrent.ListenableFuture
 import com.google.common.util.concurrent.SettableFuture
 import com.harmonixia.android.domain.model.QueueOption
+import com.harmonixia.android.domain.model.RepeatMode
 import com.harmonixia.android.domain.repository.MusicAssistantRepository
 import com.harmonixia.android.util.EXTRA_PARENT_MEDIA_ID
 import com.harmonixia.android.util.EXTRA_STREAM_URI
@@ -43,6 +44,11 @@ class PlaybackSessionCallback(
             if (reason != Player.MEDIA_ITEM_TRANSITION_REASON_AUTO) return
             markPlaybackRequestedForMediaItem(mediaItem)
             val queueId = playbackStateManager.currentQueueId ?: return
+            val timestamp = System.currentTimeMillis()
+            Logger.d(
+                TAG,
+                "Requesting auto-advance queueId=$queueId mediaId=${mediaItem?.mediaId.orEmpty()} at $timestamp"
+            )
             scope.launch {
                 repository.nextTrack(queueId)
                     .onFailure { Logger.w(TAG, "Auto-advance command failed", it) }
@@ -55,12 +61,26 @@ class PlaybackSessionCallback(
             reason: Int
         ) {
             if (reason != Player.DISCONTINUITY_REASON_SEEK) return
+            if (playbackStateManager.consumeSyncSeekSuppression()) return
             val queueId = playbackStateManager.currentQueueId ?: return
             val positionSeconds = (player.currentPosition / 1000L).toInt()
+            val timestamp = System.currentTimeMillis()
+            Logger.d(
+                TAG,
+                "Requesting seek queueId=$queueId position=$positionSeconds at $timestamp"
+            )
             scope.launch {
                 repository.seekTo(queueId, positionSeconds)
                     .onFailure { Logger.w(TAG, "Seek command failed", it) }
             }
+        }
+
+        override fun onShuffleModeEnabledChanged(shuffleModeEnabled: Boolean) {
+            handleShuffleModeChange(shuffleModeEnabled)
+        }
+
+        override fun onRepeatModeChanged(repeatMode: Int) {
+            handleRepeatModeChange(repeatMode)
         }
     }
 
@@ -183,6 +203,10 @@ class PlaybackSessionCallback(
         if (queueId != null) {
             val uris = resolvedItems.mapNotNull { it.streamUri() }
             scope.launch {
+                Logger.d(
+                    TAG,
+                    "Requesting playMedia queueId=$queueId option=ADD count=${uris.size}"
+                )
                 repository.playMedia(queueId, uris, QueueOption.ADD)
                     .onFailure { Logger.w(TAG, "Add to queue failed", it) }
             }
@@ -213,6 +237,10 @@ class PlaybackSessionCallback(
             if (queueId != null) {
                 val uris = queueItems.mapNotNull { it.streamUri() }
                 scope.launch(Dispatchers.IO) {
+                    Logger.d(
+                        TAG,
+                        "Requesting playMedia queueId=$queueId option=REPLACE count=${uris.size}"
+                    )
                     repository.playMedia(queueId, uris, QueueOption.REPLACE)
                         .onFailure { Logger.w(TAG, "Replace queue failed", it) }
                 }
@@ -298,6 +326,7 @@ class PlaybackSessionCallback(
                 Logger.w(TAG, "No active queue available for resume")
                 return@launch
             }
+            Logger.d(TAG, "Requesting resume queueId=$queueId")
             repository.resumeQueue(queueId)
                 .onFailure { Logger.w(TAG, "Resume command failed", it) }
         }
@@ -307,6 +336,7 @@ class PlaybackSessionCallback(
         player.pause()
         val queueId = playbackStateManager.currentQueueId ?: return
         scope.launch {
+            Logger.d(TAG, "Requesting pause queueId=$queueId")
             repository.pauseQueue(queueId)
                 .onFailure { Logger.w(TAG, "Pause command failed", it) }
         }
@@ -317,6 +347,7 @@ class PlaybackSessionCallback(
         performanceMonitor.clearPlaybackRequests()
         val queueId = playbackStateManager.currentQueueId ?: return
         scope.launch {
+            Logger.d(TAG, "Requesting stop (pause) queueId=$queueId")
             repository.pauseQueue(queueId)
                 .onFailure { Logger.w(TAG, "Stop command failed", it) }
         }
@@ -327,6 +358,7 @@ class PlaybackSessionCallback(
         player.seekToNext()
         val queueId = playbackStateManager.currentQueueId ?: return
         scope.launch {
+            Logger.d(TAG, "Requesting next queueId=$queueId")
             repository.nextTrack(queueId)
                 .onFailure { Logger.w(TAG, "Next command failed", it) }
         }
@@ -337,8 +369,46 @@ class PlaybackSessionCallback(
         player.seekToPrevious()
         val queueId = playbackStateManager.currentQueueId ?: return
         scope.launch {
+            Logger.d(TAG, "Requesting previous queueId=$queueId")
             repository.previousTrack(queueId)
                 .onFailure { Logger.w(TAG, "Previous command failed", it) }
+        }
+    }
+
+    private fun handleShuffleModeChange(shuffleModeEnabled: Boolean) {
+        if (shuffleModeEnabled == playbackStateManager.shuffle.value) return
+        scope.launch(Dispatchers.IO) {
+            val queueId = playbackStateManager.currentQueueId ?: awaitQueueId()
+            if (queueId.isNullOrBlank()) {
+                Logger.w(TAG, "No active queue available for shuffle toggle")
+                return@launch
+            }
+            Logger.d(TAG, "Requesting shuffle=$shuffleModeEnabled queueId=$queueId")
+            repository.setShuffleMode(queueId, shuffleModeEnabled)
+                .onFailure { Logger.w(TAG, "Shuffle command failed", it) }
+        }
+    }
+
+    private fun handleRepeatModeChange(@Player.RepeatMode repeatMode: Int) {
+        val targetMode = repeatMode.toDomainRepeatMode()
+        if (targetMode == playbackStateManager.repeatMode.value) return
+        scope.launch(Dispatchers.IO) {
+            val queueId = playbackStateManager.currentQueueId ?: awaitQueueId()
+            if (queueId.isNullOrBlank()) {
+                Logger.w(TAG, "No active queue available for repeat toggle")
+                return@launch
+            }
+            Logger.d(TAG, "Requesting repeatMode=$targetMode queueId=$queueId")
+            repository.setRepeatMode(queueId, targetMode)
+                .onFailure { Logger.w(TAG, "Repeat mode command failed", it) }
+        }
+    }
+
+    private fun @receiver:Player.RepeatMode Int.toDomainRepeatMode(): RepeatMode {
+        return when (this) {
+            Player.REPEAT_MODE_ONE -> RepeatMode.ONE
+            Player.REPEAT_MODE_ALL -> RepeatMode.ALL
+            else -> RepeatMode.OFF
         }
     }
 

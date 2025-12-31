@@ -95,7 +95,7 @@ fun EqSettingsScreen(
 }
 
 @Composable
-private fun EqSettingsScreenContent(
+internal fun EqSettingsScreenContent(
     uiState: EqSettingsUiState,
     searchQuery: String,
     filteredPresets: List<com.harmonixia.android.domain.model.EqPreset>,

@@ -1,0 +1,111 @@
+<- {"message_id":"143","result":[{"queue_id":"ma_android_270c9498f3","queue_item_id":"82c01625b9094e7a82d487ad611da591","name":"Geese - Husbands","duration":248,"sort_index":3,"streamdetails":null,"media_item":null,"image":{"type":"thumb","path":"https://resources.tidal.com/images/5058278b/a1e5/4393/bab0/62c053bfc96a/750x750.jpg","provider":"tidal--CQgRviPy","remotely_accessible":true},"index":0,"available":true},{"queue_id":"ma_android_270c9498f3","queue_item_id":"bdc0f17a8342438481314c558b197e8d","name":"Geese - 100 Horses","duration":226,"sort_index":6,"streamdetails":null,"media_item":null,"image":{"type":"thumb","path":"https://resources.tidal.com/images/5058278b/a1e5/4393/bab0/62c053bfc96a/750x750.jpg","provider":"tidal--CQgRviPy","remotely_accessible":true},"index":0,"available":true},{"queue_id":"ma_android_270c9498f3","queue_item_id":"d8ceaf9493b34018aa316cb72ccd8367","name":"Geese - Long Island City Here I Come","duration":397,"sort_index":11,"streamdetails":null,"media_item":null,"image":{"type":"thumb","path":"https://resources.tidal.com/images/5058278b/a1e5/4393/bab0/62c053bfc96a/750x750.jpg","provider":"tidal--CQgRviPy","remotely_accessible":true},"index":0,"available":true},{"queue_id":"ma_android_270c9498f3","queue_item_id":"48c18384c56c4f7cae2b310bc014651e","name":"Geese - Getting Killed","duration":284,"sort_index":4,"streamdetails":null,"media_item":null,"image":{"type":"thumb","path":"https://resources.tidal.com/images/5058278b/a1e5/4393/bab0/62c053bfc96a/750x750.jpg","provider":"tidal--CQgRviPy","remotely_accessible":true},"index":0,"available":true},{"queue_id":"ma_android_270c9498f3","queue_item_id":"371a0c90fd984366b9f636263ae3f2c5","name":"Geese - Bow Down","duration":208,"sort_index":9,"streamdetails":null,"media_item":null,"image":{"type":"thumb","path":"https://resources.tidal.com/images/5058278b/a1e5/4393/bab0/62c053bfc96a/750x750.jpg","provider":"tidal--CQgRviPy","remotely_accessible":true},"index":0,"available":true},{"queue_id":"ma_android_270c9498f3","queue_item_id":"5330ba36db22403d8df17ba86ab0d0f5","name":"Geese - Trinidad","duration":224,"sort_index":1,"streamdetails":null,"media_item":null,"image":{"type":"thumb","path":"https://resources.tidal.com/images/5058278b/a1e5/4393/bab0/62c053bfc96a/750x750.jpg","provider":"tidal--CQgRviPy","remotely_accessible":true},"index":0,"available":true},{"queue_id":"ma_android_270c9498f3","queue_item_id":"f727cc3783e04c6ca3f311992543fd9a","name":"Geese - Half Real","duration":202,"sort_index":7,"streamdetails":null,"media_item":null,"image":{"type":"thumb","path":"https://resources.tidal.com/images/5058278b/a1e5/4393/bab0/62c053bfc96a/750x750.jpg","provider":"tidal--CQgRviPy","remotely_accessible":true},"index":0,"available":true},{"queue_id":"ma_android_270c9498f3","queue_item_id":"eec9300ae5aa46819b419bd973892e6c","name":"Geese - Cobra","duration":185,"sort_index":2,"streamdetails":null,"media_item":null,"image":{"type":"thumb","path":"https://resources.tidal.com/images/5058278b/a1e5/4393/bab0/62c053bfc96a/750x750.jpg","provider":"tidal--CQgRviPy","remotely_accessible":true},"index":0,"available":true},{"queue_id":"ma_android_270c9498f3","queue_item_id":"fe72371c8ada42faa66dd3cbbcffae45","name":"Geese - Au Pays du Cocaine","duration":210,"sort_index":8,"streamdetails":null,"media_item":null,"image":{"type":"thumb","path":"https://resources.tidal.com/images/5058278b/a1e5/4393/bab0/62c053bfc96a/750x750.jpg","provider":"tidal--CQgRviPy","remotely_accessible":true},"index":0,"available":true},{"queue_id":"ma_android_270c9498f3","queue_item_id":"f374afe19da14a268ca9ab2e79c9b6a1","name":"Geese - Taxes","duration":197,"sort_index":10,"streamdetails":null,"media_item":null,"image":{"type":"thumb","path":"https://resources.tidal.com/images/5058278b/a1e5/4393/bab0/62c053bfc96a/750x750.jpg","provider":"tidal--CQgRviPy","remotely_accessible":true},"index":0,"available":true},{"queue_id":"ma_android_270c9498f3","queue_item_id":"2dfa368a5aa04dfc9c297432acf62fa0","name":"Geese - Islands of Men","duration":354,"sort_index"
+Scanning: 4550/4657 files
+Scanning: 4560/4657 files
+Scanning: 4570/4657 files
+Scanning: 4580/4657 files
+Scanning: 4590/4657 files
+Scanning: 4600/4657 files
+Scanning: 4610/4657 files
+Scanning: 4620/4657 files
+Scanning: 4630/4657 files
+Scanning: 4640/4657 files
+Scanning: 4650/4657 files
+Scanning: 4657/4657 files
+Scan complete: ScanResult(filesScanned=4657, tracksAdded=4657, albumsAdded=343, artistsAdded=111)
+Local media scan complete: 4657 tracks, 343 albums, 111 artists
+FATAL EXCEPTION: main
+Process: com.harmonixia.android, PID: 20022
+java.lang.IllegalStateException: Attempt to collect twice from pageEventFlow, which is an illegal operation. Did you forget to call Flow<PagingData<*>>.cachedIn(coroutineScope)?
+	at androidx.paging.PageFetcherSnapshot$pageEventFlow$1.invokeSuspend(PageFetcherSnapshot.kt:83)
+	at androidx.paging.PageFetcherSnapshot$pageEventFlow$1.invoke(Unknown Source:8)
+	at androidx.paging.PageFetcherSnapshot$pageEventFlow$1.invoke(Unknown Source:4)
+	at androidx.paging.CancelableChannelFlowKt$cancelableChannelFlow$1.invokeSuspend(CancelableChannelFlow.kt:33)
+	at androidx.paging.CancelableChannelFlowKt$cancelableChannelFlow$1.invoke(Unknown Source:8)
+	at androidx.paging.CancelableChannelFlowKt$cancelableChannelFlow$1.invoke(Unknown Source:4)
+	at androidx.paging.SimpleChannelFlowKt$simpleChannelFlow$1$1$producer$1$1.invokeSuspend(SimpleChannelFlow.kt:60)
+	at androidx.paging.SimpleChannelFlowKt$simpleChannelFlow$1$1$producer$1$1.invoke(Unknown Source:8)
+	at androidx.paging.SimpleChannelFlowKt$simpleChannelFlow$1$1$producer$1$1.invoke(Unknown Source:4)
+	at kotlinx.coroutines.intrinsics.UndispatchedKt.startUndspatched(Undispatched.kt:66)
+	at kotlinx.coroutines.intrinsics.UndispatchedKt.startUndispatchedOrReturn(Undispatched.kt:43)
+	at kotlinx.coroutines.CoroutineScopeKt.coroutineScope(CoroutineScope.kt:286)
+	at androidx.paging.SimpleChannelFlowKt$simpleChannelFlow$1$1$producer$1.invokeSuspend(SimpleChannelFlow.kt:55)
+	at kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(ContinuationImpl.kt:33)
+	at kotlinx.coroutines.DispatchedTask.run(DispatchedTask.kt:100)
+	at kotlinx.coroutines.EventLoop.processUnconfinedEvent(EventLoop.common.kt:65)
+	at kotlinx.coroutines.internal.DispatchedContinuationKt.resumeCancellableWith(DispatchedContinuation.kt:383)
+	at kotlinx.coroutines.intrinsics.CancellableKt.startCoroutineCancellable(Cancellable.kt:35)
+	at kotlinx.coroutines.LazyStandaloneCoroutine.onStart(Builders.common.kt:204)
+	at kotlinx.coroutines.JobSupport.startInternal(JobSupport.kt:399)
+	at kotlinx.coroutines.JobSupport.start(JobSupport.kt:378)
+	at androidx.paging.CachedPageEventFlow$sharedForDownstream$1.invokeSuspend(CachedPageEventFlow.kt:65)
+	at androidx.paging.CachedPageEventFlow$sharedForDownstream$1.invoke(Unknown Source:8)
+	at androidx.paging.CachedPageEventFlow$sharedForDownstream$1.invoke(Unknown Source:4)
+	at kotlinx.coroutines.flow.SubscribedFlowCollector.onSubscription(Share.kt:422)
+	at kotlinx.coroutines.flow.SharedFlowImpl.collect$suspendImpl(SharedFlow.kt:387)
+	at kotlinx.coroutines.flow.SharedFlowImpl.collect(Unknown Source:0)
+	at kotlinx.coroutines.flow.SubscribedSharedFlow.collect(Share.kt:412)
+	at kotlinx.coroutines.flow.FlowKt__LimitKt$takeWhile$$inlined$unsafeFlow$1.collect(SafeCollector.common.kt:120)
+	at androidx.paging.CachedPageEventFlow$downstreamFlow$1.invokeSuspend(CachedPageEventFlow.kt:102)
+	at androidx.paging.CachedPageEventFlow$downstreamFlow$1.invoke(Unknown Source:8)
+	at androidx.paging.CachedPageEventFlow$downstreamFlow$1.invoke(Unknown Source:4)
+	at kotlinx.coroutines.flow.SafeFlow.collectSafely(Builders.kt:57)
+	at kotlinx.coroutines.flow.AbstractFlow.collect(Flow.kt:226)
+	at kotlinx.coroutines.flow.FlowKt__EmittersKt$onStart$$inlined$unsafeFlow$1.collect(SafeCollector.common.kt:116)
+	at kotlinx.coroutines.flow.FlowKt__EmittersKt$onCompletion$$inlined$unsafeFlow$1.collect(SafeCollector.common.kt:110)
+	at androidx.paging.PagingDataPresenter$collectFrom$2.invokeSuspend(PagingDataPresenter.kt:121)
+	at androidx.paging.PagingDataPresenter$collectFrom$2.invoke(Unknown Source:8)
+	at androidx.paging.PagingDataPresenter$collectFrom$2.invoke(Unknown Source:2)
+	at androidx.paging.SingleRunner$runInIsolation$2.invokeSuspend(SingleRunner.kt:59)
+	at androidx.paging.SingleRunner$runInIsolation$2.invoke(Unknown Source:8)
+	at androidx.paging.SingleRunner$runInIsolation$2.invoke(Unknown Source:4)
+	at kotlinx.coroutines.intrinsics.UndispatchedKt.startUndspatched(Undispatched.kt:66)
+	at kotlinx.coroutines.intrinsics.UndispatchedKt.startUndispatchedOrReturn(Undispatched.kt:43)
+	at kotlinx.coroutines.CoroutineScopeKt.coroutineScope(CoroutineScope.kt:286)
+	at androidx.paging.SingleRunner.runInIsolation(SingleRunner.kt:49)
+	at androidx.paging.SingleRunner.runInIsolation$default(SingleRunner.kt:44)
+	at androidx.paging.PagingDataPresenter.collectFrom(PagingDataPresenter.kt:119)
+	at androidx.paging.compose.LazyPagingItems$collectPagingData$2.invokeSuspend(LazyPagingItems.kt:179)
+	at androidx.paging.compose.LazyPagingItems$collectPagingData$2.invoke(Unknown Source:8)
+	at androidx.paging.compose.LazyPagingItems$collectPagingData$2.invoke(Unknown Source:4)
+	at kotlinx.coroutines.flow.FlowKt__MergeKt$mapLatest$1.invokeSuspend(Merge.kt:213)
+	at kotlinx.coroutines.flow.FlowKt__MergeKt$mapLatest$1.invoke(Unknown Source:13)
+	at kotlinx.coroutines.flow.FlowKt__MergeKt$mapLatest$1.invoke(Unknown Source:4)
+	at kotlinx.coroutines.flow.internal.ChannelFlowTransformLatest$flowCollect$3$1$2.invokeSuspend(Merge.kt:30)
+	at kotlinx.coroutines.flow.internal.ChannelFlowTransformLatest$flowCollect$3$1$2.invoke(Unknown Source:8)
+	at kotlinx.coroutines.flow.internal.ChannelFlowTransformLatest$flowCollect$3$1$2.invoke(Unknown Source:4)
+	at kotlinx.coroutines.intrinsics.UndispatchedKt.startCoroutineUndispatched(Undispatched.kt:20)
+	at kotlinx.coroutines.CoroutineStart.invoke(CoroutineStart.kt:360)
+	at kotlinx.coroutines.AbstractCoroutine.start(AbstractCoroutine.kt:134)
+	at kotlinx.coroutines.BuildersKt__Builders_commonKt.launch(Builders.common.kt:53)
+	at kotlinx.coroutines.BuildersKt.launch(Unknown Source:1)
+	at kotlinx.coroutines.BuildersKt__Builders_commonKt.launch$default(Builders.common.kt:44)
+	at kotlinx.coroutines.BuildersKt.launch$default(Unknown Source:1)
+	at kotlinx.coroutines.flow.internal.ChannelFlowTransformLatest$flowCollect$3$1.emit(Merge.kt:29)
+	at kotlinx.coroutines.flow.internal.ChannelFlowTransformLatest$flowCollect$3$1$emit$1.invokeSuspend(Unknown Source:15)
+	at kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(ContinuationImpl.kt:33)
+	at kotlinx.coroutines.DispatchedTask.run(DispatchedTask.kt:100)
+	at androidx.compose.ui.platform.AndroidUiDispatcher.performTrampolineDispatch(AndroidUiDispatcher.android.kt:79)
+	at androidx.compose.ui.platform.AndroidUiDispatcher.access$performTrampolineDispatch(AndroidUiDispatcher.android.kt:41)
+	at androidx.compose.ui.platform.AndroidUiDispatcher$dispatchCallback$1.run(AndroidUiDispatcher.android.kt:57)
+	at android.os.Handler.handleCallback(Handler.java:1027)
+	at android.os.Handler.dispatchMessage(Handler.java:108)
+	at android.os.Looper.loopOnce(Looper.java:298)
+	at android.os.Looper.loop(Looper.java:408)
+	at android.app.ActivityThread.main(ActivityThread.java:9952)
+	at java.lang.reflect.Method.invoke(Native Method)
+	at com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:613)
+	at com.android.internal.os.ZygoteInit.main(ZygoteInit.java:1074)
+	Suppressed: kotlinx.coroutines.internal.DiagnosticCoroutineContextException: [LazyStandaloneCoroutine{Cancelling}@c4b24df, Dispatchers.Main.immediate]
+Prepared request id=144 command=player_queues/get_active_queue params={player_id=ma_android_270c9498f3}
+Sending request id=144 command=player_queues/get_active_queue
+-> {"message_id":"144","command":"player_queues/get_active_queue","args":{"player_id":"ma_android_270c9498f3"}}
+<- {"message_id":"144","result":{"queue_id":"ma_android_270c9498f3","active":true,"display_name":"Harmonixia (PGU110)","available":true,"items":11,"shuffle_enabled":true,"repeat_mode":"off","dont_stop_the_music_enabled":false,"current_index":7,"index_in_buffer":null,"elapsed_time":173.0,"elapsed_time_last_updated":1767153015.680511,"state":"idle","current_item":{"queue_id":"ma_android_270c9498f3","queue_item_id":"eec9300ae5aa46819b419bd973892e6c","name":"Geese - Cobra","duration":185,"sort_index":2,"streamdetails":null,"media_item":null,"image":{"type":"thumb","path":"https://resources.tidal.com/images/5058278b/a1e5/4393/bab0/62c053bfc96a/750x750.jpg","provider":"tidal--CQgRviPy","remotely_accessible":true},"index":0,"available":true},"next_item":{"queue_id":"ma_android_270c9498f3","queue_item_id":"fe72371c8ada42faa66dd3cbbcffae45","name":"Geese - Au Pays du Cocaine","duration":210,"sort_index":8,"streamdetails":null,"media_item":null,"image":{"type":"thumb","path":"https://resources.tidal.com/images/5058278b/a1e5/4393/bab0/62c053bfc96a/750x750.jpg","provider":"tidal--CQgRviPy","remotely_accessible":true},"index":0,"available":true},"radio_source":[],"flow_mode":false,"resume_pos":172},"partial":false}
+Prepared request id=145 command=player_queues/items params={queue_id=ma_android_270c9498f3, limit=500, offset=0}
+Sending request id=145 command=player_queues/items
+-> {"message_id":"145","command":"player_queues/items","args":{"queue_id":"ma_android_270c9498f3","limit":500,"offset":0}}
+<- {"message_id":"145","result":[{"queue_id":"ma_android_270c9498f3","queue_item_id":"82c01625b9094e7a82d487ad611da591","name":"Geese - Husbands","duration":248,"sort_index":3,"streamdetails":null,"media_item":null,"image":{"type":"thumb","path":"https://resources.tidal.com/images/5058278b/a1e5/4393/bab0/62c053bfc96a/750x750.jpg","provider":"tidal--CQgRviPy","remotely_accessible":true},"index":0,"available":true},{"queue_id":"ma_android_270c9498f3","queue_item_id":"bdc0f17a8342438481314c558b197e8d","name":"Geese - 100 Horses","duration":226,"sort_index":6,"streamdetails":null,"media_item":null,"image":{"type":"thumb","path":"https://resources.tidal.com/images/5058278b/a1e5/4393/bab0/62c053bfc96a/750x750.jpg","provider":"tidal--CQgRviPy","remotely_accessible":true},"index":0,"available":true},{"queue_id":"ma_android_270c9498f3","queue_item_id":"d8ceaf9493b34018aa316cb72ccd8367","name":"Geese - Long Island City Here I Come","duration":397,"sort_index":11,"streamdetails":null,"media_item":null,"image":{"type":"thumb","path":"https://resources.tidal.com/images/5058278b/a1e5/4393/bab0/62c053bfc96a/750x750.jpg","provider":"tidal--CQgRviPy","remotely_accessible":true},"index":0,"available":true},{"queue_id":"ma_android_270c9498f3","queue_item_id":"48c18384c56c4f7cae2b310bc014651e","name":"Geese - Getting Killed","duration":284,"sort_index":4,"streamdetails":null,"media_item":null,"image":{"type":"thumb","path":"https://resources.tidal.com/images/5058278b/a1e5/4393/bab0/62c053bfc96a/750x750.jpg","provider":"tidal--CQgRviPy","remotely_accessible":true},"index":0,"available":true},{"queue_id":"ma_android_270c9498f3","queue_item_id":"371a0c90fd984366b9f636263ae3f2c5","name":"Geese - Bow Down","duration":208,"sort_index":9,"streamdetails":null,"media_item":null,"image":{"type":"thumb","path":"https://resources.tidal.com/images/5058278b/a1e5/4393/bab0/62c053bfc96a/750x750.jpg","provider":"tidal--CQgRviPy","remotely_accessible":true},"index":0,"available":true},{"queue_id":"ma_android_270c9498f3","queue_item_id":"5330ba36db22403d8df17ba86ab0d0f5","name":"Geese - Trinidad","duration":224,"sort_index":1,"streamdetails":null,"media_item":null,"image":{"type":"thumb","path":"https://resources.tidal.com/images/5058278b/a1e5/4393/bab0/62c053bfc96a/750x750.jpg","provider":"tidal--CQgRviPy","remotely_accessible":true},"index":0,"available":true},{"queue_id":"ma_android_270c9498f3","queue_item_id":"f727cc3783e04c6ca3f311992543fd9a","name":"Geese - Half Real","duration":202,"sort_index":7,"streamdetails":null,"media_item":null,"image":{"type":"thumb","path":"https://resources.tidal.com/images/5058278b/a1e5/4393/bab0/62c053bfc96a/750x750.jpg","provider":"tidal--CQgRviPy","remotely_accessible":true},"index":0,"available":true},{"queue_id":"ma_android_270c9498f3","queue_item_id":"eec9300ae5aa46819b419bd973892e6c","name":"Geese - Cobra","duration":185,"sort_index":2,"streamdetails":null,"media_item":null,"image":{"type":"thumb","path":"https://resources.tidal.com/images/5058278b/a1e5/4393/bab0/62c053bfc96a/750x750.jpg","provider":"tidal--CQgRviPy","remotely_accessible":true},"index":0,"available":true},{"queue_id":"ma_android_270c9498f3","queue_item_id":"fe72371c8ada42faa66dd3cbbcffae45","name":"Geese - Au Pays du Cocaine","duration":210,"sort_index":8,"streamdetails":null,"media_item":null,"image":{"type":"thumb","path":"https://resources.tidal.com/images/5058278b/a1e5/4393/bab0/62c053bfc96a/750x750.jpg","provider":"tidal--CQgRviPy","remotely_accessible":true},"index":0,"available":true},{"queue_id":"ma_android_270c9498f3","queue_item_id":"f374afe19da14a268ca9ab2e79c9b6a1","name":"Geese - Taxes","duration":197,"sort_index":10,"streamdetails":null,"media_item":null,"image":{"type":"thumb","path":"https://resources.tidal.com/images/5058278b/a1e5/4393/bab0/62c053bfc96a/750x750.jpg","provider":"tidal--CQgRviPy","remotely_accessible":true},"index":0,"available":true},{"queue_id":"ma_android_270c9498f3","queue_item_id":"2dfa368a5aa04dfc9c297432acf62fa0","name":"Geese - Islands of Men","duration":354,"sort_index"
+dispatchAppVisibility visible:false mUpcomingWindowFocus:true
+Gesture unResponsive msg, reason = 1ef66ca com.harmonixia.android/com.harmonixia.android.MainActivity is not responding. Waited 5000ms for FocusEvent(hasFocus=false)
+stackInfo :----- pid 20022 at 2025-12-31 15:02:36.994 -----;Cmd line: com.harmonixia.android;"main" prio=5 tid=2 RUNNABLE sysTid=20022;  at android.os.BinderProxy.transactNative(Native Method);  at android.os.BinderProxy.transact(BinderProxy.java:685);  at android.app.IActivityManager$Stub$Proxy.handleApplicationCrash(IActivityManager.java:6016);  at com.android.internal.os.RuntimeInit$KillApplicationHandler.uncaughtException(RuntimeInit.java:185);  at java.lang.ThreadGroup.uncaughtException(ThreadGroup.java:1102);  at java.lang.ThreadGroup.uncaughtException(ThreadGroup.java:1093);  at com.android.internal.os.RuntimeInitExtImpl.uncaughtExceptionExt(RuntimeInitExtImpl.java:72);  at com.android.internal.os.RuntimeInit$LoggingHandler.uncaughtException(RuntimeInit.java:138);  at com.android.internal.os.RuntimeInit$KillApplicationHandler.ensureLogging(RuntimeInit.java:226);  at com.android.internal.os.RuntimeInit$KillApplicationHandler.uncaughtException(RuntimeInit.java:171);  at java.lang.ThreadGroup.uncaughtException(ThreadGroup.java:1102);  at java.lang.ThreadGroup.uncaughtException(ThreadGroup.java:1093);  at kotlinx.coroutines.internal.CoroutineExceptionHandlerImplKt.propagateExceptionFinalResort(CoroutineExceptionHandlerImpl.kt:31);  at kotlinx.coroutines.internal.CoroutineExceptionHandlerImpl_commonKt.handleUncaughtCoroutineException(CoroutineExceptionHandlerImpl.common.kt:48);  at kotlinx.coroutines.CoroutineExceptionHandlerKt.handleCoroutineException(CoroutineExceptionHandler.kt:31);  at kotlinx.coroutines.StandaloneCoroutine.handleJobException(Builders.common.kt:192);  at kotlinx.coroutines.JobSupport.finalizeFinishingState(JobSupport.kt:222);  at kotlinx.coroutines.JobSupport.tryMakeCompletingSlowPath(JobSupport.kt:946);  at kotlinx.coroutines.JobSupport.tryMakeCompleting(JobSupport.kt:894);  at kotlinx.coroutines.JobSupport.makeCompletingOnce$kotlinx_coroutines_core(JobSupport.kt:859);  at kotlinx.coroutines.AbstractCoroutine.resumeWith(AbstractCoroutine.kt:99);  at kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(ContinuationImpl.kt:46);  at kotlinx.coroutines.internal.ScopeCoroutine.afterResume(Scopes.kt:35);  at kotlinx.coroutines.AbstractCoroutine.resumeWith(AbstractCoroutine.kt:101);  at kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(ContinuationImpl.kt:46);  at kotlinx.coroutines.DispatchedTask.run(DispatchedTask.kt:98);  at kotlinx.coroutines.EventLoop.processUnconfinedEvent(EventLoop.common.kt:65);  at kotlinx.coroutines.internal.DispatchedContinuationKt.resumeCancellableWith(DispatchedContinuation.kt:383);  at kotlinx.coroutines.intrinsics.CancellableKt.startCoroutineCancellable(Cancellable.kt:35);  at kotlinx.coroutines.LazyStandaloneCoroutine.onStart(Builders.common.kt:204);
+---------------------------- PROCESS ENDED (20022) for package com.harmonixia.android ----------------------------
+No notification to remove with key 0|com.harmonixia.android|1001|null|10374 reason=10020:unknown

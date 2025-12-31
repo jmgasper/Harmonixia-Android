@@ -8,12 +8,10 @@ import androidx.media3.common.MediaMetadata
 import androidx.media3.common.util.UnstableApi
 import com.harmonixia.android.domain.model.Album
 import com.harmonixia.android.domain.model.Artist
-import com.harmonixia.android.domain.model.DownloadedTrack
 import com.harmonixia.android.domain.model.Playlist
 import com.harmonixia.android.domain.model.SearchResults
 import com.harmonixia.android.domain.model.Track
-import com.harmonixia.android.domain.model.downloadId
-import com.harmonixia.android.domain.repository.DownloadRepository
+import com.harmonixia.android.domain.repository.LocalMediaRepository
 import com.harmonixia.android.domain.repository.MusicAssistantRepository
 import com.harmonixia.android.domain.repository.OFFLINE_PROVIDER
 import com.harmonixia.android.domain.repository.OfflineLibraryRepository
@@ -21,17 +19,16 @@ import com.harmonixia.android.util.EXTRA_IS_LOCAL_FILE
 import com.harmonixia.android.util.EXTRA_PARENT_MEDIA_ID
 import com.harmonixia.android.util.EXTRA_STREAM_URI
 import com.harmonixia.android.util.EXTRA_TRACK_QUALITY
+import com.harmonixia.android.util.mergeWithLocal
 import com.harmonixia.android.util.NetworkConnectivityManager
 import java.io.File
 import java.util.concurrent.ConcurrentHashMap
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.withContext
 
 @UnstableApi
 class MediaLibraryBrowser(
     private val repository: MusicAssistantRepository,
-    private val downloadRepository: DownloadRepository,
+    private val localMediaRepository: LocalMediaRepository,
     private val offlineLibraryRepository: OfflineLibraryRepository,
     private val networkConnectivityManager: NetworkConnectivityManager
 ) {
@@ -58,10 +55,10 @@ class MediaLibraryBrowser(
             MEDIA_ID_ALBUMS -> buildAlbumsList(page, pageSize)
             MEDIA_ID_ARTISTS -> buildArtistsList(page, pageSize)
             MEDIA_ID_PLAYLISTS -> buildPlaylistsList(page, pageSize)
-            MEDIA_ID_DOWNLOADS -> buildDownloadedContent()
-            MEDIA_ID_DOWNLOADED_ALBUMS -> buildDownloadedAlbumsList(page, pageSize)
-            MEDIA_ID_DOWNLOADED_PLAYLISTS -> buildDownloadedPlaylistsList(page, pageSize)
-            MEDIA_ID_DOWNLOADED_TRACKS -> buildDownloadedTracksList(page, pageSize)
+            MEDIA_ID_LOCAL_MEDIA -> buildLocalContent()
+            MEDIA_ID_LOCAL_ALBUMS -> buildLocalAlbumsList(page, pageSize)
+            MEDIA_ID_LOCAL_ARTISTS -> buildLocalArtistsList(page, pageSize)
+            MEDIA_ID_LOCAL_TRACKS -> buildLocalTracksList(page, pageSize)
             else -> {
                 when {
                     parentId.startsWith("$MEDIA_ID_PREFIX_ALBUM:") -> {
@@ -92,7 +89,17 @@ class MediaLibraryBrowser(
         return if (isOfflineMode()) {
             offlineLibraryRepository.searchDownloadedContent(trimmed).first()
         } else {
-            repository.searchLibrary(trimmed, SEARCH_LIMIT).getOrDefault(SearchResults())
+            val serverResults = repository.searchLibrary(trimmed, SEARCH_LIMIT)
+                .getOrDefault(SearchResults())
+            val localTracks = localMediaRepository.searchTracks(trimmed).first()
+            val localAlbums = localMediaRepository.searchAlbums(trimmed).first()
+            val localArtists = localMediaRepository.searchArtists(trimmed).first()
+            SearchResults(
+                albums = serverResults.albums.mergeWithLocal(localAlbums),
+                artists = serverResults.artists.mergeWithLocal(localArtists),
+                playlists = serverResults.playlists,
+                tracks = serverResults.tracks.mergeWithLocal(localTracks)
+            )
         }
     }
 
@@ -146,13 +153,13 @@ class MediaLibraryBrowser(
 
     private fun buildRootCategories(): List<MediaItem> {
         return if (isOfflineMode()) {
-            listOf(buildCategoryItem(MEDIA_ID_DOWNLOADS, TITLE_DOWNLOADS))
+            listOf(buildCategoryItem(MEDIA_ID_LOCAL_MEDIA, TITLE_LOCAL_MEDIA))
         } else {
             listOf(
                 buildCategoryItem(MEDIA_ID_ALBUMS, TITLE_ALBUMS),
                 buildCategoryItem(MEDIA_ID_ARTISTS, TITLE_ARTISTS),
                 buildCategoryItem(MEDIA_ID_PLAYLISTS, TITLE_PLAYLISTS),
-                buildCategoryItem(MEDIA_ID_DOWNLOADS, TITLE_DOWNLOADS)
+                buildCategoryItem(MEDIA_ID_LOCAL_MEDIA, TITLE_LOCAL_MEDIA)
             )
         }
     }
@@ -178,10 +185,12 @@ class MediaLibraryBrowser(
 
     private suspend fun buildAlbumsList(page: Int, pageSize: Int): List<MediaItem> {
         val albums = if (isOfflineMode()) {
-            downloadRepository.getDownloadedAlbums().first()
+            localMediaRepository.getAllAlbums().first()
         } else {
             val (offset, limit) = resolvePaging(page, pageSize)
-            repository.fetchAlbums(limit, offset).getOrDefault(emptyList())
+            val serverAlbums = repository.fetchAlbums(limit, offset).getOrDefault(emptyList())
+            val localAlbums = localMediaRepository.getAllAlbums().first()
+            serverAlbums.mergeWithLocal(localAlbums)
         }
         val paged = if (isOfflineMode()) applyPaging(albums, page, pageSize) else albums
         return paged.map { it.toBrowsableMediaItem() }
@@ -193,14 +202,16 @@ class MediaLibraryBrowser(
         } else {
             val (offset, limit) = resolvePaging(page, pageSize)
             val artists = repository.fetchArtists(limit, offset).getOrDefault(emptyList())
-            artists.forEach { cacheArtistName(it) }
-            artists.map { it.toBrowsableMediaItem() }
+            val localArtists = localMediaRepository.getAllArtists().first()
+            val mergedArtists = artists.mergeWithLocal(localArtists)
+            mergedArtists.forEach { cacheArtistName(it) }
+            mergedArtists.map { it.toBrowsableMediaItem() }
         }
     }
 
     private suspend fun buildPlaylistsList(page: Int, pageSize: Int): List<MediaItem> {
         val playlists = if (isOfflineMode()) {
-            downloadRepository.getDownloadedPlaylists().first()
+            emptyList()
         } else {
             val (offset, limit) = resolvePaging(page, pageSize)
             repository.fetchPlaylists(limit, offset).getOrDefault(emptyList())
@@ -209,26 +220,29 @@ class MediaLibraryBrowser(
         return paged.map { it.toBrowsableMediaItem() }
     }
 
-    private fun buildDownloadedContent(): List<MediaItem> {
+    private fun buildLocalContent(): List<MediaItem> {
         return listOf(
-            buildCategoryItem(MEDIA_ID_DOWNLOADED_ALBUMS, TITLE_DOWNLOADED_ALBUMS),
-            buildCategoryItem(MEDIA_ID_DOWNLOADED_PLAYLISTS, TITLE_DOWNLOADED_PLAYLISTS),
-            buildCategoryItem(MEDIA_ID_DOWNLOADED_TRACKS, TITLE_DOWNLOADED_TRACKS)
+            buildCategoryItem(MEDIA_ID_LOCAL_ALBUMS, TITLE_LOCAL_ALBUMS),
+            buildCategoryItem(MEDIA_ID_LOCAL_ARTISTS, TITLE_LOCAL_ARTISTS),
+            buildCategoryItem(MEDIA_ID_LOCAL_TRACKS, TITLE_LOCAL_TRACKS)
         )
     }
 
-    private suspend fun buildDownloadedAlbumsList(page: Int, pageSize: Int): List<MediaItem> {
-        val albums = downloadRepository.getDownloadedAlbums().first()
+    private suspend fun buildLocalAlbumsList(page: Int, pageSize: Int): List<MediaItem> {
+        val albums = localMediaRepository.getAllAlbums().first()
         return applyPaging(albums, page, pageSize).map { it.toBrowsableMediaItem() }
     }
 
-    private suspend fun buildDownloadedPlaylistsList(page: Int, pageSize: Int): List<MediaItem> {
-        val playlists = downloadRepository.getDownloadedPlaylists().first()
-        return applyPaging(playlists, page, pageSize).map { it.toBrowsableMediaItem() }
+    private suspend fun buildLocalArtistsList(page: Int, pageSize: Int): List<MediaItem> {
+        val albums = localMediaRepository.getAllAlbums().first()
+        val tracks = localMediaRepository.getAllTracks().first()
+        val artists = buildOfflineArtists(albums, tracks)
+        artists.forEach { cacheArtistName(it) }
+        return applyPaging(artists, page, pageSize).map { it.toBrowsableMediaItem() }
     }
 
-    private suspend fun buildDownloadedTracksList(page: Int, pageSize: Int): List<MediaItem> {
-        val tracks = downloadRepository.getDownloadedTracks().first()
+    private suspend fun buildLocalTracksList(page: Int, pageSize: Int): List<MediaItem> {
+        val tracks = localMediaRepository.getAllTracks().first()
         val paged = applyPaging(tracks, page, pageSize)
         val items = mutableListOf<MediaItem>()
         for (track in paged) {
@@ -245,12 +259,15 @@ class MediaLibraryBrowser(
     ): List<MediaItem> {
         val parentMediaId = albumMediaId(albumId, provider)
         return if (isOfflineMode()) {
-            val downloads = filterDownloadedTracksByAlbum(albumId, provider)
-            val paged = applyPaging(downloads, page, pageSize)
+            val (albumName, albumArtist) = decodeOfflineAlbumId(albumId)
+            val tracks = localMediaRepository.getTracksByAlbum(albumName, albumArtist).first()
+            val paged = applyPaging(tracks, page, pageSize)
             paged.map { it.toPlayableMediaItem(parentMediaId) }
         } else {
             val tracks = repository.getAlbumTracks(albumId, provider).getOrDefault(emptyList())
-            val paged = applyPaging(tracks, page, pageSize)
+            val localTracks = loadLocalTracksForAlbum(albumId, provider, tracks)
+            val mergedTracks = tracks.mergeWithLocal(localTracks)
+            val paged = applyPaging(mergedTracks, page, pageSize)
             val items = mutableListOf<MediaItem>()
             for (track in paged) {
                 items.add(track.toPlayableMediaItem(parentMediaId))
@@ -267,12 +284,12 @@ class MediaLibraryBrowser(
     ): List<MediaItem> {
         val parentMediaId = playlistMediaId(playlistId, provider)
         return if (isOfflineMode()) {
-            val downloads = filterDownloadedTracksByPlaylist(playlistId, provider)
-            val paged = applyPaging(downloads, page, pageSize)
-            paged.map { it.toPlayableMediaItem(parentMediaId) }
+            emptyList()
         } else {
             val tracks = repository.getPlaylistTracks(playlistId, provider).getOrDefault(emptyList())
-            val paged = applyPaging(tracks, page, pageSize)
+            val localTracks = localMediaRepository.getAllTracks().first()
+            val mergedTracks = tracks.mergeWithLocal(localTracks)
+            val paged = applyPaging(mergedTracks, page, pageSize)
             val items = mutableListOf<MediaItem>()
             for (track in paged) {
                 items.add(track.toPlayableMediaItem(parentMediaId))
@@ -289,10 +306,12 @@ class MediaLibraryBrowser(
         val resolvedName = resolveArtistName(artistId, provider, artistName)
         if (resolvedName.isBlank()) return emptyList()
         val albums = if (isOfflineMode()) {
-            offlineLibraryRepository.getDownloadedAlbumsByArtist(resolvedName).first()
+            localMediaRepository.getAlbumsByArtist(resolvedName).first()
         } else {
             val allAlbums = fetchAllAlbums()
-            filterAlbumsForArtist(allAlbums, resolvedName)
+            val localAlbums = localMediaRepository.getAllAlbums().first()
+            val mergedAlbums = allAlbums.mergeWithLocal(localAlbums)
+            filterAlbumsForArtist(mergedAlbums, resolvedName)
         }
         return albums.map { it.toBrowsableMediaItem() }
     }
@@ -365,36 +384,14 @@ class MediaLibraryBrowser(
         }
     }
 
-    private suspend fun filterDownloadedTracksByAlbum(
-        albumId: String,
-        provider: String
-    ): List<DownloadedTrack> {
-        val albumDownloadId = "$albumId-$provider"
-        val tracks = downloadRepository.getDownloadedTracks().first()
-        val results = mutableListOf<DownloadedTrack>()
-        for (track in tracks) {
-            val downloaded = downloadRepository.getDownloadedTrack(track.downloadId) ?: continue
-            if (downloaded.albumId == albumDownloadId) {
-                results.add(downloaded)
-            }
+    private fun decodeOfflineAlbumId(albumId: String): Pair<String, String> {
+        val decoded = Uri.decode(albumId)
+        val parts = decoded.split(":", limit = 2)
+        return if (parts.size == 2) {
+            parts[1] to parts[0]
+        } else {
+            decoded to ""
         }
-        return results
-    }
-
-    private suspend fun filterDownloadedTracksByPlaylist(
-        playlistId: String,
-        provider: String
-    ): List<DownloadedTrack> {
-        val playlistDownloadId = "$playlistId-$provider"
-        val tracks = downloadRepository.getDownloadedTracks().first()
-        val results = mutableListOf<DownloadedTrack>()
-        for (track in tracks) {
-            val downloaded = downloadRepository.getDownloadedTrack(track.downloadId) ?: continue
-            if (downloaded.playlistIds.contains(playlistDownloadId)) {
-                results.add(downloaded)
-            }
-        }
-        return results
     }
 
     private fun normalizeName(name: String?): String {
@@ -402,8 +399,8 @@ class MediaLibraryBrowser(
     }
 
     private suspend fun buildOfflineArtistsList(page: Int, pageSize: Int): List<MediaItem> {
-        val albums = downloadRepository.getDownloadedAlbums().first()
-        val tracks = downloadRepository.getDownloadedTracks().first()
+        val albums = localMediaRepository.getAllAlbums().first()
+        val tracks = localMediaRepository.getAllTracks().first()
         val artists = buildOfflineArtists(albums, tracks)
         artists.forEach { cacheArtistName(it) }
         return applyPaging(artists, page, pageSize).map { it.toBrowsableMediaItem() }
@@ -446,14 +443,17 @@ class MediaLibraryBrowser(
     }
 
     private suspend fun Track.toPlayableMediaItem(parentMediaId: String? = null): MediaItem {
-        val downloaded = downloadRepository.getDownloadedTrack(downloadId)
-        val localFile = resolveLocalFile(downloaded)
+        val localFile = if (provider == OFFLINE_PROVIDER) {
+            val file = File(uri)
+            file.takeIf { it.exists() && it.length() > 0L }
+        } else {
+            null
+        }
         val isLocalFile = localFile != null
         val durationMs = lengthSeconds
             .takeIf { it > 0 }
             ?.toLong()
             ?.times(1000L)
-        val artworkUri = resolveArtworkUri(downloaded, imageUrl)
         val extras = Bundle().apply {
             if (!quality.isNullOrBlank()) {
                 putString(EXTRA_TRACK_QUALITY, quality)
@@ -468,7 +468,7 @@ class MediaLibraryBrowser(
             .setTitle(title)
             .setArtist(artist)
             .setAlbumTitle(album)
-            .setArtworkUri(artworkUri)
+            .setArtworkUri(imageUrl?.let { Uri.parse(it) })
             .setDurationMs(durationMs)
             .setIsBrowsable(false)
             .setIsPlayable(true)
@@ -477,41 +477,6 @@ class MediaLibraryBrowser(
         return MediaItem.Builder()
             .setMediaId("$MEDIA_ID_PREFIX_TRACK:$itemId:$provider")
             .setUri(localFile?.let { Uri.fromFile(it) } ?: Uri.parse(uri))
-            .setMediaMetadata(metadata)
-            .build()
-            .also { cacheMediaItem(it) }
-    }
-
-    private fun DownloadedTrack.toPlayableMediaItem(parentMediaId: String? = null): MediaItem {
-        val localFile = File(localFilePath).takeIf { it.exists() && it.length() > 0L }
-        val durationMs = track.lengthSeconds
-            .takeIf { it > 0 }
-            ?.toLong()
-            ?.times(1000L)
-        val artworkUri = resolveArtworkUri(this, track.imageUrl)
-        val extras = Bundle().apply {
-            if (!track.quality.isNullOrBlank()) {
-                putString(EXTRA_TRACK_QUALITY, track.quality)
-            }
-            putBoolean(EXTRA_IS_LOCAL_FILE, localFile != null)
-            putString(EXTRA_STREAM_URI, track.uri)
-            if (!parentMediaId.isNullOrBlank()) {
-                putString(EXTRA_PARENT_MEDIA_ID, parentMediaId)
-            }
-        }
-        val metadata = MediaMetadata.Builder()
-            .setTitle(track.title)
-            .setArtist(track.artist)
-            .setAlbumTitle(track.album)
-            .setArtworkUri(artworkUri)
-            .setDurationMs(durationMs)
-            .setIsBrowsable(false)
-            .setIsPlayable(true)
-            .setExtras(extras)
-            .build()
-        return MediaItem.Builder()
-            .setMediaId("$MEDIA_ID_PREFIX_TRACK:${track.itemId}:${track.provider}")
-            .setUri(localFile?.let { Uri.fromFile(it) } ?: Uri.parse(track.uri))
             .setMediaMetadata(metadata)
             .build()
             .also { cacheMediaItem(it) }
@@ -560,40 +525,21 @@ class MediaLibraryBrowser(
             .build()
     }
 
-    private suspend fun resolveLocalFile(downloaded: DownloadedTrack?): File? {
-        if (downloaded == null) return null
-        return withContext(Dispatchers.IO) {
-            val file = File(downloaded.localFilePath)
-            if (file.exists() && file.length() > 0L) file else null
-        }
-    }
-
-    private fun resolveArtworkUri(
-        downloaded: DownloadedTrack?,
-        fallbackImageUrl: String?
-    ): Uri? {
-        val coverPath = downloaded?.coverArtPath
-        if (!coverPath.isNullOrBlank()) {
-            val coverFile = File(coverPath)
-            if (coverFile.exists() && coverFile.length() > 0L) {
-                return Uri.fromFile(coverFile)
-            }
-        }
-        val imageUrl = downloaded?.track?.imageUrl ?: fallbackImageUrl
-        return imageUrl?.let { Uri.parse(it) }
-    }
 
     private suspend fun buildAlbumTrackItems(albumId: String, provider: String): List<MediaItem> {
         val parentMediaId = albumMediaId(albumId, provider)
         val items = mutableListOf<MediaItem>()
         if (isOfflineMode()) {
-            val downloads = filterDownloadedTracksByAlbum(albumId, provider)
-            for (track in downloads) {
+            val (albumName, albumArtist) = decodeOfflineAlbumId(albumId)
+            val tracks = localMediaRepository.getTracksByAlbum(albumName, albumArtist).first()
+            for (track in tracks) {
                 items.add(track.toPlayableMediaItem(parentMediaId))
             }
         } else {
             val tracks = repository.getAlbumTracks(albumId, provider).getOrDefault(emptyList())
-            for (track in tracks) {
+            val localTracks = loadLocalTracksForAlbum(albumId, provider, tracks)
+            val mergedTracks = tracks.mergeWithLocal(localTracks)
+            for (track in mergedTracks) {
                 items.add(track.toPlayableMediaItem(parentMediaId))
             }
         }
@@ -607,17 +553,41 @@ class MediaLibraryBrowser(
         val parentMediaId = playlistMediaId(playlistId, provider)
         val items = mutableListOf<MediaItem>()
         if (isOfflineMode()) {
-            val downloads = filterDownloadedTracksByPlaylist(playlistId, provider)
-            for (track in downloads) {
-                items.add(track.toPlayableMediaItem(parentMediaId))
-            }
+            return emptyList()
         } else {
             val tracks = repository.getPlaylistTracks(playlistId, provider).getOrDefault(emptyList())
-            for (track in tracks) {
+            val localTracks = localMediaRepository.getAllTracks().first()
+            val mergedTracks = tracks.mergeWithLocal(localTracks)
+            for (track in mergedTracks) {
                 items.add(track.toPlayableMediaItem(parentMediaId))
             }
         }
         return items
+    }
+
+    private suspend fun loadLocalTracksForAlbum(
+        albumId: String,
+        provider: String,
+        fallbackTracks: List<Track>
+    ): List<Track> {
+        val album = repository.getAlbum(albumId, provider).getOrNull()
+        val albumName = album?.name?.trim()
+            ?.takeIf { it.isNotBlank() }
+            ?: fallbackTracks.firstOrNull()?.album?.trim().orEmpty()
+        val artistNames = album?.artists
+            ?.map { it.trim() }
+            ?.filter { it.isNotBlank() }
+            ?: fallbackTracks.map { it.artist.trim() }
+                .filter { it.isNotBlank() }
+                .distinct()
+        if (albumName.isBlank() || artistNames.isEmpty()) return emptyList()
+        val localTracks = mutableListOf<Track>()
+        for (artistName in artistNames) {
+            localTracks.addAll(
+                localMediaRepository.getTracksByAlbum(albumName, artistName).first()
+            )
+        }
+        return localTracks.distinctBy { "${it.provider}:${it.itemId}" }
     }
 
     private fun <T> applyPaging(items: List<T>, page: Int, pageSize: Int): List<T> {
@@ -657,10 +627,10 @@ class MediaLibraryBrowser(
         private const val MEDIA_ID_ALBUMS = "albums"
         private const val MEDIA_ID_ARTISTS = "artists"
         private const val MEDIA_ID_PLAYLISTS = "playlists"
-        private const val MEDIA_ID_DOWNLOADS = "downloads"
-        private const val MEDIA_ID_DOWNLOADED_ALBUMS = "downloaded_albums"
-        private const val MEDIA_ID_DOWNLOADED_PLAYLISTS = "downloaded_playlists"
-        private const val MEDIA_ID_DOWNLOADED_TRACKS = "downloaded_tracks"
+        private const val MEDIA_ID_LOCAL_MEDIA = "local_media"
+        private const val MEDIA_ID_LOCAL_ALBUMS = "local_albums"
+        private const val MEDIA_ID_LOCAL_ARTISTS = "local_artists"
+        private const val MEDIA_ID_LOCAL_TRACKS = "local_tracks"
 
         private const val MEDIA_ID_PREFIX_ALBUM = "album"
         private const val MEDIA_ID_PREFIX_ARTIST = "artist"
@@ -671,10 +641,10 @@ class MediaLibraryBrowser(
         private const val TITLE_ALBUMS = "Albums"
         private const val TITLE_ARTISTS = "Artists"
         private const val TITLE_PLAYLISTS = "Playlists"
-        private const val TITLE_DOWNLOADS = "Downloads"
-        private const val TITLE_DOWNLOADED_ALBUMS = "Downloaded Albums"
-        private const val TITLE_DOWNLOADED_PLAYLISTS = "Downloaded Playlists"
-        private const val TITLE_DOWNLOADED_TRACKS = "Downloaded Tracks"
+        private const val TITLE_LOCAL_MEDIA = "Local Media"
+        private const val TITLE_LOCAL_ALBUMS = "Local Albums"
+        private const val TITLE_LOCAL_ARTISTS = "Local Artists"
+        private const val TITLE_LOCAL_TRACKS = "Local Tracks"
 
         private const val DEFAULT_PAGE_SIZE = 50
         private const val SEARCH_LIMIT = 200

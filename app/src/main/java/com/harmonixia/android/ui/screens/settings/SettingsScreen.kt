@@ -1,6 +1,10 @@
 package com.harmonixia.android.ui.screens.settings
 
+import android.app.Activity
+import android.content.Intent
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
@@ -8,44 +12,50 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.Dns
-import androidx.compose.material.icons.outlined.ExpandLess
-import androidx.compose.material.icons.outlined.ExpandMore
 import androidx.compose.material.icons.outlined.Key
+import androidx.compose.material.icons.outlined.MusicNote
+import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.Visibility
 import androidx.compose.material.icons.outlined.VisibilityOff
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Badge
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.NavigationRail
+import androidx.compose.material3.NavigationRailItem
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Tab
+import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
+import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -57,6 +67,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
@@ -67,27 +80,43 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.harmonixia.android.R
+import com.harmonixia.android.data.local.LocalMediaScanner
+import com.harmonixia.android.data.remote.ConnectionState
 import com.harmonixia.android.ui.components.ConnectionStatusIndicator
 import com.harmonixia.android.ui.components.ErrorCard
 import com.harmonixia.android.ui.components.LoadingButton
+import com.harmonixia.android.ui.screens.settings.eq.EqSettingsScreenContent
+import com.harmonixia.android.ui.screens.settings.eq.EqSettingsViewModel
 
 @Composable
 fun SettingsScreen(
     onNavigateBack: () -> Unit,
-    onNavigateToEqSettings: () -> Unit,
     onNavigateToPerformanceSettings: () -> Unit,
-    viewModel: SettingsViewModel = hiltViewModel()
+    initialTab: SettingsTab? = null,
+    viewModel: SettingsViewModel = hiltViewModel(),
+    eqViewModel: EqSettingsViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val storedServerUrl by viewModel.storedServerUrl.collectAsStateWithLifecycle()
-    val storedAuthToken by viewModel.storedAuthToken.collectAsStateWithLifecycle()
-    val eqSettings by viewModel.eqSettings.collectAsStateWithLifecycle()
-    val eqPresetName by viewModel.eqPresetName.collectAsStateWithLifecycle()
+    val selectedTab by viewModel.selectedTab.collectAsStateWithLifecycle()
+    val localMediaFolderUri by viewModel.localMediaFolderUri.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
+    val context = LocalContext.current
+    val folderPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocumentTree()
+    ) { uri ->
+        uri?.let {
+            val takeFlags = Intent.FLAG_GRANT_READ_URI_PERMISSION
+            context.contentResolver.takePersistableUriPermission(uri, takeFlags)
+            viewModel.updateLocalMediaFolder(uri.toString())
+        }
+    }
+
+    LaunchedEffect(initialTab) {
+        viewModel.setInitialTab(initialTab)
+    }
 
     LaunchedEffect(Unit) {
         viewModel.events.collect { event ->
@@ -99,13 +128,12 @@ fun SettingsScreen(
 
     SettingsScreenContent(
         uiState = uiState,
-        storedServerUrl = storedServerUrl,
-        storedAuthToken = storedAuthToken,
+        selectedTab = selectedTab,
+        onTabSelected = viewModel::selectTab,
         snackbarHostState = snackbarHostState,
-        eqEnabled = eqSettings.enabled,
-        eqPresetName = eqPresetName,
+        localMediaFolderUri = localMediaFolderUri,
+        localMediaScanState = uiState.localMediaScanState,
         onNavigateBack = onNavigateBack,
-        onNavigateToEqSettings = onNavigateToEqSettings,
         onNavigateToPerformanceSettings = onNavigateToPerformanceSettings,
         onServerUrlChange = viewModel::updateServerUrl,
         onAuthTokenChange = viewModel::updateAuthToken,
@@ -113,7 +141,10 @@ fun SettingsScreen(
         onSaveConnection = viewModel::updateConnection,
         onDisconnect = viewModel::disconnect,
         onClearSettings = viewModel::clearSettings,
-        onClearError = viewModel::clearError
+        onClearError = viewModel::clearError,
+        onSelectFolder = { folderPickerLauncher.launch(null) },
+        onScanLocalMedia = viewModel::scanLocalMedia,
+        eqViewModel = eqViewModel
     )
 }
 
@@ -121,13 +152,12 @@ fun SettingsScreen(
 @Composable
 internal fun SettingsScreenContent(
     uiState: SettingsUiState,
-    storedServerUrl: String,
-    storedAuthToken: String,
+    selectedTab: SettingsTab,
+    onTabSelected: (SettingsTab) -> Unit,
     snackbarHostState: SnackbarHostState,
-    eqEnabled: Boolean,
-    eqPresetName: String?,
+    localMediaFolderUri: String,
+    localMediaScanState: LocalMediaScanState,
     onNavigateBack: () -> Unit,
-    onNavigateToEqSettings: () -> Unit,
     onNavigateToPerformanceSettings: () -> Unit,
     onServerUrlChange: (String) -> Unit,
     onAuthTokenChange: (String) -> Unit,
@@ -135,19 +165,32 @@ internal fun SettingsScreenContent(
     onSaveConnection: () -> Unit,
     onDisconnect: () -> Unit,
     onClearSettings: () -> Unit,
-    onClearError: () -> Unit
+    onClearError: () -> Unit,
+    onSelectFolder: () -> Unit,
+    onScanLocalMedia: () -> Unit,
+    eqViewModel: EqSettingsViewModel? = null
 ) {
-    val form = uiState.form
     val isConnecting = uiState is SettingsUiState.Connecting
     val isTesting = (uiState as? SettingsUiState.Connecting)?.isTesting == true
-    val isSuccess = uiState is SettingsUiState.Success
-    val errorMessage = (uiState as? SettingsUiState.Error)?.message
-    val scrollState = rememberScrollState()
-    val focusManager = LocalFocusManager.current
-    val tokenFocusRequester = remember { FocusRequester() }
-    var isExpanded by rememberSaveable { mutableStateOf(true) }
-    var isTokenVisible by rememberSaveable { mutableStateOf(false) }
-    var showClearDialog by rememberSaveable { mutableStateOf(false) }
+    val windowSizeClass = calculateWindowSizeClass(activity = LocalContext.current as Activity)
+    val isWideLayout = windowSizeClass.widthSizeClass != WindowWidthSizeClass.Compact
+    val tabItems = listOf(
+        SettingsTabItem(
+            tab = SettingsTab.CONNECTION,
+            labelResId = R.string.settings_tab_connection,
+            icon = Icons.Outlined.Dns
+        ),
+        SettingsTabItem(
+            tab = SettingsTab.EQUALIZER,
+            labelResId = R.string.settings_tab_equalizer,
+            icon = Icons.Outlined.Settings
+        ),
+        SettingsTabItem(
+            tab = SettingsTab.LOCAL_MEDIA,
+            labelResId = R.string.settings_tab_local_media,
+            icon = Icons.Outlined.MusicNote
+        )
+    )
 
     BackHandler(enabled = isConnecting) {
         // Disable back navigation during connection attempts.
@@ -183,299 +226,79 @@ internal fun SettingsScreenContent(
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .verticalScroll(scrollState)
-                    .padding(24.dp)
-            ) {
-                Text(
-                    text = stringResource(R.string.section_connection_status),
-                    style = MaterialTheme.typography.titleMedium
-                )
-                Spacer(modifier = Modifier.height(12.dp))
-                ConnectionStatusIndicator(
-                    connectionState = uiState.connectionState,
-                    modifier = Modifier.fillMaxWidth()
-                )
-
-                if (isConnecting) {
-                    Spacer(modifier = Modifier.height(12.dp))
-                    LinearProgressRow()
-                }
-
-                if (errorMessage != null) {
-                    Spacer(modifier = Modifier.height(16.dp))
-                    ErrorCard(
-                        message = errorMessage,
-                        onDismiss = onClearError,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
-
-                if (isSuccess) {
-                    Spacer(modifier = Modifier.height(16.dp))
-                    StatusCard(message = (uiState as SettingsUiState.Success).message)
-                }
-
-                Spacer(modifier = Modifier.height(24.dp))
-                HorizontalDivider()
-                Spacer(modifier = Modifier.height(24.dp))
-
-                Text(
-                    text = stringResource(R.string.label_current_server_url),
-                    style = MaterialTheme.typography.titleSmall
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                OutlinedTextField(
-                    value = storedServerUrl,
-                    onValueChange = {},
-                    readOnly = true,
-                    enabled = false,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .testTag("settings_current_server_url")
-                )
-                Spacer(modifier = Modifier.height(12.dp))
-                Text(
-                    text = stringResource(R.string.label_current_access_token),
-                    style = MaterialTheme.typography.titleSmall
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                OutlinedTextField(
-                    value = storedAuthToken,
-                    onValueChange = {},
-                    readOnly = true,
-                    enabled = false,
-                    visualTransformation = PasswordVisualTransformation(),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .testTag("settings_current_auth_token")
-                )
-
-                Spacer(modifier = Modifier.height(24.dp))
-                HorizontalDivider()
-                Spacer(modifier = Modifier.height(24.dp))
-
-                val connectionSettingsLabel = stringResource(R.string.section_connection_settings)
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .semantics { contentDescription = connectionSettingsLabel },
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = connectionSettingsLabel,
-                        style = MaterialTheme.typography.titleMedium
-                    )
-                    IconButton(onClick = { isExpanded = !isExpanded }) {
-                        Icon(
-                            imageVector = if (isExpanded) Icons.Outlined.ExpandLess else Icons.Outlined.ExpandMore,
-                            contentDescription = stringResource(
-                                if (isExpanded) {
-                                    R.string.content_desc_collapse_section
-                                } else {
-                                    R.string.content_desc_expand_section
-                                }
-                            )
+            val tabContent: @Composable (Modifier) -> Unit = { modifier ->
+                Box(modifier = modifier) {
+                    when (selectedTab) {
+                        SettingsTab.CONNECTION -> ConnectionTabContent(
+                            uiState = uiState,
+                            isConnecting = isConnecting,
+                            isTesting = isTesting,
+                            onServerUrlChange = onServerUrlChange,
+                            onAuthTokenChange = onAuthTokenChange,
+                            onTestConnection = onTestConnection,
+                            onSaveConnection = onSaveConnection,
+                            onDisconnect = onDisconnect,
+                            onClearSettings = onClearSettings,
+                            onClearError = onClearError
+                        )
+                        SettingsTab.EQUALIZER -> {
+                            if (eqViewModel != null) {
+                                EqualizerTabContent(
+                                    eqViewModel = eqViewModel,
+                                    modifier = Modifier.fillMaxSize()
+                                )
+                            }
+                        }
+                        SettingsTab.LOCAL_MEDIA -> LocalMediaTabContent(
+                            localMediaFolderUri = localMediaFolderUri,
+                            localMediaScanState = localMediaScanState,
+                            onSelectFolder = onSelectFolder,
+                            onScanLocalMedia = onScanLocalMedia
                         )
                     }
                 }
+            }
 
-                if (isExpanded) {
-                    Spacer(modifier = Modifier.height(16.dp))
-                    OutlinedTextField(
-                        value = form.serverUrl,
-                        onValueChange = onServerUrlChange,
-                        label = { Text(text = stringResource(R.string.label_server_url)) },
-                        placeholder = { Text(text = stringResource(R.string.placeholder_server_url)) },
-                        isError = form.serverUrlError != null,
-                        leadingIcon = {
-                            Icon(
-                                imageVector = Icons.Outlined.Dns,
-                                contentDescription = stringResource(R.string.content_desc_server_icon)
-                            )
-                        },
-                        supportingText = {
-                            if (form.serverUrlError != null) {
-                                Text(
-                                    text = form.serverUrlError,
-                                    color = MaterialTheme.colorScheme.error,
-                                    style = MaterialTheme.typography.bodySmall
-                                )
-                            }
-                        },
-                        keyboardOptions = KeyboardOptions(
-                            keyboardType = KeyboardType.Uri,
-                            imeAction = ImeAction.Next
-                        ),
-                        keyboardActions = KeyboardActions(
-                            onNext = { tokenFocusRequester.requestFocus() }
-                        ),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .testTag("settings_server_url")
-                    )
-
-                    Spacer(modifier = Modifier.height(16.dp))
-                    OutlinedTextField(
-                        value = form.authToken,
-                        onValueChange = onAuthTokenChange,
-                        label = {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text(text = stringResource(R.string.label_access_token))
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text(
-                                    text = stringResource(R.string.label_optional_access_token),
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.secondary
-                                )
-                            }
-                        },
-                        placeholder = { Text(text = stringResource(R.string.placeholder_access_token_optional)) },
-                        leadingIcon = {
-                            Icon(
-                                imageVector = Icons.Outlined.Key,
-                                contentDescription = stringResource(R.string.content_desc_token_icon)
-                            )
-                        },
-                        trailingIcon = {
-                            IconButton(onClick = { isTokenVisible = !isTokenVisible }) {
-                                Icon(
-                                    imageVector = if (isTokenVisible) {
-                                        Icons.Outlined.VisibilityOff
-                                    } else {
-                                        Icons.Outlined.Visibility
-                                    },
-                                    contentDescription = stringResource(
-                                        if (isTokenVisible) {
-                                            R.string.content_desc_visibility_off
-                                        } else {
-                                            R.string.content_desc_visibility_on
-                                        }
+            if (isWideLayout) {
+                Row(modifier = Modifier.fillMaxSize()) {
+                    NavigationRail(modifier = Modifier.fillMaxHeight()) {
+                        tabItems.forEach { tabItem ->
+                            val label = stringResource(tabItem.labelResId)
+                            NavigationRailItem(
+                                selected = selectedTab == tabItem.tab,
+                                onClick = { onTabSelected(tabItem.tab) },
+                                icon = {
+                                    Icon(
+                                        imageVector = tabItem.icon,
+                                        contentDescription = label
                                     )
-                                )
-                            }
-                        },
-                        visualTransformation = if (isTokenVisible) {
-                            VisualTransformation.None
-                        } else {
-                            PasswordVisualTransformation()
-                        },
-                        keyboardOptions = KeyboardOptions(
-                            keyboardType = KeyboardType.Password,
-                            imeAction = ImeAction.Done
-                        ),
-                        keyboardActions = KeyboardActions(
-                            onDone = {
-                                focusManager.clearFocus()
-                                if (form.isFormValid) {
-                                    onTestConnection()
-                                }
-                            }
-                        ),
-                        supportingText = {
-                            Text(
-                                text = stringResource(R.string.placeholder_access_token_optional),
-                                style = MaterialTheme.typography.bodySmall
+                                },
+                                label = { Text(text = label) }
                             )
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .focusRequester(tokenFocusRequester)
-                            .testTag("settings_auth_token")
-                    )
-
-                    Spacer(modifier = Modifier.height(24.dp))
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        LoadingButton(
-                            text = stringResource(R.string.action_test_connection),
-                            onClick = onTestConnection,
-                            enabled = form.isFormValid,
-                            isLoading = isConnecting && isTesting,
-                            modifier = Modifier.weight(1f),
-                            testTag = "settings_test_connection"
-                        )
-                        LoadingButton(
-                            text = stringResource(R.string.action_save_reconnect),
-                            onClick = onSaveConnection,
-                            enabled = form.isFormValid && form.isModified,
-                            isLoading = isConnecting && !isTesting,
-                            modifier = Modifier.weight(1f),
-                            testTag = "settings_save_reconnect"
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(24.dp))
-                HorizontalDivider()
-                Spacer(modifier = Modifier.height(24.dp))
-
-                Text(
-                    text = stringResource(R.string.eq_settings_title),
-                    style = MaterialTheme.typography.titleMedium
-                )
-                Spacer(modifier = Modifier.height(12.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    val presetLabel = stringResource(R.string.eq_preset_label)
-                    val presetValue = eqPresetName ?: stringResource(R.string.eq_no_preset_selected)
-                    Text(
-                        text = "$presetLabel: $presetValue",
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                    if (eqEnabled) {
-                        Badge {
-                            Text(text = stringResource(R.string.eq_enabled_badge))
                         }
                     }
+                    tabContent(
+                        Modifier
+                            .weight(1f)
+                            .fillMaxHeight()
+                    )
                 }
-                Spacer(modifier = Modifier.height(12.dp))
-                OutlinedButton(
-                    onClick = onNavigateToEqSettings,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(text = stringResource(R.string.eq_configure_button))
-                }
-
-                Spacer(modifier = Modifier.height(24.dp))
-                HorizontalDivider()
-                Spacer(modifier = Modifier.height(24.dp))
-
-                if (uiState.canDisconnect) {
-                    Button(
-                        onClick = onDisconnect,
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.error,
-                            contentColor = MaterialTheme.colorScheme.onError
-                        ),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .testTag("settings_disconnect")
-                    ) {
-                        Text(text = stringResource(R.string.action_disconnect))
+            } else {
+                Column(modifier = Modifier.fillMaxSize()) {
+                    TabRow(selectedTabIndex = selectedTab.ordinal) {
+                        tabItems.forEach { tabItem ->
+                            Tab(
+                                selected = selectedTab == tabItem.tab,
+                                onClick = { onTabSelected(tabItem.tab) },
+                                text = { Text(text = stringResource(tabItem.labelResId)) }
+                            )
+                        }
                     }
-                    Spacer(modifier = Modifier.height(12.dp))
-                }
-
-                OutlinedButton(
-                    onClick = { showClearDialog = true },
-                    colors = ButtonDefaults.outlinedButtonColors(
-                        contentColor = MaterialTheme.colorScheme.error
-                    ),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .testTag("settings_clear_settings")
-                ) {
-                    Text(text = stringResource(R.string.action_clear_settings))
+                    tabContent(
+                        Modifier
+                            .weight(1f)
+                            .fillMaxWidth()
+                    )
                 }
             }
 
@@ -494,32 +317,412 @@ internal fun SettingsScreenContent(
                     CircularProgressIndicator()
                 }
             }
+        }
+    }
+}
 
-            if (showClearDialog) {
-                AlertDialog(
-                    onDismissRequest = { showClearDialog = false },
-                    title = { Text(text = stringResource(R.string.message_clear_settings_confirm)) },
-                    text = { Text(text = stringResource(R.string.message_clear_settings_body)) },
-                    confirmButton = {
-                        Button(
-                            onClick = {
-                                showClearDialog = false
-                                onClearSettings()
+@Composable
+private fun ConnectionTabContent(
+    uiState: SettingsUiState,
+    isConnecting: Boolean,
+    isTesting: Boolean,
+    onServerUrlChange: (String) -> Unit,
+    onAuthTokenChange: (String) -> Unit,
+    onTestConnection: () -> Unit,
+    onSaveConnection: () -> Unit,
+    onDisconnect: () -> Unit,
+    onClearSettings: () -> Unit,
+    onClearError: () -> Unit
+) {
+    val form = uiState.form
+    val errorMessage = (uiState as? SettingsUiState.Error)?.message
+    val isSuccess = uiState is SettingsUiState.Success
+    val scrollState = rememberScrollState()
+    val focusManager = LocalFocusManager.current
+    val tokenFocusRequester = remember { FocusRequester() }
+    var isExpanded by rememberSaveable { mutableStateOf(false) }
+    var isTokenVisible by rememberSaveable { mutableStateOf(false) }
+    var showClearDialog by rememberSaveable { mutableStateOf(false) }
+    val connectionStatusText = stringResource(
+        if (uiState.connectionState is ConnectionState.Connected) {
+            R.string.status_music_assistant_connected
+        } else {
+            R.string.status_music_assistant_disconnected
+        }
+    )
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(scrollState)
+            .padding(24.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            ConnectionStatusIndicator(connectionState = uiState.connectionState)
+            Text(
+                text = connectionStatusText,
+                style = MaterialTheme.typography.bodyMedium
+            )
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        OutlinedButton(
+            onClick = { isExpanded = !isExpanded },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text(text = stringResource(R.string.settings_edit_connection))
+        }
+
+        if (isExpanded) {
+            if (isConnecting) {
+                Spacer(modifier = Modifier.height(12.dp))
+                LinearProgressRow()
+            }
+
+            if (errorMessage != null) {
+                Spacer(modifier = Modifier.height(16.dp))
+                ErrorCard(
+                    message = errorMessage,
+                    onDismiss = onClearError,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+
+            if (isSuccess) {
+                Spacer(modifier = Modifier.height(16.dp))
+                StatusCard(message = (uiState as SettingsUiState.Success).message)
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            OutlinedTextField(
+                value = form.serverUrl,
+                onValueChange = onServerUrlChange,
+                label = { Text(text = stringResource(R.string.label_server_url)) },
+                placeholder = { Text(text = stringResource(R.string.placeholder_server_url)) },
+                isError = form.serverUrlError != null,
+                leadingIcon = {
+                    Icon(
+                        imageVector = Icons.Outlined.Dns,
+                        contentDescription = stringResource(R.string.content_desc_server_icon)
+                    )
+                },
+                supportingText = {
+                    if (form.serverUrlError != null) {
+                        Text(
+                            text = form.serverUrlError,
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+                },
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Uri,
+                    imeAction = ImeAction.Next
+                ),
+                keyboardActions = KeyboardActions(
+                    onNext = { tokenFocusRequester.requestFocus() }
+                ),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("settings_server_url")
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            OutlinedTextField(
+                value = form.authToken,
+                onValueChange = onAuthTokenChange,
+                label = {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(text = stringResource(R.string.label_access_token))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = stringResource(R.string.label_optional_access_token),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.secondary
+                        )
+                    }
+                },
+                placeholder = { Text(text = stringResource(R.string.placeholder_access_token_optional)) },
+                leadingIcon = {
+                    Icon(
+                        imageVector = Icons.Outlined.Key,
+                        contentDescription = stringResource(R.string.content_desc_token_icon)
+                    )
+                },
+                trailingIcon = {
+                    IconButton(onClick = { isTokenVisible = !isTokenVisible }) {
+                        Icon(
+                            imageVector = if (isTokenVisible) {
+                                Icons.Outlined.VisibilityOff
+                            } else {
+                                Icons.Outlined.Visibility
                             },
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = MaterialTheme.colorScheme.error,
-                                contentColor = MaterialTheme.colorScheme.onError
+                            contentDescription = stringResource(
+                                if (isTokenVisible) {
+                                    R.string.content_desc_visibility_off
+                                } else {
+                                    R.string.content_desc_visibility_on
+                                }
                             )
-                        ) {
-                            Text(text = stringResource(R.string.action_clear_settings))
-                        }
-                    },
-                    dismissButton = {
-                        OutlinedButton(onClick = { showClearDialog = false }) {
-                            Text(text = stringResource(R.string.action_back))
+                        )
+                    }
+                },
+                visualTransformation = if (isTokenVisible) {
+                    VisualTransformation.None
+                } else {
+                    PasswordVisualTransformation()
+                },
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Password,
+                    imeAction = ImeAction.Done
+                ),
+                keyboardActions = KeyboardActions(
+                    onDone = {
+                        focusManager.clearFocus()
+                        if (form.isFormValid) {
+                            onTestConnection()
                         }
                     }
+                ),
+                supportingText = {
+                    Text(
+                        text = stringResource(R.string.placeholder_access_token_optional),
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .focusRequester(tokenFocusRequester)
+                    .testTag("settings_auth_token")
+            )
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                LoadingButton(
+                    text = stringResource(R.string.action_test_connection),
+                    onClick = onTestConnection,
+                    enabled = form.isFormValid,
+                    isLoading = isConnecting && isTesting,
+                    modifier = Modifier.weight(1f),
+                    testTag = "settings_test_connection"
                 )
+                LoadingButton(
+                    text = stringResource(R.string.action_save_reconnect),
+                    onClick = onSaveConnection,
+                    enabled = form.isFormValid && form.isModified,
+                    isLoading = isConnecting && !isTesting,
+                    modifier = Modifier.weight(1f),
+                    testTag = "settings_save_reconnect"
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        if (uiState.canDisconnect) {
+            Button(
+                onClick = onDisconnect,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.error,
+                    contentColor = MaterialTheme.colorScheme.onError
+                ),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("settings_disconnect")
+            ) {
+                Text(text = stringResource(R.string.action_disconnect))
+            }
+            Spacer(modifier = Modifier.height(12.dp))
+        }
+
+        OutlinedButton(
+            onClick = { showClearDialog = true },
+            colors = ButtonDefaults.outlinedButtonColors(
+                contentColor = MaterialTheme.colorScheme.error
+            ),
+            modifier = Modifier
+                .fillMaxWidth()
+                .testTag("settings_clear_settings")
+        ) {
+            Text(text = stringResource(R.string.action_clear_settings))
+        }
+    }
+
+    if (showClearDialog) {
+        AlertDialog(
+            onDismissRequest = { showClearDialog = false },
+            title = { Text(text = stringResource(R.string.message_clear_settings_confirm)) },
+            text = { Text(text = stringResource(R.string.message_clear_settings_body)) },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showClearDialog = false
+                        onClearSettings()
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.error,
+                        contentColor = MaterialTheme.colorScheme.onError
+                    )
+                ) {
+                    Text(text = stringResource(R.string.action_clear_settings))
+                }
+            },
+            dismissButton = {
+                OutlinedButton(onClick = { showClearDialog = false }) {
+                    Text(text = stringResource(R.string.action_back))
+                }
+            }
+        )
+    }
+}
+
+@Composable
+private fun EqualizerTabContent(
+    eqViewModel: EqSettingsViewModel,
+    modifier: Modifier = Modifier
+) {
+    val uiState by eqViewModel.uiState.collectAsStateWithLifecycle()
+    val searchQuery by eqViewModel.searchQuery.collectAsStateWithLifecycle()
+    val filteredPresets by eqViewModel.filteredPresets.collectAsStateWithLifecycle()
+    val selectedPreset by eqViewModel.selectedPreset.collectAsStateWithLifecycle()
+    val eqSettings by eqViewModel.eqSettings.collectAsStateWithLifecycle()
+    val presetDetails by eqViewModel.presetDetails.collectAsStateWithLifecycle()
+
+    EqSettingsScreenContent(
+        uiState = uiState,
+        searchQuery = searchQuery,
+        filteredPresets = filteredPresets,
+        selectedPreset = selectedPreset,
+        selectedPresetId = selectedPreset?.id,
+        eqEnabled = eqSettings.enabled,
+        filters = selectedPreset?.filters.orEmpty(),
+        presetDetails = presetDetails,
+        onSearchQueryChange = eqViewModel::searchPresets,
+        onPresetSelected = eqViewModel::selectPreset,
+        onApplyPreset = eqViewModel::applyPreset,
+        onToggleEnabled = eqViewModel::toggleEq,
+        modifier = modifier
+    )
+}
+
+@Composable
+private fun LocalMediaTabContent(
+    localMediaFolderUri: String,
+    localMediaScanState: LocalMediaScanState,
+    onSelectFolder: () -> Unit,
+    onScanLocalMedia: () -> Unit
+) {
+    val scrollState = rememberScrollState()
+    val context = LocalContext.current
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(scrollState)
+            .padding(24.dp)
+    ) {
+        Text(
+            text = stringResource(R.string.section_local_media),
+            style = MaterialTheme.typography.titleMedium
+        )
+        Spacer(modifier = Modifier.height(12.dp))
+
+        Text(
+            text = stringResource(R.string.local_media_folder_label),
+            style = MaterialTheme.typography.titleSmall
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        OutlinedTextField(
+            value = localMediaFolderUri.ifBlank {
+                stringResource(R.string.local_media_no_folder_selected)
+            },
+            onValueChange = {},
+            readOnly = true,
+            enabled = false,
+            modifier = Modifier
+                .fillMaxWidth()
+                .testTag("settings_local_media_folder")
+                .semantics {
+                    contentDescription = context.getString(R.string.content_desc_local_media_folder)
+                }
+        )
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            OutlinedButton(
+                onClick = onSelectFolder,
+                enabled = !localMediaScanState.isScanning,
+                modifier = Modifier.weight(1f)
+            ) {
+                Text(text = stringResource(R.string.local_media_select_folder))
+            }
+
+            LoadingButton(
+                text = stringResource(R.string.local_media_refresh),
+                onClick = onScanLocalMedia,
+                enabled = localMediaFolderUri.isNotBlank() && !localMediaScanState.isScanning,
+                isLoading = localMediaScanState.isScanning,
+                modifier = Modifier.weight(1f),
+                testTag = "settings_scan_local_media"
+            )
+        }
+
+        when (val progress = localMediaScanState.progress) {
+            is LocalMediaScanner.ScanProgress.Scanning -> {
+                Spacer(modifier = Modifier.height(12.dp))
+                LinearProgressIndicator(
+                    progress = { progress.current.toFloat() / progress.total.toFloat() },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = stringResource(
+                        R.string.local_media_scanning,
+                        progress.current,
+                        progress.total
+                    ),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            is LocalMediaScanner.ScanProgress.Complete -> {
+                Spacer(modifier = Modifier.height(12.dp))
+                StatusCard(
+                    message = stringResource(
+                        R.string.local_media_scan_complete,
+                        progress.result.tracksAdded,
+                        progress.result.albumsAdded,
+                        progress.result.artistsAdded
+                    )
+                )
+            }
+            is LocalMediaScanner.ScanProgress.Error -> {
+                Spacer(modifier = Modifier.height(12.dp))
+                ErrorCard(
+                    message = stringResource(
+                        R.string.local_media_scan_error,
+                        progress.message
+                    ),
+                    onDismiss = { /* Clear error state if needed */ },
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+            LocalMediaScanner.ScanProgress.Idle -> {
+                // No status to show
             }
         }
     }
@@ -561,3 +764,9 @@ private fun StatusCard(message: String) {
         }
     }
 }
+
+private data class SettingsTabItem(
+    val tab: SettingsTab,
+    val labelResId: Int,
+    val icon: ImageVector
+)

@@ -54,11 +54,12 @@ import com.harmonixia.android.domain.model.Track
 import com.harmonixia.android.ui.components.ErrorCard
 import com.harmonixia.android.ui.components.OfflineModeBanner
 import com.harmonixia.android.ui.navigation.MainScaffoldActions
+import com.harmonixia.android.ui.screens.settings.SettingsTab
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SearchScreen(
-    onNavigateToSettings: () -> Unit,
+    onNavigateToSettings: (SettingsTab?) -> Unit,
     onAlbumClick: (Album) -> Unit,
     onArtistClick: (Artist) -> Unit,
     onPlaylistClick: (Playlist) -> Unit,
@@ -147,7 +148,7 @@ fun SearchScreen(
                 },
                 actions = {
                     MainScaffoldActions()
-                    IconButton(onClick = onNavigateToSettings) {
+                    IconButton(onClick = { onNavigateToSettings(null) }) {
                         Icon(
                             imageVector = Icons.Outlined.Settings,
                             contentDescription = stringResource(R.string.action_open_settings)

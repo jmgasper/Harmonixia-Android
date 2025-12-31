@@ -10,30 +10,48 @@ import androidx.media3.exoplayer.ExoPlayer
 import com.harmonixia.android.domain.model.Queue
 import com.harmonixia.android.domain.model.QueueOption
 import com.harmonixia.android.domain.model.Track
-import com.harmonixia.android.domain.model.downloadId
-import com.harmonixia.android.domain.repository.DownloadRepository
+import com.harmonixia.android.domain.repository.LocalMediaRepository
 import com.harmonixia.android.domain.repository.MusicAssistantRepository
+import com.harmonixia.android.domain.repository.OFFLINE_PROVIDER
 import com.harmonixia.android.util.EXTRA_IS_LOCAL_FILE
 import com.harmonixia.android.util.EXTRA_STREAM_URI
 import com.harmonixia.android.util.EXTRA_TRACK_QUALITY
 import com.harmonixia.android.util.Logger
+import com.harmonixia.android.util.matchesLocal
 import java.io.File
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 
 class QueueManager(
     private val repository: MusicAssistantRepository,
-    private val downloadRepository: DownloadRepository
+    private val localMediaRepository: LocalMediaRepository
 ) {
     private val queueItems = mutableListOf<MediaItem>()
     private var currentIndex: Int = 0
     private var queueId: String? = null
     private var player: ExoPlayer? = null
+    private val playedInShuffleSession = mutableSetOf<String>()
+    private var isShuffleActive = false
+    private var lastMediaItemId: String? = null
 
     private val playerListener = object : Player.Listener {
         override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
             val player = player ?: return
+            val previousMediaId = lastMediaItemId
             currentIndex = player.currentMediaItemIndex
+            if (isShuffleActive && !previousMediaId.isNullOrBlank()) {
+                playedInShuffleSession.add(previousMediaId)
+                if (queueItems.isNotEmpty() && playedInShuffleSession.size >= queueItems.size) {
+                    playedInShuffleSession.clear()
+                }
+            }
+            val skipped = if (isShuffleActive && reason == Player.MEDIA_ITEM_TRANSITION_REASON_AUTO) {
+                maybeSkipPlayedShuffleItem(player, mediaItem)
+            } else {
+                false
+            }
+            lastMediaItemId = if (skipped) previousMediaId else mediaItem?.mediaId
         }
     }
 
@@ -44,6 +62,13 @@ class QueueManager(
 
     fun updateQueueId(queueId: String?) {
         this.queueId = queueId
+    }
+
+    fun updateShuffleState(shuffle: Boolean) {
+        if (!shuffle && isShuffleActive) {
+            playedInShuffleSession.clear()
+        }
+        isShuffleActive = shuffle
     }
 
     suspend fun buildMediaItem(track: Track): MediaItem {
@@ -170,17 +195,73 @@ class QueueManager(
     }
 
     private suspend fun resolveLocalFile(track: Track): File? {
-        val localPath = withContext(Dispatchers.IO) {
-            downloadRepository.getLocalFilePath(track.downloadId)
+        val localPath = if (track.provider == OFFLINE_PROVIDER) {
+            track.uri
+        } else {
+            resolveMappedLocalPath(track) ?: resolveMatchedLocalPath(track)
         }
         if (localPath.isNullOrBlank()) return null
-        val file = File(localPath)
-        return if (file.exists() && file.length() > 0L) {
-            file
-        } else {
-            Logger.w(TAG, "Local file missing or empty for ${track.itemId}; falling back to stream")
-            null
+        return withContext(Dispatchers.IO) {
+            val file = File(localPath)
+            if (file.exists() && file.length() > 0L) {
+                file
+            } else {
+                Logger.w(TAG, "Local file missing or empty for ${track.itemId}; falling back to stream")
+                null
+            }
         }
+    }
+
+    private suspend fun resolveMappedLocalPath(track: Track): String? {
+        val mapping = track.providerMappings.firstOrNull { provider ->
+            provider.providerDomain == OFFLINE_PROVIDER || provider.providerInstance == OFFLINE_PROVIDER
+        } ?: return null
+        val mappedPath = Uri.decode(mapping.itemId).trim()
+        if (mappedPath.isBlank()) return null
+        return localMediaRepository.getTrackByFilePath(mappedPath).first()?.uri
+    }
+
+    private suspend fun resolveMatchedLocalPath(track: Track): String? {
+        val title = track.title.trim()
+        if (title.isBlank()) return null
+        val candidates = localMediaRepository.searchTracks(title).first()
+        if (candidates.isEmpty()) return null
+        val normalizedTitle = normalizeMatchKey(track.title)
+        val trackNumber = track.trackNumber.takeIf { it > 0 }
+        val titleMatches = candidates.filter { normalizeMatchKey(it.title) == normalizedTitle }
+        if (titleMatches.isEmpty()) return null
+        val metadataMatches = titleMatches.filter { candidate ->
+            track.matchesLocal(candidate)
+        }.ifEmpty { titleMatches }
+        val match = trackNumber?.let { number ->
+            metadataMatches.firstOrNull { it.trackNumber == number }
+        } ?: metadataMatches.firstOrNull()
+        return match?.uri
+    }
+
+    private fun normalizeMatchKey(value: String): String {
+        return value.trim().lowercase()
+    }
+
+    private fun maybeSkipPlayedShuffleItem(player: ExoPlayer, mediaItem: MediaItem?): Boolean {
+        val mediaId = mediaItem?.mediaId ?: return false
+        if (queueItems.size <= 1) return false
+        if (!playedInShuffleSession.contains(mediaId)) return false
+        val targetIndex = findUnplayedShuffleIndex(mediaId) ?: return false
+        currentIndex = targetIndex
+        player.seekTo(targetIndex, C.TIME_UNSET)
+        return true
+    }
+
+    private fun findUnplayedShuffleIndex(excludeMediaId: String): Int? {
+        val candidates = queueItems.withIndex()
+            .filter { (index, item) ->
+                index != currentIndex &&
+                    item.mediaId != excludeMediaId &&
+                    !playedInShuffleSession.contains(item.mediaId)
+            }
+        if (candidates.isEmpty()) return null
+        return candidates.random().index
     }
 
     companion object {

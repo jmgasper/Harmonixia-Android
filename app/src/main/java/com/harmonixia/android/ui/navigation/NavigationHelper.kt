@@ -4,11 +4,13 @@ import androidx.navigation.NavController
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
 import androidx.navigation.navOptions
+import com.harmonixia.android.ui.screens.settings.SettingsTab
 import com.harmonixia.android.util.Logger
 
-fun NavController.navigateToSettings() {
-    Logger.i(TAG, "Navigate to Settings")
-    navigate(Screen.Settings.route)
+fun NavController.navigateToSettings(tab: SettingsTab? = null) {
+    val suffix = tab?.let { " tab=$it" }.orEmpty()
+    Logger.i(TAG, "Navigate to Settings$suffix")
+    navigate(Screen.Settings.createRoute(tab))
 }
 
 fun NavController.navigateToHome() {
@@ -78,16 +80,6 @@ fun NavController.navigateToSearch() {
             popUpTo(graph.findStartDestination().id) { saveState = true }
             launchSingleTop = true
             restoreState = true
-        }
-    )
-}
-
-fun NavController.navigateToDownloads() {
-    Logger.i(TAG, "Navigate to Downloads")
-    navigate(
-        Screen.Downloads.route,
-        navOptions {
-            launchSingleTop = true
         }
     )
 }

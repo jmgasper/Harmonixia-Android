@@ -1,5 +1,6 @@
 package com.harmonixia.android.ui.navigation
 
+import androidx.activity.ComponentActivity
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionLayout
 import androidx.compose.animation.SharedTransitionScope
@@ -21,7 +22,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.windowsizeclass.WindowSizeClass
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -34,6 +34,7 @@ import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -42,18 +43,21 @@ import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import com.harmonixia.android.R
-import com.harmonixia.android.ui.components.DownloadIconButton
+import com.harmonixia.android.domain.usecase.GetConnectionStateUseCase
+import com.harmonixia.android.ui.components.ConnectionStatusProvider
 import com.harmonixia.android.ui.components.MiniPlayer
 import com.harmonixia.android.ui.components.MiniPlayerDefaults
 import com.harmonixia.android.ui.playback.NowPlayingUiState
 import com.harmonixia.android.ui.playback.PlaybackViewModel
-import com.harmonixia.android.ui.screens.downloads.DownloadsViewModel
+import com.harmonixia.android.ui.screens.settings.SettingsTab
 
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 fun MainScaffold(
     navController: NavHostController,
     windowSizeClass: WindowSizeClass,
+    getConnectionStateUseCase: GetConnectionStateUseCase,
+    onNavigateToSettings: (SettingsTab?) -> Unit,
     modifier: Modifier = Modifier,
     enableSharedArtworkTransition: Boolean,
     onSharedArtworkTransitionChange: (Boolean) -> Unit,
@@ -80,10 +84,15 @@ fun MainScaffold(
             savedTopLevelRoute = currentTopLevelRoute
         }
     }
-    val playbackViewModel: PlaybackViewModel = hiltViewModel()
+    // Scope playback to the activity to survive size-class configuration changes.
+    val activity = LocalContext.current as? ComponentActivity
+    val playbackViewModel: PlaybackViewModel = if (activity != null) {
+        hiltViewModel(activity)
+    } else {
+        hiltViewModel()
+    }
+    val connectionState = getConnectionStateUseCase().collectAsStateWithLifecycle()
     val nowPlayingUiState by playbackViewModel.nowPlayingUiState.collectAsStateWithLifecycle()
-    val downloadsViewModel: DownloadsViewModel = hiltViewModel()
-    val overallProgress by downloadsViewModel.overallProgress.collectAsStateWithLifecycle()
     val playbackInfo = when (val state = nowPlayingUiState) {
         is NowPlayingUiState.Loading -> state.info
         is NowPlayingUiState.Playing -> state.info
@@ -106,16 +115,9 @@ fun MainScaffold(
     } else {
         0.dp
     }
-    val showDownloadAction = currentTopLevelRoute != null
-    CompositionLocalProvider(
-        LocalMainScaffoldActions provides {
-            if (showDownloadAction) {
-                DownloadIconButton(
-                    onClick = { navController.navigateToDownloads() },
-                    overallProgress = overallProgress
-                )
-            }
-        }
+    ConnectionStatusProvider(
+        connectionState = connectionState,
+        onNavigateToSettings = onNavigateToSettings
     ) {
         SharedTransitionLayout {
             Row(modifier = modifier) {
@@ -132,15 +134,7 @@ fun MainScaffold(
                                 Screen.Artists -> R.string.content_desc_nav_artists
                                 Screen.Playlists -> R.string.content_desc_nav_playlists
                                 Screen.Search -> R.string.content_desc_nav_search
-                                Screen.Onboarding,
-                                Screen.Settings,
-                                Screen.SettingsEqualizer,
-                                Screen.PerformanceSettings,
-                                Screen.NowPlaying,
-                                Screen.AlbumDetail,
-                                Screen.ArtistDetail,
-                                Screen.PlaylistDetail,
-                                Screen.Downloads -> null
+                                else -> null
                             }
                             NavigationRailItem(
                                 selected = selected,
@@ -151,20 +145,13 @@ fun MainScaffold(
                                         Screen.Artists -> navController.navigateToArtists()
                                         Screen.Playlists -> navController.navigateToPlaylists()
                                         Screen.Search -> navController.navigateToSearch()
-                                        Screen.Onboarding,
-                                        Screen.Settings,
-                                        Screen.SettingsEqualizer,
-                                        Screen.PerformanceSettings,
-                                        Screen.NowPlaying,
-                                        Screen.AlbumDetail,
-                                        Screen.ArtistDetail,
-                                        Screen.PlaylistDetail,
-                                        Screen.Downloads -> Unit
+                                        else -> Unit
                                     }
                                 },
                                 icon = {
                                     val contentDescription =
-                                        contentDescriptionRes?.let { stringResource(it) } ?: destination.label
+                                        contentDescriptionRes?.let { stringResource(it) }
+                                            ?: destination.label
                                     Icon(
                                         imageVector = if (selected) {
                                             destination.selectedIcon
@@ -233,15 +220,7 @@ fun MainScaffold(
                                         Screen.Artists -> R.string.content_desc_nav_artists
                                         Screen.Playlists -> R.string.content_desc_nav_playlists
                                         Screen.Search -> R.string.content_desc_nav_search
-                                        Screen.Onboarding,
-                                        Screen.Settings,
-                                        Screen.SettingsEqualizer,
-                                        Screen.PerformanceSettings,
-                                        Screen.NowPlaying,
-                                        Screen.AlbumDetail,
-                                        Screen.ArtistDetail,
-                                        Screen.PlaylistDetail,
-                                        Screen.Downloads -> null
+                                        else -> null
                                     }
                                     NavigationBarItem(
                                         selected = selected,
@@ -252,15 +231,7 @@ fun MainScaffold(
                                                 Screen.Artists -> navController.navigateToArtists()
                                                 Screen.Playlists -> navController.navigateToPlaylists()
                                                 Screen.Search -> navController.navigateToSearch()
-                                                Screen.Onboarding,
-                                                Screen.Settings,
-                                                Screen.SettingsEqualizer,
-                                                Screen.PerformanceSettings,
-                                                Screen.NowPlaying,
-                                                Screen.AlbumDetail,
-                                                Screen.ArtistDetail,
-                                                Screen.PlaylistDetail,
-                                                Screen.Downloads -> Unit
+                                                else -> Unit
                                             }
                                         },
                                         icon = {
@@ -288,7 +259,7 @@ fun MainScaffold(
     }
 }
 
-private val LocalMainScaffoldActions =
+internal val LocalMainScaffoldActions =
     staticCompositionLocalOf<@Composable RowScope.() -> Unit> { {} }
 
 @Composable

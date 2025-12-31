@@ -3,9 +3,9 @@ package com.harmonixia.android
 import android.app.Application
 import coil3.ImageLoader
 import coil3.SingletonImageLoader
+import com.harmonixia.android.data.local.LocalMediaScanner
 import com.harmonixia.android.data.local.SettingsDataStore
 import com.harmonixia.android.data.remote.ConnectionState
-import com.harmonixia.android.domain.manager.DownloadManager
 import com.harmonixia.android.domain.usecase.ConnectToServerUseCase
 import com.harmonixia.android.domain.usecase.GetConnectionStateUseCase
 import com.harmonixia.android.util.Logger
@@ -28,14 +28,13 @@ class HarmonixiaApplication : Application() {
     @Inject
     lateinit var getConnectionStateUseCase: GetConnectionStateUseCase
     @Inject
-    lateinit var downloadManager: DownloadManager
+    lateinit var localMediaScanner: LocalMediaScanner
 
     private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     override fun onCreate() {
         super.onCreate()
         SingletonImageLoader.setSafe { imageLoader }
-        downloadManager.start()
         applicationScope.launch {
             val serverUrl = settingsDataStore.getServerUrl().first()
             if (serverUrl.isBlank()) return@launch
@@ -44,6 +43,23 @@ class HarmonixiaApplication : Application() {
             val token = settingsDataStore.getAuthToken().first().trim()
             Logger.i(TAG, "Auto-connecting to ${Logger.sanitizeUrl(serverUrl)}")
             connectToServerUseCase(serverUrl, token, persistSettings = false)
+        }
+        applicationScope.launch {
+            val folderUri = settingsDataStore.getLocalMediaFolderUri().first()
+            if (folderUri.isNotBlank()) {
+                Logger.i(TAG, "Starting local media scan")
+                localMediaScanner.scanFolder(folderUri)
+                    .onSuccess { result ->
+                        Logger.i(
+                            TAG,
+                            "Local media scan complete: ${result.tracksAdded} tracks, " +
+                                "${result.albumsAdded} albums, ${result.artistsAdded} artists"
+                        )
+                    }
+                    .onFailure { error ->
+                        Logger.e(TAG, "Local media scan failed", error)
+                    }
+            }
         }
     }
 

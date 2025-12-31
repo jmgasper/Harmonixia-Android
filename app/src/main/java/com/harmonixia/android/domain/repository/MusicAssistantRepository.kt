@@ -8,6 +8,7 @@ import com.harmonixia.android.domain.model.Playlist
 import com.harmonixia.android.domain.model.Player
 import com.harmonixia.android.domain.model.Queue
 import com.harmonixia.android.domain.model.QueueOption
+import com.harmonixia.android.domain.model.RepeatMode
 import com.harmonixia.android.domain.model.SearchResults
 import com.harmonixia.android.domain.model.Track
 import kotlinx.coroutines.flow.Flow
@@ -37,10 +38,17 @@ interface MusicAssistantRepository {
     suspend fun nextTrack(queueId: String): Result<Unit>
     suspend fun previousTrack(queueId: String): Result<Unit>
     suspend fun seekTo(queueId: String, position: Int): Result<Unit>
+    suspend fun reportPlaybackProgress(queueId: String, track: Track, positionSeconds: Int): Result<Unit>
+    suspend fun reportTrackCompleted(queueId: String, track: Track, durationSeconds: Int): Result<Unit>
+    suspend fun setRepeatMode(queueId: String, repeatMode: RepeatMode): Result<Unit>
+    suspend fun setShuffleMode(queueId: String, shuffle: Boolean): Result<Unit>
     suspend fun clearQueue(queueId: String): Result<Unit>
     suspend fun createPlaylist(name: String): Result<Playlist>
     suspend fun deletePlaylist(playlistId: String): Result<Unit>
     suspend fun addTracksToPlaylist(playlistId: String, trackUris: List<String>): Result<Unit>
     suspend fun removeTracksFromPlaylist(playlistId: String, positions: List<Int>): Result<Unit>
+    suspend fun addToFavorites(itemId: String, provider: String, mediaType: String): Result<Unit>
+    suspend fun removeFromFavorites(itemId: String, provider: String, mediaType: String): Result<Unit>
+    suspend fun fetchFavorites(limit: Int, offset: Int): Result<List<Track>>
     suspend fun setPlayerVolume(playerId: String, volume: Int): Result<Unit>
 }

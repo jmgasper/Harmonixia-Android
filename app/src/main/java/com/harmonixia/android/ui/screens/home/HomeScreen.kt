@@ -13,10 +13,12 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.MusicNote
 import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material.icons.outlined.WifiOff
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -47,13 +49,15 @@ import com.harmonixia.android.R
 import com.harmonixia.android.domain.model.Album
 import com.harmonixia.android.ui.components.AlbumGridStatic
 import com.harmonixia.android.ui.components.ErrorCard
+import com.harmonixia.android.ui.components.OfflineModeBanner
 import com.harmonixia.android.ui.navigation.MainScaffoldActions
+import com.harmonixia.android.ui.screens.settings.SettingsTab
 import com.harmonixia.android.ui.theme.rememberAdaptiveSpacing
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
-    onNavigateToSettings: () -> Unit,
+    onNavigateToSettings: (SettingsTab?) -> Unit,
     onAlbumClick: (Album) -> Unit,
     viewModel: HomeViewModel = hiltViewModel()
 ) {
@@ -109,7 +113,7 @@ fun HomeScreen(
                 title = { Text(text = stringResource(R.string.nav_home)) },
                 actions = {
                     MainScaffoldActions()
-                    IconButton(onClick = onNavigateToSettings) {
+                    IconButton(onClick = { onNavigateToSettings(null) }) {
                         Icon(
                             imageVector = Icons.Outlined.Settings,
                             contentDescription = stringResource(R.string.action_open_settings)
@@ -144,8 +148,13 @@ fun HomeScreen(
                     }
                 }
                 is HomeUiState.Error -> {
-                    val message = state.message.ifBlank {
+                    val message = if (
+                        state.message.contains("http://", ignoreCase = true) ||
+                        state.message.contains("Failed to connect", ignoreCase = true)
+                    ) {
                         stringResource(R.string.home_error_load_failed)
+                    } else {
+                        state.message.ifBlank { stringResource(R.string.home_error_load_failed) }
                     }
                     Box(
                         modifier = Modifier
@@ -160,6 +169,61 @@ fun HomeScreen(
                             ErrorCard(message = message)
                             Button(onClick = viewModel::refresh) {
                                 Text(text = stringResource(R.string.action_retry))
+                            }
+                        }
+                    }
+                }
+                is HomeUiState.Offline -> {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(horizontalPadding),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(spacing.medium)
+                        ) {
+                            OfflineModeBanner(
+                                text = stringResource(R.string.home_offline_title),
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                            Spacer(modifier = Modifier.height(spacing.small))
+                            Icon(
+                                imageVector = Icons.Outlined.WifiOff,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(48.dp)
+                            )
+                            Text(
+                                text = stringResource(R.string.home_offline_message),
+                                style = sectionBodyStyle,
+                                textAlign = TextAlign.Center,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            if (
+                                state.albumCount > 0 ||
+                                state.artistCount > 0 ||
+                                state.trackCount > 0
+                            ) {
+                                Text(
+                                    text = stringResource(
+                                        R.string.home_offline_stats,
+                                        state.albumCount,
+                                        state.artistCount,
+                                        state.trackCount
+                                    ),
+                                    style = MaterialTheme.typography.labelLarge,
+                                    textAlign = TextAlign.Center,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            } else {
+                                Text(
+                                    text = stringResource(R.string.home_offline_no_content),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    textAlign = TextAlign.Center,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
                             }
                         }
                     }

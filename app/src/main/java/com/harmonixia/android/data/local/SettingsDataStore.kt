@@ -35,9 +35,21 @@ class SettingsDataStore @Inject constructor(
         }
     }
 
+    suspend fun saveLocalMediaFolderUri(uri: String) {
+        dataStore.edit { preferences ->
+            preferences[LOCAL_MEDIA_FOLDER_URI_KEY] = uri
+        }
+    }
+
     fun getServerUrl(): Flow<String> {
         return dataStore.data.map { preferences ->
             preferences[SERVER_URL_KEY] ?: ""
+        }
+    }
+
+    fun getLocalMediaFolderUri(): Flow<String> {
+        return dataStore.data.map { preferences ->
+            preferences[LOCAL_MEDIA_FOLDER_URI_KEY] ?: ""
         }
     }
 
@@ -64,6 +76,7 @@ class SettingsDataStore @Inject constructor(
         val SERVER_URL_KEY = stringPreferencesKey("server_url")
         val AUTH_TOKEN_KEY = stringPreferencesKey("auth_token")
         val SENDSPIN_CLIENT_ID_KEY = stringPreferencesKey("sendspin_client_id")
+        val LOCAL_MEDIA_FOLDER_URI_KEY = stringPreferencesKey("local_media_folder_uri")
         private const val TAG = "SettingsDataStore"
     }
 }

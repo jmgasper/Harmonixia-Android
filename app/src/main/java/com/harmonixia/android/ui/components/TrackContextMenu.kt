@@ -1,7 +1,8 @@
 package com.harmonixia.android.ui.components
 
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.CheckCircle
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.outlined.Favorite
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
@@ -18,9 +19,10 @@ fun TrackContextMenu(
     isEditable: Boolean,
     onPlay: () -> Unit,
     onAddToPlaylist: () -> Unit,
+    onAddToFavorites: () -> Unit,
+    onRemoveFromFavorites: () -> Unit,
+    isFavorite: Boolean,
     onRemoveFromPlaylist: () -> Unit,
-    onDownload: () -> Unit,
-    isDownloaded: Boolean,
     modifier: Modifier = Modifier
 ) {
     DropdownMenu(
@@ -42,21 +44,26 @@ fun TrackContextMenu(
                 onDismissRequest()
             }
         )
-        if (!isDownloaded) {
+        if (!isFavorite) {
             DropdownMenuItem(
-                text = { Text(text = stringResource(R.string.track_action_download)) },
+                text = { Text(text = stringResource(R.string.track_action_add_to_favorites)) },
                 onClick = {
-                    onDownload()
+                    onAddToFavorites()
                     onDismissRequest()
+                },
+                leadingIcon = {
+                    Icon(imageVector = Icons.Outlined.Favorite, contentDescription = null)
                 }
             )
         } else {
             DropdownMenuItem(
-                text = { Text(text = stringResource(R.string.downloads_completed)) },
-                onClick = {},
-                enabled = false,
+                text = { Text(text = stringResource(R.string.track_action_remove_from_favorites)) },
+                onClick = {
+                    onRemoveFromFavorites()
+                    onDismissRequest()
+                },
                 leadingIcon = {
-                    Icon(imageVector = Icons.Outlined.CheckCircle, contentDescription = null)
+                    Icon(imageVector = Icons.Filled.Favorite, contentDescription = null)
                 }
             )
         }

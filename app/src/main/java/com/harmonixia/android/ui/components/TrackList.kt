@@ -7,6 +7,8 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -17,8 +19,7 @@ import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.CheckCircle
-import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material.icons.filled.Storage
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
@@ -32,22 +33,15 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.harmonixia.android.R
-import com.harmonixia.android.domain.model.DownloadProgress
-import com.harmonixia.android.domain.model.DownloadStatus
 import com.harmonixia.android.domain.model.Track
-import com.harmonixia.android.domain.model.downloadId
-import kotlinx.coroutines.flow.Flow
+import com.harmonixia.android.util.isLocal
 
 @Composable
 @OptIn(ExperimentalFoundationApi::class)
@@ -63,9 +57,8 @@ fun TrackList(
     onTrackLongClick: ((Track, Int) -> Unit)? = null,
     onAddToPlaylist: ((Track) -> Unit)? = null,
     onRemoveFromPlaylist: ((Track, Int) -> Unit)? = null,
-    onDownloadTrack: ((Track) -> Unit)? = null,
-    getTrackDownloadStatus: ((String) -> Flow<DownloadStatus?>)? = null,
-    getTrackDownloadProgress: ((String) -> Flow<DownloadProgress?>)? = null,
+    onAddToFavorites: ((Track) -> Unit)? = null,
+    onRemoveFromFavorites: ((Track) -> Unit)? = null,
     trackTitleTextStyle: TextStyle? = null,
     trackSupportingTextStyle: TextStyle? = null,
     trackMetadataTextStyle: TextStyle? = null,
@@ -111,15 +104,6 @@ fun TrackList(
                 } else {
                     effectiveIndex + 1
                 }
-                val downloadStatusState = getTrackDownloadStatus?.invoke(track.downloadId)
-                    ?.collectAsStateWithLifecycle(initialValue = null)
-                val downloadProgressState = getTrackDownloadProgress?.invoke(track.downloadId)
-                    ?.collectAsStateWithLifecycle(initialValue = null)
-                val downloadStatus by (downloadStatusState
-                    ?: remember { mutableStateOf<DownloadStatus?>(null) })
-                val downloadProgress by (downloadProgressState
-                    ?: remember { mutableStateOf<DownloadProgress?>(null) })
-                val isDownloaded = downloadStatus == DownloadStatus.COMPLETED
                 val hasLongClick = showContextMenu || onTrackLongClick != null
                 val interactionModifier = if (hasLongClick) {
                     Modifier.combinedClickable(
@@ -139,8 +123,6 @@ fun TrackList(
                     TrackListItem(
                         track = track,
                         trackNumber = displayNumber,
-                        downloadStatus = downloadStatus,
-                        downloadProgress = downloadProgress,
                         titleTextStyle = trackTitleTextStyle,
                         supportingTextStyle = trackSupportingTextStyle,
                         metadataTextStyle = trackMetadataTextStyle,
@@ -156,11 +138,12 @@ fun TrackList(
                             isEditable = isEditable,
                             onPlay = { onTrackClick(track) },
                             onAddToPlaylist = { onAddToPlaylist?.invoke(track) },
+                            onAddToFavorites = { onAddToFavorites?.invoke(track) },
+                            onRemoveFromFavorites = { onRemoveFromFavorites?.invoke(track) },
+                            isFavorite = track.isFavorite,
                             onRemoveFromPlaylist = {
                                 onRemoveFromPlaylist?.invoke(track, contextMenuIndex)
-                            },
-                            onDownload = { onDownloadTrack?.invoke(track) },
-                            isDownloaded = isDownloaded
+                            }
                         )
                     }
                 }
@@ -176,8 +159,6 @@ fun TrackList(
 private fun TrackListItem(
     track: Track,
     trackNumber: Int,
-    downloadStatus: DownloadStatus?,
-    downloadProgress: DownloadProgress?,
     titleTextStyle: TextStyle?,
     supportingTextStyle: TextStyle?,
     metadataTextStyle: TextStyle?,
@@ -192,14 +173,23 @@ private fun TrackListItem(
     )
     val title = if (track.title.isNotBlank()) track.title else track.uri
     val artist = if (track.artist.isNotBlank()) track.artist else track.album
-    val downloadingDescription = stringResource(R.string.content_desc_track_downloading)
     ListItem(
         modifier = modifier,
         leadingContent = {
-            Box(
-                modifier = Modifier.width(32.dp),
-                contentAlignment = Alignment.CenterEnd
+            Row(
+                modifier = Modifier.width(40.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.End
             ) {
+                if (track.isLocal) {
+                    Icon(
+                        imageVector = Icons.Filled.Storage,
+                        contentDescription = "Local file",
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                }
                 Text(
                     text = trackNumber.toString(),
                     style = MaterialTheme.typography.labelMedium,
@@ -244,38 +234,6 @@ private fun TrackListItem(
         },
         trailingContent = {
             Column(horizontalAlignment = Alignment.End) {
-                when (downloadStatus) {
-                    DownloadStatus.COMPLETED -> {
-                        Icon(
-                            imageVector = Icons.Outlined.CheckCircle,
-                            contentDescription = stringResource(R.string.content_desc_track_downloaded),
-                            tint = Color(0xFF2E7D32),
-                            modifier = Modifier
-                                .padding(bottom = 4.dp)
-                                .size(20.dp)
-                        )
-                    }
-                    DownloadStatus.IN_PROGRESS -> {
-                        DownloadProgressIndicator(
-                            progress = downloadProgress?.progress ?: 0,
-                            size = 20.dp,
-                            showLabel = false,
-                            modifier = Modifier.padding(bottom = 4.dp)
-                        )
-                    }
-                    DownloadStatus.PENDING -> {
-                        CircularProgressIndicator(
-                            modifier = Modifier
-                                .padding(bottom = 4.dp)
-                                .size(20.dp)
-                                .semantics {
-                                    contentDescription = downloadingDescription
-                                },
-                            strokeWidth = 2.dp
-                        )
-                    }
-                    else -> Unit
-                }
                 if (qualityLabel != null) {
                     TrackQualityBadge(
                         text = qualityLabel,

@@ -8,9 +8,11 @@ import coil3.ImageLoader
 import coil3.request.ImageRequest
 import com.harmonixia.android.data.remote.ConnectionState
 import com.harmonixia.android.domain.model.SearchResults
+import com.harmonixia.android.domain.repository.LocalMediaRepository
 import com.harmonixia.android.domain.repository.OfflineLibraryRepository
 import com.harmonixia.android.domain.usecase.GetConnectionStateUseCase
 import com.harmonixia.android.domain.usecase.SearchLibraryUseCase
+import com.harmonixia.android.util.mergeWithLocal
 import com.harmonixia.android.util.NetworkConnectivityManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -30,6 +32,7 @@ import kotlinx.coroutines.launch
 class SearchViewModel @Inject constructor(
     private val searchLibraryUseCase: SearchLibraryUseCase,
     private val offlineLibraryRepository: OfflineLibraryRepository,
+    private val localMediaRepository: LocalMediaRepository,
     getConnectionStateUseCase: GetConnectionStateUseCase,
     private val savedStateHandle: SavedStateHandle,
     @ApplicationContext private val context: Context,
@@ -152,16 +155,25 @@ class SearchViewModel @Inject constructor(
             offlineLibraryRepository.searchDownloadedContent(query).first()
         } else {
             val cached = cache[query]
-            if (cached != null && cached.isFresh()) {
+            val baseResults = if (cached != null && cached.isFresh()) {
                 cached.results
             } else {
                 val result = searchLibraryUseCase(query, SEARCH_RESULT_LIMIT)
                 result.getOrElse {
                     _uiState.value = SearchUiState.Error(it.message.orEmpty())
                     return
-                }.also { fresh ->
-                    cache[query] = CachedResult(fresh, System.currentTimeMillis())
                 }
+            }
+            val localTracks = localMediaRepository.searchTracks(query).first()
+            val localAlbums = localMediaRepository.searchAlbums(query).first()
+            val localArtists = localMediaRepository.searchArtists(query).first()
+            SearchResults(
+                albums = baseResults.albums.mergeWithLocal(localAlbums),
+                artists = baseResults.artists.mergeWithLocal(localArtists),
+                playlists = baseResults.playlists,
+                tracks = baseResults.tracks.mergeWithLocal(localTracks)
+            ).also { merged ->
+                cache[query] = CachedResult(merged, System.currentTimeMillis())
             }
         }
         lastResults = results

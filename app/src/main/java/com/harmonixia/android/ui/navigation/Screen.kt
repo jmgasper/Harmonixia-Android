@@ -1,8 +1,25 @@
 package com.harmonixia.android.ui.navigation
 
+import com.harmonixia.android.ui.screens.settings.SettingsTab
+
 sealed class Screen(val route: String) {
     data object Onboarding : Screen("onboarding")
-    data object Settings : Screen("settings")
+    data object Settings : Screen("settings?tab={tab}") {
+        const val ARG_TAB = "tab"
+        private const val BASE_ROUTE = "settings"
+
+        fun createRoute(tab: SettingsTab? = null): String {
+            return if (tab == null) {
+                BASE_ROUTE
+            } else {
+                "$BASE_ROUTE?$ARG_TAB=${tab.name}"
+            }
+        }
+    }
+    @Deprecated(
+        "EQ settings are now inline in the main Settings screen. " +
+            "Use Screen.Settings.createRoute(SettingsTab.EQUALIZER) instead"
+    )
     data object SettingsEqualizer : Screen("settings/equalizer")
     data object PerformanceSettings : Screen("settings/performance")
     data object Home : Screen("home")
@@ -35,5 +52,4 @@ sealed class Screen(val route: String) {
     }
     data object Playlists : Screen("playlists")
     data object Search : Screen("search")
-    data object Downloads : Screen("downloads")
 }

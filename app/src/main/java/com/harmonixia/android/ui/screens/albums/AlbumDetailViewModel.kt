@@ -5,16 +5,16 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.harmonixia.android.R
 import com.harmonixia.android.domain.model.Album
-import com.harmonixia.android.domain.model.DownloadProgress
-import com.harmonixia.android.domain.model.DownloadStatus
 import com.harmonixia.android.domain.model.Playlist
 import com.harmonixia.android.domain.model.Track
-import com.harmonixia.android.domain.model.downloadId
-import com.harmonixia.android.domain.repository.DownloadRepository
+import com.harmonixia.android.domain.repository.LocalMediaRepository
 import com.harmonixia.android.domain.repository.MusicAssistantRepository
+import com.harmonixia.android.domain.repository.OFFLINE_PROVIDER
 import com.harmonixia.android.domain.usecase.ManagePlaylistTracksUseCase
 import com.harmonixia.android.domain.usecase.PlayAlbumUseCase
 import com.harmonixia.android.ui.navigation.Screen
+import com.harmonixia.android.util.isLocal
+import com.harmonixia.android.util.mergeWithLocal
 import com.harmonixia.android.util.NetworkConnectivityManager
 import com.harmonixia.android.util.PrefetchScheduler
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -26,12 +26,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -40,13 +36,12 @@ import kotlinx.coroutines.supervisorScope
 sealed class AlbumDetailUiEvent {
     data class ShowMessage(val messageResId: Int) : AlbumDetailUiEvent()
     data object PlaylistCreated : AlbumDetailUiEvent()
-    data object ShowConfirmRemoveDownload : AlbumDetailUiEvent()
 }
 
 @HiltViewModel
 class AlbumDetailViewModel @Inject constructor(
     private val repository: MusicAssistantRepository,
-    private val downloadRepository: DownloadRepository,
+    private val localMediaRepository: LocalMediaRepository,
     private val playAlbumUseCase: PlayAlbumUseCase,
     private val managePlaylistTracksUseCase: ManagePlaylistTracksUseCase,
     private val networkConnectivityManager: NetworkConnectivityManager,
@@ -71,9 +66,6 @@ class AlbumDetailViewModel @Inject constructor(
     val events = _events.asSharedFlow()
 
     private var tracks: List<Track> = emptyList()
-    private val albumTracksFlow: Flow<List<Track>> = uiState.map { state ->
-        if (state is AlbumDetailUiState.Success) state.tracks else emptyList()
-    }
     val isOfflineMode: StateFlow<Boolean> = networkConnectivityManager.networkAvailabilityFlow
         .map { networkConnectivityManager.isOfflineMode() }
         .distinctUntilChanged()
@@ -82,39 +74,6 @@ class AlbumDetailViewModel @Inject constructor(
             SharingStarted.WhileSubscribed(5_000),
             networkConnectivityManager.isOfflineMode()
         )
-    val albumDownloadStatus: StateFlow<DownloadStatus?> = album
-        .map { it?.downloadId }
-        .distinctUntilChanged()
-        .flatMapLatest { downloadId ->
-            if (downloadId.isNullOrBlank()) {
-                flowOf(null)
-            } else {
-                downloadRepository.getDownloadStatus(downloadId)
-            }
-        }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
-    val albumDownloadProgress: StateFlow<DownloadProgress?> = album
-        .map { it?.downloadId }
-        .distinctUntilChanged()
-        .flatMapLatest { downloadId ->
-            if (downloadId.isNullOrBlank()) {
-                flowOf(null)
-            } else {
-                downloadRepository.getDownloadProgress(downloadId)
-            }
-        }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
-    val isAlbumDownloaded: StateFlow<Boolean> = combine(
-        albumTracksFlow,
-        downloadRepository.getDownloadedTracks()
-    ) { albumTracks, downloadedTracks ->
-        if (albumTracks.isEmpty()) {
-            false
-        } else {
-            val downloadedIds = downloadedTracks.map { it.downloadId }.toSet()
-            albumTracks.all { track -> track.downloadId in downloadedIds }
-        }
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
 
     init {
         viewModelScope.launch {
@@ -131,28 +90,19 @@ class AlbumDetailViewModel @Inject constructor(
                 return@launch
             }
             _uiState.value = AlbumDetailUiState.Loading
-            if (isOfflineMode.value) {
-                val downloadId = "$albumId-$provider"
-                val isDownloaded = downloadRepository.isAlbumDownloaded(downloadId)
-                val downloadedAlbum = downloadRepository.getDownloadedAlbums()
-                    .first()
-                    .firstOrNull { album -> album.itemId == albumId && album.provider == provider }
-                if (!isDownloaded || downloadedAlbum == null) {
-                    _album.value = downloadedAlbum
-                    tracks = emptyList()
-                    _uiState.value = AlbumDetailUiState.Empty
+            if (isOfflineMode.value || provider == OFFLINE_PROVIDER) {
+                val localAlbum = resolveLocalAlbum()
+                if (localAlbum == null) {
+                    _uiState.value = AlbumDetailUiState.Error("Album not found.")
                     return@launch
                 }
-                val downloadedTracks = downloadRepository.getAllCompletedDownloads()
-                    .first()
-                    .filter { track -> track.albumId == downloadId }
-                    .map { track -> track.track }
-                _album.value = downloadedAlbum
-                tracks = downloadedTracks
-                _uiState.value = if (downloadedTracks.isEmpty()) {
+                val localTracks = loadLocalTracks(localAlbum)
+                _album.value = localAlbum
+                tracks = localTracks
+                _uiState.value = if (localTracks.isEmpty()) {
                     AlbumDetailUiState.Empty
                 } else {
-                    AlbumDetailUiState.Success(downloadedAlbum, downloadedTracks)
+                    AlbumDetailUiState.Success(localAlbum, localTracks)
                 }
                 return@launch
             }
@@ -168,13 +118,20 @@ class AlbumDetailViewModel @Inject constructor(
                 }
                 val loadedAlbum = albumResult.getOrThrow()
                 val loadedTracks = tracksResult.getOrDefault(emptyList())
+                val localTracks = loadLocalTracks(loadedAlbum)
+                val mergedTracks = loadedTracks.mergeWithLocal(localTracks)
+                val resolvedTracks = if (isOfflineMode.value) {
+                    mergedTracks.filter { it.isLocal }
+                } else {
+                    mergedTracks
+                }
                 _album.value = loadedAlbum
-                tracks = loadedTracks
+                tracks = resolvedTracks
                 prefetchArtistData(loadedAlbum)
-                _uiState.value = if (loadedTracks.isEmpty()) {
+                _uiState.value = if (resolvedTracks.isEmpty()) {
                     AlbumDetailUiState.Empty
                 } else {
-                    AlbumDetailUiState.Success(loadedAlbum, loadedTracks)
+                    AlbumDetailUiState.Success(loadedAlbum, resolvedTracks)
                 }
             }
         }
@@ -183,14 +140,6 @@ class AlbumDetailViewModel @Inject constructor(
     fun playAlbum(startIndex: Int = 0) {
         if (albumId.isBlank() || provider.isBlank()) return
         viewModelScope.launch {
-            if (isOfflineMode.value) {
-                val downloadId = "$albumId-$provider"
-                val isDownloaded = downloadRepository.isAlbumDownloaded(downloadId)
-                if (!isDownloaded) {
-                    _events.tryEmit(AlbumDetailUiEvent.ShowMessage(R.string.no_downloaded_content))
-                    return@launch
-                }
-            }
             playAlbumUseCase(albumId, provider, startIndex)
         }
     }
@@ -248,6 +197,42 @@ class AlbumDetailViewModel @Inject constructor(
         }
     }
 
+    fun addTrackToFavorites(track: Track) {
+        viewModelScope.launch {
+            if (isOfflineMode.value) {
+                _events.tryEmit(AlbumDetailUiEvent.ShowMessage(R.string.offline_feature_unavailable))
+                return@launch
+            }
+            val result = repository.addToFavorites(track.itemId, track.provider, "track")
+            result.onSuccess {
+                _events.tryEmit(AlbumDetailUiEvent.ShowMessage(R.string.track_favorite_add_success))
+                updateTrackFavoriteState(track, isFavorite = true)
+            }.onFailure {
+                _events.tryEmit(AlbumDetailUiEvent.ShowMessage(R.string.track_favorite_add_error))
+            }
+        }
+    }
+
+    fun removeTrackFromFavorites(track: Track) {
+        viewModelScope.launch {
+            if (isOfflineMode.value) {
+                _events.tryEmit(AlbumDetailUiEvent.ShowMessage(R.string.offline_feature_unavailable))
+                return@launch
+            }
+            val result = repository.removeFromFavorites(track.itemId, track.provider, "track")
+            result.onSuccess {
+                _events.tryEmit(
+                    AlbumDetailUiEvent.ShowMessage(R.string.track_favorite_remove_success)
+                )
+                updateTrackFavoriteState(track, isFavorite = false)
+            }.onFailure {
+                _events.tryEmit(
+                    AlbumDetailUiEvent.ShowMessage(R.string.track_favorite_remove_error)
+                )
+            }
+        }
+    }
+
     fun createPlaylist(name: String) {
         val trimmed = name.trim()
         if (trimmed.isBlank()) return
@@ -268,59 +253,6 @@ class AlbumDetailViewModel @Inject constructor(
         }
     }
 
-    fun downloadAlbum() {
-        val currentAlbum = album.value ?: return
-        viewModelScope.launch {
-            if (isOfflineMode.value) {
-                _events.tryEmit(AlbumDetailUiEvent.ShowMessage(R.string.offline_feature_unavailable))
-                return@launch
-            }
-            val result = downloadRepository.queueAlbumDownload(currentAlbum, tracks)
-            result.onSuccess {
-                _events.tryEmit(AlbumDetailUiEvent.ShowMessage(R.string.album_download_success))
-            }.onFailure {
-                _events.tryEmit(AlbumDetailUiEvent.ShowMessage(R.string.album_download_error))
-            }
-        }
-    }
-
-    fun removeAlbumDownload() {
-        val downloadId = album.value?.downloadId ?: "$albumId-$provider"
-        if (downloadId.isBlank()) return
-        viewModelScope.launch {
-            val result = downloadRepository.deleteAlbumDownload(downloadId)
-            result.onSuccess {
-                _events.tryEmit(AlbumDetailUiEvent.ShowMessage(R.string.album_download_removed))
-            }.onFailure {
-                _events.tryEmit(AlbumDetailUiEvent.ShowMessage(R.string.album_download_remove_error))
-            }
-        }
-    }
-
-    fun downloadTrack(track: Track) {
-        viewModelScope.launch {
-            if (isOfflineMode.value) {
-                _events.tryEmit(AlbumDetailUiEvent.ShowMessage(R.string.offline_feature_unavailable))
-                return@launch
-            }
-            val albumDownloadId = album.value?.downloadId ?: "$albumId-$provider"
-            val result = downloadRepository.queueTrackDownload(track, albumDownloadId, emptyList())
-            result.onSuccess {
-                _events.tryEmit(AlbumDetailUiEvent.ShowMessage(R.string.track_download_success))
-            }.onFailure {
-                _events.tryEmit(AlbumDetailUiEvent.ShowMessage(R.string.track_download_error))
-            }
-        }
-    }
-
-    fun getTrackDownloadStatus(trackId: String): Flow<DownloadStatus?> {
-        return downloadRepository.getDownloadStatus(trackId)
-    }
-
-    fun getTrackDownloadProgress(trackId: String): Flow<DownloadProgress?> {
-        return downloadRepository.getDownloadProgress(trackId)
-    }
-
     private fun prefetchArtistData(album: Album) {
         val artistNames = album.artists.map { it.trim().lowercase() }.filter { it.isNotBlank() }
         if (artistNames.isEmpty()) return
@@ -329,6 +261,47 @@ class AlbumDetailViewModel @Inject constructor(
             repository.fetchAlbums(ALBUM_PREFETCH_LIMIT, 0)
         }
         prefetchScheduler.scheduleArtistPrefetch(artistNames)
+    }
+
+    private fun updateTrackFavoriteState(track: Track, isFavorite: Boolean) {
+        val currentAlbum = (uiState.value as? AlbumDetailUiState.Success)?.album
+            ?: album.value
+            ?: return
+        if (tracks.isEmpty()) return
+        val updatedTracks = tracks.map { existing ->
+            if (existing.itemId == track.itemId && existing.provider == track.provider) {
+                existing.copy(isFavorite = isFavorite)
+            } else {
+                existing
+            }
+        }
+        if (updatedTracks == tracks) return
+        tracks = updatedTracks
+        _uiState.value = AlbumDetailUiState.Success(currentAlbum, updatedTracks)
+    }
+
+    private suspend fun loadLocalTracks(album: Album): List<Track> {
+        val albumName = album.name.trim()
+        if (albumName.isBlank()) return emptyList()
+        val artists = album.artists.map { it.trim() }.filter { it.isNotBlank() }
+        if (artists.isEmpty()) return emptyList()
+        val localTracks = mutableListOf<Track>()
+        for (artistName in artists) {
+            localTracks.addAll(
+                localMediaRepository.getTracksByAlbum(albumName, artistName).first()
+            )
+        }
+        return localTracks.distinctBy { "${it.provider}:${it.itemId}" }
+    }
+
+    private suspend fun resolveLocalAlbum(): Album? {
+        val localAlbums = localMediaRepository.getAllAlbums().first()
+        val directMatch = localAlbums.firstOrNull { album ->
+            album.itemId == albumId && album.provider == OFFLINE_PROVIDER
+        }
+        if (directMatch != null) return directMatch
+        val existing = _album.value ?: return null
+        return listOf(existing).mergeWithLocal(localAlbums).firstOrNull()
     }
 
     private companion object {

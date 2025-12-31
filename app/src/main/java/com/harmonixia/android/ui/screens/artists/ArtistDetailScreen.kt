@@ -64,6 +64,7 @@ import com.harmonixia.android.ui.components.AlbumGridStatic
 import com.harmonixia.android.ui.components.ErrorCard
 import com.harmonixia.android.ui.components.OfflineModeBanner
 import com.harmonixia.android.ui.components.PlaylistPickerDialog
+import com.harmonixia.android.ui.screens.settings.SettingsTab
 import com.harmonixia.android.ui.screens.playlists.CreatePlaylistDialog
 import com.harmonixia.android.ui.theme.rememberAdaptiveSpacing
 import com.harmonixia.android.util.ImageQualityManager
@@ -72,7 +73,7 @@ import com.harmonixia.android.util.ImageQualityManager
 @Composable
 fun ArtistDetailScreen(
     onNavigateBack: () -> Unit,
-    onNavigateToSettings: () -> Unit,
+    onNavigateToSettings: (SettingsTab?) -> Unit,
     onAlbumClick: (Album) -> Unit,
     viewModel: ArtistDetailViewModel = hiltViewModel()
 ) {
@@ -180,7 +181,7 @@ fun ArtistDetailScreen(
                         }
                     },
                     actions = {
-                        IconButton(onClick = onNavigateToSettings) {
+                        IconButton(onClick = { onNavigateToSettings(null) }) {
                             Icon(
                                 imageVector = Icons.Outlined.Settings,
                                 contentDescription = stringResource(R.string.action_open_settings)

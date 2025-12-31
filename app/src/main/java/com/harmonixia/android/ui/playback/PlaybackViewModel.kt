@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.media3.common.util.UnstableApi
 import com.harmonixia.android.domain.model.PlaybackState
+import com.harmonixia.android.domain.model.RepeatMode
 import com.harmonixia.android.service.playback.PlaybackServiceConnection
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
@@ -20,6 +21,7 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 sealed class PlaybackUiEvent {
     data class Error(val message: String) : PlaybackUiEvent()
@@ -32,6 +34,8 @@ class PlaybackViewModel @Inject constructor(
 ) : ViewModel() {
     val playbackState: StateFlow<PlaybackState> = playbackServiceConnection.playbackState
     val currentMediaItem = playbackServiceConnection.currentMediaItem
+    val repeatMode: StateFlow<RepeatMode> = playbackServiceConnection.repeatMode
+    val shuffle: StateFlow<Boolean> = playbackServiceConnection.shuffle
     private val playbackPositionTicks = playbackState
         .map { it == PlaybackState.PLAYING }
         .distinctUntilChanged()
@@ -59,16 +63,28 @@ class PlaybackViewModel @Inject constructor(
     val volume: StateFlow<Float> = playbackServiceConnection.volume
         .map { it.coerceIn(0f, 1f) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 1f)
-    private val queueState: StateFlow<QueueState> = combine(queue, currentMediaItem) { items, mediaItem ->
+    private val queueState: StateFlow<QueueState> = combine(
+        queue,
+        currentMediaItem,
+        repeatMode,
+        shuffle
+    ) { items, mediaItem, repeatMode, shuffle ->
         val index = items.indexOfFirst { it.mediaId == mediaItem?.mediaId }
         QueueState(
             hasNext = index >= 0 && index < items.lastIndex,
-            hasPrevious = index > 0
+            hasPrevious = index > 0,
+            repeatMode = repeatMode,
+            shuffle = shuffle
         )
     }.stateIn(
         viewModelScope,
         SharingStarted.WhileSubscribed(5_000),
-        QueueState(hasNext = false, hasPrevious = false)
+        QueueState(
+            hasNext = false,
+            hasPrevious = false,
+            repeatMode = RepeatMode.OFF,
+            shuffle = false
+        )
     )
     val hasNext: StateFlow<Boolean> = queueState
         .map { it.hasNext }
@@ -101,7 +117,9 @@ class PlaybackViewModel @Inject constructor(
             currentPosition = position,
             duration = duration,
             hasNext = queueState.hasNext,
-            hasPrevious = queueState.hasPrevious
+            hasPrevious = queueState.hasPrevious,
+            repeatMode = queueState.repeatMode,
+            shuffle = queueState.shuffle
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), NowPlayingUiState.Idle)
     val currentTimeFormatted: StateFlow<String> = playbackPosition
@@ -151,6 +169,25 @@ class PlaybackViewModel @Inject constructor(
             .onFailure { _events.tryEmit(PlaybackUiEvent.Error(it.message ?: "Failed to seek")) }
     }
 
+    fun toggleRepeatMode() {
+        val nextMode = when (repeatMode.value) {
+            RepeatMode.OFF -> RepeatMode.ALL
+            RepeatMode.ALL -> RepeatMode.ONE
+            RepeatMode.ONE -> RepeatMode.OFF
+        }
+        viewModelScope.launch {
+            playbackServiceConnection.setRepeatMode(nextMode)
+                .onFailure { _events.tryEmit(PlaybackUiEvent.Error(it.message ?: "Failed to set repeat mode")) }
+        }
+    }
+
+    fun toggleShuffle() {
+        viewModelScope.launch {
+            playbackServiceConnection.setShuffleMode(!shuffle.value)
+                .onFailure { _events.tryEmit(PlaybackUiEvent.Error(it.message ?: "Failed to set shuffle mode")) }
+        }
+    }
+
     fun setVolume(volume: Float) {
         val controller = playbackServiceConnection.mediaController.value
         if (controller == null) {
@@ -170,7 +207,9 @@ class PlaybackViewModel @Inject constructor(
 
     private data class QueueState(
         val hasNext: Boolean,
-        val hasPrevious: Boolean
+        val hasPrevious: Boolean,
+        val repeatMode: RepeatMode,
+        val shuffle: Boolean
     )
 
     private fun formatDuration(milliseconds: Long): String {

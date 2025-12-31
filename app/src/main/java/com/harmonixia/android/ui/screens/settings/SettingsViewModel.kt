@@ -6,6 +6,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.harmonixia.android.R
+import com.harmonixia.android.data.local.LocalMediaScanner
 import com.harmonixia.android.data.local.SettingsDataStore
 import com.harmonixia.android.data.local.EqDataStore
 import com.harmonixia.android.data.remote.ConnectionState
@@ -14,6 +15,7 @@ import com.harmonixia.android.domain.repository.EqPresetRepository
 import com.harmonixia.android.domain.usecase.ConnectToServerUseCase
 import com.harmonixia.android.domain.usecase.DisconnectFromServerUseCase
 import com.harmonixia.android.domain.usecase.GetConnectionStateUseCase
+import com.harmonixia.android.ui.navigation.Screen
 import com.harmonixia.android.util.Logger
 import com.harmonixia.android.util.UrlValidationError
 import com.harmonixia.android.util.ValidationUtils
@@ -44,16 +46,22 @@ class SettingsViewModel @Inject constructor(
     private val settingsDataStore: SettingsDataStore,
     private val eqDataStore: EqDataStore,
     private val eqPresetRepository: EqPresetRepository,
+    private val localMediaScanner: LocalMediaScanner,
     @ApplicationContext private val context: Context,
     private val savedStateHandle: SavedStateHandle
 ) : ViewModel() {
     private val connectionState: StateFlow<ConnectionState> = getConnectionStateUseCase()
 
+    private val _selectedTab = MutableStateFlow(SettingsTab.CONNECTION)
+    val selectedTab: StateFlow<SettingsTab> = _selectedTab.asStateFlow()
+
     private val _uiState = MutableStateFlow<SettingsUiState>(
         SettingsUiState.Initial(
             form = loadFormState(),
             connectionState = connectionState.value,
-            canDisconnect = false
+            canDisconnect = false,
+            localMediaScanState = LocalMediaScanState(),
+            selectedTab = _selectedTab.value
         )
     )
     val uiState: StateFlow<SettingsUiState> = _uiState.asStateFlow()
@@ -63,6 +71,9 @@ class SettingsViewModel @Inject constructor(
 
     private val _storedAuthToken = MutableStateFlow("")
     val storedAuthToken: StateFlow<String> = _storedAuthToken.asStateFlow()
+
+    private val _localMediaFolderUri = MutableStateFlow("")
+    val localMediaFolderUri: StateFlow<String> = _localMediaFolderUri.asStateFlow()
 
     private val _events = MutableSharedFlow<SettingsUiEvent>(extraBufferCapacity = 1)
     val events = _events.asSharedFlow()
@@ -79,6 +90,7 @@ class SettingsViewModel @Inject constructor(
     private var lastOperationTimestamp: Long = 0L
 
     init {
+        restoreInitialTab()
         viewModelScope.launch {
             combine(
                 settingsDataStore.getServerUrl(),
@@ -108,6 +120,12 @@ class SettingsViewModel @Inject constructor(
         }
 
         viewModelScope.launch {
+            settingsDataStore.getLocalMediaFolderUri().collect { uri ->
+                _localMediaFolderUri.value = uri
+            }
+        }
+
+        viewModelScope.launch {
             eqDataStore.getEqSettings().collect { settings ->
                 _eqSettings.value = settings
                 val presetId = settings.selectedPresetId
@@ -123,12 +141,56 @@ class SettingsViewModel @Inject constructor(
         }
 
         viewModelScope.launch {
+            localMediaScanner.getScanProgress().collect { progress ->
+                _uiState.update { current ->
+                    current.withLocalMediaScanState(
+                        LocalMediaScanState(
+                            isScanning = progress is LocalMediaScanner.ScanProgress.Scanning,
+                            progress = progress
+                        )
+                    )
+                }
+            }
+        }
+
+        viewModelScope.launch {
             connectionState.collect { state ->
                 val canDisconnect = state !is ConnectionState.Disconnected
                 _uiState.update { current ->
                     current.withConnectionState(state, canDisconnect)
                 }
             }
+        }
+    }
+
+    private fun restoreInitialTab() {
+        if (savedStateHandle.get<Boolean>(KEY_INITIAL_TAB_SET) == true) {
+            return
+        }
+        val tabArg = savedStateHandle.get<String>(Screen.Settings.ARG_TAB)
+        val tab = tabArg?.let { value ->
+            runCatching { SettingsTab.valueOf(value) }.getOrNull()
+        }
+        if (tab != null) {
+            selectTab(tab)
+            savedStateHandle[KEY_INITIAL_TAB_SET] = true
+        }
+    }
+
+    fun selectTab(tab: SettingsTab) {
+        _selectedTab.value = tab
+        _uiState.update { current ->
+            current.withSelectedTab(tab)
+        }
+    }
+
+    fun setInitialTab(tab: SettingsTab?) {
+        if (savedStateHandle.get<Boolean>(KEY_INITIAL_TAB_SET) == true) {
+            return
+        }
+        if (tab != null) {
+            selectTab(tab)
+            savedStateHandle[KEY_INITIAL_TAB_SET] = true
         }
     }
 
@@ -158,6 +220,42 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
+    fun updateLocalMediaFolder(uri: String) {
+        viewModelScope.launch {
+            settingsDataStore.saveLocalMediaFolderUri(uri)
+            _localMediaFolderUri.value = uri
+            emitEvent("Local media folder updated")
+        }
+    }
+
+    fun scanLocalMedia() {
+        val folderUri = _localMediaFolderUri.value
+        if (folderUri.isBlank()) {
+            emitEvent("Please select a folder first")
+            return
+        }
+
+        viewModelScope.launch {
+            Logger.i(TAG, "Starting local media scan")
+            val result = localMediaScanner.scanFolder(folderUri)
+            result.onSuccess { scanResult ->
+                val message = context.getString(
+                    R.string.local_media_scan_complete,
+                    scanResult.tracksAdded,
+                    scanResult.albumsAdded,
+                    scanResult.artistsAdded
+                )
+                emitEvent(message)
+            }.onFailure { error ->
+                val message = context.getString(
+                    R.string.local_media_scan_error,
+                    error.message ?: "Unknown error"
+                )
+                emitEvent(message)
+            }
+        }
+    }
+
     fun updateConnection() {
         if (!canStartOperation()) return
         if (!validateInputs()) return
@@ -165,10 +263,13 @@ class SettingsViewModel @Inject constructor(
         val normalizedUrl = ValidationUtils.normalizeUrl(form.serverUrl)
         operationJob = viewModelScope.launch {
             Logger.i(TAG, "Saving settings and reconnecting to ${Logger.sanitizeUrl(normalizedUrl)}")
+            val current = _uiState.value
             _uiState.value = SettingsUiState.Connecting(
                 form = form,
                 connectionState = connectionState.value,
                 canDisconnect = connectionState.value !is ConnectionState.Disconnected,
+                localMediaScanState = current.localMediaScanState,
+                selectedTab = current.selectedTab,
                 isTesting = false
             )
             val result = connectToServerUseCase(normalizedUrl, form.authToken.trim(), persistSettings = true)
@@ -189,10 +290,13 @@ class SettingsViewModel @Inject constructor(
                     )
                 )
                 emitEvent(R.string.message_settings_saved)
+                val updatedState = _uiState.value
                 _uiState.value = SettingsUiState.Success(
-                    form = _uiState.value.form,
+                    form = updatedState.form,
                     connectionState = connectionState.value,
                     canDisconnect = connectionState.value !is ConnectionState.Disconnected,
+                    localMediaScanState = updatedState.localMediaScanState,
+                    selectedTab = updatedState.selectedTab,
                     message = context.getString(R.string.status_connected)
                 )
             }.onFailure { error ->
@@ -210,19 +314,25 @@ class SettingsViewModel @Inject constructor(
         val normalizedUrl = ValidationUtils.normalizeUrl(form.serverUrl)
         operationJob = viewModelScope.launch {
             Logger.i(TAG, "Testing connection to ${Logger.sanitizeUrl(normalizedUrl)}")
+            val current = _uiState.value
             _uiState.value = SettingsUiState.Connecting(
                 form = form,
                 connectionState = connectionState.value,
                 canDisconnect = connectionState.value !is ConnectionState.Disconnected,
+                localMediaScanState = current.localMediaScanState,
+                selectedTab = current.selectedTab,
                 isTesting = true
             )
             val result = connectToServerUseCase(normalizedUrl, form.authToken.trim(), persistSettings = false)
             result.onSuccess {
                 emitEvent(R.string.message_connection_test_success)
+                val updatedState = _uiState.value
                 _uiState.value = SettingsUiState.Success(
                     form = form,
                     connectionState = connectionState.value,
                     canDisconnect = connectionState.value !is ConnectionState.Disconnected,
+                    localMediaScanState = updatedState.localMediaScanState,
+                    selectedTab = updatedState.selectedTab,
                     message = context.getString(R.string.status_connected)
                 )
             }.onFailure { error ->
@@ -269,16 +379,21 @@ class SettingsViewModel @Inject constructor(
             _uiState.value = SettingsUiState.Initial(
                 form = current.form,
                 connectionState = current.connectionState,
-                canDisconnect = current.canDisconnect
+                canDisconnect = current.canDisconnect,
+                localMediaScanState = current.localMediaScanState,
+                selectedTab = current.selectedTab
             )
         }
     }
 
     private fun validateInputs(): Boolean {
+        val current = _uiState.value
         _uiState.value = SettingsUiState.Validating(
-            form = _uiState.value.form,
+            form = current.form,
             connectionState = connectionState.value,
-            canDisconnect = connectionState.value !is ConnectionState.Disconnected
+            canDisconnect = connectionState.value !is ConnectionState.Disconnected,
+            localMediaScanState = current.localMediaScanState,
+            selectedTab = current.selectedTab
         )
         val validation = ValidationUtils.validateServerUrl(_uiState.value.form.serverUrl)
         val errorMessage = validation.error?.let { errorMessageFor(it) }
@@ -292,10 +407,13 @@ class SettingsViewModel @Inject constructor(
             )
         }
         if (!validation.isValid) {
+            val updatedState = _uiState.value
             _uiState.value = SettingsUiState.Initial(
-                form = _uiState.value.form,
+                form = updatedState.form,
                 connectionState = connectionState.value,
-                canDisconnect = connectionState.value !is ConnectionState.Disconnected
+                canDisconnect = connectionState.value !is ConnectionState.Disconnected,
+                localMediaScanState = updatedState.localMediaScanState,
+                selectedTab = updatedState.selectedTab
             )
         }
         return validation.isValid
@@ -320,6 +438,8 @@ class SettingsViewModel @Inject constructor(
                 form = current.form,
                 connectionState = current.connectionState,
                 canDisconnect = current.canDisconnect,
+                localMediaScanState = current.localMediaScanState,
+                selectedTab = current.selectedTab,
                 message = message
             )
         }
@@ -381,19 +501,6 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
-    private fun SettingsUiState.withConnectionState(
-        state: ConnectionState,
-        canDisconnect: Boolean
-    ): SettingsUiState {
-        return when (this) {
-            is SettingsUiState.Initial -> copy(connectionState = state, canDisconnect = canDisconnect)
-            is SettingsUiState.Validating -> copy(connectionState = state, canDisconnect = canDisconnect)
-            is SettingsUiState.Connecting -> copy(connectionState = state, canDisconnect = canDisconnect)
-            is SettingsUiState.Success -> copy(connectionState = state, canDisconnect = canDisconnect)
-            is SettingsUiState.Error -> copy(connectionState = state, canDisconnect = canDisconnect)
-        }
-    }
-
     private fun loadFormState(): SettingsFormState {
         val serverUrl = savedStateHandle.get<String>(KEY_SERVER_URL).orEmpty()
         val authToken = savedStateHandle.get<String>(KEY_AUTH_TOKEN).orEmpty()
@@ -405,5 +512,6 @@ class SettingsViewModel @Inject constructor(
         private const val OPERATION_DEBOUNCE_MS = 1_000L
         private const val KEY_SERVER_URL = "settings_server_url"
         private const val KEY_AUTH_TOKEN = "settings_auth_token"
+        private const val KEY_INITIAL_TAB_SET = "settings_initial_tab_set"
     }
 }

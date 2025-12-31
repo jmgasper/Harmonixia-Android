@@ -27,6 +27,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.painter.ColorPainter
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
@@ -53,6 +54,7 @@ fun PlaylistCard(
     isGrid: Boolean,
     gridArtworkSize: Dp = 150.dp,
     onLongClick: (() -> Unit)? = null,
+    placeholderIcon: ImageVector = Icons.Outlined.QueueMusic,
     modifier: Modifier = Modifier
 ) {
     val interactionModifier = if (onLongClick != null) {
@@ -69,10 +71,14 @@ fun PlaylistCard(
         if (isGrid) {
             PlaylistGridContent(
                 playlist = playlist,
-                artworkSize = gridArtworkSize
+                artworkSize = gridArtworkSize,
+                placeholderIcon = placeholderIcon
             )
         } else {
-            PlaylistListContent(playlist = playlist)
+            PlaylistListContent(
+                playlist = playlist,
+                placeholderIcon = placeholderIcon
+            )
         }
     }
 }
@@ -81,6 +87,7 @@ fun PlaylistCard(
 private fun PlaylistGridContent(
     playlist: Playlist,
     artworkSize: Dp,
+    placeholderIcon: ImageVector,
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -91,7 +98,8 @@ private fun PlaylistGridContent(
     ) {
         PlaylistArtwork(
             playlist = playlist,
-            size = artworkSize
+            size = artworkSize,
+            placeholderIcon = placeholderIcon
         )
         Spacer(modifier = Modifier.height(8.dp))
         Text(
@@ -119,6 +127,7 @@ private fun PlaylistGridContent(
 @Composable
 private fun PlaylistListContent(
     playlist: Playlist,
+    placeholderIcon: ImageVector,
     modifier: Modifier = Modifier
 ) {
     Row(
@@ -130,7 +139,8 @@ private fun PlaylistListContent(
     ) {
         PlaylistArtwork(
             playlist = playlist,
-            size = 56.dp
+            size = 56.dp,
+            placeholderIcon = placeholderIcon
         )
         Column(
             modifier = Modifier.weight(1f),
@@ -162,6 +172,7 @@ private fun PlaylistListContent(
 private fun PlaylistArtwork(
     playlist: Playlist,
     size: Dp,
+    placeholderIcon: ImageVector = Icons.Outlined.QueueMusic,
     modifier: Modifier = Modifier
 ) {
     val placeholder = ColorPainter(MaterialTheme.colorScheme.surfaceVariant)
@@ -197,7 +208,7 @@ private fun PlaylistArtwork(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Icon(
-                    imageVector = Icons.Outlined.QueueMusic,
+                    imageVector = placeholderIcon,
                     contentDescription = stringResource(R.string.content_desc_playlist_artwork),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )

@@ -3,7 +3,7 @@ package com.harmonixia.android.di
 import android.content.Context
 import androidx.media3.common.util.UnstableApi
 import com.harmonixia.android.data.local.SettingsDataStore
-import com.harmonixia.android.domain.repository.DownloadRepository
+import com.harmonixia.android.domain.repository.LocalMediaRepository
 import com.harmonixia.android.domain.repository.MusicAssistantRepository
 import com.harmonixia.android.domain.repository.OfflineLibraryRepository
 import com.harmonixia.android.service.playback.AudioDeviceManager
@@ -37,19 +37,19 @@ object ServiceModule {
     @Singleton
     fun provideQueueManager(
         repository: MusicAssistantRepository,
-        downloadRepository: DownloadRepository
-    ): QueueManager = QueueManager(repository, downloadRepository)
+        localMediaRepository: LocalMediaRepository
+    ): QueueManager = QueueManager(repository, localMediaRepository)
 
     @Provides
     @Singleton
     fun provideMediaLibraryBrowser(
         repository: MusicAssistantRepository,
-        downloadRepository: DownloadRepository,
+        localMediaRepository: LocalMediaRepository,
         offlineLibraryRepository: OfflineLibraryRepository,
         networkConnectivityManager: NetworkConnectivityManager
     ): MediaLibraryBrowser = MediaLibraryBrowser(
         repository,
-        downloadRepository,
+        localMediaRepository,
         offlineLibraryRepository,
         networkConnectivityManager
     )
@@ -77,8 +77,10 @@ object ServiceModule {
     @Provides
     @Singleton
     fun providePlaybackServiceConnection(
-        @ApplicationContext context: Context
-    ): PlaybackServiceConnection = PlaybackServiceConnection(context)
+        @ApplicationContext context: Context,
+        repository: MusicAssistantRepository,
+        playbackStateManager: PlaybackStateManager
+    ): PlaybackServiceConnection = PlaybackServiceConnection(context, repository, playbackStateManager)
 
     @Provides
     @Singleton

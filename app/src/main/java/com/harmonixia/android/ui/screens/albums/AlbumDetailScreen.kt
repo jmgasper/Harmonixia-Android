@@ -20,7 +20,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.Settings
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -28,7 +27,6 @@ import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -69,6 +67,7 @@ import com.harmonixia.android.ui.components.ErrorCard
 import com.harmonixia.android.ui.components.OfflineModeBanner
 import com.harmonixia.android.ui.components.PlaylistPickerDialog
 import com.harmonixia.android.ui.components.TrackList
+import com.harmonixia.android.ui.screens.settings.SettingsTab
 import com.harmonixia.android.ui.screens.playlists.CreatePlaylistDialog
 import com.harmonixia.android.ui.theme.rememberAdaptiveSpacing
 import com.harmonixia.android.ui.util.buildAlbumArtworkRequest
@@ -78,14 +77,13 @@ import com.harmonixia.android.util.ImageQualityManager
 @Composable
 fun AlbumDetailScreen(
     onNavigateBack: () -> Unit,
-    onNavigateToSettings: () -> Unit,
+    onNavigateToSettings: (SettingsTab?) -> Unit,
     viewModel: AlbumDetailViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val album by viewModel.album.collectAsStateWithLifecycle()
     val playlists by viewModel.playlists.collectAsStateWithLifecycle()
     val isOfflineMode by viewModel.isOfflineMode.collectAsStateWithLifecycle()
-    val isAlbumDownloaded by viewModel.isAlbumDownloaded.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
 
@@ -93,8 +91,6 @@ fun AlbumDetailScreen(
     var pendingTrack by remember { mutableStateOf<Track?>(null) }
     var showCreateDialog by remember { mutableStateOf(false) }
     var playlistName by remember { mutableStateOf("") }
-    var showRemoveDownloadDialog by remember { mutableStateOf(false) }
-
     LaunchedEffect(viewModel) {
         viewModel.events.collect { event ->
             when (event) {
@@ -107,9 +103,6 @@ fun AlbumDetailScreen(
                     if (pendingTrack != null) {
                         showPlaylistPicker = true
                     }
-                }
-                AlbumDetailUiEvent.ShowConfirmRemoveDownload -> {
-                    showRemoveDownloadDialog = true
                 }
             }
         }
@@ -263,7 +256,7 @@ fun AlbumDetailScreen(
                         }
                     },
                     actions = {
-                        IconButton(onClick = onNavigateToSettings) {
+                        IconButton(onClick = { onNavigateToSettings(null) }) {
                             Icon(
                                 imageVector = Icons.Outlined.Settings,
                                 contentDescription = stringResource(R.string.action_open_settings)
@@ -352,10 +345,6 @@ fun AlbumDetailScreen(
                                 artworkSize = artworkSize,
                                 useWideLayout = useWideLayout,
                                 onPlayAlbum = { viewModel.playAlbum() },
-                                onDownloadAlbum = { viewModel.downloadAlbum() },
-                                onRemoveDownload = { showRemoveDownloadDialog = true },
-                                isDownloaded = isAlbumDownloaded,
-                                isOfflineMode = isOfflineMode,
                                 titleStyle = albumTitleStyle,
                                 artistStyle = artistNameStyle,
                                 rowSpacing = if (isExpanded) 32.dp else 24.dp
@@ -403,7 +392,10 @@ fun AlbumDetailScreen(
                                         viewModel.refreshPlaylists()
                                         showPlaylistPicker = true
                                     },
-                                    onDownloadTrack = viewModel::downloadTrack,
+                                    onAddToFavorites = { track -> viewModel.addTrackToFavorites(track) },
+                                    onRemoveFromFavorites = {
+                                        track -> viewModel.removeTrackFromFavorites(track)
+                                    },
                                     modifier = Modifier
                                         .weight(1f)
                                         .fillMaxHeight(),
@@ -412,8 +404,6 @@ fun AlbumDetailScreen(
                                     trackSupportingTextStyle = trackMetaStyle,
                                     trackMetadataTextStyle = trackMetaStyle,
                                     indexProvider = indexProvider,
-                                    getTrackDownloadStatus = viewModel::getTrackDownloadStatus,
-                                    getTrackDownloadProgress = viewModel::getTrackDownloadProgress,
                                     showEmptyState = false
                                 )
                                 TrackList(
@@ -426,7 +416,10 @@ fun AlbumDetailScreen(
                                         viewModel.refreshPlaylists()
                                         showPlaylistPicker = true
                                     },
-                                    onDownloadTrack = viewModel::downloadTrack,
+                                    onAddToFavorites = { track -> viewModel.addTrackToFavorites(track) },
+                                    onRemoveFromFavorites = {
+                                        track -> viewModel.removeTrackFromFavorites(track)
+                                    },
                                     modifier = Modifier
                                         .weight(1f)
                                         .fillMaxHeight(),
@@ -435,8 +428,6 @@ fun AlbumDetailScreen(
                                     trackSupportingTextStyle = trackMetaStyle,
                                     trackMetadataTextStyle = trackMetaStyle,
                                     indexProvider = indexProvider,
-                                    getTrackDownloadStatus = viewModel::getTrackDownloadStatus,
-                                    getTrackDownloadProgress = viewModel::getTrackDownloadProgress,
                                     showEmptyState = false
                                 )
                             }
@@ -471,7 +462,10 @@ fun AlbumDetailScreen(
                                 viewModel.refreshPlaylists()
                                 showPlaylistPicker = true
                             },
-                            onDownloadTrack = viewModel::downloadTrack,
+                            onAddToFavorites = { track -> viewModel.addTrackToFavorites(track) },
+                            onRemoveFromFavorites = {
+                                track -> viewModel.removeTrackFromFavorites(track)
+                            },
                             modifier = Modifier
                                 .fillMaxSize(),
                             listState = listState,
@@ -483,10 +477,6 @@ fun AlbumDetailScreen(
                                         titleStyle = albumTitleStyle,
                                         artistStyle = artistNameStyle,
                                         onPlayAlbum = { viewModel.playAlbum() },
-                                        onDownloadAlbum = { viewModel.downloadAlbum() },
-                                        onRemoveDownload = { showRemoveDownloadDialog = true },
-                                        isDownloaded = isAlbumDownloaded,
-                                        isOfflineMode = isOfflineMode,
                                         modifier = Modifier.onSizeChanged {
                                             albumDetailsHeightPx = it.height
                                         }
@@ -504,9 +494,7 @@ fun AlbumDetailScreen(
                             trackTitleTextStyle = trackTitleStyle,
                             trackSupportingTextStyle = trackMetaStyle,
                             trackMetadataTextStyle = trackMetaStyle,
-                            indexProvider = indexProvider,
-                            getTrackDownloadStatus = viewModel::getTrackDownloadStatus,
-                            getTrackDownloadProgress = viewModel::getTrackDownloadProgress
+                            indexProvider = indexProvider
                         )
                         if (pinnedArtworkAlpha > 0f) {
                             AlbumArtwork(
@@ -544,29 +532,6 @@ fun AlbumDetailScreen(
                 }
             )
         }
-    }
-
-    if (showRemoveDownloadDialog) {
-        AlertDialog(
-            onDismissRequest = { showRemoveDownloadDialog = false },
-            title = { Text(text = stringResource(R.string.album_download_confirm_remove_title)) },
-            text = { Text(text = stringResource(R.string.album_download_confirm_remove_message)) },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        showRemoveDownloadDialog = false
-                        viewModel.removeAlbumDownload()
-                    }
-                ) {
-                    Text(text = stringResource(R.string.album_detail_remove_download))
-                }
-            },
-            dismissButton = {
-                OutlinedButton(onClick = { showRemoveDownloadDialog = false }) {
-                    Text(text = stringResource(R.string.action_back))
-                }
-            }
-        )
     }
 
     if (showCreateDialog) {
@@ -627,10 +592,6 @@ private fun AlbumDetails(
     titleStyle: TextStyle,
     artistStyle: TextStyle,
     onPlayAlbum: () -> Unit,
-    onDownloadAlbum: () -> Unit,
-    onRemoveDownload: () -> Unit,
-    isDownloaded: Boolean,
-    isOfflineMode: Boolean,
     modifier: Modifier = Modifier
 ) {
     val spacing = rememberAdaptiveSpacing()
@@ -639,8 +600,6 @@ private fun AlbumDetails(
         stringResource(R.string.album_detail_title)
     } ?: stringResource(R.string.album_detail_title)
     val buttonModifier = Modifier.fillMaxWidth(0.8f)
-    val downloadEnabled = album != null && (isDownloaded || !isOfflineMode)
-
     Column(
         modifier = modifier.fillMaxWidth(),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -672,23 +631,6 @@ private fun AlbumDetails(
             ) {
                 Text(text = stringResource(R.string.album_detail_play))
             }
-            if (isDownloaded) {
-                OutlinedButton(
-                    onClick = onRemoveDownload,
-                    enabled = album != null,
-                    modifier = buttonModifier
-                ) {
-                    Text(text = stringResource(R.string.album_detail_remove_download))
-                }
-            } else {
-                FilledTonalButton(
-                    onClick = onDownloadAlbum,
-                    enabled = downloadEnabled,
-                    modifier = buttonModifier
-                ) {
-                    Text(text = stringResource(R.string.album_detail_download))
-                }
-            }
         }
     }
 }
@@ -699,10 +641,6 @@ private fun AlbumHeader(
     artworkSize: Dp,
     useWideLayout: Boolean,
     onPlayAlbum: () -> Unit,
-    onDownloadAlbum: () -> Unit,
-    onRemoveDownload: () -> Unit,
-    isDownloaded: Boolean,
-    isOfflineMode: Boolean,
     titleStyle: TextStyle,
     artistStyle: TextStyle,
     rowSpacing: Dp,
@@ -713,7 +651,6 @@ private fun AlbumHeader(
     val albumTitle = album?.name?.ifBlank {
         stringResource(R.string.album_detail_title)
     } ?: stringResource(R.string.album_detail_title)
-    val downloadEnabled = album != null && (isDownloaded || !isOfflineMode)
     val buttonModifier = if (useWideLayout) Modifier else Modifier.fillMaxWidth(0.8f)
 
     if (useWideLayout) {
@@ -752,23 +689,6 @@ private fun AlbumHeader(
                         modifier = buttonModifier
                     ) {
                         Text(text = stringResource(R.string.album_detail_play))
-                    }
-                    if (isDownloaded) {
-                        OutlinedButton(
-                            onClick = onRemoveDownload,
-                            enabled = album != null,
-                            modifier = buttonModifier
-                        ) {
-                            Text(text = stringResource(R.string.album_detail_remove_download))
-                        }
-                    } else {
-                        FilledTonalButton(
-                            onClick = onDownloadAlbum,
-                            enabled = downloadEnabled,
-                            modifier = buttonModifier
-                        ) {
-                            Text(text = stringResource(R.string.album_detail_download))
-                        }
                     }
                 }
             }
@@ -810,23 +730,6 @@ private fun AlbumHeader(
                     modifier = buttonModifier
                 ) {
                     Text(text = stringResource(R.string.album_detail_play))
-                }
-                if (isDownloaded) {
-                    OutlinedButton(
-                        onClick = onRemoveDownload,
-                        enabled = album != null,
-                        modifier = buttonModifier
-                    ) {
-                        Text(text = stringResource(R.string.album_detail_remove_download))
-                    }
-                } else {
-                    FilledTonalButton(
-                        onClick = onDownloadAlbum,
-                        enabled = downloadEnabled,
-                        modifier = buttonModifier
-                    ) {
-                        Text(text = stringResource(R.string.album_detail_download))
-                    }
                 }
             }
         }

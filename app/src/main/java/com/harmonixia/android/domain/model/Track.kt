@@ -11,6 +11,8 @@ data class Track(
     @SerialName("item_id")
     val itemId: String,
     val provider: String,
+    @SerialName("provider_mappings")
+    val providerMappings: List<ProviderMapping> = emptyList(),
     val uri: String,
     @SerialName("track_number")
     val trackNumber: Int = 0,
@@ -25,7 +27,13 @@ data class Track(
     val lengthSeconds: Int = 0,
     @SerialName("image_url")
     val imageUrl: String? = null,
-    val quality: String? = null
+    val quality: String? = null,
+    @SerialName("is_favorite")
+    val isFavorite: Boolean = false,
+    val albumItemId: String = "",
+    val albumProvider: String = "",
+    val albumProviderMappings: List<ProviderMapping> = emptyList(),
+    val albumUri: String = ""
 )
 
 val Track.downloadId: String

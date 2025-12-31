@@ -7,15 +7,18 @@ import androidx.paging.PagingConfig
 import androidx.paging.PagingData
 import androidx.paging.cachedIn
 import androidx.paging.filter
+import androidx.paging.insertFooterItem
 import com.harmonixia.android.data.paging.AlbumsPagingSource
 import com.harmonixia.android.data.remote.ConnectionState
 import com.harmonixia.android.domain.model.Album
 import com.harmonixia.android.domain.model.AlbumType
-import com.harmonixia.android.domain.repository.DownloadRepository
+import com.harmonixia.android.domain.repository.LocalMediaRepository
 import com.harmonixia.android.domain.repository.MusicAssistantRepository
+import com.harmonixia.android.domain.repository.OFFLINE_PROVIDER
 import com.harmonixia.android.domain.usecase.GetConnectionStateUseCase
 import com.harmonixia.android.util.NetworkConnectivityManager
 import com.harmonixia.android.util.PagingStatsTracker
+import com.harmonixia.android.util.mergeWithLocal
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.Flow
@@ -23,15 +26,19 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.transformLatest
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.SharingStarted
 
 @HiltViewModel
 class AlbumsViewModel @Inject constructor(
     private val repository: MusicAssistantRepository,
-    private val downloadRepository: DownloadRepository,
+    private val localMediaRepository: LocalMediaRepository,
     getConnectionStateUseCase: GetConnectionStateUseCase,
     private val networkConnectivityManager: NetworkConnectivityManager,
     private val pagingStatsTracker: PagingStatsTracker
@@ -48,6 +55,7 @@ class AlbumsViewModel @Inject constructor(
         connectionState.value !is ConnectionState.Connected ||
             !networkConnectivityManager.networkAvailabilityFlow.value
     )
+    private val offlineModeChanges = isOfflineMode
 
     private val _uiState = MutableStateFlow<AlbumsUiState>(AlbumsUiState.Loading)
     val uiState: StateFlow<AlbumsUiState> = _uiState.asStateFlow()
@@ -73,57 +81,90 @@ class AlbumsViewModel @Inject constructor(
 
     private var pagingSource: AlbumsPagingSource? = null
 
-    private val baseFlow: Flow<PagingData<Album>> = pagingConfig
-        .flatMapLatest { config ->
+    private val albumsFlowReset = MutableStateFlow(0)
+
+    private val baseFlow: Flow<PagingData<Album>> = combine(
+        pagingConfig,
+        offlineModeChanges
+    ) { config, offline ->
+        config to offline
+    }.flatMapLatest { (config, offline) ->
+        if (offline) {
+            flowOf(PagingData.empty())
+        } else {
             Pager(config) {
-                AlbumsPagingSource(repository, config.pageSize, pagingStatsTracker).also {
-                    pagingSource = it
-                }
+                AlbumsPagingSource(
+                    repository,
+                    config.pageSize,
+                    pagingStatsTracker,
+                    isOfflineMode = { isOfflineMode.value }
+                ).also { pagingSource = it }
             }.flow
         }
+    }
 
-    private val onlineAlbumsFlow: Flow<PagingData<Album>> = combine(baseFlow, selectedAlbumTypes) {
-            pagingData,
-            types
-        ->
+    private val onlineAlbumsFlow: Flow<PagingData<Album>> = combine(
+        selectedAlbumTypes,
+        localMediaRepository.getAllAlbums(),
+        offlineModeChanges
+    ) { types, localAlbums, offline ->
+        Triple(types, localAlbums, offline)
+    }.flatMapLatest { (types, localAlbums, offline) ->
+        if (offline || types.isEmpty()) {
+            flowOf(PagingData.empty())
+        } else {
+            baseFlow.map { pagingData ->
+                val filteredPaging = pagingData.filter { album -> types.contains(album.albumType) }
+                val filteredLocal = localAlbums.filter { album -> types.contains(album.albumType) }
+                mergePagingWithLocal(filteredPaging, filteredLocal)
+            }
+        }
+    }
+
+    private val localAlbumsFlow: Flow<PagingData<Album>> = combine(
+        localMediaRepository.getAllAlbums(),
+        selectedAlbumTypes
+    ) { albums, types ->
         if (types.isEmpty()) {
             PagingData.empty()
         } else {
-            pagingData.filter { album -> types.contains(album.albumType) }
+            PagingData.from(albums.filter { album -> types.contains(album.albumType) })
         }
     }
 
-    private val offlineAlbumsFlow: Flow<PagingData<Album>> = combine(
-        downloadRepository.getDownloadedAlbums(),
-        selectedAlbumTypes
-    ) { albums, types ->
-        val filtered = if (types.isEmpty()) {
-            emptyList()
+    private val mergedAlbumsFlow: Flow<PagingData<Album>> = combine(
+        offlineModeChanges,
+        albumsFlowReset
+    ) { offline, _ ->
+        offline
+    }.transformLatest { offline ->
+        if (offline) {
+            emitAll(localAlbumsFlow)
         } else {
-            albums.filter { album -> types.contains(album.albumType) }
+            emitAll(onlineAlbumsFlow)
         }
-        PagingData.from(filtered)
     }
 
-    val albumsFlow: Flow<PagingData<Album>> = isOfflineMode
-        .flatMapLatest { offline ->
-            if (offline) offlineAlbumsFlow else onlineAlbumsFlow
-        }
-        .cachedIn(viewModelScope)
+    val albumsFlow: Flow<PagingData<Album>> = mergedAlbumsFlow.cachedIn(viewModelScope)
 
     init {
         viewModelScope.launch {
-            isOfflineMode.collect { offline ->
+            offlineModeChanges.collect { offline ->
                 if (offline) {
                     pagingSource?.invalidate()
+                    albumsFlowReset.value = albumsFlowReset.value + 1
+                    _uiState.value = AlbumsUiState.Success(
+                        albums = localAlbumsFlow,
+                        selectedAlbumTypes = selectedAlbumTypes.value
+                    )
                 }
             }
         }
         viewModelScope.launch {
-            combine(connectionState, isOfflineMode) { state, offline ->
+            combine(connectionState, offlineModeChanges) { state, offline ->
                 if (offline) {
                     AlbumsUiState.Success(
-                        albums = albumsFlow,
+                        albums = localAlbumsFlow,
                         selectedAlbumTypes = selectedAlbumTypes.value
                     )
                 } else {
@@ -148,6 +189,10 @@ class AlbumsViewModel @Inject constructor(
     }
 
     fun updatePagingConfig(pageSize: Int, prefetchDistance: Int) {
+        val current = pagingConfig.value
+        if (current.pageSize == pageSize && current.prefetchDistance == prefetchDistance) {
+            return
+        }
         pagingConfig.value = PagingConfig(
             pageSize = pageSize,
             prefetchDistance = prefetchDistance,
@@ -167,6 +212,20 @@ class AlbumsViewModel @Inject constructor(
         val currentState = _uiState.value
         if (currentState is AlbumsUiState.Success) {
             _uiState.value = currentState.copy(selectedAlbumTypes = updated)
+        }
+    }
+
+    private fun mergePagingWithLocal(
+        pagingData: PagingData<Album>,
+        localAlbums: List<Album>
+    ): PagingData<Album> {
+        if (localAlbums.isEmpty()) return pagingData
+        val remoteWithoutLocal = pagingData.filter { album ->
+            val merged = listOf(album).mergeWithLocal(localAlbums)
+            merged.firstOrNull()?.provider != OFFLINE_PROVIDER
+        }
+        return localAlbums.fold(remoteWithoutLocal) { acc, localAlbum ->
+            acc.insertFooterItem(item = localAlbum)
         }
     }
 

@@ -67,6 +67,7 @@ import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
 import coil3.request.bitmapConfig
 import com.harmonixia.android.R
+import com.harmonixia.android.domain.model.RepeatMode
 import com.harmonixia.android.ui.components.PlaybackControls
 import com.harmonixia.android.ui.components.SeekBar
 import com.harmonixia.android.ui.components.formatTrackQualityLabel
@@ -85,6 +86,8 @@ fun SharedTransitionScope.NowPlayingScreen(
     enableSharedArtworkTransition: Boolean = true
 ) {
     val nowPlayingUiState by viewModel.nowPlayingUiState.collectAsStateWithLifecycle()
+    val repeatMode by viewModel.repeatMode.collectAsStateWithLifecycle()
+    val shuffle by viewModel.shuffle.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     val context = LocalContext.current
     val haptic = LocalHapticFeedback.current
@@ -217,6 +220,10 @@ fun SharedTransitionScope.NowPlayingScreen(
                         onPlayPause = { viewModel.togglePlayPause() },
                         onNext = { viewModel.next() },
                         onPrevious = { viewModel.previous() },
+                        repeatMode = repeatMode,
+                        shuffle = shuffle,
+                        onRepeatToggle = { viewModel.toggleRepeatMode() },
+                        onShuffleToggle = { viewModel.toggleShuffle() },
                         modifier = Modifier
                             .weight(1f)
                             .fillMaxHeight()
@@ -254,6 +261,10 @@ fun SharedTransitionScope.NowPlayingScreen(
                         onPlayPause = { viewModel.togglePlayPause() },
                         onNext = { viewModel.next() },
                         onPrevious = { viewModel.previous() },
+                        repeatMode = repeatMode,
+                        shuffle = shuffle,
+                        onRepeatToggle = { viewModel.toggleRepeatMode() },
+                        onShuffleToggle = { viewModel.toggleShuffle() },
                         modifier = Modifier.weight(1f)
                     )
                 }
@@ -399,6 +410,10 @@ private fun ControlsPanel(
     onPlayPause: () -> Unit,
     onNext: () -> Unit,
     onPrevious: () -> Unit,
+    repeatMode: RepeatMode,
+    shuffle: Boolean,
+    onRepeatToggle: () -> Unit,
+    onShuffleToggle: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -470,6 +485,10 @@ private fun ControlsPanel(
             isPlaying = playbackInfo.isPlaying,
             hasNext = playbackInfo.hasNext,
             hasPrevious = playbackInfo.hasPrevious,
+            repeatMode = repeatMode,
+            shuffle = shuffle,
+            onRepeatToggle = onRepeatToggle,
+            onShuffleToggle = onShuffleToggle,
             onPlayPause = onPlayPause,
             onNext = onNext,
             onPrevious = onPrevious,
@@ -497,7 +516,9 @@ private fun emptyPlaybackInfo(): PlaybackInfo =
         currentPosition = 0L,
         isPlaying = false,
         hasNext = false,
-        hasPrevious = false
+        hasPrevious = false,
+        repeatMode = RepeatMode.OFF,
+        shuffle = false
     )
 
 private const val SHARED_ARTWORK_KEY = "shared_playback_artwork"

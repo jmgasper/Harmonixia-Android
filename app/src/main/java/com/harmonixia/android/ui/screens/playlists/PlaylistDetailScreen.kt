@@ -49,10 +49,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.painter.ColorPainter
-import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
@@ -68,8 +72,6 @@ import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
 import coil3.request.bitmapConfig
 import com.harmonixia.android.R
-import com.harmonixia.android.domain.model.DownloadProgress
-import com.harmonixia.android.domain.model.DownloadStatus
 import com.harmonixia.android.domain.model.Playlist
 import com.harmonixia.android.domain.model.Track
 import com.harmonixia.android.ui.components.ErrorCard
@@ -78,19 +80,19 @@ import com.harmonixia.android.ui.components.PlaylistOptionsMenu
 import com.harmonixia.android.ui.components.PlaylistPickerDialog
 import com.harmonixia.android.ui.components.RenamePlaylistDialog
 import com.harmonixia.android.ui.components.TrackList
+import com.harmonixia.android.ui.screens.settings.SettingsTab
 import com.harmonixia.android.ui.theme.rememberAdaptiveSpacing
 import com.harmonixia.android.ui.util.PlaylistCoverEntryPoint
 import com.harmonixia.android.ui.util.PlaylistCoverGenerator
 import com.harmonixia.android.util.ImageQualityManager
 import dagger.hilt.android.EntryPointAccessors
 import java.io.File
-import kotlinx.coroutines.flow.Flow
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PlaylistDetailScreen(
     onNavigateBack: () -> Unit,
-    onNavigateToSettings: () -> Unit,
+    onNavigateToSettings: (SettingsTab?) -> Unit,
     onNavigateToPlaylist: (Playlist) -> Unit,
     viewModel: PlaylistDetailViewModel = hiltViewModel()
 ) {
@@ -100,7 +102,7 @@ fun PlaylistDetailScreen(
     val isRenaming by viewModel.isRenaming.collectAsStateWithLifecycle()
     val renameErrorMessageResId by viewModel.renameErrorMessageResId.collectAsStateWithLifecycle()
     val isOfflineMode by viewModel.isOfflineMode.collectAsStateWithLifecycle()
-    val isPlaylistDownloaded by viewModel.isPlaylistDownloaded.collectAsStateWithLifecycle()
+    val isFavoritesPlaylist = playlist?.itemId == "favorites" && playlist?.provider == "harmonixia"
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
 
@@ -112,8 +114,6 @@ fun PlaylistDetailScreen(
     var showCreateDialog by remember { mutableStateOf(false) }
     var renameValue by remember { mutableStateOf("") }
     var playlistName by remember { mutableStateOf("") }
-    var showRemoveDownloadDialog by remember { mutableStateOf(false) }
-
     LaunchedEffect(viewModel) {
         viewModel.events.collect { event ->
             when (event) {
@@ -132,9 +132,6 @@ fun PlaylistDetailScreen(
                     showRenameDialog = false
                     renameValue = ""
                     onNavigateToPlaylist(event.playlist)
-                }
-                PlaylistDetailUiEvent.ShowConfirmRemoveDownload -> {
-                    showRemoveDownloadDialog = true
                 }
             }
         }
@@ -191,63 +188,74 @@ fun PlaylistDetailScreen(
     }
     val density = LocalDensity.current
     val listState = rememberLazyListState()
-    var playlistDetailsHeightPx by remember { mutableStateOf(0) }
     val minArtworkSize = 32.dp
     val collapseRangePx = with(density) {
-        (artworkSize - minArtworkSize).coerceAtLeast(0.dp).toPx()
+        (artworkSize - minArtworkSize + spacing.large).coerceAtLeast(0.dp).toPx()
     }
-    val effectiveCollapseRangePx = if (playlistDetailsHeightPx > 0) {
-        minOf(collapseRangePx, playlistDetailsHeightPx.toFloat())
-    } else {
-        collapseRangePx
+    var headerOffsetPx by remember { mutableStateOf(0f) }
+    LaunchedEffect(collapseRangePx) {
+        headerOffsetPx = headerOffsetPx.coerceIn(0f, collapseRangePx)
     }
-    val scrollOffsetPx by remember(listState, effectiveCollapseRangePx) {
+    val isListAtTop by remember(listState) {
         derivedStateOf {
-            if (effectiveCollapseRangePx == 0f) {
-                0f
-            } else if (listState.firstVisibleItemIndex == 0) {
-                listState.firstVisibleItemScrollOffset
-                    .toFloat()
-                    .coerceIn(0f, effectiveCollapseRangePx)
-            } else {
-                effectiveCollapseRangePx
+            listState.firstVisibleItemIndex == 0 &&
+                listState.firstVisibleItemScrollOffset == 0
+        }
+    }
+    val nestedScrollConnection = remember(collapseRangePx, listState) {
+        object : NestedScrollConnection {
+            override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
+                if (collapseRangePx == 0f) return Offset.Zero
+                val delta = available.y
+                return when {
+                    delta < 0f && headerOffsetPx < collapseRangePx -> {
+                        val newOffset = (headerOffsetPx - delta).coerceIn(0f, collapseRangePx)
+                        val consumed = newOffset - headerOffsetPx
+                        headerOffsetPx = newOffset
+                        Offset(0f, -consumed)
+                    }
+                    delta > 0f && headerOffsetPx > 0f && isListAtTop -> {
+                        val newOffset = (headerOffsetPx - delta).coerceIn(0f, collapseRangePx)
+                        val consumed = headerOffsetPx - newOffset
+                        headerOffsetPx = newOffset
+                        Offset(0f, consumed)
+                    }
+                    else -> Offset.Zero
+                }
+            }
+
+            override fun onPostScroll(
+                consumed: Offset,
+                available: Offset,
+                source: NestedScrollSource
+            ): Offset {
+                if (collapseRangePx == 0f) return Offset.Zero
+                val delta = available.y
+                if (delta > 0f && headerOffsetPx > 0f && isListAtTop) {
+                    val newOffset = (headerOffsetPx - delta).coerceIn(0f, collapseRangePx)
+                    val consumedByHeader = headerOffsetPx - newOffset
+                    headerOffsetPx = newOffset
+                    return Offset(0f, consumedByHeader)
+                }
+                return Offset.Zero
             }
         }
     }
-    val collapseFraction = if (effectiveCollapseRangePx == 0f) {
+    val collapseFraction = if (collapseRangePx == 0f) {
         1f
     } else {
-        (scrollOffsetPx / effectiveCollapseRangePx).coerceIn(0f, 1f)
+        (headerOffsetPx / collapseRangePx).coerceIn(0f, 1f)
     }
     val currentArtworkSize = (
         artworkSize.value +
             (minArtworkSize.value - artworkSize.value) * collapseFraction
     ).dp
     val artworkTopPadding = (spacing.large.value * (1f - collapseFraction)).dp
-    val overlapFraction = ((collapseFraction - 0.2f) / 0.8f).coerceIn(0f, 1f)
-    val artworkOverlap = (spacing.large.value * overlapFraction).dp
-    val desiredTop = (artworkTopPadding + currentArtworkSize + spacing.medium - artworkOverlap)
+    val desiredTop = (artworkTopPadding + currentArtworkSize + spacing.medium)
         .coerceAtLeast(0.dp)
-    val appBarThumbnailAlpha by remember(
-        listState,
-        playlistDetailsHeightPx,
-        isVeryWide
-    ) {
+    val appBarThumbnailAlpha by remember(collapseFraction, isVeryWide) {
         derivedStateOf {
-            if (isVeryWide || playlistDetailsHeightPx == 0) {
-                0f
-            } else {
-                val detailsInfo = listState.layoutInfo.visibleItemsInfo
-                    .firstOrNull { it.index == 0 }
-                val detailsHeight = playlistDetailsHeightPx.toFloat().coerceAtLeast(1f)
-                if (detailsInfo == null && listState.firstVisibleItemIndex == 0) {
-                    0f
-                } else {
-                    val layoutOffset = detailsInfo?.offset?.toFloat() ?: -detailsHeight
-                    val progress = (-layoutOffset / detailsHeight).coerceIn(0f, 1f)
-                    ((progress - 0.2f) / 0.8f).coerceIn(0f, 1f)
-                }
-            }
+            if (isVeryWide) 0f else ((collapseFraction - 0.2f) / 0.8f).coerceIn(0f, 1f)
         }
     }
 
@@ -288,7 +296,7 @@ fun PlaylistDetailScreen(
                         }
                     },
                     actions = {
-                        if (playlist?.isEditable == true) {
+                        if (playlist?.isEditable == true && !isFavoritesPlaylist) {
                             Box {
                                 IconButton(onClick = { showOptionsMenu = true }) {
                                     Icon(
@@ -312,7 +320,7 @@ fun PlaylistDetailScreen(
                                 )
                             }
                         }
-                        IconButton(onClick = onNavigateToSettings) {
+                        IconButton(onClick = { onNavigateToSettings(null) }) {
                             Icon(
                                 imageVector = Icons.Outlined.Settings,
                                 contentDescription = stringResource(R.string.action_open_settings)
@@ -375,7 +383,6 @@ fun PlaylistDetailScreen(
                 PlaylistDetailEmptyContent(
                     playlist = playlist,
                     isOfflineMode = isOfflineMode,
-                    isDownloaded = isPlaylistDownloaded,
                     artworkSize = artworkSize,
                     useWideLayout = useWideLayout,
                     horizontalPadding = horizontalPadding,
@@ -391,9 +398,7 @@ fun PlaylistDetailScreen(
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(paddingValues),
-                    onPlayPlaylist = { viewModel.playPlaylist() },
-                    onDownloadPlaylist = { viewModel.downloadPlaylist() },
-                    onRemoveDownload = { showRemoveDownloadDialog = true }
+                    onPlayPlaylist = { viewModel.playPlaylist() }
                 )
             }
             is PlaylistDetailUiState.Success -> {
@@ -416,22 +421,17 @@ fun PlaylistDetailScreen(
                     rowSpacing = if (isExpanded) 32.dp else 24.dp,
                     listState = listState,
                     appBarThumbnailAlpha = appBarThumbnailAlpha,
-                    onDetailsMeasured = { playlistDetailsHeightPx = it },
+                    nestedScrollConnection = nestedScrollConnection,
                     onPlayPlaylist = { viewModel.playPlaylist() },
-                    onDownloadPlaylist = { viewModel.downloadPlaylist() },
-                    onRemoveDownload = { showRemoveDownloadDialog = true },
-                    isDownloaded = isPlaylistDownloaded,
-                    isOfflineMode = isOfflineMode,
                     onTrackClick = viewModel::playTrack,
                     onAddToPlaylist = { track ->
                         pendingTrack = track
                         viewModel.refreshPlaylists()
                         showPlaylistPicker = true
                     },
+                    onAddToFavorites = viewModel::addTrackToFavorites,
+                    onRemoveFromFavorites = viewModel::removeTrackFromFavorites,
                     onRemoveFromPlaylist = viewModel::removeTrackFromPlaylist,
-                    onDownloadTrack = viewModel::downloadTrack,
-                    getTrackDownloadStatus = viewModel::getTrackDownloadStatus,
-                    getTrackDownloadProgress = viewModel::getTrackDownloadProgress,
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(paddingValues)
@@ -480,29 +480,6 @@ fun PlaylistDetailScreen(
             },
             isLoading = isRenaming,
             errorMessage = errorMessage
-        )
-    }
-
-    if (showRemoveDownloadDialog) {
-        AlertDialog(
-            onDismissRequest = { showRemoveDownloadDialog = false },
-            title = { Text(text = stringResource(R.string.playlist_download_confirm_remove_title)) },
-            text = { Text(text = stringResource(R.string.playlist_download_confirm_remove_message)) },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        showRemoveDownloadDialog = false
-                        viewModel.removePlaylistDownload()
-                    }
-                ) {
-                    Text(text = stringResource(R.string.playlist_detail_remove_download))
-                }
-            },
-            dismissButton = {
-                OutlinedButton(onClick = { showRemoveDownloadDialog = false }) {
-                    Text(text = stringResource(R.string.action_back))
-                }
-            }
         )
     }
 
@@ -562,18 +539,13 @@ private fun PlaylistDetailContent(
     rowSpacing: Dp,
     listState: LazyListState,
     appBarThumbnailAlpha: Float,
-    onDetailsMeasured: (Int) -> Unit,
+    nestedScrollConnection: NestedScrollConnection,
     onPlayPlaylist: () -> Unit,
-    onDownloadPlaylist: () -> Unit,
-    onRemoveDownload: () -> Unit,
-    isDownloaded: Boolean,
-    isOfflineMode: Boolean,
     onTrackClick: (Track) -> Unit,
     onAddToPlaylist: (Track) -> Unit,
+    onAddToFavorites: (Track) -> Unit,
+    onRemoveFromFavorites: (Track) -> Unit,
     onRemoveFromPlaylist: (Track, Int) -> Unit,
-    onDownloadTrack: (Track) -> Unit,
-    getTrackDownloadStatus: (String) -> Flow<DownloadStatus?>,
-    getTrackDownloadProgress: (String) -> Flow<DownloadProgress?>,
     modifier: Modifier = Modifier
 ) {
     val spacing = rememberAdaptiveSpacing()
@@ -599,10 +571,6 @@ private fun PlaylistDetailContent(
                     useWideLayout = useWideLayout,
                     canPlay = tracks.isNotEmpty(),
                     onPlayPlaylist = onPlayPlaylist,
-                    onDownloadPlaylist = onDownloadPlaylist,
-                    onRemoveDownload = onRemoveDownload,
-                    isDownloaded = isDownloaded,
-                    isOfflineMode = isOfflineMode,
                     titleStyle = titleStyle,
                     ownerStyle = ownerStyle,
                     rowSpacing = rowSpacing
@@ -643,7 +611,8 @@ private fun PlaylistDetailContent(
                         isEditable = playlist?.isEditable == true,
                         onAddToPlaylist = onAddToPlaylist,
                         onRemoveFromPlaylist = onRemoveFromPlaylist,
-                        onDownloadTrack = onDownloadTrack,
+                        onAddToFavorites = onAddToFavorites,
+                        onRemoveFromFavorites = onRemoveFromFavorites,
                         modifier = Modifier
                             .weight(1f)
                             .fillMaxHeight(),
@@ -652,8 +621,6 @@ private fun PlaylistDetailContent(
                         trackSupportingTextStyle = trackMetaStyle,
                         trackMetadataTextStyle = trackMetaStyle,
                         indexProvider = indexProvider,
-                        getTrackDownloadStatus = getTrackDownloadStatus,
-                        getTrackDownloadProgress = getTrackDownloadProgress,
                         showEmptyState = false
                     )
                     TrackList(
@@ -663,7 +630,8 @@ private fun PlaylistDetailContent(
                         isEditable = playlist?.isEditable == true,
                         onAddToPlaylist = onAddToPlaylist,
                         onRemoveFromPlaylist = onRemoveFromPlaylist,
-                        onDownloadTrack = onDownloadTrack,
+                        onAddToFavorites = onAddToFavorites,
+                        onRemoveFromFavorites = onRemoveFromFavorites,
                         modifier = Modifier
                             .weight(1f)
                             .fillMaxHeight(),
@@ -672,8 +640,6 @@ private fun PlaylistDetailContent(
                         trackSupportingTextStyle = trackMetaStyle,
                         trackMetadataTextStyle = trackMetaStyle,
                         indexProvider = indexProvider,
-                        getTrackDownloadStatus = getTrackDownloadStatus,
-                        getTrackDownloadProgress = getTrackDownloadProgress,
                         showEmptyState = false
                     )
                 }
@@ -689,11 +655,31 @@ private fun PlaylistDetailContent(
         val contentPadding = PaddingValues(
             start = horizontalPadding,
             end = horizontalPadding,
-            top = contentTopPadding,
+            top = 0.dp,
             bottom = spacing.large
         )
 
-        Box(modifier = modifier) {
+        Column(modifier = modifier) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(contentTopPadding)
+                    .clipToBounds()
+            ) {
+                if (pinnedArtworkAlpha > 0f) {
+                    PlaylistArtwork(
+                        playlist = playlist,
+                        displaySize = currentArtworkSize,
+                        requestSize = artworkSize,
+                        cornerRadius = pinnedCornerRadius,
+                        useOptimizedDisplaySize = false,
+                        modifier = Modifier
+                            .align(Alignment.TopCenter)
+                            .padding(top = artworkTopPadding)
+                            .alpha(pinnedArtworkAlpha)
+                    )
+                }
+            }
             TrackList(
                 tracks = tracks,
                 onTrackClick = onTrackClick,
@@ -701,9 +687,13 @@ private fun PlaylistDetailContent(
                 isEditable = playlist?.isEditable == true,
                 onAddToPlaylist = onAddToPlaylist,
                 onRemoveFromPlaylist = onRemoveFromPlaylist,
-                onDownloadTrack = onDownloadTrack,
+                onAddToFavorites = onAddToFavorites,
+                onRemoveFromFavorites = onRemoveFromFavorites,
                 modifier = Modifier
-                    .fillMaxSize(),
+                    .weight(1f)
+                    .fillMaxWidth()
+                    .clipToBounds()
+                    .nestedScroll(nestedScrollConnection),
                 listState = listState,
                 contentPadding = contentPadding,
                 headerContent = {
@@ -713,12 +703,7 @@ private fun PlaylistDetailContent(
                             canPlay = tracks.isNotEmpty(),
                             titleStyle = titleStyle,
                             ownerStyle = ownerStyle,
-                            onPlayPlaylist = onPlayPlaylist,
-                            onDownloadPlaylist = onDownloadPlaylist,
-                            onRemoveDownload = onRemoveDownload,
-                            isDownloaded = isDownloaded,
-                            isOfflineMode = isOfflineMode,
-                            modifier = Modifier.onSizeChanged { onDetailsMeasured(it.height) }
+                            onPlayPlaylist = onPlayPlaylist
                         )
                     }
                     item { Spacer(modifier = Modifier.height(spacing.extraLarge)) }
@@ -733,23 +718,8 @@ private fun PlaylistDetailContent(
                 trackTitleTextStyle = trackTitleStyle,
                 trackSupportingTextStyle = trackMetaStyle,
                 trackMetadataTextStyle = trackMetaStyle,
-                indexProvider = indexProvider,
-                getTrackDownloadStatus = getTrackDownloadStatus,
-                getTrackDownloadProgress = getTrackDownloadProgress
+                indexProvider = indexProvider
             )
-            if (pinnedArtworkAlpha > 0f) {
-                PlaylistArtwork(
-                    playlist = playlist,
-                    displaySize = currentArtworkSize,
-                    requestSize = artworkSize,
-                    cornerRadius = pinnedCornerRadius,
-                    useOptimizedDisplaySize = false,
-                    modifier = Modifier
-                        .align(Alignment.TopCenter)
-                        .padding(top = artworkTopPadding)
-                        .alpha(pinnedArtworkAlpha)
-                )
-            }
         }
     }
 }
@@ -819,10 +789,6 @@ private fun PlaylistDetails(
     titleStyle: TextStyle,
     ownerStyle: TextStyle,
     onPlayPlaylist: () -> Unit,
-    onDownloadPlaylist: () -> Unit,
-    onRemoveDownload: () -> Unit,
-    isDownloaded: Boolean,
-    isOfflineMode: Boolean,
     modifier: Modifier = Modifier
 ) {
     val spacing = rememberAdaptiveSpacing()
@@ -831,8 +797,6 @@ private fun PlaylistDetails(
     } ?: stringResource(R.string.playlist_detail_title)
     val owner = playlist?.owner?.trim().orEmpty()
     val buttonModifier = Modifier.fillMaxWidth(0.8f)
-    val downloadEnabled = playlist != null && (isDownloaded || !isOfflineMode)
-
     Column(
         modifier = modifier.fillMaxWidth(),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -871,23 +835,6 @@ private fun PlaylistDetails(
             ) {
                 Text(text = stringResource(R.string.playlist_detail_play))
             }
-            if (isDownloaded) {
-                OutlinedButton(
-                    onClick = onRemoveDownload,
-                    enabled = playlist != null,
-                    modifier = buttonModifier
-                ) {
-                    Text(text = stringResource(R.string.playlist_detail_remove_download))
-                }
-            } else {
-                FilledTonalButton(
-                    onClick = onDownloadPlaylist,
-                    enabled = downloadEnabled,
-                    modifier = buttonModifier
-                ) {
-                    Text(text = stringResource(R.string.playlist_detail_download))
-                }
-            }
         }
     }
 }
@@ -896,7 +843,6 @@ private fun PlaylistDetails(
 private fun PlaylistDetailEmptyContent(
     playlist: Playlist?,
     isOfflineMode: Boolean,
-    isDownloaded: Boolean,
     artworkSize: Dp,
     useWideLayout: Boolean,
     horizontalPadding: Dp,
@@ -906,8 +852,6 @@ private fun PlaylistDetailEmptyContent(
     emptyBodyStyle: TextStyle,
     rowSpacing: Dp,
     onPlayPlaylist: () -> Unit,
-    onDownloadPlaylist: () -> Unit,
-    onRemoveDownload: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val spacing = rememberAdaptiveSpacing()
@@ -923,10 +867,6 @@ private fun PlaylistDetailEmptyContent(
             useWideLayout = useWideLayout,
             canPlay = false,
             onPlayPlaylist = onPlayPlaylist,
-            onDownloadPlaylist = onDownloadPlaylist,
-            onRemoveDownload = onRemoveDownload,
-            isDownloaded = isDownloaded,
-            isOfflineMode = isOfflineMode,
             titleStyle = titleStyle,
             ownerStyle = ownerStyle,
             rowSpacing = rowSpacing
@@ -962,10 +902,6 @@ private fun PlaylistHeader(
     useWideLayout: Boolean,
     canPlay: Boolean,
     onPlayPlaylist: () -> Unit,
-    onDownloadPlaylist: () -> Unit,
-    onRemoveDownload: () -> Unit,
-    isDownloaded: Boolean,
-    isOfflineMode: Boolean,
     titleStyle: TextStyle,
     ownerStyle: TextStyle,
     rowSpacing: Dp,
@@ -977,8 +913,6 @@ private fun PlaylistHeader(
     } ?: stringResource(R.string.playlist_detail_title)
     val owner = playlist?.owner?.trim().orEmpty()
     val buttonModifier = if (useWideLayout) Modifier else Modifier.fillMaxWidth(0.8f)
-    val downloadEnabled = playlist != null && (isDownloaded || !isOfflineMode)
-
     if (useWideLayout) {
         Row(
             modifier = modifier.fillMaxWidth(),
@@ -1022,23 +956,6 @@ private fun PlaylistHeader(
                         modifier = buttonModifier
                     ) {
                         Text(text = stringResource(R.string.playlist_detail_play))
-                    }
-                    if (isDownloaded) {
-                        OutlinedButton(
-                            onClick = onRemoveDownload,
-                            enabled = playlist != null,
-                            modifier = buttonModifier
-                        ) {
-                            Text(text = stringResource(R.string.playlist_detail_remove_download))
-                        }
-                    } else {
-                        FilledTonalButton(
-                            onClick = onDownloadPlaylist,
-                            enabled = downloadEnabled,
-                            modifier = buttonModifier
-                        ) {
-                            Text(text = stringResource(R.string.playlist_detail_download))
-                        }
                     }
                 }
             }
@@ -1087,23 +1004,6 @@ private fun PlaylistHeader(
                     modifier = buttonModifier
                 ) {
                     Text(text = stringResource(R.string.playlist_detail_play))
-                }
-                if (isDownloaded) {
-                    OutlinedButton(
-                        onClick = onRemoveDownload,
-                        enabled = playlist != null,
-                        modifier = buttonModifier
-                    ) {
-                        Text(text = stringResource(R.string.playlist_detail_remove_download))
-                    }
-                } else {
-                    FilledTonalButton(
-                        onClick = onDownloadPlaylist,
-                        enabled = downloadEnabled,
-                        modifier = buttonModifier
-                    ) {
-                        Text(text = stringResource(R.string.playlist_detail_download))
-                    }
                 }
             }
         }

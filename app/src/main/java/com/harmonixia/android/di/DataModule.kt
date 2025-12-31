@@ -5,20 +5,20 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.preferencesDataStore
 import androidx.room.Room
-import com.harmonixia.android.data.local.DownloadDatabase
-import com.harmonixia.android.data.local.DownloadSettingsDataStore
+import com.harmonixia.android.data.local.LocalMediaDatabase
+import com.harmonixia.android.data.local.LocalMediaScanner
+import com.harmonixia.android.data.local.dao.LocalAlbumDao
+import com.harmonixia.android.data.local.dao.LocalArtistDao
+import com.harmonixia.android.data.local.dao.LocalTrackDao
 import com.harmonixia.android.data.local.EqDataStore
 import com.harmonixia.android.data.local.EqPresetCache
 import com.harmonixia.android.data.local.EqPresetParser
 import com.harmonixia.android.data.local.SettingsDataStore
-import com.harmonixia.android.data.local.dao.DownloadedAlbumDao
-import com.harmonixia.android.data.local.dao.DownloadedPlaylistDao
-import com.harmonixia.android.data.local.dao.DownloadedTrackDao
 import com.harmonixia.android.data.remote.MusicAssistantWebSocketClient
-import com.harmonixia.android.data.repository.DownloadRepositoryImpl
+import com.harmonixia.android.data.repository.LocalMediaRepositoryImpl
 import com.harmonixia.android.data.repository.MusicAssistantRepositoryImpl
 import com.harmonixia.android.data.repository.OfflineLibraryRepositoryImpl
-import com.harmonixia.android.domain.repository.DownloadRepository
+import com.harmonixia.android.domain.repository.LocalMediaRepository
 import com.harmonixia.android.domain.repository.MusicAssistantRepository
 import com.harmonixia.android.domain.repository.OfflineLibraryRepository
 import dagger.Binds
@@ -47,15 +47,15 @@ abstract class DataModule {
 
     @Binds
     @Singleton
-    abstract fun bindDownloadRepository(
-        impl: DownloadRepositoryImpl
-    ): DownloadRepository
-
-    @Binds
-    @Singleton
     abstract fun bindOfflineLibraryRepository(
         impl: OfflineLibraryRepositoryImpl
     ): OfflineLibraryRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindLocalMediaRepository(
+        impl: LocalMediaRepositoryImpl
+    ): LocalMediaRepository
 
     companion object {
         @Provides
@@ -73,9 +73,51 @@ abstract class DataModule {
 
         @Provides
         @Singleton
-        fun provideDownloadSettingsDataStore(
-            dataStore: DataStore<Preferences>
-        ): DownloadSettingsDataStore = DownloadSettingsDataStore(dataStore)
+        fun provideLocalMediaDatabase(
+            @ApplicationContext context: Context
+        ): LocalMediaDatabase {
+            return Room.databaseBuilder(
+                context,
+                LocalMediaDatabase::class.java,
+                LocalMediaDatabase.DATABASE_NAME
+            ).build()
+        }
+
+        @Provides
+        @Singleton
+        fun provideLocalTrackDao(
+            database: LocalMediaDatabase
+        ): LocalTrackDao = database.localTrackDao()
+
+        @Provides
+        @Singleton
+        fun provideLocalAlbumDao(
+            database: LocalMediaDatabase
+        ): LocalAlbumDao = database.localAlbumDao()
+
+        @Provides
+        @Singleton
+        fun provideLocalArtistDao(
+            database: LocalMediaDatabase
+        ): LocalArtistDao = database.localArtistDao()
+
+        @Provides
+        @Singleton
+        fun provideLocalMediaScanner(
+            localTrackDao: LocalTrackDao,
+            localAlbumDao: LocalAlbumDao,
+            localArtistDao: LocalArtistDao,
+            database: LocalMediaDatabase,
+            @ApplicationContext context: Context,
+            ioDispatcher: CoroutineDispatcher
+        ): LocalMediaScanner = LocalMediaScanner(
+            localTrackDao,
+            localAlbumDao,
+            localArtistDao,
+            database,
+            context,
+            ioDispatcher
+        )
 
         @Provides
         @Singleton
@@ -102,33 +144,6 @@ abstract class DataModule {
             okHttpClient: OkHttpClient,
             json: Json
         ): MusicAssistantWebSocketClient = MusicAssistantWebSocketClient(okHttpClient, json)
-
-        @Provides
-        @Singleton
-        fun provideDownloadDatabase(
-            @ApplicationContext context: Context
-        ): DownloadDatabase {
-            return Room.databaseBuilder(
-                context,
-                DownloadDatabase::class.java,
-                "harmonixia_downloads.db"
-            ).fallbackToDestructiveMigration().build()
-        }
-
-        @Provides
-        fun provideDownloadedTrackDao(
-            database: DownloadDatabase
-        ): DownloadedTrackDao = database.downloadedTrackDao()
-
-        @Provides
-        fun provideDownloadedAlbumDao(
-            database: DownloadDatabase
-        ): DownloadedAlbumDao = database.downloadedAlbumDao()
-
-        @Provides
-        fun provideDownloadedPlaylistDao(
-            database: DownloadDatabase
-        ): DownloadedPlaylistDao = database.downloadedPlaylistDao()
 
         @Provides
         @Singleton

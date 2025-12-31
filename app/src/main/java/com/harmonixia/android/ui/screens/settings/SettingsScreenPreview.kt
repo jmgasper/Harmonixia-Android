@@ -1,8 +1,8 @@
 package com.harmonixia.android.ui.screens.settings
 
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.ui.tooling.preview.Preview
 import com.harmonixia.android.data.remote.ConnectionState
 import com.harmonixia.android.ui.theme.HarmonixiaTheme
@@ -15,15 +15,15 @@ fun SettingsScreenPreviewInitial() {
             uiState = SettingsUiState.Initial(
                 form = SettingsFormState(serverUrl = "http://192.168.1.29:8095"),
                 connectionState = ConnectionState.Disconnected,
-                canDisconnect = false
+                canDisconnect = false,
+                selectedTab = SettingsTab.CONNECTION
             ),
-            storedServerUrl = "http://192.168.1.29:8095",
-            storedAuthToken = "",
+            selectedTab = SettingsTab.CONNECTION,
+            onTabSelected = {},
             snackbarHostState = remember { SnackbarHostState() },
-            eqEnabled = false,
-            eqPresetName = null,
+            localMediaFolderUri = "",
+            localMediaScanState = LocalMediaScanState(),
             onNavigateBack = {},
-            onNavigateToEqSettings = {},
             onNavigateToPerformanceSettings = {},
             onServerUrlChange = {},
             onAuthTokenChange = {},
@@ -31,7 +31,9 @@ fun SettingsScreenPreviewInitial() {
             onSaveConnection = {},
             onDisconnect = {},
             onClearSettings = {},
-            onClearError = {}
+            onClearError = {},
+            onSelectFolder = {},
+            onScanLocalMedia = {}
         )
     }
 }
@@ -45,15 +47,15 @@ fun SettingsScreenPreviewConnecting() {
                 form = SettingsFormState(serverUrl = "http://192.168.1.29:8095"),
                 connectionState = ConnectionState.Connecting,
                 canDisconnect = true,
+                selectedTab = SettingsTab.CONNECTION,
                 isTesting = true
             ),
-            storedServerUrl = "http://192.168.1.29:8095",
-            storedAuthToken = "token",
+            selectedTab = SettingsTab.CONNECTION,
+            onTabSelected = {},
             snackbarHostState = remember { SnackbarHostState() },
-            eqEnabled = true,
-            eqPresetName = "Studio Monitor",
+            localMediaFolderUri = "",
+            localMediaScanState = LocalMediaScanState(),
             onNavigateBack = {},
-            onNavigateToEqSettings = {},
             onNavigateToPerformanceSettings = {},
             onServerUrlChange = {},
             onAuthTokenChange = {},
@@ -61,7 +63,9 @@ fun SettingsScreenPreviewConnecting() {
             onSaveConnection = {},
             onDisconnect = {},
             onClearSettings = {},
-            onClearError = {}
+            onClearError = {},
+            onSelectFolder = {},
+            onScanLocalMedia = {}
         )
     }
 }
@@ -75,15 +79,15 @@ fun SettingsScreenPreviewError() {
                 form = SettingsFormState(serverUrl = "http://192.168.1.29:8095"),
                 connectionState = ConnectionState.Error("Connection failed"),
                 canDisconnect = false,
+                selectedTab = SettingsTab.CONNECTION,
                 message = "Connection failed"
             ),
-            storedServerUrl = "http://192.168.1.29:8095",
-            storedAuthToken = "token",
+            selectedTab = SettingsTab.CONNECTION,
+            onTabSelected = {},
             snackbarHostState = remember { SnackbarHostState() },
-            eqEnabled = false,
-            eqPresetName = "Reference",
+            localMediaFolderUri = "",
+            localMediaScanState = LocalMediaScanState(),
             onNavigateBack = {},
-            onNavigateToEqSettings = {},
             onNavigateToPerformanceSettings = {},
             onServerUrlChange = {},
             onAuthTokenChange = {},
@@ -91,7 +95,9 @@ fun SettingsScreenPreviewError() {
             onSaveConnection = {},
             onDisconnect = {},
             onClearSettings = {},
-            onClearError = {}
+            onClearError = {},
+            onSelectFolder = {},
+            onScanLocalMedia = {}
         )
     }
 }
@@ -105,15 +111,15 @@ fun SettingsScreenPreviewSuccess() {
                 form = SettingsFormState(serverUrl = "http://192.168.1.29:8095"),
                 connectionState = ConnectionState.Connected,
                 canDisconnect = true,
+                selectedTab = SettingsTab.CONNECTION,
                 message = "Connected successfully"
             ),
-            storedServerUrl = "http://192.168.1.29:8095",
-            storedAuthToken = "token",
+            selectedTab = SettingsTab.CONNECTION,
+            onTabSelected = {},
             snackbarHostState = remember { SnackbarHostState() },
-            eqEnabled = true,
-            eqPresetName = "Reference",
+            localMediaFolderUri = "",
+            localMediaScanState = LocalMediaScanState(),
             onNavigateBack = {},
-            onNavigateToEqSettings = {},
             onNavigateToPerformanceSettings = {},
             onServerUrlChange = {},
             onAuthTokenChange = {},
@@ -121,7 +127,9 @@ fun SettingsScreenPreviewSuccess() {
             onSaveConnection = {},
             onDisconnect = {},
             onClearSettings = {},
-            onClearError = {}
+            onClearError = {},
+            onSelectFolder = {},
+            onScanLocalMedia = {}
         )
     }
 }
