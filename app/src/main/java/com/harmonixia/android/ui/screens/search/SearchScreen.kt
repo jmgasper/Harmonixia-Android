@@ -114,7 +114,6 @@ fun SearchScreen(
                     TextField(
                         value = searchQuery,
                         onValueChange = viewModel::onSearchQueryChanged,
-                        placeholder = { Text(text = stringResource(R.string.search_hint)) },
                         leadingIcon = {
                             Icon(
                                 imageVector = Icons.Outlined.Search,

@@ -10,9 +10,16 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.RoundRect
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.clipPath
+import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalDensity
@@ -39,9 +46,24 @@ fun EqGraphCanvas(
 ) {
     val curvePoints = remember(filters) { calculateCurvePoints(filters) }
     val density = LocalDensity.current
-    val labelColor = MaterialTheme.colorScheme.onSurfaceVariant
-    val gridColor = MaterialTheme.colorScheme.surfaceVariant
-    val curveColor = MaterialTheme.colorScheme.primary
+    val colorScheme = MaterialTheme.colorScheme
+    val isDarkSurface = colorScheme.surface.luminance() < 0.5f
+    val backgroundTop = lerp(
+        colorScheme.surfaceVariant,
+        colorScheme.primary,
+        if (isDarkSurface) 0.12f else 0.06f
+    )
+    val backgroundBottom = lerp(
+        colorScheme.surfaceVariant,
+        colorScheme.primary,
+        if (isDarkSurface) 0.24f else 0.1f
+    )
+    val gridColor = colorScheme.onSurface.copy(alpha = if (isDarkSurface) 0.14f else 0.1f)
+    val gridMajorColor = colorScheme.onSurface.copy(alpha = if (isDarkSurface) 0.28f else 0.16f)
+    val labelColor = colorScheme.onSurface.copy(alpha = if (isDarkSurface) 0.75f else 0.65f)
+    val curveColor = if (isDarkSurface) colorScheme.onSurface else colorScheme.primary
+    val curveGlow = colorScheme.primary.copy(alpha = if (isDarkSurface) 0.5f else 0.35f)
+    val borderColor = colorScheme.onSurface.copy(alpha = if (isDarkSurface) 0.2f else 0.12f)
     val textPaint = remember {
         TextPaint().apply {
             isAntiAlias = true
@@ -56,6 +78,16 @@ fun EqGraphCanvas(
         Canvas(modifier = Modifier.size(width, height)) {
             textPaint.color = labelColor.toArgb()
             textPaint.textSize = labelSizePx
+            val cornerRadiusPx = 18.dp.toPx()
+            val backgroundBrush = Brush.linearGradient(
+                colors = listOf(backgroundTop, backgroundBottom),
+                start = Offset.Zero,
+                end = Offset(size.width, size.height)
+            )
+            drawRoundRect(
+                brush = backgroundBrush,
+                cornerRadius = CornerRadius(cornerRadiusPx, cornerRadiusPx)
+            )
 
             val minFreq = MIN_FREQUENCY
             val maxFreq = MAX_FREQUENCY
@@ -78,56 +110,102 @@ fun EqGraphCanvas(
                 return (size.height - ratio * size.height).toFloat()
             }
 
-            freqTicks.forEach { freq ->
-                val x = freqToX(freq.toDouble())
-                drawLine(
-                    color = gridColor,
-                    start = Offset(x, 0f),
-                    end = Offset(x, size.height),
-                    strokeWidth = 1.dp.toPx()
+            val graphClipPath = Path().apply {
+                addRoundRect(
+                    RoundRect(
+                        left = 0f,
+                        top = 0f,
+                        right = size.width,
+                        bottom = size.height,
+                        cornerRadius = CornerRadius(cornerRadiusPx, cornerRadiusPx)
+                    )
                 )
+            }
+
+            clipPath(graphClipPath) {
+                val majorFreqs = setOf(100, 1000, 10000)
+                freqTicks.forEach { freq ->
+                    val x = freqToX(freq.toDouble())
+                    val isMajor = freq in majorFreqs
+                    drawLine(
+                        color = if (isMajor) gridMajorColor else gridColor,
+                        start = Offset(x, 0f),
+                        end = Offset(x, size.height),
+                        strokeWidth = if (isMajor) 1.5.dp.toPx() else 1.dp.toPx()
+                    )
+                }
+
+                gainTicks.forEach { gain ->
+                    val y = gainToY(gain.toDouble())
+                    val isZero = gain == 0
+                    drawLine(
+                        color = if (isZero) gridMajorColor else gridColor,
+                        start = Offset(0f, y),
+                        end = Offset(size.width, y),
+                        strokeWidth = if (isZero) 2.dp.toPx() else 1.dp.toPx()
+                    )
+                }
+
+                if (curvePoints.isNotEmpty()) {
+                    val path = Path()
+                    curvePoints.forEachIndexed { index, point ->
+                        val x = freqToX(point.frequency)
+                        val y = gainToY(point.gainDb.coerceIn(minGain, maxGain))
+                        if (index == 0) {
+                            path.moveTo(x, y)
+                        } else {
+                            path.lineTo(x, y)
+                        }
+                    }
+                    drawPath(
+                        path = path,
+                        color = curveGlow,
+                        style = Stroke(width = 8.dp.toPx(), cap = StrokeCap.Round)
+                    )
+                    drawPath(
+                        path = path,
+                        color = curveColor,
+                        style = Stroke(width = 2.5.dp.toPx(), cap = StrokeCap.Round)
+                    )
+                }
+            }
+
+            val labelPadding = 6.dp.toPx()
+            val fontMetrics = textPaint.fontMetrics
+            val minLabelY = -fontMetrics.ascent + labelPadding
+            val maxLabelY = size.height - fontMetrics.descent - labelPadding
+            val safeMaxLabelY = maxLabelY.coerceAtLeast(minLabelY)
+            val freqLabelBaseline = safeMaxLabelY
+            freqTicks.forEach { freq ->
+                val label = formatFrequencyLabel(freq)
+                val x = freqToX(freq.toDouble())
+                val textWidth = textPaint.measureText(label)
+                val maxLabelX = (size.width - textWidth - labelPadding).coerceAtLeast(labelPadding)
+                val labelX = (x + 4.dp.toPx()).coerceIn(labelPadding, maxLabelX)
                 drawContext.canvas.nativeCanvas.drawText(
-                    formatFrequencyLabel(freq),
-                    x + 4.dp.toPx(),
-                    size.height - 4.dp.toPx(),
+                    label,
+                    labelX,
+                    freqLabelBaseline,
                     textPaint
                 )
             }
 
             gainTicks.forEach { gain ->
                 val y = gainToY(gain.toDouble())
-                val stroke = if (gain == 0) 2.dp.toPx() else 1.dp.toPx()
-                drawLine(
-                    color = if (gain == 0) labelColor else gridColor,
-                    start = Offset(0f, y),
-                    end = Offset(size.width, y),
-                    strokeWidth = stroke
-                )
+                val labelY = (y - 4.dp.toPx()).coerceIn(minLabelY, safeMaxLabelY)
                 drawContext.canvas.nativeCanvas.drawText(
                     formatGainLabel(gain),
-                    4.dp.toPx(),
-                    y - 4.dp.toPx(),
+                    labelPadding,
+                    labelY,
                     textPaint
                 )
             }
 
-            if (curvePoints.isNotEmpty()) {
-                val path = Path()
-                curvePoints.forEachIndexed { index, point ->
-                    val x = freqToX(point.frequency)
-                    val y = gainToY(point.gainDb.coerceIn(minGain, maxGain))
-                    if (index == 0) {
-                        path.moveTo(x, y)
-                    } else {
-                        path.lineTo(x, y)
-                    }
-                }
-                drawPath(
-                    path = path,
-                    color = curveColor,
-                    style = Stroke(width = 2.dp.toPx())
-                )
-            }
+            drawRoundRect(
+                color = borderColor,
+                cornerRadius = CornerRadius(cornerRadiusPx, cornerRadiusPx),
+                style = Stroke(width = 1.dp.toPx())
+            )
         }
 
         if (placeholder != null && filters.isEmpty()) {

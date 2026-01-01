@@ -39,6 +39,7 @@ import kotlinx.coroutines.supervisorScope
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonPrimitive
+import kotlin.random.Random
 
 sealed class PlaylistDetailUiEvent {
     data class ShowMessage(val messageResId: Int) : PlaylistDetailUiEvent()
@@ -248,19 +249,33 @@ class PlaylistDetailViewModel @Inject constructor(
         }
     }
 
-    fun playPlaylist(startIndex: Int = 0, forceStartIndex: Boolean = false) {
+    fun playPlaylist(
+        startIndex: Int = 0,
+        forceStartIndex: Boolean = false,
+        shuffleMode: Boolean? = null
+    ) {
         if (playlistId.isBlank() || provider.isBlank()) return
         viewModelScope.launch {
             if (isOfflineMode.value) {
                 val localTracks = tracks.filter { it.isLocal }
                 if (localTracks.isNotEmpty()) {
                     val localIndex = resolveLocalStartIndex(startIndex, localTracks)
-                    playLocalTracksUseCase(localTracks, localIndex)
+                    playLocalTracksUseCase(localTracks, localIndex, shuffleMode)
                 }
             } else {
-                playPlaylistUseCase(playlistId, provider, startIndex, forceStartIndex)
+                playPlaylistUseCase(playlistId, provider, startIndex, forceStartIndex, shuffleMode)
             }
         }
+    }
+
+    fun playPlaylistSequential() {
+        playPlaylist(startIndex = 0, forceStartIndex = false, shuffleMode = false)
+    }
+
+    fun shufflePlaylist() {
+        if (tracks.isEmpty()) return
+        val randomIndex = Random.nextInt(tracks.size)
+        playPlaylist(startIndex = randomIndex, forceStartIndex = true, shuffleMode = true)
     }
 
     fun playTrack(track: Track) {

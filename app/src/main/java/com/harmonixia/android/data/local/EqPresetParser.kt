@@ -133,8 +133,8 @@ class EqPresetParser @Inject constructor() {
     }
 
     fun buildPresetDetails(preset: EqPreset): EqPresetDetails {
-        val supportedBands = DEFAULT_ANDROID_BAND_COUNT
-        val droppedFilters = max(0, preset.filters.size - supportedBands)
+        val supportedBands = preset.filters.size
+        val droppedFilters = 0
         return EqPresetDetails(
             presetId = preset.id,
             filterCount = preset.filters.size,
@@ -219,7 +219,6 @@ class EqPresetParser @Inject constructor() {
         private const val DEFAULT_Q = 1.0
         private const val DEFAULT_SHELF_Q = 0.7
         private const val DEFAULT_FILTER_TYPE = "peaking"
-        private const val DEFAULT_ANDROID_BAND_COUNT = 5
         private const val MIN_BANDWIDTH = 1.0
     }
 }

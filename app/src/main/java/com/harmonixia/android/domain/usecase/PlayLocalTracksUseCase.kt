@@ -14,7 +14,8 @@ class PlayLocalTracksUseCase(
 ) {
     suspend operator fun invoke(
         tracks: List<Track>,
-        startIndex: Int = 0
+        startIndex: Int = 0,
+        shuffleMode: Boolean? = null
     ): Result<Unit> {
         if (tracks.isEmpty()) {
             return Result.failure(IllegalArgumentException("No tracks to play"))
@@ -28,6 +29,9 @@ class PlayLocalTracksUseCase(
         val mediaItems = tracks.map { it.toPlaybackMediaItem() }
         val safeIndex = startIndex.coerceIn(0, mediaItems.lastIndex)
         controller.setMediaItems(mediaItems, safeIndex, 0L)
+        if (shuffleMode != null) {
+            controller.shuffleModeEnabled = shuffleMode
+        }
         controller.prepare()
         controller.play()
         return Result.success(Unit)

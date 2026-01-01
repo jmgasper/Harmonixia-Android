@@ -101,7 +101,15 @@ fun MainScaffold(
     val isNowPlayingDestination = currentDestination
         ?.hierarchy
         ?.any { it.route == Screen.NowPlaying.route } == true
-    val showMiniPlayer = nowPlayingUiState !is NowPlayingUiState.Idle && !isNowPlayingDestination
+    val isPlaybackActive = nowPlayingUiState !is NowPlayingUiState.Idle
+    var wasPlaybackActive by remember { mutableStateOf(isPlaybackActive) }
+    LaunchedEffect(isPlaybackActive) {
+        if (isPlaybackActive && !wasPlaybackActive && !isNowPlayingDestination) {
+            navController.navigateToNowPlaying()
+        }
+        wasPlaybackActive = isPlaybackActive
+    }
+    val showMiniPlayer = isPlaybackActive && !isNowPlayingDestination
     val isLoading = nowPlayingUiState is NowPlayingUiState.Loading
     val miniPlayerBottomPadding = if (isCompactLayout) {
         NavigationBarDefaults.windowInsets

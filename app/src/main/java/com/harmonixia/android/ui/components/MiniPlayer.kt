@@ -79,6 +79,12 @@ fun SharedTransitionScope.MiniPlayer(
     val title = playbackInfo.title
     val artist = playbackInfo.artist
     val album = playbackInfo.album
+    val artistAlbum = when {
+        artist.isNotBlank() && album.isNotBlank() -> "$artist / $album"
+        artist.isNotBlank() -> artist
+        album.isNotBlank() -> album
+        else -> ""
+    }
     val context = LocalContext.current
     val qualityLabel = formatTrackQualityLabel(playbackInfo.quality, context::getString)
     val qualityManager = remember(context) { ImageQualityManager(context) }
@@ -155,9 +161,9 @@ fun SharedTransitionScope.MiniPlayer(
                                 overflow = TextOverflow.Ellipsis
                             )
                         }
-                        if (artist.isNotBlank()) {
+                        if (artistAlbum.isNotBlank()) {
                             Text(
-                                text = artist,
+                                text = artistAlbum,
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 maxLines = 1,
@@ -168,15 +174,6 @@ fun SharedTransitionScope.MiniPlayer(
                             TrackQualityBadge(
                                 text = qualityLabel,
                                 modifier = Modifier.padding(top = 4.dp)
-                            )
-                        }
-                        if (isExpandedLayout && album.isNotBlank()) {
-                            Text(
-                                text = album,
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
                             )
                         }
                     }

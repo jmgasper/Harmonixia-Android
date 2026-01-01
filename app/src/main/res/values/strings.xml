@@ -82,7 +82,6 @@
     <string name="nav_artists">Artists</string>
     <string name="nav_playlists">Playlists</string>
     <string name="nav_search">Search</string>
-    <string name="search_hint">Search albums, artists, playlists, tracks...</string>
     <string name="search_no_results">No results found for \"%1$s\"</string>
     <string name="search_error">Search failed</string>
     <string name="search_section_albums">Albums</string>

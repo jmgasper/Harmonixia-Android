@@ -9,13 +9,16 @@ import com.harmonixia.android.service.playback.PlaybackServiceConnection
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
@@ -36,6 +39,10 @@ class PlaybackViewModel @Inject constructor(
     val currentMediaItem = playbackServiceConnection.currentMediaItem
     val repeatMode: StateFlow<RepeatMode> = playbackServiceConnection.repeatMode
     val shuffle: StateFlow<Boolean> = playbackServiceConnection.shuffle
+    private val _isRepeatModeUpdating = MutableStateFlow(false)
+    val isRepeatModeUpdating: StateFlow<Boolean> = _isRepeatModeUpdating.asStateFlow()
+    private val _isShuffleUpdating = MutableStateFlow(false)
+    val isShuffleUpdating: StateFlow<Boolean> = _isShuffleUpdating.asStateFlow()
     private val playbackPositionTicks = playbackState
         .map { it == PlaybackState.PLAYING }
         .distinctUntilChanged()
@@ -170,21 +177,50 @@ class PlaybackViewModel @Inject constructor(
     }
 
     fun toggleRepeatMode() {
+        if (_isRepeatModeUpdating.value) return
         val nextMode = when (repeatMode.value) {
             RepeatMode.OFF -> RepeatMode.ALL
             RepeatMode.ALL -> RepeatMode.ONE
             RepeatMode.ONE -> RepeatMode.OFF
         }
+        _isRepeatModeUpdating.value = true
         viewModelScope.launch {
-            playbackServiceConnection.setRepeatMode(nextMode)
-                .onFailure { _events.tryEmit(PlaybackUiEvent.Error(it.message ?: "Failed to set repeat mode")) }
+            try {
+                val result = playbackServiceConnection.setRepeatMode(nextMode)
+                if (result.isFailure) {
+                    _events.tryEmit(
+                        PlaybackUiEvent.Error(
+                            result.exceptionOrNull()?.message ?: "Failed to set repeat mode"
+                        )
+                    )
+                    return@launch
+                }
+                repeatMode.first { it == nextMode }
+            } finally {
+                _isRepeatModeUpdating.value = false
+            }
         }
     }
 
     fun toggleShuffle() {
+        if (_isShuffleUpdating.value) return
+        val nextShuffle = !shuffle.value
+        _isShuffleUpdating.value = true
         viewModelScope.launch {
-            playbackServiceConnection.setShuffleMode(!shuffle.value)
-                .onFailure { _events.tryEmit(PlaybackUiEvent.Error(it.message ?: "Failed to set shuffle mode")) }
+            try {
+                val result = playbackServiceConnection.setShuffleMode(nextShuffle)
+                if (result.isFailure) {
+                    _events.tryEmit(
+                        PlaybackUiEvent.Error(
+                            result.exceptionOrNull()?.message ?: "Failed to set shuffle mode"
+                        )
+                    )
+                    return@launch
+                }
+                shuffle.first { it == nextShuffle }
+            } finally {
+                _isShuffleUpdating.value = false
+            }
         }
     }
 

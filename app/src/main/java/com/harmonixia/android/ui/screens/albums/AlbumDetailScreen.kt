@@ -19,6 +19,8 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Shuffle
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
@@ -294,7 +296,9 @@ fun AlbumDetailScreen(
                                 album = album,
                                 artworkSize = artworkSize,
                                 useWideLayout = useWideLayout,
-                                onPlayAlbum = { viewModel.playAlbum() },
+                                canPlay = tracks.isNotEmpty(),
+                                onPlayAlbum = { viewModel.playAlbumSequential() },
+                                onShuffleAlbum = { viewModel.shuffleAlbum() },
                                 isOfflineMode = isOfflineMode,
                                 titleStyle = albumTitleStyle,
                                 artistStyle = artistNameStyle,
@@ -417,7 +421,9 @@ fun AlbumDetailScreen(
                                     album = album,
                                     titleStyle = albumTitleStyle,
                                     artistStyle = artistNameStyle,
-                                    onPlayAlbum = { viewModel.playAlbum() },
+                                    canPlay = tracks.isNotEmpty(),
+                                    onPlayAlbum = { viewModel.playAlbumSequential() },
+                                    onShuffleAlbum = { viewModel.shuffleAlbum() },
                                     isOfflineMode = isOfflineMode,
                                     artworkSize = artworkSize
                                 )
@@ -519,7 +525,9 @@ private fun AlbumDetails(
     album: Album?,
     titleStyle: TextStyle,
     artistStyle: TextStyle,
+    canPlay: Boolean,
     onPlayAlbum: () -> Unit,
+    onShuffleAlbum: () -> Unit,
     isOfflineMode: Boolean,
     artworkSize: Dp,
     modifier: Modifier = Modifier
@@ -529,7 +537,8 @@ private fun AlbumDetails(
     val albumTitle = album?.name?.ifBlank {
         stringResource(R.string.album_detail_title)
     } ?: stringResource(R.string.album_detail_title)
-    val buttonModifier = Modifier.fillMaxWidth(0.8f)
+    val buttonRowModifier = Modifier.fillMaxWidth(0.8f)
+    val canPlayTracks = album != null && canPlay
     Column(
         modifier = modifier.fillMaxWidth(),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -561,12 +570,31 @@ private fun AlbumDetails(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(spacing.small)
         ) {
-            FilledTonalButton(
-                onClick = onPlayAlbum,
-                enabled = album != null,
-                modifier = buttonModifier
+            Row(
+                modifier = buttonRowModifier,
+                horizontalArrangement = Arrangement.spacedBy(spacing.small)
             ) {
-                Text(text = stringResource(R.string.album_detail_play))
+                val buttonModifier = Modifier.weight(1f)
+                FilledTonalButton(
+                    onClick = onPlayAlbum,
+                    enabled = canPlayTracks,
+                    modifier = buttonModifier
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.PlayArrow,
+                        contentDescription = stringResource(R.string.action_play)
+                    )
+                }
+                FilledTonalButton(
+                    onClick = onShuffleAlbum,
+                    enabled = canPlayTracks,
+                    modifier = buttonModifier
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.Shuffle,
+                        contentDescription = stringResource(R.string.action_shuffle)
+                    )
+                }
             }
         }
     }
@@ -577,7 +605,9 @@ private fun AlbumHeader(
     album: Album?,
     artworkSize: Dp,
     useWideLayout: Boolean,
+    canPlay: Boolean,
     onPlayAlbum: () -> Unit,
+    onShuffleAlbum: () -> Unit,
     isOfflineMode: Boolean,
     titleStyle: TextStyle,
     artistStyle: TextStyle,
@@ -589,7 +619,8 @@ private fun AlbumHeader(
     val albumTitle = album?.name?.ifBlank {
         stringResource(R.string.album_detail_title)
     } ?: stringResource(R.string.album_detail_title)
-    val buttonModifier = if (useWideLayout) Modifier else Modifier.fillMaxWidth(0.8f)
+    val buttonRowModifier = if (useWideLayout) Modifier else Modifier.fillMaxWidth(0.8f)
+    val canPlayTracks = album != null && canPlay
 
     if (useWideLayout) {
         Row(
@@ -622,12 +653,31 @@ private fun AlbumHeader(
                     )
                 }
                 Column(verticalArrangement = Arrangement.spacedBy(spacing.small)) {
-                    FilledTonalButton(
-                        onClick = onPlayAlbum,
-                        enabled = album != null,
-                        modifier = buttonModifier
+                    Row(
+                        modifier = buttonRowModifier,
+                        horizontalArrangement = Arrangement.spacedBy(spacing.small)
                     ) {
-                        Text(text = stringResource(R.string.album_detail_play))
+                        val buttonModifier = if (useWideLayout) Modifier else Modifier.weight(1f)
+                        FilledTonalButton(
+                            onClick = onPlayAlbum,
+                            enabled = canPlayTracks,
+                            modifier = buttonModifier
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.PlayArrow,
+                                contentDescription = stringResource(R.string.action_play)
+                            )
+                        }
+                        FilledTonalButton(
+                            onClick = onShuffleAlbum,
+                            enabled = canPlayTracks,
+                            modifier = buttonModifier
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.Shuffle,
+                                contentDescription = stringResource(R.string.action_shuffle)
+                            )
+                        }
                     }
                 }
             }
@@ -664,12 +714,31 @@ private fun AlbumHeader(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(spacing.small)
             ) {
-                FilledTonalButton(
-                    onClick = onPlayAlbum,
-                    enabled = album != null,
-                    modifier = buttonModifier
+                Row(
+                    modifier = buttonRowModifier,
+                    horizontalArrangement = Arrangement.spacedBy(spacing.small)
                 ) {
-                    Text(text = stringResource(R.string.album_detail_play))
+                    val buttonModifier = if (useWideLayout) Modifier else Modifier.weight(1f)
+                    FilledTonalButton(
+                        onClick = onPlayAlbum,
+                        enabled = canPlayTracks,
+                        modifier = buttonModifier
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.PlayArrow,
+                            contentDescription = stringResource(R.string.action_play)
+                        )
+                    }
+                    FilledTonalButton(
+                        onClick = onShuffleAlbum,
+                        enabled = canPlayTracks,
+                        modifier = buttonModifier
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.Shuffle,
+                            contentDescription = stringResource(R.string.action_shuffle)
+                        )
+                    }
                 }
             }
         }

@@ -62,6 +62,10 @@ class PlaybackServiceConnection(
             updatePlaybackState()
         }
 
+        override fun onPlayWhenReadyChanged(playWhenReady: Boolean, reason: Int) {
+            updatePlaybackState()
+        }
+
         override fun onPlaybackStateChanged(playbackState: Int) {
             updatePlaybackState()
         }

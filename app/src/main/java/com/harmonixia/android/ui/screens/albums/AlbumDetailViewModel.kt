@@ -34,6 +34,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.supervisorScope
+import kotlin.random.Random
 
 sealed class AlbumDetailUiEvent {
     data class ShowMessage(val messageResId: Int) : AlbumDetailUiEvent()
@@ -140,19 +141,33 @@ class AlbumDetailViewModel @Inject constructor(
         }
     }
 
-    fun playAlbum(startIndex: Int = 0, forceStartIndex: Boolean = false) {
+    fun playAlbum(
+        startIndex: Int = 0,
+        forceStartIndex: Boolean = false,
+        shuffleMode: Boolean? = null
+    ) {
         if (albumId.isBlank() || provider.isBlank()) return
         viewModelScope.launch {
             if (isOfflineMode.value || provider == OFFLINE_PROVIDER) {
                 val localTracks = tracks.filter { it.isLocal }
                 if (localTracks.isNotEmpty()) {
                     val localIndex = resolveLocalStartIndex(startIndex, localTracks)
-                    playLocalTracksUseCase(localTracks, localIndex)
+                    playLocalTracksUseCase(localTracks, localIndex, shuffleMode)
                 }
             } else {
-                playAlbumUseCase(albumId, provider, startIndex, forceStartIndex)
+                playAlbumUseCase(albumId, provider, startIndex, forceStartIndex, shuffleMode)
             }
         }
+    }
+
+    fun playAlbumSequential() {
+        playAlbum(startIndex = 0, forceStartIndex = false, shuffleMode = false)
+    }
+
+    fun shuffleAlbum() {
+        if (tracks.isEmpty()) return
+        val randomIndex = Random.nextInt(tracks.size)
+        playAlbum(startIndex = randomIndex, forceStartIndex = true, shuffleMode = true)
     }
 
     fun playTrack(track: Track) {

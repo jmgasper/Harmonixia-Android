@@ -88,6 +88,8 @@ fun SharedTransitionScope.NowPlayingScreen(
     val nowPlayingUiState by viewModel.nowPlayingUiState.collectAsStateWithLifecycle()
     val repeatMode by viewModel.repeatMode.collectAsStateWithLifecycle()
     val shuffle by viewModel.shuffle.collectAsStateWithLifecycle()
+    val isRepeatModeUpdating by viewModel.isRepeatModeUpdating.collectAsStateWithLifecycle()
+    val isShuffleUpdating by viewModel.isShuffleUpdating.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     val context = LocalContext.current
     val haptic = LocalHapticFeedback.current
@@ -222,6 +224,8 @@ fun SharedTransitionScope.NowPlayingScreen(
                         onPrevious = { viewModel.previous() },
                         repeatMode = repeatMode,
                         shuffle = shuffle,
+                        isRepeatModeUpdating = isRepeatModeUpdating,
+                        isShuffleUpdating = isShuffleUpdating,
                         onRepeatToggle = { viewModel.toggleRepeatMode() },
                         onShuffleToggle = { viewModel.toggleShuffle() },
                         modifier = Modifier
@@ -263,6 +267,8 @@ fun SharedTransitionScope.NowPlayingScreen(
                         onPrevious = { viewModel.previous() },
                         repeatMode = repeatMode,
                         shuffle = shuffle,
+                        isRepeatModeUpdating = isRepeatModeUpdating,
+                        isShuffleUpdating = isShuffleUpdating,
                         onRepeatToggle = { viewModel.toggleRepeatMode() },
                         onShuffleToggle = { viewModel.toggleShuffle() },
                         modifier = Modifier.weight(1f)
@@ -412,6 +418,8 @@ private fun ControlsPanel(
     onPrevious: () -> Unit,
     repeatMode: RepeatMode,
     shuffle: Boolean,
+    isRepeatModeUpdating: Boolean,
+    isShuffleUpdating: Boolean,
     onRepeatToggle: () -> Unit,
     onShuffleToggle: () -> Unit,
     modifier: Modifier = Modifier
@@ -487,6 +495,8 @@ private fun ControlsPanel(
             hasPrevious = playbackInfo.hasPrevious,
             repeatMode = repeatMode,
             shuffle = shuffle,
+            isRepeatModeUpdating = isRepeatModeUpdating,
+            isShuffleUpdating = isShuffleUpdating,
             onRepeatToggle = onRepeatToggle,
             onShuffleToggle = onShuffleToggle,
             onPlayPause = onPlayPause,

@@ -17,7 +17,6 @@ import com.harmonixia.android.service.playback.EqualizerManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
-import kotlin.math.max
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -144,8 +143,8 @@ class EqSettingsViewModel @Inject constructor(
     }
 
     private fun buildPresetDetails(preset: EqPreset): EqPresetDetails {
-        val supportedBands = DEFAULT_SUPPORTED_BANDS
-        val dropped = max(0, preset.filters.size - supportedBands)
+        val supportedBands = preset.filters.size
+        val dropped = 0
         return EqPresetDetails(
             presetId = preset.id,
             filterCount = preset.filters.size,
@@ -156,7 +155,6 @@ class EqSettingsViewModel @Inject constructor(
 
     companion object {
         private const val SEARCH_DEBOUNCE_MS = 300L
-        private const val DEFAULT_SUPPORTED_BANDS = 5
         private const val KEY_SEARCH_QUERY = "eq_search_query"
     }
 }

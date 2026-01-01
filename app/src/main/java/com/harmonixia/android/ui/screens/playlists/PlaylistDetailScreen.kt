@@ -20,6 +20,8 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Shuffle
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.AlertDialog
@@ -332,7 +334,8 @@ fun PlaylistDetailScreen(
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(paddingValues),
-                    onPlayPlaylist = { viewModel.playPlaylist() }
+                    onPlayPlaylist = { viewModel.playPlaylistSequential() },
+                    onShufflePlaylist = { viewModel.shufflePlaylist() }
                 )
             }
             is PlaylistDetailUiState.Success -> {
@@ -350,7 +353,8 @@ fun PlaylistDetailScreen(
                     trackMetaStyle = trackMetaStyle,
                     rowSpacing = if (isExpanded) 32.dp else 24.dp,
                     listState = listState,
-                    onPlayPlaylist = { viewModel.playPlaylist() },
+                    onPlayPlaylist = { viewModel.playPlaylistSequential() },
+                    onShufflePlaylist = { viewModel.shufflePlaylist() },
                     onTrackClick = viewModel::playTrack,
                     onAddToPlaylist = { track ->
                         pendingTrack = track
@@ -463,6 +467,7 @@ private fun PlaylistDetailContent(
     rowSpacing: Dp,
     listState: LazyListState,
     onPlayPlaylist: () -> Unit,
+    onShufflePlaylist: () -> Unit,
     onTrackClick: (Track) -> Unit,
     onAddToPlaylist: (Track) -> Unit,
     onAddToFavorites: (Track) -> Unit,
@@ -493,6 +498,7 @@ private fun PlaylistDetailContent(
                     useWideLayout = useWideLayout,
                     canPlay = tracks.isNotEmpty(),
                     onPlayPlaylist = onPlayPlaylist,
+                    onShufflePlaylist = onShufflePlaylist,
                     titleStyle = titleStyle,
                     ownerStyle = ownerStyle,
                     rowSpacing = rowSpacing
@@ -598,6 +604,7 @@ private fun PlaylistDetailContent(
                             titleStyle = titleStyle,
                             ownerStyle = ownerStyle,
                             onPlayPlaylist = onPlayPlaylist,
+                            onShufflePlaylist = onShufflePlaylist,
                             artworkSize = artworkSize
                         )
                     }
@@ -684,6 +691,7 @@ private fun PlaylistDetails(
     titleStyle: TextStyle,
     ownerStyle: TextStyle,
     onPlayPlaylist: () -> Unit,
+    onShufflePlaylist: () -> Unit,
     artworkSize: Dp,
     modifier: Modifier = Modifier
 ) {
@@ -692,7 +700,8 @@ private fun PlaylistDetails(
         stringResource(R.string.playlist_detail_title)
     } ?: stringResource(R.string.playlist_detail_title)
     val owner = playlist?.owner?.trim().orEmpty()
-    val buttonModifier = Modifier.fillMaxWidth(0.8f)
+    val buttonRowModifier = Modifier.fillMaxWidth(0.8f)
+    val canPlayTracks = playlist != null && canPlay
     Column(
         modifier = modifier.fillMaxWidth(),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -730,12 +739,31 @@ private fun PlaylistDetails(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(spacing.small)
         ) {
-            FilledTonalButton(
-                onClick = onPlayPlaylist,
-                enabled = playlist != null && canPlay,
-                modifier = buttonModifier
+            Row(
+                modifier = buttonRowModifier,
+                horizontalArrangement = Arrangement.spacedBy(spacing.small)
             ) {
-                Text(text = stringResource(R.string.playlist_detail_play))
+                val buttonModifier = Modifier.weight(1f)
+                FilledTonalButton(
+                    onClick = onPlayPlaylist,
+                    enabled = canPlayTracks,
+                    modifier = buttonModifier
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.PlayArrow,
+                        contentDescription = stringResource(R.string.action_play)
+                    )
+                }
+                FilledTonalButton(
+                    onClick = onShufflePlaylist,
+                    enabled = canPlayTracks,
+                    modifier = buttonModifier
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.Shuffle,
+                        contentDescription = stringResource(R.string.action_shuffle)
+                    )
+                }
             }
         }
     }
@@ -754,6 +782,7 @@ private fun PlaylistDetailEmptyContent(
     emptyBodyStyle: TextStyle,
     rowSpacing: Dp,
     onPlayPlaylist: () -> Unit,
+    onShufflePlaylist: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val spacing = rememberAdaptiveSpacing()
@@ -769,6 +798,7 @@ private fun PlaylistDetailEmptyContent(
             useWideLayout = useWideLayout,
             canPlay = false,
             onPlayPlaylist = onPlayPlaylist,
+            onShufflePlaylist = onShufflePlaylist,
             titleStyle = titleStyle,
             ownerStyle = ownerStyle,
             rowSpacing = rowSpacing
@@ -804,6 +834,7 @@ private fun PlaylistHeader(
     useWideLayout: Boolean,
     canPlay: Boolean,
     onPlayPlaylist: () -> Unit,
+    onShufflePlaylist: () -> Unit,
     titleStyle: TextStyle,
     ownerStyle: TextStyle,
     rowSpacing: Dp,
@@ -814,7 +845,8 @@ private fun PlaylistHeader(
         stringResource(R.string.playlist_detail_title)
     } ?: stringResource(R.string.playlist_detail_title)
     val owner = playlist?.owner?.trim().orEmpty()
-    val buttonModifier = if (useWideLayout) Modifier else Modifier.fillMaxWidth(0.8f)
+    val buttonRowModifier = if (useWideLayout) Modifier else Modifier.fillMaxWidth(0.8f)
+    val canPlayTracks = playlist != null && canPlay
     if (useWideLayout) {
         Row(
             modifier = modifier.fillMaxWidth(),
@@ -852,12 +884,31 @@ private fun PlaylistHeader(
                     )
                 }
                 Column(verticalArrangement = Arrangement.spacedBy(spacing.small)) {
-                    FilledTonalButton(
-                        onClick = onPlayPlaylist,
-                        enabled = playlist != null && canPlay,
-                        modifier = buttonModifier
+                    Row(
+                        modifier = buttonRowModifier,
+                        horizontalArrangement = Arrangement.spacedBy(spacing.small)
                     ) {
-                        Text(text = stringResource(R.string.playlist_detail_play))
+                        val buttonModifier = if (useWideLayout) Modifier else Modifier.weight(1f)
+                        FilledTonalButton(
+                            onClick = onPlayPlaylist,
+                            enabled = canPlayTracks,
+                            modifier = buttonModifier
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.PlayArrow,
+                                contentDescription = stringResource(R.string.action_play)
+                            )
+                        }
+                        FilledTonalButton(
+                            onClick = onShufflePlaylist,
+                            enabled = canPlayTracks,
+                            modifier = buttonModifier
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.Shuffle,
+                                contentDescription = stringResource(R.string.action_shuffle)
+                            )
+                        }
                     }
                 }
             }
@@ -900,12 +951,31 @@ private fun PlaylistHeader(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(spacing.small)
             ) {
-                FilledTonalButton(
-                    onClick = onPlayPlaylist,
-                    enabled = playlist != null && canPlay,
-                    modifier = buttonModifier
+                Row(
+                    modifier = buttonRowModifier,
+                    horizontalArrangement = Arrangement.spacedBy(spacing.small)
                 ) {
-                    Text(text = stringResource(R.string.playlist_detail_play))
+                    val buttonModifier = if (useWideLayout) Modifier else Modifier.weight(1f)
+                    FilledTonalButton(
+                        onClick = onPlayPlaylist,
+                        enabled = canPlayTracks,
+                        modifier = buttonModifier
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.PlayArrow,
+                            contentDescription = stringResource(R.string.action_play)
+                        )
+                    }
+                    FilledTonalButton(
+                        onClick = onShufflePlaylist,
+                        enabled = canPlayTracks,
+                        modifier = buttonModifier
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.Shuffle,
+                            contentDescription = stringResource(R.string.action_shuffle)
+                        )
+                    }
                 }
             }
         }

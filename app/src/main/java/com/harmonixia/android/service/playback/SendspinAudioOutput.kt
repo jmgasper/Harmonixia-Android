@@ -30,12 +30,13 @@ class SendspinAudioOutput(
     private val scope = CoroutineScope(SupervisorJob() + ioDispatcher)
     private val lock = Any()
     @Volatile private var audioTrack: AudioTrack? = null
-    private var currentFormat: SendspinPcmFormat? = null
+    @Volatile private var currentFormat: SendspinPcmFormat? = null
     private var audioChannel: Channel<AudioChunk>? = null
     private var audioJob: Job? = null
     private var volume: Float = 1f
     private var muted: Boolean = false
     private val playbackGeneration = AtomicInteger(0)
+    private val eqProcessor = PcmEqProcessor()
 
     fun start(format: SendspinPcmFormat) {
         synchronized(lock) {
@@ -109,6 +110,13 @@ class SendspinAudioOutput(
     private fun writeChunk(chunk: AudioChunk) {
         val track = audioTrack ?: return
         if (chunk.generation != playbackGeneration.get()) return
+        val format = currentFormat ?: return
+        eqProcessor.process(
+            chunk.data,
+            format,
+            equalizerManager.getSoftwareEqConfig(),
+            equalizerManager.getSoftwareEqVersion()
+        )
         var offset = 0
         val data = chunk.data
         while (offset < data.size) {
@@ -138,6 +146,7 @@ class SendspinAudioOutput(
         currentFormat = format
         audioTrack = track
         applyVolumeLocked()
+        equalizerManager.setSoftwareEqActive(true)
         equalizerManager.attachAudioSession(track.audioSessionId)
         try {
             track.play()
@@ -223,6 +232,7 @@ class SendspinAudioOutput(
         val track = audioTrack ?: return
         audioTrack = null
         currentFormat = null
+        equalizerManager.setSoftwareEqActive(false)
         try {
             if (track.playState == AudioTrack.PLAYSTATE_PLAYING) {
                 track.stop()

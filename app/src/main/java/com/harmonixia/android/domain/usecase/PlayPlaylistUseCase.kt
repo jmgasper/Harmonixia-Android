@@ -14,7 +14,8 @@ class PlayPlaylistUseCase(
         playlistId: String,
         provider: String,
         startIndex: Int = 0,
-        forceStartIndex: Boolean = false
+        forceStartIndex: Boolean = false,
+        shuffleMode: Boolean? = null
     ): Result<String> {
         return runCatching {
             playbackStateManager.notifyUserInitiatedPlayback()
@@ -28,22 +29,35 @@ class PlayPlaylistUseCase(
             val queueId = queue.queueId
             val uris = tracks.map { it.uri }
             val safeIndex = startIndex.coerceIn(0, tracks.lastIndex)
-            val shouldDisableShuffle = forceStartIndex && queue.shuffle
-            val shuffleDisabled = if (shouldDisableShuffle) {
-                repository.setShuffleMode(queueId, false).isSuccess
+            val requestedShuffle = shuffleMode ?: queue.shuffle
+            val shouldDisableShuffle = forceStartIndex && requestedShuffle
+            var restoreShuffle = false
+            var enableShuffleAfter = false
+            if (shuffleMode == null) {
+                if (shouldDisableShuffle && queue.shuffle) {
+                    restoreShuffle = repository.setShuffleMode(queueId, false).isSuccess
+                }
             } else {
-                false
+                if (shouldDisableShuffle) {
+                    if (queue.shuffle) {
+                        repository.setShuffleMode(queueId, false)
+                    }
+                    enableShuffleAfter = true
+                } else if (queue.shuffle != requestedShuffle) {
+                    repository.setShuffleMode(queueId, requestedShuffle)
+                }
             }
             try {
+                repository.playMedia(queueId, uris, QueueOption.REPLACE).getOrThrow()
                 if (safeIndex > 0) {
-                    repository.clearQueue(queueId).getOrThrow()
-                    repository.playMedia(queueId, uris, QueueOption.ADD).getOrThrow()
                     repository.playIndex(queueId, safeIndex).getOrThrow()
-                } else {
-                    repository.playMedia(queueId, uris, QueueOption.REPLACE).getOrThrow()
                 }
             } finally {
-                if (shuffleDisabled) {
+                if (shuffleMode == null) {
+                    if (restoreShuffle) {
+                        repository.setShuffleMode(queueId, true)
+                    }
+                } else if (enableShuffleAfter) {
                     repository.setShuffleMode(queueId, true)
                 }
             }

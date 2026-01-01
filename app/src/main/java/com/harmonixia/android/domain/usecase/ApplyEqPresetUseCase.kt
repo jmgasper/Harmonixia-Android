@@ -27,6 +27,7 @@ class ApplyEqPresetUseCase(
 
             val bands = eqPresetParser.convertToAndroidBands(preset)
             equalizerManager.applyPreset(bands)
+            equalizerManager.setSoftwareEqFilters(preset.filters)
             val currentSettings = eqDataStore.getEqSettings().first()
             equalizerManager.setEnabled(currentSettings.enabled)
             eqDataStore.saveEqSettings(

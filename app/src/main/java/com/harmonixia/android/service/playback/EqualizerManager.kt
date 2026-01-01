@@ -3,6 +3,7 @@ package com.harmonixia.android.service.playback
 import android.media.audiofx.Equalizer
 import androidx.media3.exoplayer.ExoPlayer
 import com.harmonixia.android.domain.model.EqBandConfig
+import com.harmonixia.android.domain.model.EqFilter
 import com.harmonixia.android.util.Logger
 import kotlin.math.abs
 import kotlin.math.exp
@@ -15,6 +16,9 @@ class EqualizerManager {
     private var equalizer: Equalizer? = null
     private var audioSessionId: Int? = null
     private var isEnabled = false
+    @Volatile private var softwareEqActive = false
+    @Volatile private var softwareEqConfig = SoftwareEqConfig(enabled = false, filters = emptyList())
+    @Volatile private var softwareEqVersion = 0
     private var bandLevels: ShortArray? = null
     private var currentBands: List<EqBandConfig> = emptyList()
 
@@ -29,7 +33,7 @@ class EqualizerManager {
             releaseInternal()
             try {
                 val newEqualizer = Equalizer(0, audioSessionId)
-                newEqualizer.enabled = isEnabled
+                newEqualizer.enabled = isEnabled && !softwareEqActive
                 equalizer = newEqualizer
                 this.audioSessionId = audioSessionId
                 if (currentBands.isNotEmpty()) {
@@ -52,9 +56,37 @@ class EqualizerManager {
     fun setEnabled(enabled: Boolean) {
         synchronized(lock) {
             isEnabled = enabled
-            equalizer?.enabled = enabled
+            equalizer?.enabled = enabled && !softwareEqActive
+            softwareEqConfig = softwareEqConfig.copy(enabled = enabled)
+            softwareEqVersion += 1
         }
     }
+
+    fun setSoftwareEqFilters(filters: List<EqFilter>) {
+        synchronized(lock) {
+            softwareEqConfig = softwareEqConfig.copy(filters = filters)
+            softwareEqVersion += 1
+        }
+    }
+
+    fun setSoftwareEqActive(active: Boolean) {
+        synchronized(lock) {
+            if (softwareEqActive == active) return
+            softwareEqActive = active
+            if (active) {
+                equalizer?.enabled = false
+            } else {
+                equalizer?.enabled = isEnabled
+                if (currentBands.isNotEmpty()) {
+                    applyPresetInternal(currentBands)
+                }
+            }
+        }
+    }
+
+    fun getSoftwareEqConfig(): SoftwareEqConfig = softwareEqConfig
+
+    fun getSoftwareEqVersion(): Int = softwareEqVersion
 
     fun release() {
         synchronized(lock) {
@@ -63,6 +95,7 @@ class EqualizerManager {
     }
 
     private fun applyPresetInternal(bands: List<EqBandConfig>) {
+        if (softwareEqActive) return
         val eq = equalizer ?: return
         if (bands.isEmpty()) return
         val bandCount = eq.numberOfBands.toInt()
@@ -110,3 +143,8 @@ class EqualizerManager {
         private const val MIN_RELATIVE_WIDTH = 0.05
     }
 }
+
+data class SoftwareEqConfig(
+    val enabled: Boolean,
+    val filters: List<EqFilter>
+)

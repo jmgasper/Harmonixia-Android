@@ -1,6 +1,7 @@
 package com.harmonixia.android.ui.components
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
@@ -11,6 +12,7 @@ import androidx.compose.material.icons.filled.RepeatOne
 import androidx.compose.material.icons.filled.Shuffle
 import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material.icons.filled.SkipPrevious
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -32,6 +34,8 @@ fun PlaybackControls(
     hasPrevious: Boolean,
     repeatMode: RepeatMode,
     shuffle: Boolean,
+    isRepeatModeUpdating: Boolean,
+    isShuffleUpdating: Boolean,
     onRepeatToggle: () -> Unit,
     onShuffleToggle: () -> Unit,
     onPlayPause: () -> Unit,
@@ -45,6 +49,8 @@ fun PlaybackControls(
     val activeTint = MaterialTheme.colorScheme.onSurface
     val repeatTint = if (repeatMode == RepeatMode.OFF) inactiveTint else activeTint
     val shuffleTint = if (shuffle) activeTint else inactiveTint
+    val controlButtonSize = 48.dp
+    val spinnerSize = 20.dp
     val repeatIcon = when (repeatMode) {
         RepeatMode.OFF -> Icons.Filled.Repeat
         RepeatMode.ALL -> Icons.Filled.Repeat
@@ -65,18 +71,32 @@ fun PlaybackControls(
         horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        IconButton(
-            onClick = {
-                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                onRepeatToggle()
-            },
-            enabled = enabled
+        Box(
+            modifier = Modifier.size(controlButtonSize),
+            contentAlignment = Alignment.Center
         ) {
-            Icon(
-                imageVector = repeatIcon,
-                contentDescription = repeatDescription,
-                tint = repeatTint
-            )
+            if (isRepeatModeUpdating) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(spinnerSize),
+                    strokeWidth = 2.dp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            } else {
+                IconButton(
+                    onClick = {
+                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                        onRepeatToggle()
+                    },
+                    enabled = enabled,
+                    modifier = Modifier.size(controlButtonSize)
+                ) {
+                    Icon(
+                        imageVector = repeatIcon,
+                        contentDescription = repeatDescription,
+                        tint = repeatTint
+                    )
+                }
+            }
         }
         IconButton(
             onClick = {
@@ -125,18 +145,32 @@ fun PlaybackControls(
                 contentDescription = stringResource(R.string.action_next_track)
             )
         }
-        IconButton(
-            onClick = {
-                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                onShuffleToggle()
-            },
-            enabled = enabled
+        Box(
+            modifier = Modifier.size(controlButtonSize),
+            contentAlignment = Alignment.Center
         ) {
-            Icon(
-                imageVector = Icons.Filled.Shuffle,
-                contentDescription = shuffleDescription,
-                tint = shuffleTint
-            )
+            if (isShuffleUpdating) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(spinnerSize),
+                    strokeWidth = 2.dp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            } else {
+                IconButton(
+                    onClick = {
+                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                        onShuffleToggle()
+                    },
+                    enabled = enabled,
+                    modifier = Modifier.size(controlButtonSize)
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.Shuffle,
+                        contentDescription = shuffleDescription,
+                        tint = shuffleTint
+                    )
+                }
+            }
         }
     }
 }
