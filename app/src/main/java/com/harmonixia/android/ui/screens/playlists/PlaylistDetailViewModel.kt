@@ -17,12 +17,15 @@ import com.harmonixia.android.domain.usecase.PlayLocalTracksUseCase
 import com.harmonixia.android.domain.usecase.PlayPlaylistUseCase
 import com.harmonixia.android.domain.usecase.RenamePlaylistUseCase
 import com.harmonixia.android.ui.navigation.Screen
+import com.harmonixia.android.util.ImageQualityManager
 import com.harmonixia.android.util.isLocal
 import com.harmonixia.android.util.NetworkConnectivityManager
+import com.harmonixia.android.util.PerformanceMonitor
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -37,6 +40,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.supervisorScope
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.yield
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonPrimitive
@@ -59,8 +63,10 @@ class PlaylistDetailViewModel @Inject constructor(
     private val deletePlaylistUseCase: DeletePlaylistUseCase,
     private val renamePlaylistUseCase: RenamePlaylistUseCase,
     private val networkConnectivityManager: NetworkConnectivityManager,
+    private val performanceMonitor: PerformanceMonitor,
     @ApplicationContext private val context: Context,
-    savedStateHandle: SavedStateHandle
+    savedStateHandle: SavedStateHandle,
+    val imageQualityManager: ImageQualityManager
 ) : ViewModel() {
     private val playlistId: String =
         savedStateHandle.get<String>(Screen.PlaylistDetail.ARG_PLAYLIST_ID).orEmpty()
@@ -89,6 +95,11 @@ class PlaylistDetailViewModel @Inject constructor(
 
     private var tracks: List<Track> = emptyList()
     private var remoteTracks: List<Track> = emptyList()
+    private var currentOffset = 0
+    private var hasMoreTracks = false
+    private var isLoadingMoreTracks = false
+    private var loadMoreJob: Job? = null
+    private var localTracksCache: List<Track>? = null
     val isOfflineMode: StateFlow<Boolean> = networkConnectivityManager.networkAvailabilityFlow
         .map { networkConnectivityManager.isOfflineMode() }
         .distinctUntilChanged()
@@ -120,64 +131,14 @@ class PlaylistDetailViewModel @Inject constructor(
             return
         }
         viewModelScope.launch {
-            if (playlistId.isBlank() || provider.isBlank()) {
-                _uiState.value = PlaylistDetailUiState.Error("Missing playlist details.")
-                return@launch
-            }
-            _uiState.value = PlaylistDetailUiState.Loading
-            if (provider == OFFLINE_PROVIDER) {
-                _uiState.value = PlaylistDetailUiState.Error(
-                    context.getString(R.string.offline_feature_unavailable)
-                )
-                return@launch
-            }
-            supervisorScope {
-                val playlistsDeferred = async(Dispatchers.IO) {
-                    repository.fetchPlaylists(PLAYLIST_LIST_LIMIT, 0)
-                }
-                val tracksDeferred = async(Dispatchers.IO) {
-                    repository.getPlaylistTracks(playlistId, provider)
-                }
-                val playlistsResult = playlistsDeferred.await()
-                val tracksResult = tracksDeferred.await()
-                val error = playlistsResult.exceptionOrNull() ?: tracksResult.exceptionOrNull()
-                if (error != null && !isOfflineMode.value) {
-                    _uiState.value = PlaylistDetailUiState.Error(error.message ?: "Unknown error")
-                    return@supervisorScope
-                }
-                val playlists = playlistsResult.getOrElse { _playlists.value }
-                if (playlistsResult.isSuccess) {
-                    _playlists.value = playlists
-                }
-                val selected = playlists.firstOrNull { playlist ->
-                    playlist.itemId == playlistId && playlist.provider == provider
-                } ?: _playlist.value
-                if (selected == null && !isOfflineMode.value) {
-                    _uiState.value = PlaylistDetailUiState.Error("Playlist not found.")
-                    return@supervisorScope
-                }
-                selected?.let { _playlist.value = it }
-                val loadedTracks = if (tracksResult.isSuccess) {
-                    tracksResult.getOrDefault(emptyList())
-                } else {
-                    tracks.takeIf { it.isNotEmpty() } ?: emptyList()
-                }
-                if (tracksResult.isSuccess) {
-                    remoteTracks = loadedTracks
-                }
-                val mergedTracks = mergeWithLocalTracks(loadedTracks)
-                tracks = mergedTracks
-                _uiState.value = if (mergedTracks.isEmpty()) {
-                    PlaylistDetailUiState.Empty
-                } else {
-                    PlaylistDetailUiState.Success(mergedTracks)
-                }
-            }
+            loadPlaylistTracksInternal(showLoading = true, isRefresh = false)
         }
     }
 
     private fun loadFavoritesTracks() {
         viewModelScope.launch {
+            hasMoreTracks = false
+            isLoadingMoreTracks = false
             _uiState.value = PlaylistDetailUiState.Loading
             val favoritesPlaylist = Playlist(
                 itemId = "favorites",
@@ -228,44 +189,198 @@ class PlaylistDetailViewModel @Inject constructor(
     fun refreshPlaylist(showLoading: Boolean = false) {
         if (playlistId.isBlank() || provider.isBlank()) return
         viewModelScope.launch {
-            if (isOfflineMode.value) {
-                _events.tryEmit(PlaylistDetailUiEvent.ShowMessage(R.string.offline_feature_unavailable))
+            if (isFavoritesPlaylist) {
+                loadFavoritesTracks()
                 return@launch
             }
-            if (showLoading) {
-                _uiState.value = PlaylistDetailUiState.Loading
+            loadPlaylistTracksInternal(showLoading = showLoading, isRefresh = true)
+        }
+    }
+
+    private suspend fun loadPlaylistTracksInternal(
+        showLoading: Boolean,
+        isRefresh: Boolean
+    ) {
+        if (playlistId.isBlank() || provider.isBlank()) {
+            _uiState.value = PlaylistDetailUiState.Error("Missing playlist details.")
+            return
+        }
+        if (provider == OFFLINE_PROVIDER) {
+            _uiState.value = PlaylistDetailUiState.Error(
+                context.getString(R.string.offline_feature_unavailable)
+            )
+            return
+        }
+        val detailKey = detailKey()
+        if (!isRefresh) {
+            performanceMonitor.markDetailLoadStart(PerformanceMonitor.DetailType.PLAYLIST, detailKey)
+        }
+        val cachedPlaylist = repository.getCachedPlaylist(playlistId, provider)
+        cachedPlaylist?.let { _playlist.value = it }
+        val cachedTracks = repository.getCachedPlaylistTracks(playlistId, provider)
+        val existingTracks = tracks.takeIf { it.isNotEmpty() }
+        val cachedForDisplay = cachedTracks ?: existingTracks
+
+        if (isOfflineMode.value) {
+            if (cachedForDisplay == null) {
+                _uiState.value = PlaylistDetailUiState.Error(
+                    context.getString(R.string.offline_feature_unavailable)
+                )
+                return
             }
-            supervisorScope {
-                val playlistDeferred = async(Dispatchers.IO) {
-                    repository.getPlaylist(playlistId, provider)
+            val mergedCached = mergeWithLocalTracks(cachedForDisplay)
+            tracks = mergedCached
+            _uiState.value = if (mergedCached.isEmpty()) {
+                PlaylistDetailUiState.Empty
+            } else {
+                PlaylistDetailUiState.Cached(mergedCached, isRefreshing = false)
+            }
+            return
+        }
+
+        if (cachedForDisplay != null) {
+            val mergedCached = mergeWithLocalTracks(cachedForDisplay)
+            tracks = mergedCached
+            _uiState.value = PlaylistDetailUiState.Cached(mergedCached, isRefreshing = true)
+            performanceMonitor.markDetailCacheShown(PerformanceMonitor.DetailType.PLAYLIST, detailKey)
+        } else if (showLoading) {
+            _uiState.value = PlaylistDetailUiState.Loading
+        }
+
+        loadMoreJob?.cancel()
+        loadMoreJob = null
+        currentOffset = 0
+        hasMoreTracks = false
+        isLoadingMoreTracks = false
+
+        supervisorScope {
+            val playlistDeferred = async(Dispatchers.IO) {
+                repository.getPlaylist(playlistId, provider)
+            }
+            val tracksDeferred = async(Dispatchers.IO) {
+                repository.getPlaylistTracksChunked(
+                    playlistId,
+                    provider,
+                    0,
+                    INITIAL_TRACK_CHUNK_SIZE
+                )
+            }
+            val playlistResult = playlistDeferred.await()
+            playlistResult.getOrNull()?.let { loadedPlaylist ->
+                _playlist.value = loadedPlaylist
+                if (cachedForDisplay == null && _uiState.value is PlaylistDetailUiState.Loading) {
+                    _uiState.value = PlaylistDetailUiState.Metadata
                 }
-                val tracksDeferred = async(Dispatchers.IO) {
-                    repository.getPlaylistTracks(playlistId, provider)
+            }
+            val tracksResult = tracksDeferred.await()
+            val error = playlistResult.exceptionOrNull() ?: tracksResult.exceptionOrNull()
+            if (error != null) {
+                if (cachedForDisplay == null) {
+                    _uiState.value = PlaylistDetailUiState.Error(error.message ?: "Unknown error")
                 }
-                val playlistResult = playlistDeferred.await()
-                val tracksResult = tracksDeferred.await()
-                val error = playlistResult.exceptionOrNull() ?: tracksResult.exceptionOrNull()
-                if (error != null) {
-                    _events.tryEmit(PlaylistDetailUiEvent.ShowMessage(R.string.playlists_error))
-                    return@supervisorScope
-                }
-                val updatedPlaylist = playlistResult.getOrNull()
-                if (updatedPlaylist != null) {
-                    _playlist.value = updatedPlaylist
-                }
-                val loadedTracks = tracksResult.getOrDefault(emptyList())
-                if (tracksResult.isSuccess) {
-                    remoteTracks = loadedTracks
-                }
-                val mergedTracks = mergeWithLocalTracks(loadedTracks)
-                tracks = mergedTracks
-                _uiState.value = if (mergedTracks.isEmpty()) {
-                    PlaylistDetailUiState.Empty
-                } else {
-                    PlaylistDetailUiState.Success(mergedTracks)
-                }
+                return@supervisorScope
+            }
+            val loadedTracks = tracksResult.getOrDefault(emptyList())
+            val cachedFullTracks = repository.getCachedPlaylistTracks(playlistId, provider)
+            if (cachedFullTracks != null) {
+                remoteTracks = cachedFullTracks
+            } else if (tracksResult.isSuccess) {
+                remoteTracks = loadedTracks
+            }
+            val mergedTracks = mergeWithLocalTracks(loadedTracks)
+            tracks = mergedTracks
+            val totalCount = cachedFullTracks?.size ?: loadedTracks.size
+            currentOffset = mergedTracks.size
+            hasMoreTracks = totalCount > mergedTracks.size
+            isLoadingMoreTracks = false
+            _uiState.value = if (mergedTracks.isEmpty()) {
+                PlaylistDetailUiState.Empty
+            } else {
+                PlaylistDetailUiState.Success(
+                    mergedTracks,
+                    hasMore = hasMoreTracks,
+                    isLoadingMore = false
+                )
+            }
+            performanceMonitor.markDetailFreshLoaded(
+                PerformanceMonitor.DetailType.PLAYLIST,
+                detailKey
+            )
+            if (!hasMoreTracks && mergedTracks.isNotEmpty()) {
+                performanceMonitor.markTrackListLoaded(
+                    PerformanceMonitor.DetailType.PLAYLIST,
+                    detailKey,
+                    mergedTracks.size
+                )
             }
         }
+    }
+
+    fun loadMoreTracks() {
+        if (isFavoritesPlaylist || isOfflineMode.value) return
+        if (!hasMoreTracks || isLoadingMoreTracks) return
+        loadMoreJob?.cancel()
+        loadMoreJob = viewModelScope.launch {
+            loadMoreTracksInternal()
+        }
+    }
+
+    private suspend fun loadMoreTracksInternal() {
+        if (playlistId.isBlank() || provider.isBlank()) return
+        if (isLoadingMoreTracks || !hasMoreTracks) return
+        isLoadingMoreTracks = true
+        updateLoadingMoreState(true)
+        val detailKey = detailKey()
+        val result = repository.getPlaylistTracksChunked(
+            playlistId,
+            provider,
+            currentOffset,
+            SUBSEQUENT_CHUNK_SIZE
+        )
+        result.onSuccess { chunk ->
+            if (chunk.isEmpty()) {
+                hasMoreTracks = false
+            } else {
+                currentOffset += chunk.size
+                hasMoreTracks = chunk.size >= SUBSEQUENT_CHUNK_SIZE
+            }
+            val cachedFullTracks = repository.getCachedPlaylistTracks(playlistId, provider)
+            val fullTracks = cachedFullTracks ?: (remoteTracks + chunk)
+            remoteTracks = fullTracks
+            val mergedTracks = mergeWithLocalTracks(fullTracks)
+            tracks = mergedTracks
+            _uiState.value = if (mergedTracks.isEmpty()) {
+                PlaylistDetailUiState.Empty
+            } else {
+                PlaylistDetailUiState.Success(
+                    mergedTracks,
+                    hasMore = hasMoreTracks,
+                    isLoadingMore = false
+                )
+            }
+            if (!hasMoreTracks && mergedTracks.isNotEmpty()) {
+                performanceMonitor.markTrackListLoaded(
+                    PerformanceMonitor.DetailType.PLAYLIST,
+                    detailKey,
+                    mergedTracks.size
+                )
+            }
+        }.onFailure {
+            hasMoreTracks = false
+            _events.tryEmit(PlaylistDetailUiEvent.ShowMessage(R.string.playlists_error))
+        }
+        isLoadingMoreTracks = false
+        updateLoadingMoreState(false)
+    }
+
+    private fun updateLoadingMoreState(isLoading: Boolean) {
+        val currentTracks = tracks
+        if (currentTracks.isEmpty()) return
+        _uiState.value = PlaylistDetailUiState.Success(
+            currentTracks,
+            hasMore = hasMoreTracks,
+            isLoadingMore = isLoading
+        )
     }
 
     fun playPlaylist(
@@ -283,13 +398,16 @@ class PlaylistDetailViewModel @Inject constructor(
                 }
             } else {
                 val cachedTracks = remoteTracks.takeIf { it.isNotEmpty() }
+                val playlistUri = _playlist.value?.uri?.takeIf { it.isNotBlank() }
+                    ?: repository.getCachedPlaylist(playlistId, provider)?.uri
                 playPlaylistUseCase(
-                    playlistId,
-                    provider,
-                    startIndex,
-                    forceStartIndex,
-                    shuffleMode,
-                    cachedTracks
+                    playlistId = playlistId,
+                    provider = provider,
+                    startIndex = startIndex,
+                    forceStartIndex = forceStartIndex,
+                    shuffleMode = shuffleMode,
+                    tracksOverride = cachedTracks,
+                    playlistUri = playlistUri
                 )
             }
         }
@@ -343,7 +461,11 @@ class PlaylistDetailViewModel @Inject constructor(
                 if (targetPlaylistId == playlistId) {
                     val updated = tracks + track
                     tracks = updated
-                    _uiState.value = PlaylistDetailUiState.Success(updated)
+                    _uiState.value = PlaylistDetailUiState.Success(
+                        updated,
+                        hasMore = hasMoreTracks,
+                        isLoadingMore = false
+                    )
                     refreshPlaylist()
                 }
                 _events.tryEmit(PlaylistDetailUiEvent.ShowMessage(R.string.track_add_success))
@@ -415,7 +537,11 @@ class PlaylistDetailViewModel @Inject constructor(
                 _uiState.value = if (updated.isEmpty()) {
                     PlaylistDetailUiState.Empty
                 } else {
-                    PlaylistDetailUiState.Success(updated)
+                    PlaylistDetailUiState.Success(
+                        updated,
+                        hasMore = hasMoreTracks,
+                        isLoadingMore = false
+                    )
                 }
                 refreshPlaylist()
                 _events.tryEmit(PlaylistDetailUiEvent.ShowMessage(R.string.track_remove_success))
@@ -543,15 +669,13 @@ class PlaylistDetailViewModel @Inject constructor(
 
     private suspend fun mergeWithLocalTracks(loadedTracks: List<Track>): List<Track> {
         if (loadedTracks.isEmpty()) return emptyList()
-        val localTracks = withContext(Dispatchers.IO) {
+        val localTracks = localTracksCache ?: withContext(Dispatchers.IO) {
             localMediaRepository.getAllTracks().first()
-        }
+        }.also { localTracksCache = it }
         if (localTracks.isEmpty()) {
             return if (isOfflineMode.value) emptyList() else loadedTracks
         }
-        val mergedTracks = withContext(Dispatchers.Default) {
-            replaceWithLocalMatches(loadedTracks, localTracks)
-        }
+        val mergedTracks = replaceWithLocalMatches(loadedTracks, localTracks)
         return if (isOfflineMode.value) {
             mergedTracks.filter { it.isLocal }
         } else {
@@ -559,18 +683,24 @@ class PlaylistDetailViewModel @Inject constructor(
         }
     }
 
-    private fun replaceWithLocalMatches(
+    private suspend fun replaceWithLocalMatches(
         loadedTracks: List<Track>,
         localTracks: List<Track>
-    ): List<Track> {
-        if (loadedTracks.isEmpty() || localTracks.isEmpty()) return loadedTracks
+    ): List<Track> = withContext(Dispatchers.Default) {
+        if (loadedTracks.isEmpty() || localTracks.isEmpty()) return@withContext loadedTracks
         val localIndicesByKey = HashMap<String, ArrayDeque<Int>>(localTracks.size)
         localTracks.forEachIndexed { index, track ->
+            if (index % MERGE_BATCH_SIZE == 0) {
+                yield()
+            }
             val key = trackMatchKey(track)
             localIndicesByKey.getOrPut(key) { ArrayDeque() }.add(index)
         }
         val merged = ArrayList<Track>(loadedTracks.size)
-        for (track in loadedTracks) {
+        for ((index, track) in loadedTracks.withIndex()) {
+            if (index % MERGE_BATCH_SIZE == 0) {
+                yield()
+            }
             val queue = localIndicesByKey[trackMatchKey(track)]
             val matchedIndex = if (queue != null && queue.isNotEmpty()) {
                 queue.removeFirst()
@@ -583,7 +713,7 @@ class PlaylistDetailViewModel @Inject constructor(
                 merged.add(track)
             }
         }
-        return merged
+        merged
     }
 
     private fun trackMatchKey(track: Track): String {
@@ -594,7 +724,14 @@ class PlaylistDetailViewModel @Inject constructor(
         return value.trim().lowercase()
     }
 
+    private fun detailKey(): String {
+        return "${playlistId.trim()}:${provider.trim()}"
+    }
+
     companion object {
         private const val PLAYLIST_LIST_LIMIT = 200
+        private const val INITIAL_TRACK_CHUNK_SIZE = 50
+        private const val SUBSEQUENT_CHUNK_SIZE = 150
+        private const val MERGE_BATCH_SIZE = 100
     }
 }

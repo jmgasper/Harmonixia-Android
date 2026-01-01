@@ -181,6 +181,15 @@
     <string name="album_type_unknown">Unknown</string>
     <string name="performance_settings_title">Performance</string>
     <string name="performance_settings_playback_latency">Average playback start latency: %1$d ms</string>
+    <string name="performance_settings_metric_unavailable">N/A</string>
+    <string name="performance_settings_playlist_cache_hit_rate">Playlist cache hit rate: %1$s</string>
+    <string name="performance_settings_album_cache_hit_rate">Album cache hit rate: %1$s</string>
+    <string name="performance_settings_playlist_cached_latency">Playlist time to cached: %1$s</string>
+    <string name="performance_settings_playlist_fresh_latency">Playlist time to fresh: %1$s</string>
+    <string name="performance_settings_album_cached_latency">Album time to cached: %1$s</string>
+    <string name="performance_settings_album_fresh_latency">Album time to fresh: %1$s</string>
+    <string name="performance_settings_playlist_track_loads">Playlist track load (&lt;=50 / 51-150 / 151+): %1$s / %2$s / %3$s</string>
+    <string name="performance_settings_album_track_loads">Album track load (&lt;=50 / 51-150 / 151+): %1$s / %2$s / %3$s</string>
     <string name="performance_settings_cache_hit_rate_unavailable">Image cache hit rate: N/A</string>
     <string name="performance_settings_memory_cache">Memory cache: %1$s / %2$s</string>
     <string name="performance_settings_disk_cache">Disk cache: %1$s / %2$s</string>

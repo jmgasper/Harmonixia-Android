@@ -1,6 +1,7 @@
 package com.harmonixia.android.service.playback
 
 import android.os.SystemClock
+import androidx.media3.common.C
 import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
 import com.harmonixia.android.domain.model.PlaybackState
@@ -10,6 +11,7 @@ import com.harmonixia.android.domain.model.Track
 import com.harmonixia.android.domain.repository.MusicAssistantRepository
 import com.harmonixia.android.util.Logger
 import com.harmonixia.android.util.PlayerSelection
+import com.harmonixia.android.util.toPlaybackMediaItem
 import kotlin.math.abs
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
@@ -44,6 +46,9 @@ class PlaybackStateManager(
     private var lastSyncSeekAtMs = 0L
     private val playerSelectionLock = Any()
     private var isPlayerExplicitlySelected = false
+    private val pendingStartLock = Any()
+    private var pendingStartMediaId: String? = null
+    private var pendingStartUntilMs: Long = 0L
 
     private val _playbackState = MutableStateFlow(PlaybackState.IDLE)
     val playbackState: StateFlow<PlaybackState> = _playbackState.asStateFlow()
@@ -80,11 +85,33 @@ class PlaybackStateManager(
     fun seedQueue(tracks: List<Track>, startIndex: Int) {
         if (tracks.isEmpty()) return
         val safeIndex = startIndex.coerceIn(0, tracks.lastIndex)
-        val track = tracks[safeIndex]
+        if (safeIndex > 0) {
+            registerPendingStart(tracks[safeIndex].itemId)
+        } else {
+            clearPendingStart()
+        }
+        val mediaItems = tracks.map { it.toPlaybackMediaItem() }
         scope.launch {
             withContext(mainDispatcher) {
-                queueManager.seedQueue(track)
+                queueManager.replaceQueue(mediaItems, safeIndex, C.TIME_UNSET)
             }
+        }
+    }
+
+    fun registerPendingStart(mediaId: String?) {
+        val resolvedId = mediaId?.takeIf { it.isNotBlank() }
+        synchronized(pendingStartLock) {
+            pendingStartMediaId = resolvedId
+            pendingStartUntilMs = if (resolvedId == null) 0L else {
+                SystemClock.elapsedRealtime() + PENDING_START_RETENTION_MS
+            }
+        }
+    }
+
+    fun clearPendingStart() {
+        synchronized(pendingStartLock) {
+            pendingStartMediaId = null
+            pendingStartUntilMs = 0L
         }
     }
 
@@ -176,6 +203,7 @@ class PlaybackStateManager(
         startupAutoPausePending = false
         suppressAutoPlay = false
         userInitiatedPlayback = false
+        clearPendingStart()
         synchronized(syncSeekLock) {
             pendingSyncSeeks = 0
             lastSyncSeekAtMs = 0L
@@ -346,6 +374,10 @@ class PlaybackStateManager(
         val player = player ?: return
         val remoteTrack = queue.currentItem
         val localMediaId = player.currentMediaItem?.mediaId
+        if (shouldDeferRemoteSync(remoteTrack?.itemId)) {
+            applyPlayState(queue.state, allowPlay, player)
+            return
+        }
         var needsIndexSeek = false
         if (remoteTrack != null && remoteTrack.itemId != localMediaId) {
             val resolveLocal = queue.state == PlaybackState.PLAYING
@@ -370,7 +402,27 @@ class PlaybackStateManager(
             queueManager.ensureLocalForCurrentTrack(remoteTrack)
         }
 
-        when (queue.state) {
+        applyPlayState(queue.state, allowPlay, player)
+    }
+
+    private fun shouldDeferRemoteSync(remoteMediaId: String?): Boolean {
+        synchronized(pendingStartLock) {
+            val pendingId = pendingStartMediaId ?: return false
+            val now = SystemClock.elapsedRealtime()
+            if (now > pendingStartUntilMs) {
+                pendingStartMediaId = null
+                return false
+            }
+            if (pendingId == remoteMediaId) {
+                pendingStartMediaId = null
+                return false
+            }
+            return true
+        }
+    }
+
+    private fun applyPlayState(state: PlaybackState, allowPlay: Boolean, player: ExoPlayer) {
+        when (state) {
             PlaybackState.PLAYING -> {
                 if (allowPlay) {
                     if (!player.isPlaying) player.play()
@@ -419,5 +471,6 @@ class PlaybackStateManager(
         private const val PROGRESS_REPORT_INTERVAL_MS = 10000L
         private const val MAX_PENDING_SYNC_SEEKS = 3
         private const val SYNC_SEEK_SUPPRESSION_WINDOW_MS = 1500L
+        private const val PENDING_START_RETENTION_MS = 3000L
     }
 }

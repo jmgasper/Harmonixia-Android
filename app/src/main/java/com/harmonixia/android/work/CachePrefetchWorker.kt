@@ -23,11 +23,29 @@ class CachePrefetchWorker(
             val repository = entryPoint.repository()
             val albumIds = inputData.getStringArray(KEY_ALBUM_IDS) ?: emptyArray()
             val providers = inputData.getStringArray(KEY_ALBUM_PROVIDERS) ?: emptyArray()
+            val playlistIds = inputData.getStringArray(KEY_PLAYLIST_IDS) ?: emptyArray()
+            val playlistProviders = inputData.getStringArray(KEY_PLAYLIST_PROVIDERS) ?: emptyArray()
             val artistNames = inputData.getStringArray(KEY_ARTIST_NAMES) ?: emptyArray()
 
             val albumCount = minOf(albumIds.size, providers.size, MAX_PREFETCH_ITEMS)
             for (index in 0 until albumCount) {
-                repository.getAlbumTracks(albumIds[index], providers[index])
+                repository.getAlbum(albumIds[index], providers[index])
+                repository.getAlbumTracksChunked(
+                    albumIds[index],
+                    providers[index],
+                    0,
+                    TRACK_PREFETCH_LIMIT
+                )
+            }
+            val playlistCount = minOf(playlistIds.size, playlistProviders.size, MAX_PREFETCH_ITEMS)
+            for (index in 0 until playlistCount) {
+                repository.getPlaylist(playlistIds[index], playlistProviders[index])
+                repository.getPlaylistTracksChunked(
+                    playlistIds[index],
+                    playlistProviders[index],
+                    0,
+                    TRACK_PREFETCH_LIMIT
+                )
             }
             if (artistNames.isNotEmpty()) {
                 repository.fetchArtists(ARTIST_PREFETCH_LIMIT, 0)
@@ -45,6 +63,7 @@ class CachePrefetchWorker(
         private const val MAX_PREFETCH_ITEMS = 50
         private const val ARTIST_PREFETCH_LIMIT = 50
         private const val ALBUM_PREFETCH_LIMIT = 50
+        private const val TRACK_PREFETCH_LIMIT = 50
     }
 }
 
@@ -56,4 +75,6 @@ interface CachePrefetchEntryPoint {
 
 const val KEY_ALBUM_IDS = "prefetch_album_ids"
 const val KEY_ALBUM_PROVIDERS = "prefetch_album_providers"
+const val KEY_PLAYLIST_IDS = "prefetch_playlist_ids"
+const val KEY_PLAYLIST_PROVIDERS = "prefetch_playlist_providers"
 const val KEY_ARTIST_NAMES = "prefetch_artist_names"

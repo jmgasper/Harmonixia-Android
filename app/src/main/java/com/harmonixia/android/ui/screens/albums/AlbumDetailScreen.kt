@@ -84,6 +84,7 @@ fun AlbumDetailScreen(
     val album by viewModel.album.collectAsStateWithLifecycle()
     val playlists by viewModel.playlists.collectAsStateWithLifecycle()
     val isOfflineMode by viewModel.isOfflineMode.collectAsStateWithLifecycle()
+    val imageQualityManager = viewModel.imageQualityManager
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
 
@@ -189,6 +190,7 @@ fun AlbumDetailScreen(
                                     cornerRadius = 8.dp,
                                     useOptimizedDisplaySize = false,
                                     isOfflineMode = isOfflineMode,
+                                    imageQualityManager = imageQualityManager,
                                 )
                                 Spacer(modifier = Modifier.width(spacing.small))
                             }
@@ -268,11 +270,24 @@ fun AlbumDetailScreen(
                 }
             }
             AlbumDetailUiState.Empty,
+            AlbumDetailUiState.Metadata,
+            is AlbumDetailUiState.Cached,
             is AlbumDetailUiState.Success -> {
+                val resolvedAlbum = when (state) {
+                    is AlbumDetailUiState.Cached -> state.album
+                    is AlbumDetailUiState.Success -> state.album
+                    else -> album
+                }
                 val tracks = when (state) {
+                    is AlbumDetailUiState.Cached -> state.tracks
                     is AlbumDetailUiState.Success -> state.tracks
                     else -> emptyList()
                 }
+                val isInitialLoading = state is AlbumDetailUiState.Metadata
+                val isRefreshing =
+                    (state as? AlbumDetailUiState.Cached)?.isRefreshing == true || isInitialLoading
+                val hasMore = (state as? AlbumDetailUiState.Success)?.hasMore == true
+                val isLoadingMore = (state as? AlbumDetailUiState.Success)?.isLoadingMore == true
                 val indexById = remember(tracks) {
                     tracks.withIndex().associate { indexed -> indexed.value.itemId to indexed.index }
                 }
@@ -293,7 +308,7 @@ fun AlbumDetailScreen(
                     ) {
                         Column(modifier = Modifier.padding(horizontal = horizontalPadding)) {
                             AlbumHeader(
-                                album = album,
+                                album = resolvedAlbum,
                                 artworkSize = artworkSize,
                                 useWideLayout = useWideLayout,
                                 canPlay = tracks.isNotEmpty(),
@@ -302,13 +317,25 @@ fun AlbumDetailScreen(
                                 isOfflineMode = isOfflineMode,
                                 titleStyle = albumTitleStyle,
                                 artistStyle = artistNameStyle,
-                                rowSpacing = if (isExpanded) 32.dp else 24.dp
+                                rowSpacing = if (isExpanded) 32.dp else 24.dp,
+                                imageQualityManager = imageQualityManager
                             )
                             Spacer(modifier = Modifier.height(spacing.extraLarge))
-                            Text(
-                                text = stringResource(R.string.album_detail_tracks),
-                                style = sectionHeaderStyle
-                            )
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(spacing.small)
+                            ) {
+                                Text(
+                                    text = stringResource(R.string.album_detail_tracks),
+                                    style = sectionHeaderStyle
+                                )
+                                if (isRefreshing) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(16.dp),
+                                        strokeWidth = 2.dp
+                                    )
+                                }
+                            }
                             Spacer(modifier = Modifier.height(spacing.medium))
                         }
                         if (tracks.isEmpty()) {
@@ -318,16 +345,29 @@ fun AlbumDetailScreen(
                                     .padding(horizontal = horizontalPadding, vertical = spacing.large),
                                 contentAlignment = Alignment.Center
                             ) {
-                                Text(
-                                    text = if (isOfflineMode) {
-                                        stringResource(R.string.no_downloaded_content)
-                                    } else {
-                                        stringResource(R.string.album_detail_no_tracks)
-                                    },
-                                    style = sectionHeaderStyle,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    textAlign = TextAlign.Center
-                                )
+                                if (isInitialLoading) {
+                                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                        CircularProgressIndicator(modifier = Modifier.size(24.dp))
+                                        Spacer(modifier = Modifier.height(spacing.small))
+                                        Text(
+                                            text = stringResource(R.string.album_detail_loading_tracks),
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            textAlign = TextAlign.Center
+                                        )
+                                    }
+                                } else {
+                                    Text(
+                                        text = if (isOfflineMode) {
+                                            stringResource(R.string.no_downloaded_content)
+                                        } else {
+                                            stringResource(R.string.album_detail_no_tracks)
+                                        },
+                                        style = sectionHeaderStyle,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        textAlign = TextAlign.Center
+                                    )
+                                }
                             }
                         } else {
                             Row(
@@ -359,6 +399,9 @@ fun AlbumDetailScreen(
                                     trackSupportingTextStyle = trackMetaStyle,
                                     trackMetadataTextStyle = trackMetaStyle,
                                     indexProvider = indexProvider,
+                                    hasMore = hasMore,
+                                    isLoadingMore = isLoadingMore,
+                                    onLoadMore = viewModel::loadMoreTracks,
                                     showEmptyState = false
                                 )
                                 TrackList(
@@ -383,6 +426,9 @@ fun AlbumDetailScreen(
                                     trackSupportingTextStyle = trackMetaStyle,
                                     trackMetadataTextStyle = trackMetaStyle,
                                     indexProvider = indexProvider,
+                                    hasMore = hasMore,
+                                    isLoadingMore = isLoadingMore,
+                                    onLoadMore = viewModel::loadMoreTracks,
                                     showEmptyState = false
                                 )
                             }
@@ -418,29 +464,68 @@ fun AlbumDetailScreen(
                         headerContent = {
                             item {
                                 AlbumDetails(
-                                    album = album,
+                                    album = resolvedAlbum,
                                     titleStyle = albumTitleStyle,
                                     artistStyle = artistNameStyle,
                                     canPlay = tracks.isNotEmpty(),
                                     onPlayAlbum = { viewModel.playAlbumSequential() },
                                     onShuffleAlbum = { viewModel.shuffleAlbum() },
                                     isOfflineMode = isOfflineMode,
-                                    artworkSize = artworkSize
+                                    artworkSize = artworkSize,
+                                    imageQualityManager = imageQualityManager
                                 )
                             }
                             item { Spacer(modifier = Modifier.height(spacing.extraLarge)) }
                             item {
-                                Text(
-                                    text = stringResource(R.string.album_detail_tracks),
-                                    style = sectionHeaderStyle
-                                )
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(spacing.small)
+                                ) {
+                                    Text(
+                                        text = stringResource(R.string.album_detail_tracks),
+                                        style = sectionHeaderStyle
+                                    )
+                                    if (isRefreshing) {
+                                        CircularProgressIndicator(
+                                            modifier = Modifier.size(16.dp),
+                                            strokeWidth = 2.dp
+                                        )
+                                    }
+                                }
                             }
                             item { Spacer(modifier = Modifier.height(spacing.medium)) }
+                            if (isInitialLoading) {
+                                item {
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(vertical = spacing.large),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                            CircularProgressIndicator(modifier = Modifier.size(24.dp))
+                                            Spacer(modifier = Modifier.height(spacing.small))
+                                            Text(
+                                                text = stringResource(
+                                                    R.string.album_detail_loading_tracks
+                                                ),
+                                                style = MaterialTheme.typography.bodyMedium,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                textAlign = TextAlign.Center
+                                            )
+                                        }
+                                    }
+                                }
+                            }
                         },
                         trackTitleTextStyle = trackTitleStyle,
                         trackSupportingTextStyle = trackMetaStyle,
                         trackMetadataTextStyle = trackMetaStyle,
-                        indexProvider = indexProvider
+                        indexProvider = indexProvider,
+                        hasMore = hasMore,
+                        isLoadingMore = isLoadingMore,
+                        onLoadMore = viewModel::loadMoreTracks,
+                        showEmptyState = !isInitialLoading
                     )
                 }
             }
@@ -487,19 +572,19 @@ private fun AlbumArtwork(
     cornerRadius: Dp,
     useOptimizedDisplaySize: Boolean = requestSize == displaySize,
     isOfflineMode: Boolean,
+    imageQualityManager: ImageQualityManager,
     modifier: Modifier = Modifier
 ) {
     val placeholder = ColorPainter(MaterialTheme.colorScheme.surfaceVariant)
     val context = LocalContext.current
-    val qualityManager = remember(context) { ImageQualityManager(context) }
-    val optimizedRequestSize = qualityManager.getOptimalImageSize(requestSize)
+    val optimizedRequestSize = imageQualityManager.getOptimalImageSize(requestSize)
     val optimizedDisplaySize = if (useOptimizedDisplaySize) {
         optimizedRequestSize
     } else {
         displaySize
     }
     val sizePx = with(LocalDensity.current) { optimizedRequestSize.roundToPx() }
-    val bitmapConfig = qualityManager.getOptimalBitmapConfig()
+    val bitmapConfig = imageQualityManager.getOptimalBitmapConfig()
     val imageRequest = buildAlbumArtworkRequest(
         context = context,
         album = album,
@@ -530,6 +615,7 @@ private fun AlbumDetails(
     onShuffleAlbum: () -> Unit,
     isOfflineMode: Boolean,
     artworkSize: Dp,
+    imageQualityManager: ImageQualityManager,
     modifier: Modifier = Modifier
 ) {
     val spacing = rememberAdaptiveSpacing()
@@ -549,7 +635,8 @@ private fun AlbumDetails(
             displaySize = artworkSize,
             requestSize = artworkSize,
             cornerRadius = 20.dp,
-            isOfflineMode = isOfflineMode
+            isOfflineMode = isOfflineMode,
+            imageQualityManager = imageQualityManager
         )
         Text(
             text = albumTitle,
@@ -612,6 +699,7 @@ private fun AlbumHeader(
     titleStyle: TextStyle,
     artistStyle: TextStyle,
     rowSpacing: Dp,
+    imageQualityManager: ImageQualityManager,
     modifier: Modifier = Modifier
 ) {
     val spacing = rememberAdaptiveSpacing()
@@ -633,7 +721,8 @@ private fun AlbumHeader(
                 displaySize = artworkSize,
                 requestSize = artworkSize,
                 cornerRadius = 20.dp,
-                isOfflineMode = isOfflineMode
+                isOfflineMode = isOfflineMode,
+                imageQualityManager = imageQualityManager
             )
             Column(
                 modifier = Modifier.weight(1f),
@@ -693,7 +782,8 @@ private fun AlbumHeader(
                 displaySize = artworkSize,
                 requestSize = artworkSize,
                 cornerRadius = 20.dp,
-                isOfflineMode = isOfflineMode
+                isOfflineMode = isOfflineMode,
+                imageQualityManager = imageQualityManager
             )
             Text(
                 text = albumTitle,

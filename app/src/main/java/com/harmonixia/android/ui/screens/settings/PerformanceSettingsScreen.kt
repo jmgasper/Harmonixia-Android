@@ -44,7 +44,51 @@ fun PerformanceSettingsScreen(
     val pagingStats = pagingStatsTracker.stats.collectAsStateWithLifecycle().value
 
     val averageLatency = performanceMonitor.getAveragePlaybackLatency()
-    val cacheHitRateLabel = stringResource(R.string.performance_settings_cache_hit_rate_unavailable)
+    val unavailableLabel = stringResource(R.string.performance_settings_metric_unavailable)
+    val playlistCacheHitRate = performanceMonitor.getCacheHitRate(
+        com.harmonixia.android.util.PerformanceMonitor.CacheType.PLAYLIST
+    )
+    val albumCacheHitRate = performanceMonitor.getCacheHitRate(
+        com.harmonixia.android.util.PerformanceMonitor.CacheType.ALBUM
+    )
+    val playlistCachedLatency = formatLatency(
+        performanceMonitor.getAverageDetailCacheLatency(
+            com.harmonixia.android.util.PerformanceMonitor.DetailType.PLAYLIST
+        ),
+        unavailableLabel
+    )
+    val playlistFreshLatency = formatLatency(
+        performanceMonitor.getAverageDetailFreshLatency(
+            com.harmonixia.android.util.PerformanceMonitor.DetailType.PLAYLIST
+        ),
+        unavailableLabel
+    )
+    val albumCachedLatency = formatLatency(
+        performanceMonitor.getAverageDetailCacheLatency(
+            com.harmonixia.android.util.PerformanceMonitor.DetailType.ALBUM
+        ),
+        unavailableLabel
+    )
+    val albumFreshLatency = formatLatency(
+        performanceMonitor.getAverageDetailFreshLatency(
+            com.harmonixia.android.util.PerformanceMonitor.DetailType.ALBUM
+        ),
+        unavailableLabel
+    )
+    val playlistTrackLoads = performanceMonitor.getTrackLoadAverages(
+        com.harmonixia.android.util.PerformanceMonitor.DetailType.PLAYLIST
+    )
+    val albumTrackLoads = performanceMonitor.getTrackLoadAverages(
+        com.harmonixia.android.util.PerformanceMonitor.DetailType.ALBUM
+    )
+    val playlistHitRateLabel = playlistCacheHitRate?.let { "$it%" } ?: unavailableLabel
+    val albumHitRateLabel = albumCacheHitRate?.let { "$it%" } ?: unavailableLabel
+    val playlistTrackSmall = formatOptionalLatency(playlistTrackLoads.smallMs, unavailableLabel)
+    val playlistTrackMedium = formatOptionalLatency(playlistTrackLoads.mediumMs, unavailableLabel)
+    val playlistTrackLarge = formatOptionalLatency(playlistTrackLoads.largeMs, unavailableLabel)
+    val albumTrackSmall = formatOptionalLatency(albumTrackLoads.smallMs, unavailableLabel)
+    val albumTrackMedium = formatOptionalLatency(albumTrackLoads.mediumMs, unavailableLabel)
+    val albumTrackLarge = formatOptionalLatency(albumTrackLoads.largeMs, unavailableLabel)
 
     Scaffold(
         topBar = {
@@ -76,7 +120,63 @@ fun PerformanceSettingsScreen(
                 style = MaterialTheme.typography.bodyLarge
             )
             Text(
-                text = cacheHitRateLabel,
+                text = stringResource(
+                    R.string.performance_settings_playlist_cache_hit_rate,
+                    playlistHitRateLabel
+                ),
+                style = MaterialTheme.typography.bodyLarge
+            )
+            Text(
+                text = stringResource(
+                    R.string.performance_settings_album_cache_hit_rate,
+                    albumHitRateLabel
+                ),
+                style = MaterialTheme.typography.bodyLarge
+            )
+            Text(
+                text = stringResource(
+                    R.string.performance_settings_playlist_cached_latency,
+                    playlistCachedLatency
+                ),
+                style = MaterialTheme.typography.bodyLarge
+            )
+            Text(
+                text = stringResource(
+                    R.string.performance_settings_playlist_fresh_latency,
+                    playlistFreshLatency
+                ),
+                style = MaterialTheme.typography.bodyLarge
+            )
+            Text(
+                text = stringResource(
+                    R.string.performance_settings_album_cached_latency,
+                    albumCachedLatency
+                ),
+                style = MaterialTheme.typography.bodyLarge
+            )
+            Text(
+                text = stringResource(
+                    R.string.performance_settings_album_fresh_latency,
+                    albumFreshLatency
+                ),
+                style = MaterialTheme.typography.bodyLarge
+            )
+            Text(
+                text = stringResource(
+                    R.string.performance_settings_playlist_track_loads,
+                    playlistTrackSmall,
+                    playlistTrackMedium,
+                    playlistTrackLarge
+                ),
+                style = MaterialTheme.typography.bodyLarge
+            )
+            Text(
+                text = stringResource(
+                    R.string.performance_settings_album_track_loads,
+                    albumTrackSmall,
+                    albumTrackMedium,
+                    albumTrackLarge
+                ),
                 style = MaterialTheme.typography.bodyLarge
             )
             Text(
@@ -139,4 +239,12 @@ private fun formatBytes(value: Long?): String {
     val bytes = value ?: 0L
     val mb = bytes / (1024f * 1024f)
     return String.format("%.1f MB", mb)
+}
+
+private fun formatLatency(value: Long, unavailableLabel: String): String {
+    return if (value <= 0L) unavailableLabel else "${value} ms"
+}
+
+private fun formatOptionalLatency(value: Long?, unavailableLabel: String): String {
+    return value?.let { "${it} ms" } ?: unavailableLabel
 }

@@ -16,7 +16,6 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -44,6 +43,7 @@ fun AlbumCard(
     onLongClick: (() -> Unit)? = null,
     artworkSize: Dp = 150.dp,
     isOfflineMode: Boolean,
+    imageQualityManager: ImageQualityManager,
     modifier: Modifier = Modifier
 ) {
     val placeholder = ColorPainter(MaterialTheme.colorScheme.surfaceVariant)
@@ -56,10 +56,9 @@ fun AlbumCard(
         modifier.clickable(onClick = onClick)
     }
     val context = LocalContext.current
-    val qualityManager = remember(context) { ImageQualityManager(context) }
-    val optimizedSize = qualityManager.getOptimalImageSize(artworkSize)
+    val optimizedSize = imageQualityManager.getOptimalImageSize(artworkSize)
     val sizePx = with(LocalDensity.current) { optimizedSize.roundToPx() }
-    val bitmapConfig = qualityManager.getOptimalBitmapConfig()
+    val bitmapConfig = imageQualityManager.getOptimalBitmapConfig()
     val imageRequest = buildAlbumArtworkRequest(
         context = context,
         album = album,

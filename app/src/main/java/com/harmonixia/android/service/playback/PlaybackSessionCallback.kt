@@ -233,6 +233,11 @@ class PlaybackSessionCallback(
             }
             playbackStateManager.notifyUserInitiatedPlayback()
             markPlaybackRequestedForStartItem(queueItems, queueStartIndex)
+            if (queueStartIndex > 0) {
+                playbackStateManager.registerPendingStart(queueItems.getOrNull(queueStartIndex)?.mediaId)
+            } else {
+                playbackStateManager.clearPendingStart()
+            }
             val queueId = playbackStateManager.currentQueueId
             if (queueId != null) {
                 val uris = queueItems.mapNotNull { it.streamUri() }
@@ -241,8 +246,12 @@ class PlaybackSessionCallback(
                         TAG,
                         "Requesting playMedia queueId=$queueId option=REPLACE count=${uris.size}"
                     )
-                    repository.playMedia(queueId, uris, QueueOption.REPLACE)
+                    val playResult = repository.playMedia(queueId, uris, QueueOption.REPLACE)
                         .onFailure { Logger.w(TAG, "Replace queue failed", it) }
+                    if (queueStartIndex > 0 && playResult.isSuccess) {
+                        repository.playIndex(queueId, queueStartIndex)
+                            .onFailure { Logger.w(TAG, "Failed to set start index", it) }
+                    }
                 }
             }
             queueManager.replaceQueue(queueItems, queueStartIndex, startPositionMs)

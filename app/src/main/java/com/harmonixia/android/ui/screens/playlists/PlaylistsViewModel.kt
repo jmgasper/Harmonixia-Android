@@ -19,6 +19,7 @@ import com.harmonixia.android.domain.repository.MusicAssistantRepository
 import com.harmonixia.android.domain.usecase.DeletePlaylistUseCase
 import com.harmonixia.android.domain.usecase.GetConnectionStateUseCase
 import com.harmonixia.android.domain.usecase.RenamePlaylistUseCase
+import com.harmonixia.android.util.ImageQualityManager
 import com.harmonixia.android.util.NetworkConnectivityManager
 import com.harmonixia.android.util.PagingStatsTracker
 import com.harmonixia.android.util.matchesLocal
@@ -56,7 +57,8 @@ class PlaylistsViewModel @Inject constructor(
     private val renamePlaylistUseCase: RenamePlaylistUseCase,
     getConnectionStateUseCase: GetConnectionStateUseCase,
     private val networkConnectivityManager: NetworkConnectivityManager,
-    private val pagingStatsTracker: PagingStatsTracker
+    private val pagingStatsTracker: PagingStatsTracker,
+    val imageQualityManager: ImageQualityManager
 ) : ViewModel() {
     val connectionState: StateFlow<ConnectionState> = getConnectionStateUseCase()
     val isOfflineMode: StateFlow<Boolean> = combine(
@@ -282,7 +284,7 @@ class PlaylistsViewModel @Inject constructor(
     }
 
     companion object {
-        private const val PREFETCH_DISTANCE = 15
+        private const val PREFETCH_DISTANCE = 35
     }
 
     private fun mergePagingWithLocal(

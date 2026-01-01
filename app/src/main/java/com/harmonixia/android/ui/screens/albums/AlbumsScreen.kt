@@ -87,6 +87,7 @@ fun AlbumsScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val isOfflineMode by viewModel.isOfflineMode.collectAsStateWithLifecycle()
+    val imageQualityManager = viewModel.imageQualityManager
 
     val windowSizeClass = calculateWindowSizeClass(activity = LocalContext.current as Activity)
     val configuration = LocalConfiguration.current
@@ -397,6 +398,7 @@ fun AlbumsScreen(
                                             artworkSize = artworkSize,
                                             contentPadding = gridPadding,
                                             isOfflineMode = isOfflineMode,
+                                            imageQualityManager = imageQualityManager,
                                             modifier = Modifier
                                                 .weight(0.6f)
                                                 .fillMaxHeight()
@@ -406,6 +408,7 @@ fun AlbumsScreen(
                                             artworkSize = artworkSize,
                                             onOpenAlbum = onAlbumClick,
                                             isOfflineMode = isOfflineMode,
+                                            imageQualityManager = imageQualityManager,
                                             modifier = Modifier
                                                 .weight(0.4f)
                                                 .fillMaxHeight()
@@ -424,6 +427,7 @@ fun AlbumsScreen(
                                         artworkSize = artworkSize,
                                         contentPadding = gridPadding,
                                         isOfflineMode = isOfflineMode,
+                                        imageQualityManager = imageQualityManager,
                                         modifier = Modifier.fillMaxSize()
                                     )
                                 }
@@ -443,6 +447,7 @@ private fun AlbumDetailPane(
     artworkSize: Dp,
     onOpenAlbum: (Album) -> Unit,
     isOfflineMode: Boolean,
+    imageQualityManager: ImageQualityManager,
     modifier: Modifier = Modifier
 ) {
     val spacing = rememberAdaptiveSpacing()
@@ -464,11 +469,10 @@ private fun AlbumDetailPane(
     }
 
     val context = LocalContext.current
-    val qualityManager = remember(context) { ImageQualityManager(context) }
-    val optimizedSize = qualityManager.getOptimalImageSize(artworkSize)
+    val optimizedSize = imageQualityManager.getOptimalImageSize(artworkSize)
     val sizePx = with(LocalDensity.current) { optimizedSize.roundToPx() }
     val placeholder = ColorPainter(MaterialTheme.colorScheme.surfaceVariant)
-    val bitmapConfig = qualityManager.getOptimalBitmapConfig()
+    val bitmapConfig = imageQualityManager.getOptimalBitmapConfig()
 
     Column(
         modifier = modifier

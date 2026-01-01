@@ -16,7 +16,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -40,6 +39,7 @@ fun ArtistListItem(
     artist: Artist,
     onClick: () -> Unit,
     showDivider: Boolean,
+    imageQualityManager: ImageQualityManager,
     modifier: Modifier = Modifier
 ) {
     Column(modifier = modifier.fillMaxWidth()) {
@@ -50,7 +50,8 @@ fun ArtistListItem(
             leadingContent = {
                 ArtistAvatar(
                     imageUrl = artist.imageUrl,
-                    size = 48.dp
+                    size = 48.dp,
+                    imageQualityManager = imageQualityManager
                 )
             },
             headlineContent = {
@@ -71,12 +72,12 @@ fun ArtistListItem(
 private fun ArtistAvatar(
     imageUrl: String?,
     size: Dp,
+    imageQualityManager: ImageQualityManager,
     modifier: Modifier = Modifier
 ) {
     val placeholder = ColorPainter(MaterialTheme.colorScheme.surfaceVariant)
     val context = LocalContext.current
-    val qualityManager = remember(context) { ImageQualityManager(context) }
-    val optimizedSize = qualityManager.getOptimalImageSize(size)
+    val optimizedSize = imageQualityManager.getOptimalImageSize(size)
     val sizePx = with(LocalDensity.current) { optimizedSize.roundToPx() }
     if (imageUrl.isNullOrBlank()) {
         Surface(
@@ -96,7 +97,7 @@ private fun ArtistAvatar(
         val imageRequest = ImageRequest.Builder(context)
             .data(imageUrl)
             .size(sizePx)
-            .bitmapConfig(qualityManager.getOptimalBitmapConfig())
+            .bitmapConfig(imageQualityManager.getOptimalBitmapConfig())
             .build()
         AsyncImage(
             model = imageRequest,

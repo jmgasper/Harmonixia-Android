@@ -93,6 +93,7 @@ fun ArtistsScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val albumCounts by viewModel.artistAlbumCounts.collectAsStateWithLifecycle()
     val isOfflineMode by viewModel.isOfflineMode.collectAsStateWithLifecycle()
+    val imageQualityManager = viewModel.imageQualityManager
 
     val windowSizeClass = calculateWindowSizeClass(activity = LocalContext.current as Activity)
     val configuration = LocalConfiguration.current
@@ -310,7 +311,8 @@ fun ArtistsScreen(
                                                         ArtistListItem(
                                                             artist = artist,
                                                             onClick = { handleArtistClick(artist) },
-                                                            showDivider = index < items.itemCount - 1
+                                                            showDivider = index < items.itemCount - 1,
+                                                            imageQualityManager = imageQualityManager
                                                         )
                                                     } else {
                                                         ArtistListItemPlaceholder(
@@ -323,6 +325,7 @@ fun ArtistsScreen(
                                                 artist = selectedArtist,
                                                 albumCount = selectedAlbumCount,
                                                 onViewAlbums = onArtistClick,
+                                                imageQualityManager = imageQualityManager,
                                                 modifier = Modifier
                                                     .weight(0.4f)
                                                     .fillMaxHeight()
@@ -351,7 +354,8 @@ fun ArtistsScreen(
                                                     ArtistListItem(
                                                         artist = artist,
                                                         onClick = { handleArtistClick(artist) },
-                                                        showDivider = index < items.itemCount - 1
+                                                        showDivider = index < items.itemCount - 1,
+                                                        imageQualityManager = imageQualityManager
                                                     )
                                                 } else {
                                                     ArtistListItemPlaceholder(
@@ -444,6 +448,7 @@ private fun ArtistDetailPane(
     artist: Artist?,
     albumCount: Int,
     onViewAlbums: (Artist) -> Unit,
+    imageQualityManager: ImageQualityManager,
     modifier: Modifier = Modifier
 ) {
     val spacing = rememberAdaptiveSpacing()
@@ -465,9 +470,8 @@ private fun ArtistDetailPane(
     }
 
     val context = LocalContext.current
-    val qualityManager = remember(context) { ImageQualityManager(context) }
     val avatarSize = 120.dp
-    val optimizedSize = qualityManager.getOptimalImageSize(avatarSize)
+    val optimizedSize = imageQualityManager.getOptimalImageSize(avatarSize)
     val sizePx = with(LocalDensity.current) { optimizedSize.roundToPx() }
     val placeholder = ColorPainter(MaterialTheme.colorScheme.surfaceVariant)
     val displayName = artist.name.ifBlank { artist.sortName.orEmpty() }
@@ -497,7 +501,7 @@ private fun ArtistDetailPane(
             val imageRequest = ImageRequest.Builder(context)
                 .data(artist.imageUrl)
                 .size(sizePx)
-                .bitmapConfig(qualityManager.getOptimalBitmapConfig())
+                .bitmapConfig(imageQualityManager.getOptimalBitmapConfig())
                 .build()
             AsyncImage(
                 model = imageRequest,

@@ -84,6 +84,7 @@ fun PlaylistsScreen(
     val isRenaming by viewModel.isRenaming.collectAsStateWithLifecycle()
     val renameErrorMessageResId by viewModel.renameErrorMessageResId.collectAsStateWithLifecycle()
     val isOfflineMode by viewModel.isOfflineMode.collectAsStateWithLifecycle()
+    val imageQualityManager = viewModel.imageQualityManager
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
     val favoritesPlaylist = remember {
@@ -360,7 +361,8 @@ fun PlaylistsScreen(
                                         playlist = favoritesPlaylist,
                                         onClick = { onPlaylistClick(favoritesPlaylist) },
                                         isGrid = true,
-                                        placeholderIcon = Icons.Filled.Favorite
+                                        placeholderIcon = Icons.Filled.Favorite,
+                                        imageQualityManager = imageQualityManager
                                     )
                                 }
                                 items(
@@ -382,7 +384,8 @@ fun PlaylistsScreen(
                                                         menuPlaylist = playlist
                                                     }
                                                 },
-                                                isGrid = true
+                                                isGrid = true,
+                                                imageQualityManager = imageQualityManager
                                             )
                                             if (playlist.isEditable) {
                                                 Box(modifier = Modifier.align(Alignment.TopEnd)) {
@@ -427,7 +430,8 @@ fun PlaylistsScreen(
                                         playlist = favoritesPlaylist,
                                         onClick = { onPlaylistClick(favoritesPlaylist) },
                                         isGrid = false,
-                                        placeholderIcon = Icons.Filled.Favorite
+                                        placeholderIcon = Icons.Filled.Favorite,
+                                        imageQualityManager = imageQualityManager
                                     )
                                 }
                                 items(
@@ -449,7 +453,8 @@ fun PlaylistsScreen(
                                                         menuPlaylist = playlist
                                                     }
                                                 },
-                                                isGrid = false
+                                                isGrid = false,
+                                                imageQualityManager = imageQualityManager
                                             )
                                             if (playlist.isEditable) {
                                                 Box(modifier = Modifier.align(Alignment.TopEnd)) {

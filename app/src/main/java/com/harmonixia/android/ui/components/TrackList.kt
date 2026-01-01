@@ -24,13 +24,16 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -42,6 +45,7 @@ import androidx.compose.ui.unit.dp
 import com.harmonixia.android.R
 import com.harmonixia.android.domain.model.Track
 import com.harmonixia.android.util.isLocal
+import kotlinx.coroutines.flow.collect
 
 @Composable
 @OptIn(ExperimentalFoundationApi::class)
@@ -63,11 +67,33 @@ fun TrackList(
     trackSupportingTextStyle: TextStyle? = null,
     trackMetadataTextStyle: TextStyle? = null,
     indexProvider: ((Track, Int) -> Int)? = null,
+    hasMore: Boolean = false,
+    isLoadingMore: Boolean = false,
+    onLoadMore: (() -> Unit)? = null,
     showEmptyState: Boolean = true
 ) {
     var contextMenuTrackId by remember { mutableStateOf<String?>(null) }
     var contextMenuIndex by remember { mutableStateOf(-1) }
     val resolvedListState = listState ?: rememberLazyListState()
+    var lastLoadTriggerIndex by remember { mutableStateOf(-1) }
+
+    LaunchedEffect(resolvedListState, hasMore, isLoadingMore, onLoadMore) {
+        if (onLoadMore == null) return@LaunchedEffect
+        snapshotFlow {
+            val layoutInfo = resolvedListState.layoutInfo
+            val lastVisible = layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
+            lastVisible to layoutInfo.totalItemsCount
+        }.collect { (lastVisible, totalCount) ->
+            if (!hasMore || isLoadingMore || totalCount == 0) return@collect
+            if (lastVisible >= totalCount - LOAD_MORE_THRESHOLD) {
+                if (lastVisible > lastLoadTriggerIndex) {
+                    lastLoadTriggerIndex = lastVisible
+                    onLoadMore()
+                }
+            }
+        }
+    }
+
     LazyColumn(
         modifier = modifier,
         state = resolvedListState,
@@ -149,6 +175,18 @@ fun TrackList(
                 }
                 if (index < tracks.lastIndex) {
                     HorizontalDivider(modifier = Modifier.padding(start = 56.dp))
+                }
+            }
+        }
+        if (isLoadingMore) {
+            item {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator(modifier = Modifier.size(24.dp))
                 }
             }
         }
@@ -277,3 +315,5 @@ private fun formatDuration(seconds: Int): String {
     val remainingSeconds = safeSeconds % 60
     return "%d:%02d".format(minutes, remainingSeconds)
 }
+
+private const val LOAD_MORE_THRESHOLD = 10

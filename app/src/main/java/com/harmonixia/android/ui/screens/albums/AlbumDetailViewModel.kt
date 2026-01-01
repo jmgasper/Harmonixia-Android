@@ -15,12 +15,16 @@ import com.harmonixia.android.domain.usecase.ManagePlaylistTracksUseCase
 import com.harmonixia.android.domain.usecase.PlayAlbumUseCase
 import com.harmonixia.android.domain.usecase.PlayLocalTracksUseCase
 import com.harmonixia.android.ui.navigation.Screen
+import com.harmonixia.android.util.ImageQualityManager
 import com.harmonixia.android.util.isLocal
+import com.harmonixia.android.util.PerformanceMonitor
 import com.harmonixia.android.util.mergeWithLocal
 import com.harmonixia.android.util.NetworkConnectivityManager
 import com.harmonixia.android.util.PrefetchScheduler
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -34,6 +38,8 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.supervisorScope
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.yield
 import kotlin.random.Random
 
 sealed class AlbumDetailUiEvent {
@@ -50,7 +56,9 @@ class AlbumDetailViewModel @Inject constructor(
     private val managePlaylistTracksUseCase: ManagePlaylistTracksUseCase,
     private val networkConnectivityManager: NetworkConnectivityManager,
     private val prefetchScheduler: PrefetchScheduler,
-    savedStateHandle: SavedStateHandle
+    private val performanceMonitor: PerformanceMonitor,
+    savedStateHandle: SavedStateHandle,
+    val imageQualityManager: ImageQualityManager
 ) : ViewModel() {
     private val albumId: String =
         savedStateHandle.get<String>(Screen.AlbumDetail.ARG_ALBUM_ID).orEmpty()
@@ -70,6 +78,12 @@ class AlbumDetailViewModel @Inject constructor(
     val events = _events.asSharedFlow()
 
     private var tracks: List<Track> = emptyList()
+    private var remoteTracks: List<Track> = emptyList()
+    private var currentOffset = 0
+    private var hasMoreTracks = false
+    private var isLoadingMoreTracks = false
+    private var loadMoreJob: Job? = null
+    private var localAlbumTracks: List<Track> = emptyList()
     val isOfflineMode: StateFlow<Boolean> = networkConnectivityManager.networkAvailabilityFlow
         .map { networkConnectivityManager.isOfflineMode() }
         .distinctUntilChanged()
@@ -89,56 +103,326 @@ class AlbumDetailViewModel @Inject constructor(
 
     fun loadAlbumTracks() {
         viewModelScope.launch {
-            if (albumId.isBlank() || provider.isBlank()) {
-                _uiState.value = AlbumDetailUiState.Error("Missing album details.")
-                return@launch
+            loadAlbumTracksInternal(showLoading = true, isRefresh = false)
+        }
+    }
+
+    fun refreshAlbum(showLoading: Boolean = false) {
+        viewModelScope.launch {
+            loadAlbumTracksInternal(showLoading = showLoading, isRefresh = true)
+        }
+    }
+
+    private suspend fun loadAlbumTracksInternal(
+        showLoading: Boolean,
+        isRefresh: Boolean
+    ) {
+        if (albumId.isBlank() || provider.isBlank()) {
+            _uiState.value = AlbumDetailUiState.Error("Missing album details.")
+            return
+        }
+        val detailKey = detailKey()
+        if (!isRefresh) {
+            performanceMonitor.markDetailLoadStart(PerformanceMonitor.DetailType.ALBUM, detailKey)
+        }
+        if (provider == OFFLINE_PROVIDER) {
+            val localAlbum = resolveLocalAlbum()
+            if (localAlbum == null) {
+                _uiState.value = AlbumDetailUiState.Error("Album not found.")
+                return
             }
+            val localTracks = loadLocalTracks(localAlbum)
+            localAlbumTracks = localTracks
+            currentOffset = localTracks.size
+            hasMoreTracks = false
+            isLoadingMoreTracks = false
+            _album.value = localAlbum
+            tracks = localTracks
+            remoteTracks = emptyList()
+            _uiState.value = if (localTracks.isEmpty()) {
+                AlbumDetailUiState.Empty
+            } else {
+                AlbumDetailUiState.Success(localAlbum, localTracks)
+            }
+            return
+        }
+
+        val cachedAlbum = repository.getCachedAlbum(albumId, provider)
+        val cachedTracks = repository.getCachedAlbumTracks(albumId, provider)
+        cachedAlbum?.let { _album.value = it }
+
+        if (isOfflineMode.value) {
+            if (cachedAlbum == null || cachedTracks == null) {
+                _uiState.value = AlbumDetailUiState.Error(
+                    "Offline cache unavailable for this album."
+                )
+                return
+            }
+            remoteTracks = cachedTracks
+            localAlbumTracks = loadLocalTracks(cachedAlbum)
+            val mergedCached = mergeWithLocalTracks(
+                cachedTracks,
+                localAlbumTracks,
+                appendUnmatchedLocal = true
+            )
+            tracks = mergedCached
+            currentOffset = mergedCached.size
+            hasMoreTracks = false
+            isLoadingMoreTracks = false
+            _uiState.value = if (mergedCached.isEmpty()) {
+                AlbumDetailUiState.Empty
+            } else {
+                AlbumDetailUiState.Cached(cachedAlbum, mergedCached, isRefreshing = false)
+            }
+            return
+        }
+
+        if (cachedAlbum != null && cachedTracks != null) {
+            remoteTracks = cachedTracks
+            localAlbumTracks = loadLocalTracks(cachedAlbum)
+            val mergedCached = mergeWithLocalTracks(
+                cachedTracks,
+                localAlbumTracks,
+                appendUnmatchedLocal = true
+            )
+            tracks = mergedCached
+            _uiState.value = AlbumDetailUiState.Cached(
+                cachedAlbum,
+                mergedCached,
+                isRefreshing = true
+            )
+            performanceMonitor.markDetailCacheShown(
+                PerformanceMonitor.DetailType.ALBUM,
+                detailKey
+            )
+        } else if (showLoading) {
             _uiState.value = AlbumDetailUiState.Loading
-            if (isOfflineMode.value || provider == OFFLINE_PROVIDER) {
-                val localAlbum = resolveLocalAlbum()
-                if (localAlbum == null) {
-                    _uiState.value = AlbumDetailUiState.Error("Album not found.")
-                    return@launch
-                }
-                val localTracks = loadLocalTracks(localAlbum)
-                _album.value = localAlbum
-                tracks = localTracks
-                _uiState.value = if (localTracks.isEmpty()) {
-                    AlbumDetailUiState.Empty
-                } else {
-                    AlbumDetailUiState.Success(localAlbum, localTracks)
-                }
-                return@launch
+        }
+
+        loadMoreJob?.cancel()
+        loadMoreJob = null
+        currentOffset = 0
+        hasMoreTracks = false
+        isLoadingMoreTracks = false
+
+        supervisorScope {
+            val albumDeferred = async(Dispatchers.IO) {
+                repository.getAlbum(albumId, provider)
             }
-            supervisorScope {
-                val albumDeferred = async { repository.getAlbum(albumId, provider) }
-                val tracksDeferred = async { repository.getAlbumTracks(albumId, provider) }
-                val albumResult = albumDeferred.await()
-                val tracksResult = tracksDeferred.await()
-                val error = albumResult.exceptionOrNull() ?: tracksResult.exceptionOrNull()
-                if (error != null) {
-                    _uiState.value = AlbumDetailUiState.Error(error.message ?: "Unknown error")
-                    return@supervisorScope
-                }
-                val loadedAlbum = albumResult.getOrThrow()
-                val loadedTracks = tracksResult.getOrDefault(emptyList())
-                val localTracks = loadLocalTracks(loadedAlbum)
-                val mergedTracks = loadedTracks.mergeWithLocal(localTracks)
-                val resolvedTracks = if (isOfflineMode.value) {
-                    mergedTracks.filter { it.isLocal }
-                } else {
-                    mergedTracks
-                }
+            val tracksDeferred = async(Dispatchers.IO) {
+                repository.getAlbumTracksChunked(
+                    albumId,
+                    provider,
+                    0,
+                    INITIAL_TRACK_CHUNK_SIZE
+                )
+            }
+            val albumResult = albumDeferred.await()
+            albumResult.getOrNull()?.let { loadedAlbum ->
                 _album.value = loadedAlbum
-                tracks = resolvedTracks
-                prefetchArtistData(loadedAlbum)
-                _uiState.value = if (resolvedTracks.isEmpty()) {
-                    AlbumDetailUiState.Empty
-                } else {
-                    AlbumDetailUiState.Success(loadedAlbum, resolvedTracks)
+                if (_uiState.value is AlbumDetailUiState.Loading) {
+                    _uiState.value = AlbumDetailUiState.Metadata
+                }
+            }
+            val tracksResult = tracksDeferred.await()
+            val error = albumResult.exceptionOrNull() ?: tracksResult.exceptionOrNull()
+            if (error != null) {
+                if (cachedAlbum == null) {
+                    _uiState.value = AlbumDetailUiState.Error(error.message ?: "Unknown error")
+                }
+                return@supervisorScope
+            }
+            val loadedAlbum = albumResult.getOrThrow()
+            val loadedTracks = tracksResult.getOrDefault(emptyList())
+            localAlbumTracks = loadLocalTracks(loadedAlbum)
+            val cachedFullTracks = repository.getCachedAlbumTracks(albumId, provider)
+            remoteTracks = cachedFullTracks ?: loadedTracks
+            val mergedTracks = mergeWithLocalTracks(
+                loadedTracks,
+                localAlbumTracks,
+                appendUnmatchedLocal = false
+            )
+            tracks = mergedTracks
+            val totalCount = cachedFullTracks?.size ?: loadedTracks.size
+            currentOffset = mergedTracks.size
+            hasMoreTracks = totalCount > mergedTracks.size
+            isLoadingMoreTracks = false
+            prefetchArtistData(loadedAlbum)
+            _uiState.value = if (mergedTracks.isEmpty()) {
+                AlbumDetailUiState.Empty
+            } else {
+                AlbumDetailUiState.Success(
+                    loadedAlbum,
+                    mergedTracks,
+                    hasMore = hasMoreTracks,
+                    isLoadingMore = false
+                )
+            }
+            performanceMonitor.markDetailFreshLoaded(
+                PerformanceMonitor.DetailType.ALBUM,
+                detailKey
+            )
+            if (!hasMoreTracks && mergedTracks.isNotEmpty()) {
+                val finalMerged = mergeWithLocalTracks(
+                    loadedTracks,
+                    localAlbumTracks,
+                    appendUnmatchedLocal = true
+                )
+                if (finalMerged != mergedTracks) {
+                    tracks = finalMerged
+                    _uiState.value = AlbumDetailUiState.Success(
+                        loadedAlbum,
+                        finalMerged,
+                        hasMore = false,
+                        isLoadingMore = false
+                    )
+                }
+                performanceMonitor.markTrackListLoaded(
+                    PerformanceMonitor.DetailType.ALBUM,
+                    detailKey,
+                    finalMerged.size
+                )
+            }
+        }
+    }
+
+    fun loadMoreTracks() {
+        if (isOfflineMode.value || provider == OFFLINE_PROVIDER) return
+        if (albumId.isBlank() || provider.isBlank()) return
+        if (!hasMoreTracks || isLoadingMoreTracks) return
+        val currentAlbum = _album.value ?: return
+        isLoadingMoreTracks = true
+        updateLoadingMoreState(true, currentAlbum)
+        loadMoreJob?.cancel()
+        loadMoreJob = viewModelScope.launch {
+            try {
+                loadMoreTracksInternal(currentAlbum)
+            } finally {
+                isLoadingMoreTracks = false
+                updateLoadingMoreState(false, currentAlbum)
+            }
+        }
+    }
+
+    private suspend fun loadMoreTracksInternal(currentAlbum: Album) {
+        if (!hasMoreTracks) return
+        val detailKey = detailKey()
+        val result = repository.getAlbumTracksChunked(
+            albumId,
+            provider,
+            currentOffset,
+            SUBSEQUENT_CHUNK_SIZE
+        )
+        result.onSuccess { chunk ->
+            if (chunk.isEmpty()) {
+                hasMoreTracks = false
+            } else {
+                currentOffset += chunk.size
+                hasMoreTracks = chunk.size >= SUBSEQUENT_CHUNK_SIZE
+            }
+            val cachedFullTracks = repository.getCachedAlbumTracks(albumId, provider)
+            val fullTracks = cachedFullTracks ?: (remoteTracks + chunk)
+            remoteTracks = fullTracks
+            val mergedTracks = mergeWithLocalTracks(
+                fullTracks,
+                localAlbumTracks,
+                appendUnmatchedLocal = !hasMoreTracks
+            )
+            tracks = mergedTracks
+            _uiState.value = if (mergedTracks.isEmpty()) {
+                AlbumDetailUiState.Empty
+            } else {
+                AlbumDetailUiState.Success(
+                    currentAlbum,
+                    mergedTracks,
+                    hasMore = hasMoreTracks,
+                    isLoadingMore = false
+                )
+            }
+            if (!hasMoreTracks && mergedTracks.isNotEmpty()) {
+                performanceMonitor.markTrackListLoaded(
+                    PerformanceMonitor.DetailType.ALBUM,
+                    detailKey,
+                    mergedTracks.size
+                )
+            }
+        }.onFailure {
+            hasMoreTracks = false
+            _events.tryEmit(AlbumDetailUiEvent.ShowMessage(R.string.albums_error))
+        }
+    }
+
+    private fun updateLoadingMoreState(isLoading: Boolean, album: Album) {
+        val currentTracks = tracks
+        if (currentTracks.isEmpty()) return
+        _uiState.value = AlbumDetailUiState.Success(
+            album,
+            currentTracks,
+            hasMore = hasMoreTracks,
+            isLoadingMore = isLoading
+        )
+    }
+
+    private suspend fun mergeWithLocalTracks(
+        loadedTracks: List<Track>,
+        localTracks: List<Track>,
+        appendUnmatchedLocal: Boolean
+    ): List<Track> {
+        if (loadedTracks.isEmpty()) {
+            return if (appendUnmatchedLocal) localTracks else emptyList()
+        }
+        if (localTracks.isEmpty()) return loadedTracks
+        return replaceWithLocalMatches(
+            loadedTracks,
+            localTracks,
+            appendUnmatchedLocal
+        )
+    }
+
+    private suspend fun replaceWithLocalMatches(
+        loadedTracks: List<Track>,
+        localTracks: List<Track>,
+        appendUnmatchedLocal: Boolean
+    ): List<Track> = withContext(Dispatchers.Default) {
+        if (loadedTracks.isEmpty() || localTracks.isEmpty()) return@withContext loadedTracks
+        val localIndicesByKey = HashMap<String, ArrayDeque<Int>>(localTracks.size)
+        val usedLocal = BooleanArray(localTracks.size)
+        localTracks.forEachIndexed { index, track ->
+            if (index % MERGE_BATCH_SIZE == 0) {
+                yield()
+            }
+            val key = trackMatchKey(track)
+            localIndicesByKey.getOrPut(key) { ArrayDeque() }.add(index)
+        }
+        val merged = ArrayList<Track>(loadedTracks.size + if (appendUnmatchedLocal) localTracks.size else 0)
+        for ((index, track) in loadedTracks.withIndex()) {
+            if (index % MERGE_BATCH_SIZE == 0) {
+                yield()
+            }
+            val queue = localIndicesByKey[trackMatchKey(track)]
+            val matchedIndex = if (queue != null && queue.isNotEmpty()) {
+                queue.removeFirst()
+            } else {
+                -1
+            }
+            if (matchedIndex >= 0) {
+                usedLocal[matchedIndex] = true
+                merged.add(localTracks[matchedIndex])
+            } else {
+                merged.add(track)
+            }
+        }
+        if (appendUnmatchedLocal) {
+            for (index in localTracks.indices) {
+                if (index % MERGE_BATCH_SIZE == 0) {
+                    yield()
+                }
+                if (!usedLocal[index]) {
+                    merged.add(localTracks[index])
                 }
             }
         }
+        merged
     }
 
     fun playAlbum(
@@ -155,7 +439,18 @@ class AlbumDetailViewModel @Inject constructor(
                     playLocalTracksUseCase(localTracks, localIndex, shuffleMode)
                 }
             } else {
-                playAlbumUseCase(albumId, provider, startIndex, forceStartIndex, shuffleMode)
+                val resolvedAlbumUri = _album.value?.uri?.takeIf { it.isNotBlank() }
+                    ?: repository.getCachedAlbum(albumId, provider)?.uri
+                val cachedTracks = remoteTracks.takeIf { it.isNotEmpty() }
+                playAlbumUseCase(
+                    albumId = albumId,
+                    provider = provider,
+                    startIndex = startIndex,
+                    forceStartIndex = forceStartIndex,
+                    shuffleMode = shuffleMode,
+                    tracksOverride = cachedTracks,
+                    albumUri = resolvedAlbumUri
+                )
             }
         }
     }
@@ -290,9 +585,12 @@ class AlbumDetailViewModel @Inject constructor(
     }
 
     private fun updateTrackFavoriteState(track: Track, isFavorite: Boolean) {
-        val currentAlbum = (uiState.value as? AlbumDetailUiState.Success)?.album
-            ?: album.value
-            ?: return
+        val currentState = uiState.value
+        val currentAlbum = when (currentState) {
+            is AlbumDetailUiState.Success -> currentState.album
+            is AlbumDetailUiState.Cached -> currentState.album
+            else -> album.value
+        } ?: return
         if (tracks.isEmpty()) return
         val updatedTracks = tracks.map { existing ->
             if (existing.itemId == track.itemId && existing.provider == track.provider) {
@@ -303,10 +601,24 @@ class AlbumDetailViewModel @Inject constructor(
         }
         if (updatedTracks == tracks) return
         tracks = updatedTracks
-        _uiState.value = AlbumDetailUiState.Success(currentAlbum, updatedTracks)
+        _uiState.value = when (currentState) {
+            is AlbumDetailUiState.Cached -> AlbumDetailUiState.Cached(
+                currentAlbum,
+                updatedTracks,
+                isRefreshing = currentState.isRefreshing
+            )
+            is AlbumDetailUiState.Success -> AlbumDetailUiState.Success(
+                currentAlbum,
+                updatedTracks,
+                hasMore = currentState.hasMore,
+                isLoadingMore = currentState.isLoadingMore
+            )
+            else -> AlbumDetailUiState.Success(currentAlbum, updatedTracks)
+        }
     }
 
     private suspend fun loadLocalTracks(album: Album): List<Track> {
+        if (localAlbumTracks.isNotEmpty()) return localAlbumTracks
         val albumName = album.name.trim()
         if (albumName.isBlank()) return emptyList()
         val artists = album.artists.map { it.trim() }.filter { it.isNotBlank() }
@@ -317,7 +629,9 @@ class AlbumDetailViewModel @Inject constructor(
                 localMediaRepository.getTracksByAlbum(albumName, artistName).first()
             )
         }
-        return localTracks.distinctBy { "${it.provider}:${it.itemId}" }
+        val resolvedTracks = localTracks.distinctBy { "${it.provider}:${it.itemId}" }
+        localAlbumTracks = resolvedTracks
+        return resolvedTracks
     }
 
     private suspend fun resolveLocalAlbum(): Album? {
@@ -364,9 +678,24 @@ class AlbumDetailViewModel @Inject constructor(
         }
     }
 
+    private fun trackMatchKey(track: Track): String {
+        return "${normalizeMatchKey(track.title)}::${normalizeMatchKey(track.artist)}::${normalizeMatchKey(track.album)}"
+    }
+
+    private fun normalizeMatchKey(value: String): String {
+        return value.trim().lowercase()
+    }
+
+    private fun detailKey(): String {
+        return "${albumId.trim()}:${provider.trim()}"
+    }
+
     private companion object {
         private const val PLAYLIST_LIST_LIMIT = 200
         private const val ARTIST_PREFETCH_LIMIT = 50
         private const val ALBUM_PREFETCH_LIMIT = 50
+        private const val INITIAL_TRACK_CHUNK_SIZE = 50
+        private const val SUBSEQUENT_CHUNK_SIZE = 150
+        private const val MERGE_BATCH_SIZE = 100
     }
 }

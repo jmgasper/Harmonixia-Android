@@ -98,6 +98,7 @@ fun PlaylistDetailScreen(
     val isRenaming by viewModel.isRenaming.collectAsStateWithLifecycle()
     val renameErrorMessageResId by viewModel.renameErrorMessageResId.collectAsStateWithLifecycle()
     val isOfflineMode by viewModel.isOfflineMode.collectAsStateWithLifecycle()
+    val imageQualityManager = viewModel.imageQualityManager
     val isFavoritesPlaylist = playlist?.itemId == "favorites" && playlist?.provider == "harmonixia"
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
@@ -212,7 +213,8 @@ fun PlaylistDetailScreen(
                                     displaySize = appBarArtworkSize,
                                     requestSize = appBarArtworkSize,
                                     cornerRadius = 8.dp,
-                                    useOptimizedDisplaySize = false
+                                    useOptimizedDisplaySize = false,
+                                    imageQualityManager = imageQualityManager
                                 )
                                 Spacer(modifier = Modifier.width(spacing.small))
                             }
@@ -293,6 +295,43 @@ fun PlaylistDetailScreen(
                     }
                 }
             }
+            PlaylistDetailUiState.Metadata -> {
+                PlaylistDetailContent(
+                    playlist = playlist,
+                    tracks = emptyList(),
+                    artworkSize = artworkSize,
+                    useWideLayout = useWideLayout,
+                    horizontalPadding = horizontalPadding,
+                    isVeryWide = isVeryWide,
+                    titleStyle = playlistTitleStyle,
+                    ownerStyle = ownerStyle,
+                    sectionHeaderStyle = sectionHeaderStyle,
+                    trackTitleStyle = trackTitleStyle,
+                    trackMetaStyle = trackMetaStyle,
+                    rowSpacing = if (isExpanded) 32.dp else 24.dp,
+                    listState = listState,
+                    isRefreshing = true,
+                    hasMore = false,
+                    isLoadingMore = false,
+                    onLoadMore = null,
+                    onPlayPlaylist = { viewModel.playPlaylistSequential() },
+                    onShufflePlaylist = { viewModel.shufflePlaylist() },
+                    onTrackClick = viewModel::playTrack,
+                    onAddToPlaylist = { track ->
+                        pendingTrack = track
+                        viewModel.refreshPlaylists()
+                        showPlaylistPicker = true
+                    },
+                    onAddToFavorites = viewModel::addTrackToFavorites,
+                    onRemoveFromFavorites = viewModel::removeTrackFromFavorites,
+                    onRemoveFromPlaylist = viewModel::removeTrackFromPlaylist,
+                    imageQualityManager = imageQualityManager,
+                    isInitialLoading = true,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(paddingValues)
+                )
+            }
             is PlaylistDetailUiState.Error -> {
                 val message = state.message.ifBlank {
                     stringResource(R.string.playlists_error)
@@ -335,7 +374,44 @@ fun PlaylistDetailScreen(
                         .fillMaxSize()
                         .padding(paddingValues),
                     onPlayPlaylist = { viewModel.playPlaylistSequential() },
-                    onShufflePlaylist = { viewModel.shufflePlaylist() }
+                    onShufflePlaylist = { viewModel.shufflePlaylist() },
+                    imageQualityManager = imageQualityManager
+                )
+            }
+            is PlaylistDetailUiState.Cached -> {
+                PlaylistDetailContent(
+                    playlist = playlist,
+                    tracks = state.tracks,
+                    artworkSize = artworkSize,
+                    useWideLayout = useWideLayout,
+                    horizontalPadding = horizontalPadding,
+                    isVeryWide = isVeryWide,
+                    titleStyle = playlistTitleStyle,
+                    ownerStyle = ownerStyle,
+                    sectionHeaderStyle = sectionHeaderStyle,
+                    trackTitleStyle = trackTitleStyle,
+                    trackMetaStyle = trackMetaStyle,
+                    rowSpacing = if (isExpanded) 32.dp else 24.dp,
+                    listState = listState,
+                    isRefreshing = state.isRefreshing,
+                    hasMore = false,
+                    isLoadingMore = false,
+                    onLoadMore = null,
+                    onPlayPlaylist = { viewModel.playPlaylistSequential() },
+                    onShufflePlaylist = { viewModel.shufflePlaylist() },
+                    onTrackClick = viewModel::playTrack,
+                    onAddToPlaylist = { track ->
+                        pendingTrack = track
+                        viewModel.refreshPlaylists()
+                        showPlaylistPicker = true
+                    },
+                    onAddToFavorites = viewModel::addTrackToFavorites,
+                    onRemoveFromFavorites = viewModel::removeTrackFromFavorites,
+                    onRemoveFromPlaylist = viewModel::removeTrackFromPlaylist,
+                    imageQualityManager = imageQualityManager,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(paddingValues)
                 )
             }
             is PlaylistDetailUiState.Success -> {
@@ -353,6 +429,10 @@ fun PlaylistDetailScreen(
                     trackMetaStyle = trackMetaStyle,
                     rowSpacing = if (isExpanded) 32.dp else 24.dp,
                     listState = listState,
+                    isRefreshing = false,
+                    hasMore = state.hasMore,
+                    isLoadingMore = state.isLoadingMore,
+                    onLoadMore = viewModel::loadMoreTracks,
                     onPlayPlaylist = { viewModel.playPlaylistSequential() },
                     onShufflePlaylist = { viewModel.shufflePlaylist() },
                     onTrackClick = viewModel::playTrack,
@@ -364,6 +444,7 @@ fun PlaylistDetailScreen(
                     onAddToFavorites = viewModel::addTrackToFavorites,
                     onRemoveFromFavorites = viewModel::removeTrackFromFavorites,
                     onRemoveFromPlaylist = viewModel::removeTrackFromPlaylist,
+                    imageQualityManager = imageQualityManager,
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(paddingValues)
@@ -466,6 +547,11 @@ private fun PlaylistDetailContent(
     trackMetaStyle: TextStyle?,
     rowSpacing: Dp,
     listState: LazyListState,
+    isRefreshing: Boolean,
+    isInitialLoading: Boolean = false,
+    hasMore: Boolean,
+    isLoadingMore: Boolean,
+    onLoadMore: (() -> Unit)?,
     onPlayPlaylist: () -> Unit,
     onShufflePlaylist: () -> Unit,
     onTrackClick: (Track) -> Unit,
@@ -473,6 +559,7 @@ private fun PlaylistDetailContent(
     onAddToFavorites: (Track) -> Unit,
     onRemoveFromFavorites: (Track) -> Unit,
     onRemoveFromPlaylist: (Track, Int) -> Unit,
+    imageQualityManager: ImageQualityManager,
     modifier: Modifier = Modifier
 ) {
     val spacing = rememberAdaptiveSpacing()
@@ -501,13 +588,22 @@ private fun PlaylistDetailContent(
                     onShufflePlaylist = onShufflePlaylist,
                     titleStyle = titleStyle,
                     ownerStyle = ownerStyle,
-                    rowSpacing = rowSpacing
+                    rowSpacing = rowSpacing,
+                    imageQualityManager = imageQualityManager
                 )
                 Spacer(modifier = Modifier.height(spacing.extraLarge))
-                Text(
-                    text = stringResource(R.string.playlist_detail_tracks),
-                    style = sectionHeaderStyle
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(spacing.small)
+                ) {
+                    Text(
+                        text = stringResource(R.string.playlist_detail_tracks),
+                        style = sectionHeaderStyle
+                    )
+                    if (isRefreshing) {
+                        CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
+                    }
+                }
                 Spacer(modifier = Modifier.height(spacing.medium))
             }
             if (tracks.isEmpty()) {
@@ -517,12 +613,25 @@ private fun PlaylistDetailContent(
                         .padding(horizontal = horizontalPadding, vertical = spacing.large),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(
-                        text = stringResource(R.string.playlist_detail_no_tracks),
-                        style = sectionHeaderStyle,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        textAlign = TextAlign.Center
-                    )
+                    if (isInitialLoading) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            CircularProgressIndicator(modifier = Modifier.size(24.dp))
+                            Spacer(modifier = Modifier.height(spacing.small))
+                            Text(
+                                text = stringResource(R.string.playlist_detail_loading_tracks),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                textAlign = TextAlign.Center
+                            )
+                        }
+                    } else {
+                        Text(
+                            text = stringResource(R.string.playlist_detail_no_tracks),
+                            style = sectionHeaderStyle,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = TextAlign.Center
+                        )
+                    }
                 }
             } else {
                 Row(
@@ -549,6 +658,9 @@ private fun PlaylistDetailContent(
                         trackSupportingTextStyle = trackMetaStyle,
                         trackMetadataTextStyle = trackMetaStyle,
                         indexProvider = indexProvider,
+                        hasMore = hasMore,
+                        isLoadingMore = isLoadingMore,
+                        onLoadMore = onLoadMore,
                         showEmptyState = false
                     )
                     TrackList(
@@ -568,6 +680,9 @@ private fun PlaylistDetailContent(
                         trackSupportingTextStyle = trackMetaStyle,
                         trackMetadataTextStyle = trackMetaStyle,
                         indexProvider = indexProvider,
+                        hasMore = hasMore,
+                        isLoadingMore = isLoadingMore,
+                        onLoadMore = onLoadMore,
                         showEmptyState = false
                     )
                 }
@@ -605,21 +720,58 @@ private fun PlaylistDetailContent(
                             ownerStyle = ownerStyle,
                             onPlayPlaylist = onPlayPlaylist,
                             onShufflePlaylist = onShufflePlaylist,
-                            artworkSize = artworkSize
+                            artworkSize = artworkSize,
+                            imageQualityManager = imageQualityManager
                         )
                     }
                     item { Spacer(modifier = Modifier.height(spacing.extraLarge)) }
                     item {
-                        Text(
-                            text = stringResource(R.string.playlist_detail_tracks),
-                            style = sectionHeaderStyle
-                        )
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(spacing.small)
+                        ) {
+                            Text(
+                                text = stringResource(R.string.playlist_detail_tracks),
+                                style = sectionHeaderStyle
+                            )
+                            if (isRefreshing) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(16.dp),
+                                    strokeWidth = 2.dp
+                                )
+                            }
+                        }
                     }
                     item { Spacer(modifier = Modifier.height(spacing.medium)) }
+                    if (isInitialLoading) {
+                        item {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = spacing.large),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                    CircularProgressIndicator(modifier = Modifier.size(24.dp))
+                                    Spacer(modifier = Modifier.height(spacing.small))
+                                    Text(
+                                        text = stringResource(R.string.playlist_detail_loading_tracks),
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        textAlign = TextAlign.Center
+                                    )
+                                }
+                            }
+                        }
+                    }
                 },
                 trackTitleTextStyle = trackTitleStyle,
                 trackSupportingTextStyle = trackMetaStyle,
-                trackMetadataTextStyle = trackMetaStyle
+                trackMetadataTextStyle = trackMetaStyle,
+                hasMore = hasMore,
+                isLoadingMore = isLoadingMore,
+                onLoadMore = onLoadMore,
+                showEmptyState = !isInitialLoading
             )
         }
     }
@@ -632,12 +784,12 @@ private fun PlaylistArtwork(
     requestSize: Dp = displaySize,
     cornerRadius: Dp,
     useOptimizedDisplaySize: Boolean = requestSize == displaySize,
+    imageQualityManager: ImageQualityManager,
     modifier: Modifier = Modifier
 ) {
     val placeholder = ColorPainter(MaterialTheme.colorScheme.surfaceVariant)
     val context = LocalContext.current
-    val qualityManager = remember(context) { ImageQualityManager(context) }
-    val optimizedRequestSize = qualityManager.getOptimalImageSize(requestSize)
+    val optimizedRequestSize = imageQualityManager.getOptimalImageSize(requestSize)
     val optimizedDisplaySize = if (useOptimizedDisplaySize) {
         optimizedRequestSize
     } else {
@@ -648,8 +800,13 @@ private fun PlaylistArtwork(
     val entryPoint = remember(context) {
         EntryPointAccessors.fromApplication(context, PlaylistCoverEntryPoint::class.java)
     }
-    val generator = remember(context) {
-        PlaylistCoverGenerator(context, entryPoint.repository(), entryPoint.imageLoader())
+    val generator = remember(context, imageQualityManager) {
+        PlaylistCoverGenerator(
+            context,
+            entryPoint.repository(),
+            entryPoint.imageLoader(),
+            imageQualityManager
+        )
     }
     val coverPath by produceState<String?>(
         initialValue = null,
@@ -668,7 +825,7 @@ private fun PlaylistArtwork(
     val imageRequest = ImageRequest.Builder(context)
         .data(imageData)
         .size(sizePx)
-        .bitmapConfig(qualityManager.getOptimalBitmapConfig())
+        .bitmapConfig(imageQualityManager.getOptimalBitmapConfig())
         .build()
 
     AsyncImage(
@@ -692,6 +849,7 @@ private fun PlaylistDetails(
     onPlayPlaylist: () -> Unit,
     onShufflePlaylist: () -> Unit,
     artworkSize: Dp,
+    imageQualityManager: ImageQualityManager,
     modifier: Modifier = Modifier
 ) {
     val spacing = rememberAdaptiveSpacing()
@@ -710,7 +868,8 @@ private fun PlaylistDetails(
             playlist = playlist,
             displaySize = artworkSize,
             requestSize = artworkSize,
-            cornerRadius = 20.dp
+            cornerRadius = 20.dp,
+            imageQualityManager = imageQualityManager
         )
         Text(
             text = playlistTitle,
@@ -782,6 +941,7 @@ private fun PlaylistDetailEmptyContent(
     rowSpacing: Dp,
     onPlayPlaylist: () -> Unit,
     onShufflePlaylist: () -> Unit,
+    imageQualityManager: ImageQualityManager,
     modifier: Modifier = Modifier
 ) {
     val spacing = rememberAdaptiveSpacing()
@@ -800,7 +960,8 @@ private fun PlaylistDetailEmptyContent(
             onShufflePlaylist = onShufflePlaylist,
             titleStyle = titleStyle,
             ownerStyle = ownerStyle,
-            rowSpacing = rowSpacing
+            rowSpacing = rowSpacing,
+            imageQualityManager = imageQualityManager
         )
         Spacer(modifier = Modifier.height(spacing.extraLarge))
         Text(
@@ -837,6 +998,7 @@ private fun PlaylistHeader(
     titleStyle: TextStyle,
     ownerStyle: TextStyle,
     rowSpacing: Dp,
+    imageQualityManager: ImageQualityManager,
     modifier: Modifier = Modifier
 ) {
     val spacing = rememberAdaptiveSpacing()
@@ -856,7 +1018,8 @@ private fun PlaylistHeader(
                 playlist = playlist,
                 displaySize = artworkSize,
                 requestSize = artworkSize,
-                cornerRadius = 20.dp
+                cornerRadius = 20.dp,
+                imageQualityManager = imageQualityManager
             )
             Column(
                 modifier = Modifier.weight(1f),
@@ -922,7 +1085,8 @@ private fun PlaylistHeader(
                 playlist = playlist,
                 displaySize = artworkSize,
                 requestSize = artworkSize,
-                cornerRadius = 20.dp
+                cornerRadius = 20.dp,
+                imageQualityManager = imageQualityManager
             )
             Text(
                 text = playlistTitle,

@@ -53,6 +53,7 @@ import com.harmonixia.android.ui.components.OfflineModeBanner
 import com.harmonixia.android.ui.navigation.MainScaffoldActions
 import com.harmonixia.android.ui.screens.settings.SettingsTab
 import com.harmonixia.android.ui.theme.rememberAdaptiveSpacing
+import com.harmonixia.android.util.ImageQualityManager
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -64,6 +65,7 @@ fun HomeScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val isRefreshing by viewModel.isRefreshing.collectAsStateWithLifecycle()
     val isOfflineMode by viewModel.isOfflineMode.collectAsStateWithLifecycle()
+    val imageQualityManager = viewModel.imageQualityManager
 
     val windowSizeClass = calculateWindowSizeClass(activity = LocalContext.current as Activity)
     val configuration = LocalConfiguration.current
@@ -276,6 +278,7 @@ fun HomeScreen(
                                         bodyStyle = sectionBodyStyle,
                                         isOfflineMode = isOfflineMode,
                                         onAlbumClick = onAlbumClick,
+                                        imageQualityManager = imageQualityManager,
                                         modifier = Modifier.weight(1f)
                                     )
                                     HomeAlbumSection(
@@ -289,6 +292,7 @@ fun HomeScreen(
                                         bodyStyle = sectionBodyStyle,
                                         isOfflineMode = isOfflineMode,
                                         onAlbumClick = onAlbumClick,
+                                        imageQualityManager = imageQualityManager,
                                         modifier = Modifier.weight(1f)
                                     )
                                 }
@@ -306,6 +310,7 @@ fun HomeScreen(
                                     bodyStyle = sectionBodyStyle,
                                     isOfflineMode = isOfflineMode,
                                     onAlbumClick = onAlbumClick,
+                                    imageQualityManager = imageQualityManager,
                                     modifier = Modifier.fillMaxWidth()
                                 )
                             }
@@ -321,6 +326,7 @@ fun HomeScreen(
                                     bodyStyle = sectionBodyStyle,
                                     isOfflineMode = isOfflineMode,
                                     onAlbumClick = onAlbumClick,
+                                    imageQualityManager = imageQualityManager,
                                     modifier = Modifier.fillMaxWidth()
                                 )
                             }
@@ -344,6 +350,7 @@ private fun HomeAlbumSection(
     bodyStyle: androidx.compose.ui.text.TextStyle,
     isOfflineMode: Boolean,
     onAlbumClick: (Album) -> Unit,
+    imageQualityManager: ImageQualityManager,
     modifier: Modifier = Modifier
 ) {
     val spacing = rememberAdaptiveSpacing()
@@ -368,6 +375,7 @@ private fun HomeAlbumSection(
                 artworkSize = artworkSize,
                 contentPadding = PaddingValues(0.dp),
                 isOfflineMode = isOfflineMode,
+                imageQualityManager = imageQualityManager,
                 modifier = Modifier.heightIn(max = gridMaxHeight)
             )
         }

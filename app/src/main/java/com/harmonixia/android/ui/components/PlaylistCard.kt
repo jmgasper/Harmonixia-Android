@@ -55,6 +55,7 @@ fun PlaylistCard(
     gridArtworkSize: Dp = 150.dp,
     onLongClick: (() -> Unit)? = null,
     placeholderIcon: ImageVector = Icons.Outlined.QueueMusic,
+    imageQualityManager: ImageQualityManager,
     modifier: Modifier = Modifier
 ) {
     val interactionModifier = if (onLongClick != null) {
@@ -72,12 +73,14 @@ fun PlaylistCard(
             PlaylistGridContent(
                 playlist = playlist,
                 artworkSize = gridArtworkSize,
-                placeholderIcon = placeholderIcon
+                placeholderIcon = placeholderIcon,
+                imageQualityManager = imageQualityManager
             )
         } else {
             PlaylistListContent(
                 playlist = playlist,
-                placeholderIcon = placeholderIcon
+                placeholderIcon = placeholderIcon,
+                imageQualityManager = imageQualityManager
             )
         }
     }
@@ -88,6 +91,7 @@ private fun PlaylistGridContent(
     playlist: Playlist,
     artworkSize: Dp,
     placeholderIcon: ImageVector,
+    imageQualityManager: ImageQualityManager,
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -99,7 +103,8 @@ private fun PlaylistGridContent(
         PlaylistArtwork(
             playlist = playlist,
             size = artworkSize,
-            placeholderIcon = placeholderIcon
+            placeholderIcon = placeholderIcon,
+            imageQualityManager = imageQualityManager
         )
         Spacer(modifier = Modifier.height(8.dp))
         Text(
@@ -128,6 +133,7 @@ private fun PlaylistGridContent(
 private fun PlaylistListContent(
     playlist: Playlist,
     placeholderIcon: ImageVector,
+    imageQualityManager: ImageQualityManager,
     modifier: Modifier = Modifier
 ) {
     Row(
@@ -140,7 +146,8 @@ private fun PlaylistListContent(
         PlaylistArtwork(
             playlist = playlist,
             size = 56.dp,
-            placeholderIcon = placeholderIcon
+            placeholderIcon = placeholderIcon,
+            imageQualityManager = imageQualityManager
         )
         Column(
             modifier = Modifier.weight(1f),
@@ -173,18 +180,23 @@ private fun PlaylistArtwork(
     playlist: Playlist,
     size: Dp,
     placeholderIcon: ImageVector = Icons.Outlined.QueueMusic,
+    imageQualityManager: ImageQualityManager,
     modifier: Modifier = Modifier
 ) {
     val placeholder = ColorPainter(MaterialTheme.colorScheme.surfaceVariant)
     val context = LocalContext.current
-    val qualityManager = remember(context) { ImageQualityManager(context) }
-    val optimizedSize = qualityManager.getOptimalImageSize(size)
+    val optimizedSize = imageQualityManager.getOptimalImageSize(size)
     val sizePx = with(LocalDensity.current) { optimizedSize.roundToPx() }
     val entryPoint = remember(context) {
         EntryPointAccessors.fromApplication(context, PlaylistCoverEntryPoint::class.java)
     }
-    val generator = remember(context) {
-        PlaylistCoverGenerator(context, entryPoint.repository(), entryPoint.imageLoader())
+    val generator = remember(context, imageQualityManager) {
+        PlaylistCoverGenerator(
+            context,
+            entryPoint.repository(),
+            entryPoint.imageLoader(),
+            imageQualityManager
+        )
     }
     val coverPath by produceState<String?>(
         initialValue = null,
@@ -218,7 +230,7 @@ private fun PlaylistArtwork(
         val imageRequest = ImageRequest.Builder(context)
             .data(imageData)
             .size(sizePx)
-            .bitmapConfig(qualityManager.getOptimalBitmapConfig())
+            .bitmapConfig(imageQualityManager.getOptimalBitmapConfig())
             .build()
         AsyncImage(
             model = imageRequest,

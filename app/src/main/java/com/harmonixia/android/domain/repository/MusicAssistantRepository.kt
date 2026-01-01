@@ -24,15 +24,38 @@ interface MusicAssistantRepository {
     suspend fun fetchArtists(limit: Int, offset: Int): Result<List<Artist>>
     suspend fun fetchPlaylists(limit: Int, offset: Int): Result<List<Playlist>>
     suspend fun fetchRecentlyPlayed(limit: Int): Result<List<Album>>
+    suspend fun fetchRecentlyPlayedPlaylists(limit: Int): Result<List<Playlist>>
     suspend fun fetchRecentlyAdded(limit: Int): Result<List<Album>>
     suspend fun getAlbum(itemId: String, provider: String): Result<Album>
+    fun getCachedAlbum(itemId: String, provider: String): Album?
+    fun getCachedPlaylist(itemId: String, provider: String): Playlist?
+    fun getCachedAlbumTracks(albumId: String, provider: String): List<Track>?
+    fun getCachedPlaylistTracks(playlistId: String, provider: String): List<Track>?
     suspend fun searchLibrary(query: String, limit: Int): Result<SearchResults>
     suspend fun getAlbumTracks(albumId: String, provider: String): Result<List<Track>>
+    suspend fun getAlbumTracksChunked(
+        albumId: String,
+        provider: String,
+        offset: Int,
+        limit: Int
+    ): Result<List<Track>>
     suspend fun getPlaylistTracks(playlistId: String, provider: String): Result<List<Track>>
+    suspend fun getPlaylistTracksChunked(
+        playlistId: String,
+        provider: String,
+        offset: Int,
+        limit: Int
+    ): Result<List<Track>>
     suspend fun getPlaylist(playlistId: String, provider: String): Result<Playlist>
     suspend fun fetchPlayers(): Result<List<Player>>
     suspend fun getActiveQueue(playerId: String, includeItems: Boolean = true): Result<Queue?>
     suspend fun playMedia(queueId: String, mediaUris: List<String>, option: QueueOption): Result<Unit>
+    suspend fun playMediaItem(
+        queueId: String,
+        media: String,
+        option: QueueOption,
+        startItem: String? = null
+    ): Result<Unit>
     suspend fun playIndex(queueId: String, index: Int): Result<Unit>
     suspend fun pauseQueue(queueId: String): Result<Unit>
     suspend fun resumeQueue(queueId: String): Result<Unit>

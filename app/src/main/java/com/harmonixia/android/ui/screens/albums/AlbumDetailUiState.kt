@@ -5,10 +5,19 @@ import com.harmonixia.android.domain.model.Track
 
 sealed interface AlbumDetailUiState {
     object Loading : AlbumDetailUiState
+    object Metadata : AlbumDetailUiState
+
+    data class Cached(
+        val album: Album,
+        val tracks: List<Track>,
+        val isRefreshing: Boolean = false
+    ) : AlbumDetailUiState
 
     data class Success(
         val album: Album,
-        val tracks: List<Track>
+        val tracks: List<Track>,
+        val hasMore: Boolean = false,
+        val isLoadingMore: Boolean = false
     ) : AlbumDetailUiState
 
     data class Error(

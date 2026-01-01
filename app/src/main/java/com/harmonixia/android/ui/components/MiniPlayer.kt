@@ -82,6 +82,7 @@ fun SharedTransitionScope.MiniPlayer(
     controlsEnabled: Boolean = true,
     isExpandedLayout: Boolean = false,
     enableSharedArtworkTransition: Boolean = true,
+    imageQualityManager: ImageQualityManager,
     modifier: Modifier = Modifier
 ) {
     val progress = if (playbackInfo.duration > 0L) {
@@ -110,13 +111,12 @@ fun SharedTransitionScope.MiniPlayer(
     val context = LocalContext.current
     val qualityLabel = formatTrackQualityLabel(playbackInfo.quality, context::getString)
     val playerName = getPlayerDisplayName(selectedPlayer, context, localPlayerId)
-    val qualityManager = remember(context) { ImageQualityManager(context) }
-    val optimizedSize = qualityManager.getOptimalImageSize(artworkSize)
+    val optimizedSize = imageQualityManager.getOptimalImageSize(artworkSize)
     val sizePx = with(LocalDensity.current) { optimizedSize.roundToPx() }
     val artworkRequest = ImageRequest.Builder(context)
         .data(playbackInfo.artworkUrl)
         .size(sizePx)
-        .bitmapConfig(qualityManager.getOptimalBitmapConfig())
+        .bitmapConfig(imageQualityManager.getOptimalBitmapConfig())
         .build()
     val baseArtworkModifier = Modifier
         .size(optimizedSize)

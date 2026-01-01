@@ -19,7 +19,6 @@ import com.harmonixia.android.util.EXTRA_STREAM_URI
 import com.harmonixia.android.util.EXTRA_TRACK_QUALITY
 import com.harmonixia.android.util.Logger
 import com.harmonixia.android.util.matchesLocal
-import com.harmonixia.android.util.toPlaybackMediaItem
 import java.io.File
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
@@ -38,6 +37,8 @@ class QueueManager(
     private var lastMediaItemId: String? = null
     private var lastLocalResolutionMediaId: String? = null
     private var retainQueueUntilMs: Long = 0L
+    private var optimisticCurrentIndex: Int? = null
+    private var optimisticIndexSetAtMs: Long = 0L
 
     private val playerListener = object : Player.Listener {
         override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
@@ -76,22 +77,6 @@ class QueueManager(
             playedInShuffleSession.clear()
         }
         isShuffleActive = shuffle
-    }
-
-    fun seedQueue(track: Track, retainMs: Long = DEFAULT_QUEUE_SEED_RETENTION_MS) {
-        resetLocalResolutionState()
-        val mediaItem = track.toPlaybackMediaItem()
-        queueItems.clear()
-        queueItems.add(mediaItem)
-        currentIndex = 0
-        player?.setMediaItems(queueItems, currentIndex, C.TIME_UNSET)
-        player?.prepare()
-        if (retainMs > 0L) {
-            val until = SystemClock.elapsedRealtime() + retainMs
-            if (until > retainQueueUntilMs) {
-                retainQueueUntilMs = until
-            }
-        }
     }
 
     suspend fun buildMediaItem(track: Track, resolveLocal: Boolean = false): MediaItem {
@@ -144,6 +129,7 @@ class QueueManager(
             val currentItem = queue.currentItem
             if (currentItem != null) {
                 resetLocalResolutionState()
+                clearOptimisticIndex()
                 val mediaItem = buildMediaItem(currentItem, resolveLocal = false)
                 queueItems.clear()
                 queueItems.add(mediaItem)
@@ -157,6 +143,7 @@ class QueueManager(
                 return
             }
             resetLocalResolutionState()
+            clearOptimisticIndex()
             queueItems.clear()
             currentIndex = 0
             player?.clearMediaItems()
@@ -166,7 +153,18 @@ class QueueManager(
         clearRetention()
         val changed = items.size != queueItems.size ||
             items.map { it.mediaId } != queueItems.map { it.mediaId }
-        currentIndex = queue.currentIndex.coerceAtLeast(0).coerceAtMost(items.lastIndex)
+        val remoteIndex = queue.currentIndex.coerceAtLeast(0).coerceAtMost(items.lastIndex)
+        val optimisticIndex = optimisticCurrentIndex
+            ?.coerceAtLeast(0)
+            ?.coerceAtMost(items.lastIndex)
+        val withinOptimisticWindow = optimisticIndex != null &&
+            SystemClock.elapsedRealtime() - optimisticIndexSetAtMs < OPTIMISTIC_INDEX_RETENTION_MS
+        val useOptimisticIndex = withinOptimisticWindow && !changed
+        if (!withinOptimisticWindow || changed) {
+            clearOptimisticIndex()
+        }
+        val resolvedIndex = if (useOptimisticIndex) optimisticIndex ?: remoteIndex else remoteIndex
+        currentIndex = resolvedIndex
         if (changed) {
             resetLocalResolutionState()
             queueItems.clear()
@@ -190,8 +188,14 @@ class QueueManager(
         queueItems.clear()
         queueItems.addAll(mediaItems)
         currentIndex = startIndex.coerceAtLeast(0)
+        optimisticCurrentIndex = currentIndex
+        optimisticIndexSetAtMs = SystemClock.elapsedRealtime()
         player?.setMediaItems(queueItems, currentIndex, startPositionMs)
         player?.prepare()
+        val until = SystemClock.elapsedRealtime() + DEFAULT_QUEUE_SEED_RETENTION_MS
+        if (until > retainQueueUntilMs) {
+            retainQueueUntilMs = until
+        }
     }
 
     fun addMediaItems(mediaItems: List<MediaItem>) {
@@ -244,6 +248,7 @@ class QueueManager(
     suspend fun clearQueue(): Result<Unit> {
         val queueId = queueId ?: return Result.failure(IllegalStateException("Queue ID unavailable"))
         resetLocalResolutionState()
+        clearOptimisticIndex()
         queueItems.clear()
         player?.clearMediaItems()
         return repository.clearQueue(queueId)
@@ -356,8 +361,14 @@ class QueueManager(
         lastLocalResolutionMediaId = null
     }
 
+    private fun clearOptimisticIndex() {
+        optimisticCurrentIndex = null
+        optimisticIndexSetAtMs = 0L
+    }
+
     companion object {
         private const val TAG = "QueueManager"
         private const val DEFAULT_QUEUE_SEED_RETENTION_MS = 60_000L
+        private const val OPTIMISTIC_INDEX_RETENTION_MS = 3_000L
     }
 }

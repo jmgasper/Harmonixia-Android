@@ -6,6 +6,7 @@ import com.harmonixia.android.data.remote.ConnectionState
 import com.harmonixia.android.domain.repository.LocalMediaRepository
 import com.harmonixia.android.domain.repository.MusicAssistantRepository
 import com.harmonixia.android.domain.usecase.GetConnectionStateUseCase
+import com.harmonixia.android.util.ImageQualityManager
 import com.harmonixia.android.util.NetworkConnectivityManager
 import com.harmonixia.android.util.PrefetchScheduler
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -27,7 +28,8 @@ class HomeViewModel @Inject constructor(
     private val localMediaRepository: LocalMediaRepository,
     getConnectionStateUseCase: GetConnectionStateUseCase,
     private val networkConnectivityManager: NetworkConnectivityManager,
-    private val prefetchScheduler: PrefetchScheduler
+    private val prefetchScheduler: PrefetchScheduler,
+    val imageQualityManager: ImageQualityManager
 ) : ViewModel() {
     val connectionState: StateFlow<ConnectionState> = getConnectionStateUseCase()
     val isOfflineMode: StateFlow<Boolean> = networkConnectivityManager.networkAvailabilityFlow

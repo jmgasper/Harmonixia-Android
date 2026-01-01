@@ -81,6 +81,7 @@ fun ArtistDetailScreen(
     val artist by viewModel.artist.collectAsStateWithLifecycle()
     val playlists by viewModel.playlists.collectAsStateWithLifecycle()
     val isOfflineMode by viewModel.isOfflineMode.collectAsStateWithLifecycle()
+    val imageQualityManager = viewModel.imageQualityManager
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
 
@@ -259,6 +260,7 @@ fun ArtistDetailScreen(
                         viewModel.refreshPlaylists()
                         showPlaylistPicker = true
                     },
+                    imageQualityManager = imageQualityManager,
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(paddingValues)
@@ -283,6 +285,7 @@ fun ArtistDetailScreen(
                         viewModel.refreshPlaylists()
                         showPlaylistPicker = true
                     },
+                    imageQualityManager = imageQualityManager,
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(paddingValues)
@@ -338,6 +341,7 @@ private fun ArtistDetailContent(
     metaStyle: androidx.compose.ui.text.TextStyle,
     onAlbumClick: (Album) -> Unit,
     onAlbumLongClick: (Album) -> Unit,
+    imageQualityManager: ImageQualityManager,
     modifier: Modifier = Modifier
 ) {
     val spacing = rememberAdaptiveSpacing()
@@ -350,7 +354,8 @@ private fun ArtistDetailContent(
             avatarSize = avatarSize,
             horizontalPadding = horizontalPadding,
             titleStyle = titleStyle,
-            metaStyle = metaStyle
+            metaStyle = metaStyle,
+            imageQualityManager = imageQualityManager
         )
         Spacer(modifier = Modifier.height(spacing.large))
         if (albums.isEmpty()) {
@@ -377,6 +382,7 @@ private fun ArtistDetailContent(
                 artworkSize = artworkSize,
                 contentPadding = gridPadding,
                 isOfflineMode = isOfflineMode,
+                imageQualityManager = imageQualityManager,
                 modifier = Modifier.weight(1f)
             )
         }
@@ -391,13 +397,13 @@ private fun ArtistHeader(
     horizontalPadding: Dp,
     titleStyle: androidx.compose.ui.text.TextStyle,
     metaStyle: androidx.compose.ui.text.TextStyle,
+    imageQualityManager: ImageQualityManager,
     modifier: Modifier = Modifier
 ) {
     val spacing = rememberAdaptiveSpacing()
     val placeholder = ColorPainter(MaterialTheme.colorScheme.surfaceVariant)
     val context = LocalContext.current
-    val qualityManager = remember(context) { ImageQualityManager(context) }
-    val optimizedSize = qualityManager.getOptimalImageSize(avatarSize)
+    val optimizedSize = imageQualityManager.getOptimalImageSize(avatarSize)
     val sizePx = with(LocalDensity.current) { optimizedSize.roundToPx() }
     val name = artist?.name?.ifBlank {
         stringResource(R.string.artist_detail_title)
@@ -406,7 +412,7 @@ private fun ArtistHeader(
     val imageRequest = ImageRequest.Builder(context)
         .data(imageUrl)
         .size(sizePx)
-        .bitmapConfig(qualityManager.getOptimalBitmapConfig())
+        .bitmapConfig(imageQualityManager.getOptimalBitmapConfig())
         .build()
     Column(
         modifier = modifier

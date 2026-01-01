@@ -23,10 +23,9 @@ import okio.sink
 class PlaylistCoverGenerator(
     private val context: Context,
     private val repository: MusicAssistantRepository,
-    private val imageLoader: ImageLoader
+    private val imageLoader: ImageLoader,
+    private val imageQualityManager: ImageQualityManager
 ) {
-    private val qualityManager = ImageQualityManager(context)
-
     suspend fun getCoverPath(playlist: Playlist, sizePx: Int): String? = withContext(Dispatchers.IO) {
         val diskCache = imageLoader.diskCache ?: return@withContext null
         val tracksResult = repository.getPlaylistTracks(playlist.itemId, playlist.provider)
@@ -71,7 +70,7 @@ class PlaylistCoverGenerator(
         val request = ImageRequest.Builder(context)
             .data(url)
             .size(sizePx)
-            .bitmapConfig(qualityManager.getOptimalBitmapConfig())
+            .bitmapConfig(imageQualityManager.getOptimalBitmapConfig())
             .build()
         val result = imageLoader.execute(request)
         val image = (result as? SuccessResult)?.image ?: return null

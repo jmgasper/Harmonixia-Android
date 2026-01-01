@@ -15,15 +15,19 @@ fun Track.matchesLocal(other: Track): Boolean {
 @JvmName("mergeTracksWithLocal")
 fun List<Track>.mergeWithLocal(localTracks: List<Track>): List<Track> {
     if (localTracks.isEmpty()) return this
+    val localIndicesByKey = HashMap<String, ArrayDeque<Int>>(localTracks.size)
+    localTracks.forEachIndexed { index, track ->
+        val key = trackMatchKey(track)
+        localIndicesByKey.getOrPut(key) { ArrayDeque() }.add(index)
+    }
     val usedLocal = BooleanArray(localTracks.size)
     val merged = ArrayList<Track>(size + localTracks.size)
     for (track in this) {
-        var matchedIndex = -1
-        for (index in localTracks.indices) {
-            if (!usedLocal[index] && track.matchesLocal(localTracks[index])) {
-                matchedIndex = index
-                break
-            }
+        val queue = localIndicesByKey[trackMatchKey(track)]
+        val matchedIndex = if (queue != null && queue.isNotEmpty()) {
+            queue.removeFirst()
+        } else {
+            -1
         }
         if (matchedIndex >= 0) {
             usedLocal[matchedIndex] = true
@@ -106,6 +110,10 @@ val Track.isLocal: Boolean
 private fun albumMatchKey(album: Album): String {
     val artist = album.artists.firstOrNull().orEmpty()
     return "${normalizeMatchKey(album.name)}::${normalizeMatchKey(artist)}"
+}
+
+private fun trackMatchKey(track: Track): String {
+    return "${normalizeMatchKey(track.title)}::${normalizeMatchKey(track.artist)}::${normalizeMatchKey(track.album)}"
 }
 
 private fun artistMatchKey(artist: Artist): String {

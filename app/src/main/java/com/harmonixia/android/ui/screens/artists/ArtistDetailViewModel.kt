@@ -12,6 +12,7 @@ import com.harmonixia.android.domain.repository.OfflineLibraryRepository
 import com.harmonixia.android.domain.repository.MusicAssistantRepository
 import com.harmonixia.android.domain.usecase.PlayAlbumUseCase
 import com.harmonixia.android.ui.navigation.Screen
+import com.harmonixia.android.util.ImageQualityManager
 import com.harmonixia.android.util.NetworkConnectivityManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
@@ -41,7 +42,8 @@ class ArtistDetailViewModel @Inject constructor(
     private val offlineLibraryRepository: OfflineLibraryRepository,
     private val playAlbumUseCase: PlayAlbumUseCase,
     private val networkConnectivityManager: NetworkConnectivityManager,
-    savedStateHandle: SavedStateHandle
+    savedStateHandle: SavedStateHandle,
+    val imageQualityManager: ImageQualityManager
 ) : ViewModel() {
     private val artistId: String =
         savedStateHandle.get<String>(Screen.ArtistDetail.ARG_ARTIST_ID).orEmpty()
@@ -140,7 +142,11 @@ class ArtistDetailViewModel @Inject constructor(
 
     fun playAlbum(album: Album) {
         viewModelScope.launch {
-            playAlbumUseCase(album.itemId, album.provider)
+            playAlbumUseCase(
+                albumId = album.itemId,
+                provider = album.provider,
+                albumUri = album.uri
+            )
         }
     }
 

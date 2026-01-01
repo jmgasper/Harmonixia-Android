@@ -19,6 +19,7 @@ import com.harmonixia.android.domain.model.Track
 import com.harmonixia.android.domain.repository.MusicAssistantRepository
 import com.harmonixia.android.util.Logger
 import com.harmonixia.android.util.NetworkError
+import com.harmonixia.android.util.PerformanceMonitor
 import com.harmonixia.android.util.toNetworkError
 import java.io.IOException
 import java.net.ConnectException
@@ -28,9 +29,12 @@ import java.net.URLEncoder
 import java.util.Locale
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
@@ -54,10 +58,50 @@ import okhttp3.RequestBody.Companion.toRequestBody
 class MusicAssistantRepositoryImpl @Inject constructor(
     private val webSocketClient: MusicAssistantWebSocketClient,
     private val okHttpClient: OkHttpClient,
-    private val json: Json
+    private val json: Json,
+    private val performanceMonitor: PerformanceMonitor
 ) : MusicAssistantRepository {
     private var cachedServerUrl: String? = null
     private var cachedAuthToken: String? = null
+    private val cacheLock = Any()
+    private val albumCache = object : LinkedHashMap<String, Album>(ALBUM_CACHE_SIZE, 0.75f, true) {
+        override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, Album>): Boolean {
+            return size > ALBUM_CACHE_SIZE
+        }
+    }
+    private val playlistCache =
+        object : LinkedHashMap<String, Playlist>(PLAYLIST_CACHE_SIZE, 0.75f, true) {
+            override fun removeEldestEntry(
+                eldest: MutableMap.MutableEntry<String, Playlist>
+            ): Boolean {
+                return size > PLAYLIST_CACHE_SIZE
+            }
+        }
+    private val albumTracksCache =
+        object : LinkedHashMap<String, List<Track>>(TRACKS_CACHE_SIZE, 0.75f, true) {
+            override fun removeEldestEntry(
+                eldest: MutableMap.MutableEntry<String, List<Track>>
+            ): Boolean {
+                return size > TRACKS_CACHE_SIZE
+            }
+        }
+    private val playlistTracksCache =
+        object : LinkedHashMap<String, List<Track>>(TRACKS_CACHE_SIZE, 0.75f, true) {
+            override fun removeEldestEntry(
+                eldest: MutableMap.MutableEntry<String, List<Track>>
+            ): Boolean {
+                return size > TRACKS_CACHE_SIZE
+            }
+        }
+    private val cacheScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
+    init {
+        cacheScope.launch {
+            webSocketClient.events.collect { event ->
+                invalidateCachesForEvent(event)
+            }
+        }
+    }
 
     override suspend fun connect(serverUrl: String, authToken: String): Result<Unit> {
         cachedServerUrl = serverUrl
@@ -187,6 +231,35 @@ class MusicAssistantRepositoryImpl @Inject constructor(
         }
     }
 
+    override suspend fun fetchRecentlyPlayedPlaylists(limit: Int): Result<List<Playlist>> {
+        return runCatching {
+            val result = webSocketClient.sendRequest(
+                ApiCommand.MUSIC_RECENTLY_PLAYED,
+                mapOf(
+                    "limit" to limit,
+                    "media_types" to listOf("playlist")
+                )
+            ).getOrThrow()
+            val playlists = mutableListOf<Playlist>()
+            var attempted = 0
+            var lastFailure: Throwable? = null
+            extractItems(result).forEach { item ->
+                val itemId = item.stringOrEmpty("item_id")
+                val provider = item.stringOrEmpty("provider")
+                if (itemId.isBlank() || provider.isBlank()) return@forEach
+                attempted += 1
+                getPlaylist(itemId, provider)
+                    .onSuccess { playlists.add(it) }
+                    .onFailure { lastFailure = it }
+            }
+            val trimmed = if (limit > 0) playlists.take(limit) else playlists
+            if (attempted > 0 && trimmed.isEmpty()) {
+                throw lastFailure ?: IllegalStateException("Failed to load recently played playlists.")
+            }
+            trimmed
+        }
+    }
+
     override suspend fun fetchRecentlyAdded(limit: Int): Result<List<Album>> {
         return runCatching {
             val result = webSocketClient.sendRequest(
@@ -211,8 +284,41 @@ class MusicAssistantRepositoryImpl @Inject constructor(
                 Logger.w(TAG, "Unexpected album response: $result")
                 throw IllegalStateException("Unexpected album response")
             }
-            parseAlbum(payload)
+            val album = parseAlbum(payload)
+            val key = cacheKey(itemId, provider)
+            synchronized(cacheLock) {
+                albumCache[key] = album
+            }
+            album
         }
+    }
+
+    override fun getCachedAlbum(itemId: String, provider: String): Album? {
+        val key = cacheKey(itemId, provider)
+        val cached = synchronized(cacheLock) { albumCache[key] }
+        performanceMonitor.recordCacheLookup(PerformanceMonitor.CacheType.ALBUM, cached != null)
+        return cached
+    }
+
+    override fun getCachedPlaylist(itemId: String, provider: String): Playlist? {
+        val key = cacheKey(itemId, provider)
+        val cached = synchronized(cacheLock) { playlistCache[key] }
+        performanceMonitor.recordCacheLookup(PerformanceMonitor.CacheType.PLAYLIST, cached != null)
+        return cached
+    }
+
+    override fun getCachedAlbumTracks(albumId: String, provider: String): List<Track>? {
+        val key = cacheKey(albumId, provider)
+        val cached = synchronized(cacheLock) { albumTracksCache[key] }
+        performanceMonitor.recordCacheLookup(PerformanceMonitor.CacheType.ALBUM, cached != null)
+        return cached
+    }
+
+    override fun getCachedPlaylistTracks(playlistId: String, provider: String): List<Track>? {
+        val key = cacheKey(playlistId, provider)
+        val cached = synchronized(cacheLock) { playlistTracksCache[key] }
+        performanceMonitor.recordCacheLookup(PerformanceMonitor.CacheType.PLAYLIST, cached != null)
+        return cached
     }
 
     override suspend fun searchLibrary(query: String, limit: Int): Result<SearchResults> {
@@ -230,26 +336,68 @@ class MusicAssistantRepositoryImpl @Inject constructor(
     }
 
     override suspend fun getAlbumTracks(albumId: String, provider: String): Result<List<Track>> {
+        return getAlbumTracksChunked(albumId, provider, 0, Int.MAX_VALUE)
+    }
+
+    override suspend fun getAlbumTracksChunked(
+        albumId: String,
+        provider: String,
+        offset: Int,
+        limit: Int
+    ): Result<List<Track>> {
         return runCatching {
-            val result = webSocketClient.sendRequest(
-                ApiCommand.MUSIC_GET_ALBUM_TRACKS,
-                mapOf("item_id" to albumId, "provider_instance_id_or_domain" to provider)
-            ).getOrThrow()
-            parseTrackItems(result)
+            if (limit <= 0) return@runCatching emptyList()
+            val normalizedOffset = offset.coerceAtLeast(0)
+            val key = cacheKey(albumId, provider)
+            val fullList = if (normalizedOffset == 0) {
+                val fetched = fetchAlbumTracks(albumId, provider)
+                synchronized(cacheLock) {
+                    albumTracksCache[key] = fetched
+                }
+                fetched
+            } else {
+                synchronized(cacheLock) { albumTracksCache[key] } ?: run {
+                    val fetched = fetchAlbumTracks(albumId, provider)
+                    synchronized(cacheLock) {
+                        albumTracksCache[key] = fetched
+                    }
+                    fetched
+                }
+            }
+            fullList.drop(normalizedOffset).take(limit)
         }
     }
 
     override suspend fun getPlaylistTracks(playlistId: String, provider: String): Result<List<Track>> {
+        return getPlaylistTracksChunked(playlistId, provider, 0, Int.MAX_VALUE)
+    }
+
+    override suspend fun getPlaylistTracksChunked(
+        playlistId: String,
+        provider: String,
+        offset: Int,
+        limit: Int
+    ): Result<List<Track>> {
         return runCatching {
-            val result = webSocketClient.sendRequest(
-                ApiCommand.MUSIC_GET_PLAYLIST_TRACKS,
-                mapOf(
-                    "item_id" to playlistId,
-                    "provider_instance_id_or_domain" to provider,
-                    "force_refresh" to false
-                )
-            ).getOrThrow()
-            parseTrackItems(result)
+            if (limit <= 0) return@runCatching emptyList()
+            val normalizedOffset = offset.coerceAtLeast(0)
+            val key = cacheKey(playlistId, provider)
+            val fullList = if (normalizedOffset == 0) {
+                val fetched = fetchPlaylistTracks(playlistId, provider)
+                synchronized(cacheLock) {
+                    playlistTracksCache[key] = fetched
+                }
+                fetched
+            } else {
+                synchronized(cacheLock) { playlistTracksCache[key] } ?: run {
+                    val fetched = fetchPlaylistTracks(playlistId, provider)
+                    synchronized(cacheLock) {
+                        playlistTracksCache[key] = fetched
+                    }
+                    fetched
+                }
+            }
+            fullList.drop(normalizedOffset).take(limit)
         }
     }
 
@@ -269,7 +417,13 @@ class MusicAssistantRepositoryImpl @Inject constructor(
                 val match = page.firstOrNull { playlist ->
                     playlist.itemId == playlistId && playlist.provider == provider
                 }
-                if (match != null) return@runCatching match
+                if (match != null) {
+                    val key = cacheKey(playlistId, provider)
+                    synchronized(cacheLock) {
+                        playlistCache[key] = match
+                    }
+                    return@runCatching match
+                }
                 if (page.size < pageSize) break
                 offset += pageSize
             }
@@ -321,6 +475,27 @@ class MusicAssistantRepositoryImpl @Inject constructor(
                 "option" to option.toApiValue()
             )
         )
+    }
+
+    override suspend fun playMediaItem(
+        queueId: String,
+        media: String,
+        option: QueueOption,
+        startItem: String?
+    ): Result<Unit> {
+        val trimmedMedia = media.trim()
+        if (trimmedMedia.isBlank()) {
+            return Result.failure(IllegalArgumentException("Media URI is required"))
+        }
+        val params = buildMap {
+            put("queue_id", queueId)
+            put("media", trimmedMedia)
+            put("option", option.toApiValue())
+            if (!startItem.isNullOrBlank()) {
+                put("start_item", startItem)
+            }
+        }
+        return sendCommand(ApiCommand.PLAYER_QUEUES_PLAY_MEDIA, params)
     }
 
     override suspend fun playIndex(queueId: String, index: Int): Result<Unit> {
@@ -533,6 +708,72 @@ class MusicAssistantRepositoryImpl @Inject constructor(
             offset = offset,
             extraParams = mapOf("media_type" to "track")
         ) { parseTrack(it) }
+    }
+
+    private suspend fun fetchAlbumTracks(albumId: String, provider: String): List<Track> {
+        val result = webSocketClient.sendRequest(
+            ApiCommand.MUSIC_GET_ALBUM_TRACKS,
+            mapOf("item_id" to albumId, "provider_instance_id_or_domain" to provider)
+        ).getOrThrow()
+        return parseTrackItems(result)
+    }
+
+    private suspend fun fetchPlaylistTracks(playlistId: String, provider: String): List<Track> {
+        val result = webSocketClient.sendRequest(
+            ApiCommand.MUSIC_GET_PLAYLIST_TRACKS,
+            mapOf(
+                "item_id" to playlistId,
+                "provider_instance_id_or_domain" to provider,
+                "force_refresh" to false
+            )
+        ).getOrThrow()
+        return parseTrackItems(result)
+    }
+
+    private fun invalidateCachesForEvent(event: WebSocketMessage.EventMessage) {
+        val payload = event.data as? JsonObject
+        val eventName = event.event.lowercase()
+        val mediaType = payload?.stringOrNull("media_type", "mediaType")?.lowercase().orEmpty()
+        val uri = payload?.stringOrNull("uri")?.lowercase().orEmpty()
+        val itemId = payload?.stringOrNull("item_id", "db_playlist_id", "id")
+        val provider = payload?.stringOrNull(
+            "provider",
+            "provider_instance_id_or_domain",
+            "provider_domain",
+            "provider_instance"
+        )
+        if (eventName.contains("playlist") || mediaType.contains("playlist") || uri.contains("playlist")) {
+            invalidatePlaylistCaches(itemId, provider)
+        }
+        if (eventName.contains("album") || mediaType.contains("album") || uri.contains("album")) {
+            invalidateAlbumCaches(itemId, provider)
+        }
+    }
+
+    private fun invalidatePlaylistCaches(itemId: String?, provider: String?) {
+        synchronized(cacheLock) {
+            if (!itemId.isNullOrBlank() && !provider.isNullOrBlank()) {
+                val key = cacheKey(itemId, provider)
+                playlistCache.remove(key)
+                playlistTracksCache.remove(key)
+            } else {
+                playlistCache.clear()
+                playlistTracksCache.clear()
+            }
+        }
+    }
+
+    private fun invalidateAlbumCaches(itemId: String?, provider: String?) {
+        synchronized(cacheLock) {
+            if (!itemId.isNullOrBlank() && !provider.isNullOrBlank()) {
+                val key = cacheKey(itemId, provider)
+                albumCache.remove(key)
+                albumTracksCache.remove(key)
+            } else {
+                albumCache.clear()
+                albumTracksCache.clear()
+            }
+        }
     }
 
     private suspend fun sendCommand(
@@ -1074,6 +1315,10 @@ class MusicAssistantRepositoryImpl @Inject constructor(
         }
     }
 
+    private fun cacheKey(itemId: String, provider: String): String {
+        return "$itemId:$provider"
+    }
+
     private fun JsonObject.stringOrNull(vararg keys: String): String? {
         for (key in keys) {
             val value = this[key]?.jsonPrimitive?.contentOrNull
@@ -1117,5 +1362,8 @@ class MusicAssistantRepositoryImpl @Inject constructor(
         private const val TAG = "MusicAssistantRepo"
         private const val DEFAULT_PAGE_SIZE = 200
         private const val QUEUE_ITEM_LIMIT = 500
+        private const val ALBUM_CACHE_SIZE = 100
+        private const val PLAYLIST_CACHE_SIZE = 50
+        private const val TRACKS_CACHE_SIZE = 50
     }
 }

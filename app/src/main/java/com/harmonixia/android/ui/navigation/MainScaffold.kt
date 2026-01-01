@@ -101,6 +101,7 @@ fun MainScaffold(
     val selectedPlayer by playbackViewModel.selectedPlayer.collectAsStateWithLifecycle()
     val availablePlayers by playbackViewModel.availablePlayers.collectAsStateWithLifecycle()
     val localPlayerId by playbackViewModel.localPlayerId.collectAsStateWithLifecycle()
+    val imageQualityManager = playbackViewModel.imageQualityManager
     var showPlayerDialog by remember { mutableStateOf(false) }
     val playbackInfo = when (val state = nowPlayingUiState) {
         is NowPlayingUiState.Loading -> state.info
@@ -268,7 +269,8 @@ fun MainScaffold(
                                             isLoading = isLoading,
                                             controlsEnabled = controlsEnabled,
                                             isExpandedLayout = isExpandedLayout,
-                                            enableSharedArtworkTransition = enableSharedArtworkTransition
+                                            enableSharedArtworkTransition = enableSharedArtworkTransition,
+                                            imageQualityManager = imageQualityManager
                                         )
                                     }
                                 }

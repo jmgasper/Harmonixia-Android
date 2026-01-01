@@ -25,12 +25,14 @@ import com.harmonixia.android.ui.components.AlbumCard
 import com.harmonixia.android.ui.components.ArtistListItem
 import com.harmonixia.android.ui.components.PlaylistCard
 import com.harmonixia.android.ui.components.TrackList
+import com.harmonixia.android.util.ImageQualityManager
 
 @Composable
 fun PlaylistsResultsGrid(
     playlists: List<Playlist>,
     onPlaylistClick: (Playlist) -> Unit,
-    windowSizeClass: WindowSizeClass
+    windowSizeClass: WindowSizeClass,
+    imageQualityManager: ImageQualityManager
 ) {
     val configuration = LocalConfiguration.current
     val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
@@ -59,6 +61,7 @@ fun PlaylistsResultsGrid(
                 onClick = { onPlaylistClick(playlist) },
                 isGrid = true,
                 gridArtworkSize = artworkSize,
+                imageQualityManager = imageQualityManager,
                 modifier = Modifier.height(cardHeight)
             )
         }
@@ -70,7 +73,8 @@ fun AlbumsResultsGrid(
     albums: List<Album>,
     onAlbumClick: (Album) -> Unit,
     windowSizeClass: WindowSizeClass,
-    isOfflineMode: Boolean
+    isOfflineMode: Boolean,
+    imageQualityManager: ImageQualityManager
 ) {
     val configuration = LocalConfiguration.current
     val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
@@ -99,6 +103,7 @@ fun AlbumsResultsGrid(
                 onClick = { onAlbumClick(album) },
                 artworkSize = artworkSize,
                 isOfflineMode = isOfflineMode,
+                imageQualityManager = imageQualityManager,
                 modifier = Modifier.height(cardHeight)
             )
         }
@@ -108,7 +113,8 @@ fun AlbumsResultsGrid(
 @Composable
 fun ArtistsResultsList(
     artists: List<Artist>,
-    onArtistClick: (Artist) -> Unit
+    onArtistClick: (Artist) -> Unit,
+    imageQualityManager: ImageQualityManager
 ) {
     val rowHeight = 76.dp
     val listHeight = rowHeight * artists.size
@@ -127,7 +133,8 @@ fun ArtistsResultsList(
             ArtistListItem(
                 artist = artist,
                 onClick = { onArtistClick(artist) },
-                showDivider = index < artists.lastIndex
+                showDivider = index < artists.lastIndex,
+                imageQualityManager = imageQualityManager
             )
         }
     }

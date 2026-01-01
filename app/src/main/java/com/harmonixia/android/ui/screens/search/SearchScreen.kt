@@ -69,6 +69,7 @@ fun SearchScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val searchQuery by viewModel.searchQuery.collectAsStateWithLifecycle()
     val isOfflineMode by viewModel.isOfflineMode.collectAsStateWithLifecycle()
+    val imageQualityManager = viewModel.imageQualityManager
 
     val windowSizeClass = calculateWindowSizeClass(activity = LocalContext.current as Activity)
     val horizontalPadding by remember(windowSizeClass) {
@@ -235,7 +236,8 @@ fun SearchScreen(
                                         PlaylistsResultsGrid(
                                             playlists = playlistResults,
                                             onPlaylistClick = onPlaylistClick,
-                                            windowSizeClass = windowSizeClass
+                                            windowSizeClass = windowSizeClass,
+                                            imageQualityManager = imageQualityManager
                                         )
                                     }
                                     if (showMorePlaylists) {
@@ -262,7 +264,8 @@ fun SearchScreen(
                                             albums = albumResults,
                                             onAlbumClick = onAlbumClick,
                                             windowSizeClass = windowSizeClass,
-                                            isOfflineMode = isOfflineMode
+                                            isOfflineMode = isOfflineMode,
+                                            imageQualityManager = imageQualityManager
                                         )
                                     }
                                     if (showMoreAlbums) {
@@ -287,7 +290,8 @@ fun SearchScreen(
                                     } else {
                                         ArtistsResultsList(
                                             artists = artistResults,
-                                            onArtistClick = onArtistClick
+                                            onArtistClick = onArtistClick,
+                                            imageQualityManager = imageQualityManager
                                         )
                                     }
                                     if (showMoreArtists) {

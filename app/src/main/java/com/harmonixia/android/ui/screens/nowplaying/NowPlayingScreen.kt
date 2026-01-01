@@ -97,6 +97,7 @@ fun SharedTransitionScope.NowPlayingScreen(
     val shuffle by viewModel.shuffle.collectAsStateWithLifecycle()
     val isRepeatModeUpdating by viewModel.isRepeatModeUpdating.collectAsStateWithLifecycle()
     val isShuffleUpdating by viewModel.isShuffleUpdating.collectAsStateWithLifecycle()
+    val imageQualityManager = viewModel.imageQualityManager
     val availablePlayers by viewModel.availablePlayers.collectAsStateWithLifecycle()
     val selectedPlayer by viewModel.selectedPlayer.collectAsStateWithLifecycle()
     val localPlayerId by viewModel.localPlayerId.collectAsStateWithLifecycle()
@@ -244,7 +245,8 @@ fun SharedTransitionScope.NowPlayingScreen(
                             swipeThreshold = swipeThreshold,
                             enableSharedArtworkTransition = enableSharedArtworkTransition,
                             sharedArtworkState = sharedArtworkState,
-                            placeholderPainter = placeholderPainter
+                            placeholderPainter = placeholderPainter,
+                            imageQualityManager = imageQualityManager
                         )
                     }
                     ControlsPanel(
@@ -293,7 +295,8 @@ fun SharedTransitionScope.NowPlayingScreen(
                             swipeThreshold = swipeThreshold,
                             enableSharedArtworkTransition = enableSharedArtworkTransition,
                             sharedArtworkState = sharedArtworkState,
-                            placeholderPainter = placeholderPainter
+                            placeholderPainter = placeholderPainter,
+                            imageQualityManager = imageQualityManager
                         )
                         Column(
                             modifier = Modifier.weight(1f),
@@ -347,7 +350,8 @@ fun SharedTransitionScope.NowPlayingScreen(
                         swipeThreshold = swipeThreshold,
                         enableSharedArtworkTransition = enableSharedArtworkTransition,
                         sharedArtworkState = sharedArtworkState,
-                        placeholderPainter = placeholderPainter
+                        placeholderPainter = placeholderPainter,
+                        imageQualityManager = imageQualityManager
                     )
                     if (selectedPlayer != null) {
                         PlayerNamePill(
@@ -436,12 +440,12 @@ private fun SharedTransitionScope.ArtworkPanel(
     swipeThreshold: Float,
     enableSharedArtworkTransition: Boolean,
     sharedArtworkState: SharedTransitionScope.SharedContentState,
-    placeholderPainter: ColorPainter
+    placeholderPainter: ColorPainter,
+    imageQualityManager: ImageQualityManager
 ) {
     val coroutineScope = rememberCoroutineScope()
     val context = LocalContext.current
-    val qualityManager = remember(context) { ImageQualityManager(context) }
-    val optimizedSize = qualityManager.getOptimalImageSize(artworkSize)
+    val optimizedSize = imageQualityManager.getOptimalImageSize(artworkSize)
     val sizePx = with(LocalDensity.current) { optimizedSize.roundToPx() }
     val baseArtworkModifier = Modifier
         .size(optimizedSize)
@@ -499,7 +503,7 @@ private fun SharedTransitionScope.ArtworkPanel(
                     val imageRequest = ImageRequest.Builder(context)
                         .data(artworkUrl)
                         .size(sizePx)
-                        .bitmapConfig(qualityManager.getOptimalBitmapConfig())
+                        .bitmapConfig(imageQualityManager.getOptimalBitmapConfig())
                         .build()
                     AsyncImage(
                         model = imageRequest,

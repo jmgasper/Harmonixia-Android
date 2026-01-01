@@ -21,7 +21,6 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
@@ -36,8 +35,8 @@ import com.harmonixia.android.ui.util.buildAlbumArtworkRequest
 import com.harmonixia.android.util.ImageQualityManager
 
 private val AlbumGridSpacing = 8.dp
-private const val PREFETCH_START_OFFSET = 10
-private const val PREFETCH_END_OFFSET = 30
+private const val PREFETCH_START_OFFSET = 20
+private const val PREFETCH_END_OFFSET = 60
 
 @Composable
 fun AlbumGrid(
@@ -48,6 +47,7 @@ fun AlbumGrid(
     artworkSize: Dp,
     contentPadding: PaddingValues,
     isOfflineMode: Boolean,
+    imageQualityManager: ImageQualityManager,
     modifier: Modifier = Modifier
 ) {
     val safeColumns = columns.coerceAtLeast(1)
@@ -55,10 +55,9 @@ fun AlbumGrid(
     val gridState = rememberLazyGridState()
     val context = LocalContext.current
     val imageLoader = context.imageLoader
-    val qualityManager = remember(context) { ImageQualityManager(context) }
-    val optimizedSize = qualityManager.getOptimalImageSize(artworkSize)
+    val optimizedSize = imageQualityManager.getOptimalImageSize(artworkSize)
     val sizePx = with(LocalDensity.current) { optimizedSize.roundToPx() }
-    val bitmapConfig = qualityManager.getOptimalBitmapConfig()
+    val bitmapConfig = imageQualityManager.getOptimalBitmapConfig()
     val isLoading = albums.loadState.refresh is LoadState.Loading ||
         albums.loadState.append is LoadState.Loading
 
@@ -107,6 +106,7 @@ fun AlbumGrid(
                     onLongClick = onAlbumLongClick?.let { callback -> { callback(album) } },
                     artworkSize = artworkSize,
                     isOfflineMode = isOfflineMode,
+                    imageQualityManager = imageQualityManager,
                     modifier = Modifier.heightIn(min = minCardHeight)
                 )
             } else {
@@ -128,6 +128,7 @@ fun AlbumGridStatic(
     artworkSize: Dp,
     contentPadding: PaddingValues,
     isOfflineMode: Boolean,
+    imageQualityManager: ImageQualityManager,
     modifier: Modifier = Modifier
 ) {
     val safeColumns = columns.coerceAtLeast(1)
@@ -150,6 +151,7 @@ fun AlbumGridStatic(
                 onLongClick = onAlbumLongClick?.let { callback -> { callback(album) } },
                 artworkSize = artworkSize,
                 isOfflineMode = isOfflineMode,
+                imageQualityManager = imageQualityManager,
                 modifier = Modifier.heightIn(min = minCardHeight)
             )
         }

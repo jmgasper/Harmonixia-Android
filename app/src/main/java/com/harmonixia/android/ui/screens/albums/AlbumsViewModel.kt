@@ -16,6 +16,7 @@ import com.harmonixia.android.domain.repository.LocalMediaRepository
 import com.harmonixia.android.domain.repository.MusicAssistantRepository
 import com.harmonixia.android.domain.repository.OFFLINE_PROVIDER
 import com.harmonixia.android.domain.usecase.GetConnectionStateUseCase
+import com.harmonixia.android.util.ImageQualityManager
 import com.harmonixia.android.util.NetworkConnectivityManager
 import com.harmonixia.android.util.PagingStatsTracker
 import com.harmonixia.android.util.mergeWithLocal
@@ -41,7 +42,8 @@ class AlbumsViewModel @Inject constructor(
     private val localMediaRepository: LocalMediaRepository,
     getConnectionStateUseCase: GetConnectionStateUseCase,
     private val networkConnectivityManager: NetworkConnectivityManager,
-    private val pagingStatsTracker: PagingStatsTracker
+    private val pagingStatsTracker: PagingStatsTracker,
+    val imageQualityManager: ImageQualityManager
 ) : ViewModel() {
     val connectionState: StateFlow<ConnectionState> = getConnectionStateUseCase()
     val isOfflineMode: StateFlow<Boolean> = combine(
@@ -230,6 +232,6 @@ class AlbumsViewModel @Inject constructor(
     }
 
     companion object {
-        private const val PREFETCH_DISTANCE = 15
+        private const val PREFETCH_DISTANCE = 35
     }
 }
