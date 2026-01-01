@@ -18,7 +18,8 @@ data class LocalAlbumEntity(
     val artist: String,
     val trackCount: Int,
     val totalDurationMs: Long,
-    val dateAdded: Long
+    val dateAdded: Long,
+    val firstTrackPath: String? = null
 )
 
 fun LocalAlbumEntity.toAlbum(): Album {
@@ -26,11 +27,13 @@ fun LocalAlbumEntity.toAlbum(): Album {
     val trimmedArtist = artist.trim()
     val encodedId = Uri.encode("$trimmedArtist:$trimmedName")
     val artists = if (trimmedArtist.isBlank()) emptyList() else listOf(trimmedArtist)
+    val imageUrl = firstTrackPath?.trim()?.takeIf { it.isNotBlank() }
     return Album(
         itemId = encodedId,
         provider = OFFLINE_PROVIDER,
         uri = "offline:album:$encodedId",
         name = trimmedName,
-        artists = artists
+        artists = artists,
+        imageUrl = imageUrl
     )
 }

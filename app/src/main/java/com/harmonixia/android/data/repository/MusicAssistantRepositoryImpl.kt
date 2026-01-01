@@ -797,7 +797,7 @@ class MusicAssistantRepositoryImpl @Inject constructor(
             ?.contentOrNull
             ?.toDoubleOrNull()
         val repeatMode = parseRepeatMode(jsonObject.stringOrNull("repeat_mode"))
-        val shuffle = jsonObject.booleanOrFalse("shuffle")
+        val shuffle = jsonObject.booleanOrFalse("shuffle", "shuffle_enabled")
         return Queue(
             queueId = jsonObject.stringOrEmpty("queue_id"),
             state = parsePlaybackState(jsonObject.stringOrNull("state")),
@@ -1035,8 +1035,12 @@ class MusicAssistantRepositoryImpl @Inject constructor(
         return 0.0
     }
 
-    private fun JsonObject.booleanOrFalse(key: String): Boolean {
-        return this[key]?.jsonPrimitive?.booleanOrNull ?: false
+    private fun JsonObject.booleanOrFalse(vararg keys: String): Boolean {
+        for (key in keys) {
+            val value = this[key]?.jsonPrimitive?.booleanOrNull
+            if (value != null) return value
+        }
+        return false
     }
 
     companion object {

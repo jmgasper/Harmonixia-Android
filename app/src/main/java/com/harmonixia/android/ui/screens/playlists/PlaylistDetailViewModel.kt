@@ -13,6 +13,7 @@ import com.harmonixia.android.domain.repository.MusicAssistantRepository
 import com.harmonixia.android.domain.repository.OFFLINE_PROVIDER
 import com.harmonixia.android.domain.usecase.DeletePlaylistUseCase
 import com.harmonixia.android.domain.usecase.ManagePlaylistTracksUseCase
+import com.harmonixia.android.domain.usecase.PlayLocalTracksUseCase
 import com.harmonixia.android.domain.usecase.PlayPlaylistUseCase
 import com.harmonixia.android.domain.usecase.RenamePlaylistUseCase
 import com.harmonixia.android.ui.navigation.Screen
@@ -51,6 +52,7 @@ class PlaylistDetailViewModel @Inject constructor(
     private val repository: MusicAssistantRepository,
     private val localMediaRepository: LocalMediaRepository,
     private val playPlaylistUseCase: PlayPlaylistUseCase,
+    private val playLocalTracksUseCase: PlayLocalTracksUseCase,
     private val managePlaylistTracksUseCase: ManagePlaylistTracksUseCase,
     private val deletePlaylistUseCase: DeletePlaylistUseCase,
     private val renamePlaylistUseCase: RenamePlaylistUseCase,
@@ -246,10 +248,18 @@ class PlaylistDetailViewModel @Inject constructor(
         }
     }
 
-    fun playPlaylist(startIndex: Int = 0) {
+    fun playPlaylist(startIndex: Int = 0, forceStartIndex: Boolean = false) {
         if (playlistId.isBlank() || provider.isBlank()) return
         viewModelScope.launch {
-            playPlaylistUseCase(playlistId, provider, startIndex)
+            if (isOfflineMode.value) {
+                val localTracks = tracks.filter { it.isLocal }
+                if (localTracks.isNotEmpty()) {
+                    val localIndex = resolveLocalStartIndex(startIndex, localTracks)
+                    playLocalTracksUseCase(localTracks, localIndex)
+                }
+            } else {
+                playPlaylistUseCase(playlistId, provider, startIndex, forceStartIndex)
+            }
         }
     }
 
@@ -257,9 +267,9 @@ class PlaylistDetailViewModel @Inject constructor(
         if (tracks.isEmpty()) return
         val index = tracks.indexOfFirst { it.itemId == track.itemId }
         if (index >= 0) {
-            playPlaylist(index)
+            playPlaylist(index, forceStartIndex = true)
         } else {
-            playPlaylist(0)
+            playPlaylist(0, forceStartIndex = true)
         }
     }
 
@@ -462,6 +472,20 @@ class PlaylistDetailViewModel @Inject constructor(
             position
         } else {
             tracks.indexOfFirst { it.itemId == track.itemId }
+        }
+    }
+
+    private fun resolveLocalStartIndex(startIndex: Int, localTracks: List<Track>): Int {
+        if (localTracks.isEmpty()) return 0
+        val safeIndex = startIndex.coerceIn(0, tracks.lastIndex)
+        val targetId = tracks.getOrNull(safeIndex)?.itemId
+        val localIndex = targetId?.let { id ->
+            localTracks.indexOfFirst { it.itemId == id }
+        } ?: -1
+        return if (localIndex >= 0) {
+            localIndex
+        } else {
+            startIndex.coerceIn(0, localTracks.lastIndex)
         }
     }
 

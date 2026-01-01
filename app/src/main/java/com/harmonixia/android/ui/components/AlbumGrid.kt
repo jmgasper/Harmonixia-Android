@@ -47,6 +47,7 @@ fun AlbumGrid(
     columns: Int,
     artworkSize: Dp,
     contentPadding: PaddingValues,
+    isOfflineMode: Boolean,
     modifier: Modifier = Modifier
 ) {
     val safeColumns = columns.coerceAtLeast(1)
@@ -76,7 +77,8 @@ fun AlbumGrid(
                     context = context,
                     album = album,
                     sizePx = sizePx,
-                    bitmapConfig = bitmapConfig
+                    bitmapConfig = bitmapConfig,
+                    isOfflineMode = isOfflineMode
                 )
             )
         }
@@ -104,6 +106,7 @@ fun AlbumGrid(
                     onClick = { onAlbumClick(album) },
                     onLongClick = onAlbumLongClick?.let { callback -> { callback(album) } },
                     artworkSize = artworkSize,
+                    isOfflineMode = isOfflineMode,
                     modifier = Modifier.heightIn(min = minCardHeight)
                 )
             } else {
@@ -124,6 +127,7 @@ fun AlbumGridStatic(
     columns: Int,
     artworkSize: Dp,
     contentPadding: PaddingValues,
+    isOfflineMode: Boolean,
     modifier: Modifier = Modifier
 ) {
     val safeColumns = columns.coerceAtLeast(1)
@@ -145,6 +149,7 @@ fun AlbumGridStatic(
                 onClick = { onAlbumClick(album) },
                 onLongClick = onAlbumLongClick?.let { callback -> { callback(album) } },
                 artworkSize = artworkSize,
+                isOfflineMode = isOfflineMode,
                 modifier = Modifier.heightIn(min = minCardHeight)
             )
         }

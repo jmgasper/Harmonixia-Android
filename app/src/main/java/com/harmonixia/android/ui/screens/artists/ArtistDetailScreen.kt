@@ -376,6 +376,7 @@ private fun ArtistDetailContent(
                 columns = columns,
                 artworkSize = artworkSize,
                 contentPadding = gridPadding,
+                isOfflineMode = isOfflineMode,
                 modifier = Modifier.weight(1f)
             )
         }

@@ -80,7 +80,9 @@ abstract class DataModule {
                 context,
                 LocalMediaDatabase::class.java,
                 LocalMediaDatabase.DATABASE_NAME
-            ).build()
+            )
+                .addMigrations(LocalMediaDatabase.MIGRATION_1_2)
+                .build()
         }
 
         @Provides

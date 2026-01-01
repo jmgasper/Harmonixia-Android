@@ -1,5 +1,6 @@
 package com.harmonixia.android.ui.screens.albums
 
+import android.net.Uri
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -12,6 +13,7 @@ import com.harmonixia.android.domain.repository.MusicAssistantRepository
 import com.harmonixia.android.domain.repository.OFFLINE_PROVIDER
 import com.harmonixia.android.domain.usecase.ManagePlaylistTracksUseCase
 import com.harmonixia.android.domain.usecase.PlayAlbumUseCase
+import com.harmonixia.android.domain.usecase.PlayLocalTracksUseCase
 import com.harmonixia.android.ui.navigation.Screen
 import com.harmonixia.android.util.isLocal
 import com.harmonixia.android.util.mergeWithLocal
@@ -43,6 +45,7 @@ class AlbumDetailViewModel @Inject constructor(
     private val repository: MusicAssistantRepository,
     private val localMediaRepository: LocalMediaRepository,
     private val playAlbumUseCase: PlayAlbumUseCase,
+    private val playLocalTracksUseCase: PlayLocalTracksUseCase,
     private val managePlaylistTracksUseCase: ManagePlaylistTracksUseCase,
     private val networkConnectivityManager: NetworkConnectivityManager,
     private val prefetchScheduler: PrefetchScheduler,
@@ -137,10 +140,18 @@ class AlbumDetailViewModel @Inject constructor(
         }
     }
 
-    fun playAlbum(startIndex: Int = 0) {
+    fun playAlbum(startIndex: Int = 0, forceStartIndex: Boolean = false) {
         if (albumId.isBlank() || provider.isBlank()) return
         viewModelScope.launch {
-            playAlbumUseCase(albumId, provider, startIndex)
+            if (isOfflineMode.value || provider == OFFLINE_PROVIDER) {
+                val localTracks = tracks.filter { it.isLocal }
+                if (localTracks.isNotEmpty()) {
+                    val localIndex = resolveLocalStartIndex(startIndex, localTracks)
+                    playLocalTracksUseCase(localTracks, localIndex)
+                }
+            } else {
+                playAlbumUseCase(albumId, provider, startIndex, forceStartIndex)
+            }
         }
     }
 
@@ -148,9 +159,9 @@ class AlbumDetailViewModel @Inject constructor(
         if (tracks.isEmpty()) return
         val index = tracks.indexOfFirst { it.itemId == track.itemId }
         if (index >= 0) {
-            playAlbum(index)
+            playAlbum(index, forceStartIndex = true)
         } else {
-            playAlbum(0)
+            playAlbum(0, forceStartIndex = true)
         }
     }
 
@@ -296,12 +307,46 @@ class AlbumDetailViewModel @Inject constructor(
 
     private suspend fun resolveLocalAlbum(): Album? {
         val localAlbums = localMediaRepository.getAllAlbums().first()
+        val normalizedAlbumId = normalizeLocalAlbumId(albumId)
         val directMatch = localAlbums.firstOrNull { album ->
-            album.itemId == albumId && album.provider == OFFLINE_PROVIDER
+            album.provider == OFFLINE_PROVIDER &&
+                (album.itemId == albumId || album.itemId == normalizedAlbumId)
         }
         if (directMatch != null) return directMatch
-        val existing = _album.value ?: return null
-        return listOf(existing).mergeWithLocal(localAlbums).firstOrNull()
+        val existing = _album.value
+        if (existing != null) {
+            val albumName = existing.name.trim()
+            val firstArtist = existing.artists.firstOrNull()?.trim()
+            if (albumName.isNotBlank() && !firstArtist.isNullOrBlank()) {
+                val nameMatch = localMediaRepository
+                    .getAlbumByNameAndArtist(albumName, firstArtist)
+                    .first()
+                if (nameMatch != null) return nameMatch
+            }
+        }
+        if (existing != null) {
+            return listOf(existing).mergeWithLocal(localAlbums).firstOrNull()
+        }
+        return null
+    }
+
+    private fun normalizeLocalAlbumId(id: String): String {
+        // Navigation args are decoded; re-encode to match stored offline IDs.
+        return if (id.isBlank()) id else Uri.encode(Uri.decode(id))
+    }
+
+    private fun resolveLocalStartIndex(startIndex: Int, localTracks: List<Track>): Int {
+        if (localTracks.isEmpty()) return 0
+        val safeIndex = startIndex.coerceIn(0, tracks.lastIndex)
+        val targetId = tracks.getOrNull(safeIndex)?.itemId
+        val localIndex = targetId?.let { id ->
+            localTracks.indexOfFirst { it.itemId == id }
+        } ?: -1
+        return if (localIndex >= 0) {
+            localIndex
+        } else {
+            startIndex.coerceIn(0, localTracks.lastIndex)
+        }
     }
 
     private companion object {

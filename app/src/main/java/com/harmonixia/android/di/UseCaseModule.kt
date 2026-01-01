@@ -8,6 +8,7 @@ import com.harmonixia.android.domain.usecase.ApplyEqPresetUseCase
 import com.harmonixia.android.domain.usecase.GetEqSettingsUseCase
 import com.harmonixia.android.domain.usecase.LoadEqPresetsUseCase
 import com.harmonixia.android.domain.usecase.PlayAlbumUseCase
+import com.harmonixia.android.domain.usecase.PlayLocalTracksUseCase
 import com.harmonixia.android.domain.usecase.PlayPlaylistUseCase
 import com.harmonixia.android.domain.usecase.RenamePlaylistUseCase
 import com.harmonixia.android.domain.usecase.SearchEqPresetsUseCase
@@ -40,6 +41,12 @@ object UseCaseModule {
         repository: MusicAssistantRepository,
         playbackStateManager: PlaybackStateManager
     ): PlayPlaylistUseCase = PlayPlaylistUseCase(repository, playbackStateManager)
+
+    @Provides
+    @Singleton
+    fun providePlayLocalTracksUseCase(
+        playbackServiceConnection: PlaybackServiceConnection
+    ): PlayLocalTracksUseCase = PlayLocalTracksUseCase(playbackServiceConnection)
 
     @Provides
     @Singleton

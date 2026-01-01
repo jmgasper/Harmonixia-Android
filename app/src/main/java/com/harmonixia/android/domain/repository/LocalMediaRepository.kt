@@ -16,6 +16,8 @@ interface LocalMediaRepository {
 
     fun getAlbumsByArtist(artistName: String): Flow<List<Album>>
 
+    fun getAlbumByNameAndArtist(albumName: String, artistName: String): Flow<Album?>
+
     fun getAllArtists(): Flow<List<Artist>>
 
     fun searchTracks(query: String): Flow<List<Track>>

@@ -262,7 +262,8 @@ fun SearchScreen(
                                         AlbumsResultsGrid(
                                             albums = albumResults,
                                             onAlbumClick = onAlbumClick,
-                                            windowSizeClass = windowSizeClass
+                                            windowSizeClass = windowSizeClass,
+                                            isOfflineMode = isOfflineMode
                                         )
                                     }
                                     if (showMoreAlbums) {

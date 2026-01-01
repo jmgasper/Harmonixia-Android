@@ -186,7 +186,7 @@ fun PlaylistsScreen(
 
     val successState = uiState as? PlaylistsUiState.Success
     val lazyPagingItems = successState?.playlists?.collectAsLazyPagingItems()
-    val isRefreshing = lazyPagingItems?.loadState?.refresh is LoadState.Loading
+    val isRefreshing = !isOfflineMode && lazyPagingItems?.loadState?.refresh is LoadState.Loading
 
     val openRename: (Playlist) -> Unit = { target ->
         renameTarget = target
@@ -295,7 +295,7 @@ fun PlaylistsScreen(
                 is PlaylistsUiState.Success -> {
                     val items = lazyPagingItems ?: return@Column
                     when {
-                        items.loadState.refresh is LoadState.Loading -> {
+                        !isOfflineMode && items.loadState.refresh is LoadState.Loading -> {
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth()

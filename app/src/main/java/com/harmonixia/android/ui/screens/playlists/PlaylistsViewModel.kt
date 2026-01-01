@@ -99,7 +99,12 @@ class PlaylistsViewModel @Inject constructor(
     private val remotePlaylistsFlow: Flow<PagingData<Playlist>> = pagingConfig
         .flatMapLatest { config ->
             Pager(config) {
-                PlaylistsPagingSource(repository, config.pageSize, pagingStatsTracker).also {
+                PlaylistsPagingSource(
+                    repository,
+                    config.pageSize,
+                    pagingStatsTracker,
+                    isOfflineMode = { isOfflineMode.value }
+                ).also {
                     pagingSource = it
                 }
             }.flow

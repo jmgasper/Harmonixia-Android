@@ -197,7 +197,7 @@ fun AlbumsScreen(
         }
     }
 
-    val isRefreshing = lazyPagingItems?.loadState?.refresh is LoadState.Loading
+    val isRefreshing = !isOfflineMode && lazyPagingItems?.loadState?.refresh is LoadState.Loading
 
     Scaffold(
         topBar = {
@@ -326,7 +326,8 @@ fun AlbumsScreen(
                 is AlbumsUiState.Success -> {
                     val items = lazyPagingItems ?: return@Column
                     when {
-                        !isOfflineMode && items.loadState.refresh is LoadState.Loading -> {
+                        !isOfflineMode && items.loadState.refresh is LoadState.Loading
+                            && items.itemCount == 0 -> {
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -395,6 +396,7 @@ fun AlbumsScreen(
                                             columns = columns,
                                             artworkSize = artworkSize,
                                             contentPadding = gridPadding,
+                                            isOfflineMode = isOfflineMode,
                                             modifier = Modifier
                                                 .weight(0.6f)
                                                 .fillMaxHeight()
@@ -403,6 +405,7 @@ fun AlbumsScreen(
                                             album = selectedAlbum,
                                             artworkSize = artworkSize,
                                             onOpenAlbum = onAlbumClick,
+                                            isOfflineMode = isOfflineMode,
                                             modifier = Modifier
                                                 .weight(0.4f)
                                                 .fillMaxHeight()
@@ -420,6 +423,7 @@ fun AlbumsScreen(
                                         columns = columns,
                                         artworkSize = artworkSize,
                                         contentPadding = gridPadding,
+                                        isOfflineMode = isOfflineMode,
                                         modifier = Modifier.fillMaxSize()
                                     )
                                 }
@@ -438,6 +442,7 @@ private fun AlbumDetailPane(
     album: Album?,
     artworkSize: Dp,
     onOpenAlbum: (Album) -> Unit,
+    isOfflineMode: Boolean,
     modifier: Modifier = Modifier
 ) {
     val spacing = rememberAdaptiveSpacing()
@@ -476,7 +481,8 @@ private fun AlbumDetailPane(
                 context = context,
                 album = album,
                 sizePx = sizePx,
-                bitmapConfig = bitmapConfig
+                bitmapConfig = bitmapConfig,
+                isOfflineMode = isOfflineMode
             ),
             contentDescription = stringResource(R.string.content_desc_album_artwork),
             placeholder = placeholder,

@@ -29,9 +29,8 @@ fun NavController.navigateToHome() {
     navigate(
         Screen.Home.route,
         navOptions {
-            popUpTo(startDestination.id) { saveState = true }
+            popUpTo(startDestination.id)
             launchSingleTop = true
-            restoreState = true
         }
     )
 }
@@ -41,9 +40,8 @@ fun NavController.navigateToAlbums() {
     navigate(
         Screen.Albums.route,
         navOptions {
-            popUpTo(graph.findStartDestination().id) { saveState = true }
+            popUpTo(graph.findStartDestination().id)
             launchSingleTop = true
-            restoreState = true
         }
     )
 }
@@ -53,9 +51,8 @@ fun NavController.navigateToArtists() {
     navigate(
         Screen.Artists.route,
         navOptions {
-            popUpTo(graph.findStartDestination().id) { saveState = true }
+            popUpTo(graph.findStartDestination().id)
             launchSingleTop = true
-            restoreState = true
         }
     )
 }
@@ -65,9 +62,8 @@ fun NavController.navigateToPlaylists() {
     navigate(
         Screen.Playlists.route,
         navOptions {
-            popUpTo(graph.findStartDestination().id) { saveState = true }
+            popUpTo(graph.findStartDestination().id)
             launchSingleTop = true
-            restoreState = true
         }
     )
 }
@@ -77,9 +73,8 @@ fun NavController.navigateToSearch() {
     navigate(
         Screen.Search.route,
         navOptions {
-            popUpTo(graph.findStartDestination().id) { saveState = true }
+            popUpTo(graph.findStartDestination().id)
             launchSingleTop = true
-            restoreState = true
         }
     )
 }

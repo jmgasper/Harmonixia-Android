@@ -13,7 +13,8 @@ class PlayPlaylistUseCase(
     suspend operator fun invoke(
         playlistId: String,
         provider: String,
-        startIndex: Int = 0
+        startIndex: Int = 0,
+        forceStartIndex: Boolean = false
     ): Result<String> {
         return runCatching {
             playbackStateManager.notifyUserInitiatedPlayback()
@@ -27,12 +28,24 @@ class PlayPlaylistUseCase(
             val queueId = queue.queueId
             val uris = tracks.map { it.uri }
             val safeIndex = startIndex.coerceIn(0, tracks.lastIndex)
-            if (safeIndex > 0) {
-                repository.clearQueue(queueId).getOrThrow()
-                repository.playMedia(queueId, uris, QueueOption.ADD).getOrThrow()
-                repository.playIndex(queueId, safeIndex).getOrThrow()
+            val shouldDisableShuffle = forceStartIndex && queue.shuffle
+            val shuffleDisabled = if (shouldDisableShuffle) {
+                repository.setShuffleMode(queueId, false).isSuccess
             } else {
-                repository.playMedia(queueId, uris, QueueOption.REPLACE).getOrThrow()
+                false
+            }
+            try {
+                if (safeIndex > 0) {
+                    repository.clearQueue(queueId).getOrThrow()
+                    repository.playMedia(queueId, uris, QueueOption.ADD).getOrThrow()
+                    repository.playIndex(queueId, safeIndex).getOrThrow()
+                } else {
+                    repository.playMedia(queueId, uris, QueueOption.REPLACE).getOrThrow()
+                }
+            } finally {
+                if (shuffleDisabled) {
+                    repository.setShuffleMode(queueId, true)
+                }
             }
             player.playerId
         }

@@ -18,6 +18,9 @@ interface LocalAlbumDao {
     @Query("SELECT * FROM local_albums WHERE name LIKE :query OR artist LIKE :query")
     fun searchAlbums(query: String): Flow<List<LocalAlbumEntity>>
 
+    @Query("SELECT * FROM local_albums WHERE name = :albumName AND artist = :artistName LIMIT 1")
+    fun getAlbumByNameAndArtist(albumName: String, artistName: String): Flow<LocalAlbumEntity?>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsertAlbum(album: LocalAlbumEntity)
 

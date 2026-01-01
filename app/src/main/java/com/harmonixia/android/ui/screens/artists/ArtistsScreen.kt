@@ -105,7 +105,7 @@ fun ArtistsScreen(
 
     val successState = uiState as? ArtistsUiState.Success
     val lazyPagingItems = successState?.artists?.collectAsLazyPagingItems()
-    val isRefreshing = lazyPagingItems?.loadState?.refresh is LoadState.Loading
+    val isRefreshing = !isOfflineMode && lazyPagingItems?.loadState?.refresh is LoadState.Loading
 
     val titleText = if (uiState is ArtistsUiState.Success) {
         stringResource(R.string.artists_count, lazyPagingItems?.itemCount ?: 0)
@@ -227,7 +227,8 @@ fun ArtistsScreen(
                     is ArtistsUiState.Success -> {
                         val items = lazyPagingItems ?: return@Column
                         when {
-                            !isOfflineMode && items.loadState.refresh is LoadState.Loading -> {
+                            !isOfflineMode && items.loadState.refresh is LoadState.Loading
+                                && items.itemCount == 0 -> {
                                 Box(
                                     modifier = Modifier
                                         .fillMaxWidth()

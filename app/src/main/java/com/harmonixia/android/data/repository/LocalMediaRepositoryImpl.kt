@@ -53,6 +53,14 @@ class LocalMediaRepositoryImpl @Inject constructor(
         return localAlbumDao.getAlbumsByArtist(trimmed).map { albums -> albums.map { it.toAlbum() } }
     }
 
+    override fun getAlbumByNameAndArtist(albumName: String, artistName: String): Flow<Album?> {
+        val trimmedAlbum = albumName.trim()
+        val trimmedArtist = artistName.trim()
+        if (trimmedAlbum.isBlank() || trimmedArtist.isBlank()) return flowOf(null)
+        return localAlbumDao.getAlbumByNameAndArtist(trimmedAlbum, trimmedArtist)
+            .map { album -> album?.toAlbum() }
+    }
+
     override fun getAllArtists(): Flow<List<Artist>> {
         return localArtistDao.getAllArtists().map { artists -> artists.map { it.toArtist() } }
     }

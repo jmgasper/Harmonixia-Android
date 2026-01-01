@@ -43,6 +43,7 @@ fun AlbumCard(
     onClick: () -> Unit,
     onLongClick: (() -> Unit)? = null,
     artworkSize: Dp = 150.dp,
+    isOfflineMode: Boolean,
     modifier: Modifier = Modifier
 ) {
     val placeholder = ColorPainter(MaterialTheme.colorScheme.surfaceVariant)
@@ -63,7 +64,8 @@ fun AlbumCard(
         context = context,
         album = album,
         sizePx = sizePx,
-        bitmapConfig = bitmapConfig
+        bitmapConfig = bitmapConfig,
+        isOfflineMode = isOfflineMode
     )
 
     Card(

@@ -69,7 +69,8 @@ fun PlaylistsResultsGrid(
 fun AlbumsResultsGrid(
     albums: List<Album>,
     onAlbumClick: (Album) -> Unit,
-    windowSizeClass: WindowSizeClass
+    windowSizeClass: WindowSizeClass,
+    isOfflineMode: Boolean
 ) {
     val configuration = LocalConfiguration.current
     val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
@@ -97,6 +98,7 @@ fun AlbumsResultsGrid(
                 album = album,
                 onClick = { onAlbumClick(album) },
                 artworkSize = artworkSize,
+                isOfflineMode = isOfflineMode,
                 modifier = Modifier.height(cardHeight)
             )
         }

@@ -242,6 +242,9 @@ class LocalMediaScanner @Inject constructor(
             val albumArtist = track.albumArtist?.takeIf { it.isNotBlank() } ?: track.artist
             val albumKey = AlbumKey(track.album, albumArtist)
             val albumEntry = albumStats.getOrPut(albumKey) { AlbumStats() }
+            if (albumEntry.firstTrackPath == null) {
+                albumEntry.firstTrackPath = track.filePath
+            }
             albumEntry.trackCount++
             albumEntry.totalDurationMs += track.durationMs
             albumEntry.dateAdded = minOf(albumEntry.dateAdded, track.dateAdded)
@@ -258,7 +261,8 @@ class LocalMediaScanner @Inject constructor(
                 artist = key.artist,
                 trackCount = stats.trackCount,
                 totalDurationMs = stats.totalDurationMs,
-                dateAdded = stats.dateAdded
+                dateAdded = stats.dateAdded,
+                firstTrackPath = stats.firstTrackPath
             )
         }
 
@@ -352,7 +356,8 @@ class LocalMediaScanner @Inject constructor(
     private data class AlbumStats(
         var trackCount: Int = 0,
         var totalDurationMs: Long = 0L,
-        var dateAdded: Long = Long.MAX_VALUE
+        var dateAdded: Long = Long.MAX_VALUE,
+        var firstTrackPath: String? = null
     )
 
     private data class ArtistStats(

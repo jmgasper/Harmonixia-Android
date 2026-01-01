@@ -63,6 +63,7 @@ fun HomeScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val isRefreshing by viewModel.isRefreshing.collectAsStateWithLifecycle()
+    val isOfflineMode by viewModel.isOfflineMode.collectAsStateWithLifecycle()
 
     val windowSizeClass = calculateWindowSizeClass(activity = LocalContext.current as Activity)
     val configuration = LocalConfiguration.current
@@ -273,6 +274,7 @@ fun HomeScreen(
                                         gridMaxHeight = gridMaxHeight,
                                         headerStyle = sectionHeaderStyle,
                                         bodyStyle = sectionBodyStyle,
+                                        isOfflineMode = isOfflineMode,
                                         onAlbumClick = onAlbumClick,
                                         modifier = Modifier.weight(1f)
                                     )
@@ -285,6 +287,7 @@ fun HomeScreen(
                                         gridMaxHeight = gridMaxHeight,
                                         headerStyle = sectionHeaderStyle,
                                         bodyStyle = sectionBodyStyle,
+                                        isOfflineMode = isOfflineMode,
                                         onAlbumClick = onAlbumClick,
                                         modifier = Modifier.weight(1f)
                                     )
@@ -301,6 +304,7 @@ fun HomeScreen(
                                     gridMaxHeight = gridMaxHeight,
                                     headerStyle = sectionHeaderStyle,
                                     bodyStyle = sectionBodyStyle,
+                                    isOfflineMode = isOfflineMode,
                                     onAlbumClick = onAlbumClick,
                                     modifier = Modifier.fillMaxWidth()
                                 )
@@ -315,6 +319,7 @@ fun HomeScreen(
                                     gridMaxHeight = gridMaxHeight,
                                     headerStyle = sectionHeaderStyle,
                                     bodyStyle = sectionBodyStyle,
+                                    isOfflineMode = isOfflineMode,
                                     onAlbumClick = onAlbumClick,
                                     modifier = Modifier.fillMaxWidth()
                                 )
@@ -337,6 +342,7 @@ private fun HomeAlbumSection(
     gridMaxHeight: androidx.compose.ui.unit.Dp,
     headerStyle: androidx.compose.ui.text.TextStyle,
     bodyStyle: androidx.compose.ui.text.TextStyle,
+    isOfflineMode: Boolean,
     onAlbumClick: (Album) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -361,6 +367,7 @@ private fun HomeAlbumSection(
                 columns = columns,
                 artworkSize = artworkSize,
                 contentPadding = PaddingValues(0.dp),
+                isOfflineMode = isOfflineMode,
                 modifier = Modifier.heightIn(max = gridMaxHeight)
             )
         }

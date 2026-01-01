@@ -49,14 +49,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.clipToBounds
-import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.painter.ColorPainter
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
-import androidx.compose.ui.input.nestedscroll.NestedScrollSource
-import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
@@ -186,76 +180,17 @@ fun PlaylistDetailScreen(
     } else {
         null
     }
-    val density = LocalDensity.current
     val listState = rememberLazyListState()
-    val minArtworkSize = 32.dp
-    val collapseRangePx = with(density) {
-        (artworkSize - minArtworkSize + spacing.large).coerceAtLeast(0.dp).toPx()
+    val density = LocalDensity.current
+    val appBarArtworkSize = 32.dp
+    val appBarRevealThresholdPx = with(density) {
+        (artworkSize + spacing.large).toPx()
     }
-    var headerOffsetPx by remember { mutableStateOf(0f) }
-    LaunchedEffect(collapseRangePx) {
-        headerOffsetPx = headerOffsetPx.coerceIn(0f, collapseRangePx)
-    }
-    val isListAtTop by remember(listState) {
+    val showAppBarThumbnail by remember(listState, isVeryWide, appBarRevealThresholdPx) {
         derivedStateOf {
-            listState.firstVisibleItemIndex == 0 &&
-                listState.firstVisibleItemScrollOffset == 0
-        }
-    }
-    val nestedScrollConnection = remember(collapseRangePx, listState) {
-        object : NestedScrollConnection {
-            override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
-                if (collapseRangePx == 0f) return Offset.Zero
-                val delta = available.y
-                return when {
-                    delta < 0f && headerOffsetPx < collapseRangePx -> {
-                        val newOffset = (headerOffsetPx - delta).coerceIn(0f, collapseRangePx)
-                        val consumed = newOffset - headerOffsetPx
-                        headerOffsetPx = newOffset
-                        Offset(0f, -consumed)
-                    }
-                    delta > 0f && headerOffsetPx > 0f && isListAtTop -> {
-                        val newOffset = (headerOffsetPx - delta).coerceIn(0f, collapseRangePx)
-                        val consumed = headerOffsetPx - newOffset
-                        headerOffsetPx = newOffset
-                        Offset(0f, consumed)
-                    }
-                    else -> Offset.Zero
-                }
-            }
-
-            override fun onPostScroll(
-                consumed: Offset,
-                available: Offset,
-                source: NestedScrollSource
-            ): Offset {
-                if (collapseRangePx == 0f) return Offset.Zero
-                val delta = available.y
-                if (delta > 0f && headerOffsetPx > 0f && isListAtTop) {
-                    val newOffset = (headerOffsetPx - delta).coerceIn(0f, collapseRangePx)
-                    val consumedByHeader = headerOffsetPx - newOffset
-                    headerOffsetPx = newOffset
-                    return Offset(0f, consumedByHeader)
-                }
-                return Offset.Zero
-            }
-        }
-    }
-    val collapseFraction = if (collapseRangePx == 0f) {
-        1f
-    } else {
-        (headerOffsetPx / collapseRangePx).coerceIn(0f, 1f)
-    }
-    val currentArtworkSize = (
-        artworkSize.value +
-            (minArtworkSize.value - artworkSize.value) * collapseFraction
-    ).dp
-    val artworkTopPadding = (spacing.large.value * (1f - collapseFraction)).dp
-    val desiredTop = (artworkTopPadding + currentArtworkSize + spacing.medium)
-        .coerceAtLeast(0.dp)
-    val appBarThumbnailAlpha by remember(collapseFraction, isVeryWide) {
-        derivedStateOf {
-            if (isVeryWide) 0f else ((collapseFraction - 0.2f) / 0.8f).coerceIn(0f, 1f)
+            !isVeryWide &&
+                (listState.firstVisibleItemIndex > 0 ||
+                    listState.firstVisibleItemScrollOffset > appBarRevealThresholdPx)
         }
     }
 
@@ -269,14 +204,13 @@ fun PlaylistDetailScreen(
                 TopAppBar(
                     title = {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            if (appBarThumbnailAlpha > 0f) {
+                            if (showAppBarThumbnail) {
                                 PlaylistArtwork(
                                     playlist = playlist,
-                                    displaySize = minArtworkSize,
-                                    requestSize = minArtworkSize,
+                                    displaySize = appBarArtworkSize,
+                                    requestSize = appBarArtworkSize,
                                     cornerRadius = 8.dp,
-                                    useOptimizedDisplaySize = false,
-                                    modifier = Modifier.alpha(appBarThumbnailAlpha)
+                                    useOptimizedDisplaySize = false
                                 )
                                 Spacer(modifier = Modifier.width(spacing.small))
                             }
@@ -406,10 +340,6 @@ fun PlaylistDetailScreen(
                     playlist = playlist,
                     tracks = state.tracks,
                     artworkSize = artworkSize,
-                    currentArtworkSize = currentArtworkSize,
-                    artworkTopPadding = artworkTopPadding,
-                    collapseFraction = collapseFraction,
-                    contentTopPadding = desiredTop,
                     useWideLayout = useWideLayout,
                     horizontalPadding = horizontalPadding,
                     isVeryWide = isVeryWide,
@@ -420,8 +350,6 @@ fun PlaylistDetailScreen(
                     trackMetaStyle = trackMetaStyle,
                     rowSpacing = if (isExpanded) 32.dp else 24.dp,
                     listState = listState,
-                    appBarThumbnailAlpha = appBarThumbnailAlpha,
-                    nestedScrollConnection = nestedScrollConnection,
                     onPlayPlaylist = { viewModel.playPlaylist() },
                     onTrackClick = viewModel::playTrack,
                     onAddToPlaylist = { track ->
@@ -524,10 +452,6 @@ private fun PlaylistDetailContent(
     playlist: Playlist?,
     tracks: List<Track>,
     artworkSize: Dp,
-    currentArtworkSize: Dp,
-    artworkTopPadding: Dp,
-    collapseFraction: Float,
-    contentTopPadding: Dp,
     useWideLayout: Boolean,
     horizontalPadding: Dp,
     isVeryWide: Boolean,
@@ -538,8 +462,6 @@ private fun PlaylistDetailContent(
     trackMetaStyle: TextStyle?,
     rowSpacing: Dp,
     listState: LazyListState,
-    appBarThumbnailAlpha: Float,
-    nestedScrollConnection: NestedScrollConnection,
     onPlayPlaylist: () -> Unit,
     onTrackClick: (Track) -> Unit,
     onAddToPlaylist: (Track) -> Unit,
@@ -646,40 +568,14 @@ private fun PlaylistDetailContent(
             }
         }
     } else {
-        val collapsedCornerRadius = 8.dp
-        val pinnedCornerRadius = (
-            20.dp.value +
-                (collapsedCornerRadius.value - 20.dp.value) * collapseFraction
-        ).dp
-        val pinnedArtworkAlpha = (1f - appBarThumbnailAlpha).coerceIn(0f, 1f)
         val contentPadding = PaddingValues(
             start = horizontalPadding,
             end = horizontalPadding,
-            top = 0.dp,
+            top = spacing.large,
             bottom = spacing.large
         )
 
         Column(modifier = modifier) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(contentTopPadding)
-                    .clipToBounds()
-            ) {
-                if (pinnedArtworkAlpha > 0f) {
-                    PlaylistArtwork(
-                        playlist = playlist,
-                        displaySize = currentArtworkSize,
-                        requestSize = artworkSize,
-                        cornerRadius = pinnedCornerRadius,
-                        useOptimizedDisplaySize = false,
-                        modifier = Modifier
-                            .align(Alignment.TopCenter)
-                            .padding(top = artworkTopPadding)
-                            .alpha(pinnedArtworkAlpha)
-                    )
-                }
-            }
             TrackList(
                 tracks = tracks,
                 onTrackClick = onTrackClick,
@@ -691,9 +587,7 @@ private fun PlaylistDetailContent(
                 onRemoveFromFavorites = onRemoveFromFavorites,
                 modifier = Modifier
                     .weight(1f)
-                    .fillMaxWidth()
-                    .clipToBounds()
-                    .nestedScroll(nestedScrollConnection),
+                    .fillMaxWidth(),
                 listState = listState,
                 contentPadding = contentPadding,
                 headerContent = {
@@ -703,7 +597,8 @@ private fun PlaylistDetailContent(
                             canPlay = tracks.isNotEmpty(),
                             titleStyle = titleStyle,
                             ownerStyle = ownerStyle,
-                            onPlayPlaylist = onPlayPlaylist
+                            onPlayPlaylist = onPlayPlaylist,
+                            artworkSize = artworkSize
                         )
                     }
                     item { Spacer(modifier = Modifier.height(spacing.extraLarge)) }
@@ -789,6 +684,7 @@ private fun PlaylistDetails(
     titleStyle: TextStyle,
     ownerStyle: TextStyle,
     onPlayPlaylist: () -> Unit,
+    artworkSize: Dp,
     modifier: Modifier = Modifier
 ) {
     val spacing = rememberAdaptiveSpacing()
@@ -802,6 +698,12 @@ private fun PlaylistDetails(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(spacing.medium)
     ) {
+        PlaylistArtwork(
+            playlist = playlist,
+            displaySize = artworkSize,
+            requestSize = artworkSize,
+            cornerRadius = 20.dp
+        )
         Text(
             text = playlistTitle,
             style = titleStyle,
