@@ -1,27 +1,33 @@
 package com.harmonixia.android.ui.components
 
+import android.content.Context
 import android.content.res.Configuration
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.ExperimentalSharedTransitionApi
+import androidx.compose.animation.SharedTransitionScope
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
-import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.SkipPrevious
 import androidx.compose.material.icons.filled.SkipNext
+import androidx.compose.material.icons.filled.SkipPrevious
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -30,16 +36,22 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.painter.ColorPainter
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -47,19 +59,27 @@ import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
 import coil3.request.bitmapConfig
 import com.harmonixia.android.R
+import com.harmonixia.android.domain.model.Player
 import com.harmonixia.android.ui.playback.PlaybackInfo
 import com.harmonixia.android.util.ImageQualityManager
+import com.harmonixia.android.util.PlayerSelection
+import kotlin.math.abs
 
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 fun SharedTransitionScope.MiniPlayer(
     playbackInfo: PlaybackInfo,
+    selectedPlayer: Player?,
+    availablePlayers: List<Player>,
+    localPlayerId: String? = null,
+    onPlayerSwipe: (Player) -> Unit,
     onPlayPauseClick: () -> Unit,
     onPreviousClick: () -> Unit,
     onNextClick: () -> Unit,
     onExpandClick: () -> Unit,
     isVisible: Boolean = true,
     isLoading: Boolean = false,
+    controlsEnabled: Boolean = true,
     isExpandedLayout: Boolean = false,
     enableSharedArtworkTransition: Boolean = true,
     modifier: Modifier = Modifier
@@ -76,6 +96,8 @@ fun SharedTransitionScope.MiniPlayer(
     val controlSpacing = if (isExpandedLayout) 16.dp else 12.dp
     val sharedArtworkState = rememberSharedContentState(key = SHARED_ARTWORK_KEY)
     val placeholderPainter = ColorPainter(MaterialTheme.colorScheme.surfaceVariant)
+    var dragOffset by remember { mutableStateOf(0f) }
+    val offsetAnimation = remember { Animatable(0f) }
     val title = playbackInfo.title
     val artist = playbackInfo.artist
     val album = playbackInfo.album
@@ -87,6 +109,7 @@ fun SharedTransitionScope.MiniPlayer(
     }
     val context = LocalContext.current
     val qualityLabel = formatTrackQualityLabel(playbackInfo.quality, context::getString)
+    val playerName = getPlayerDisplayName(selectedPlayer, context, localPlayerId)
     val qualityManager = remember(context) { ImageQualityManager(context) }
     val optimizedSize = qualityManager.getOptimalImageSize(artworkSize)
     val sizePx = with(LocalDensity.current) { optimizedSize.roundToPx() }
@@ -98,6 +121,14 @@ fun SharedTransitionScope.MiniPlayer(
     val baseArtworkModifier = Modifier
         .size(optimizedSize)
         .clip(RoundedCornerShape(8.dp))
+
+    LaunchedEffect(dragOffset) {
+        if (dragOffset == 0f) {
+            offsetAnimation.animateTo(0f, animationSpec = tween(200))
+        } else {
+            offsetAnimation.snapTo(dragOffset * 0.1f)
+        }
+    }
 
     AnimatedVisibility(
         visible = isVisible,
@@ -116,7 +147,30 @@ fun SharedTransitionScope.MiniPlayer(
                     role = Role.Button,
                     onClickLabel = stringResource(R.string.content_desc_open_now_playing),
                     onClick = onExpandClick
-                ),
+                )
+                .pointerInput(availablePlayers, selectedPlayer) {
+                    if (availablePlayers.size > 1) {
+                        detectHorizontalDragGestures(
+                            onDragEnd = {
+                                if (abs(dragOffset) > SWIPE_THRESHOLD && availablePlayers.size > 1) {
+                                    val currentIndex = availablePlayers.indexOfFirst {
+                                        it.playerId == selectedPlayer?.playerId
+                                    }.let { index -> if (index == -1) 0 else index }
+                                    val newIndex = if (dragOffset < 0) {
+                                        (currentIndex + 1) % availablePlayers.size
+                                    } else {
+                                        (currentIndex - 1 + availablePlayers.size) % availablePlayers.size
+                                    }
+                                    onPlayerSwipe(availablePlayers[newIndex])
+                                }
+                                dragOffset = 0f
+                            },
+                            onHorizontalDrag = { _, dragAmount ->
+                                dragOffset += dragAmount
+                            }
+                        )
+                    }
+                },
             tonalElevation = 3.dp,
             shadowElevation = 6.dp
         ) {
@@ -138,7 +192,8 @@ fun SharedTransitionScope.MiniPlayer(
                 Row(
                     modifier = Modifier
                         .height(rowHeight)
-                        .padding(horizontal = horizontalPadding),
+                        .padding(horizontal = horizontalPadding)
+                        .graphicsLayer { translationX = offsetAnimation.value },
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(controlSpacing)
                 ) {
@@ -186,7 +241,7 @@ fun SharedTransitionScope.MiniPlayer(
                         if (isExpandedLayout) {
                             IconButton(
                                 onClick = onPreviousClick,
-                                enabled = playbackInfo.hasPrevious,
+                                enabled = controlsEnabled && playbackInfo.hasPrevious,
                                 modifier = Modifier.size(controlSize)
                             ) {
                                 Icon(
@@ -197,6 +252,7 @@ fun SharedTransitionScope.MiniPlayer(
                         }
                         IconButton(
                             onClick = onPlayPauseClick,
+                            enabled = controlsEnabled,
                             modifier = Modifier.size(controlSize)
                         ) {
                             Icon(
@@ -217,13 +273,34 @@ fun SharedTransitionScope.MiniPlayer(
                     }
                     IconButton(
                         onClick = onNextClick,
-                        enabled = playbackInfo.hasNext,
+                        enabled = controlsEnabled && playbackInfo.hasNext,
                         modifier = Modifier.size(controlSize)
                     ) {
                         Icon(
                             imageVector = Icons.Filled.SkipNext,
                             contentDescription = stringResource(R.string.action_next_track)
                         )
+                    }
+                    if (selectedPlayer != null) {
+                        val playerNameWidth = if (isExpandedLayout) 100.dp else 70.dp
+                        Box(
+                            modifier = Modifier
+                                .width(playerNameWidth)
+                                .padding(start = 8.dp),
+                            contentAlignment = Alignment.CenterEnd
+                        ) {
+                            Text(
+                                text = playerName,
+                                style = if (isExpandedLayout) {
+                                    MaterialTheme.typography.labelMedium
+                                } else {
+                                    MaterialTheme.typography.labelSmall
+                                },
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
                     }
                 }
             }
@@ -232,6 +309,7 @@ fun SharedTransitionScope.MiniPlayer(
 }
 
 private const val SHARED_ARTWORK_KEY = "shared_playback_artwork"
+private const val SWIPE_THRESHOLD = 100f
 
 internal object MiniPlayerDefaults {
     val ProgressHeight = 2.dp
@@ -246,4 +324,14 @@ internal object MiniPlayerDefaults {
 
     @Composable
     fun totalHeight(isExpandedLayout: Boolean): Dp = rowHeight(isExpandedLayout) + ProgressHeight
+}
+
+@Composable
+private fun getPlayerDisplayName(player: Player?, context: Context, localPlayerId: String?): String {
+    return when {
+        player == null -> ""
+        PlayerSelection.isLocalPlayer(player, localPlayerId) ->
+            context.getString(R.string.player_selection_this_device)
+        else -> player.name
+    }
 }

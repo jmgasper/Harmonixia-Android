@@ -476,20 +476,20 @@ private fun PlaylistDetailContent(
     modifier: Modifier = Modifier
 ) {
     val spacing = rememberAdaptiveSpacing()
-    val indexById = remember(tracks) {
-        tracks.withIndex().associate { indexed -> indexed.value.itemId to indexed.index }
-    }
-    val indexProvider: (Track, Int) -> Int = { track, _ ->
-        indexById[track.itemId] ?: 0
-    }
-    val leftTracks = remember(tracks) {
-        tracks.filterIndexed { index, _ -> index % 2 == 0 }
-    }
-    val rightTracks = remember(tracks) {
-        tracks.filterIndexed { index, _ -> index % 2 == 1 }
-    }
 
     if (isVeryWide) {
+        val indexById = remember(tracks) {
+            tracks.withIndex().associate { indexed -> indexed.value.itemId to indexed.index }
+        }
+        val indexProvider: (Track, Int) -> Int = { track, _ ->
+            indexById[track.itemId] ?: 0
+        }
+        val leftTracks = remember(tracks) {
+            tracks.filterIndexed { index, _ -> index % 2 == 0 }
+        }
+        val rightTracks = remember(tracks) {
+            tracks.filterIndexed { index, _ -> index % 2 == 1 }
+        }
         Column(modifier = modifier) {
             Column(modifier = Modifier.padding(horizontal = horizontalPadding)) {
                 PlaylistHeader(
@@ -619,8 +619,7 @@ private fun PlaylistDetailContent(
                 },
                 trackTitleTextStyle = trackTitleStyle,
                 trackSupportingTextStyle = trackMetaStyle,
-                trackMetadataTextStyle = trackMetaStyle,
-                indexProvider = indexProvider
+                trackMetadataTextStyle = trackMetaStyle
             )
         }
     }

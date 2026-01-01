@@ -5,6 +5,7 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
+import com.harmonixia.android.domain.model.AuthMethod
 import com.harmonixia.android.util.Logger
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
@@ -26,6 +27,25 @@ class SettingsDataStore @Inject constructor(
     suspend fun saveAuthToken(token: String) {
         dataStore.edit { preferences ->
             preferences[AUTH_TOKEN_KEY] = token
+        }
+    }
+
+    suspend fun saveAuthMethod(method: AuthMethod) {
+        dataStore.edit { preferences ->
+            preferences[AUTH_METHOD_KEY] = method.name
+        }
+    }
+
+    suspend fun saveUsername(username: String) {
+        dataStore.edit { preferences ->
+            preferences[USERNAME_KEY] = username
+        }
+    }
+
+    suspend fun savePassword(password: String) {
+        // TODO: Store passwords with EncryptedSharedPreferences.
+        dataStore.edit { preferences ->
+            preferences[PASSWORD_KEY] = password
         }
     }
 
@@ -59,6 +79,29 @@ class SettingsDataStore @Inject constructor(
         }
     }
 
+    fun getAuthMethod(): Flow<AuthMethod> {
+        return dataStore.data.map { preferences ->
+            val stored = preferences[AUTH_METHOD_KEY]
+            if (stored.isNullOrBlank()) {
+                AuthMethod.TOKEN
+            } else {
+                runCatching { AuthMethod.valueOf(stored) }.getOrNull() ?: AuthMethod.TOKEN
+            }
+        }
+    }
+
+    fun getUsername(): Flow<String> {
+        return dataStore.data.map { preferences ->
+            preferences[USERNAME_KEY] ?: ""
+        }
+    }
+
+    fun getPassword(): Flow<String> {
+        return dataStore.data.map { preferences ->
+            preferences[PASSWORD_KEY] ?: ""
+        }
+    }
+
     fun getSendspinClientId(): Flow<String> {
         return dataStore.data.map { preferences ->
             preferences[SENDSPIN_CLIENT_ID_KEY] ?: ""
@@ -75,6 +118,9 @@ class SettingsDataStore @Inject constructor(
     companion object {
         val SERVER_URL_KEY = stringPreferencesKey("server_url")
         val AUTH_TOKEN_KEY = stringPreferencesKey("auth_token")
+        val AUTH_METHOD_KEY = stringPreferencesKey("auth_method")
+        val USERNAME_KEY = stringPreferencesKey("username")
+        val PASSWORD_KEY = stringPreferencesKey("password")
         val SENDSPIN_CLIENT_ID_KEY = stringPreferencesKey("sendspin_client_id")
         val LOCAL_MEDIA_FOLDER_URI_KEY = stringPreferencesKey("local_media_folder_uri")
         private const val TAG = "SettingsDataStore"

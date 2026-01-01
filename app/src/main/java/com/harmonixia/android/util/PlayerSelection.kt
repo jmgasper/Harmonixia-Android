@@ -4,8 +4,23 @@ import android.os.Build
 import com.harmonixia.android.domain.model.Player
 
 object PlayerSelection {
-    fun selectLocalPlayer(players: List<Player>): Player? {
+    fun isLocalPlayer(player: Player, localPlayerId: String? = null): Boolean {
+        if (!localPlayerId.isNullOrBlank() && player.playerId == localPlayerId) {
+            return true
+        }
+        val manufacturer = Build.MANUFACTURER.orEmpty()
+        val model = Build.MODEL.orEmpty()
+        val nameCandidates = listOf(model, Build.DEVICE, Build.PRODUCT)
+            .filter { it.isNotBlank() }
+        return matchesDevice(player, manufacturer, model, nameCandidates)
+    }
+
+    fun selectLocalPlayer(players: List<Player>, localPlayerId: String? = null): Player? {
         if (players.isEmpty()) return null
+        if (!localPlayerId.isNullOrBlank()) {
+            val localPlayer = players.firstOrNull { it.playerId == localPlayerId }
+            if (localPlayer != null) return localPlayer
+        }
         val manufacturer = Build.MANUFACTURER.orEmpty()
         val model = Build.MODEL.orEmpty()
         val nameCandidates = listOf(model, Build.DEVICE, Build.PRODUCT)

@@ -16,6 +16,7 @@ import kotlinx.coroutines.flow.StateFlow
 
 interface MusicAssistantRepository {
     suspend fun connect(serverUrl: String, authToken: String): Result<Unit>
+    suspend fun loginWithCredentials(serverUrl: String, username: String, password: String): Result<String>
     suspend fun disconnect()
     fun getConnectionState(): StateFlow<ConnectionState>
     fun observeEvents(): Flow<WebSocketMessage.EventMessage>
@@ -30,7 +31,7 @@ interface MusicAssistantRepository {
     suspend fun getPlaylistTracks(playlistId: String, provider: String): Result<List<Track>>
     suspend fun getPlaylist(playlistId: String, provider: String): Result<Playlist>
     suspend fun fetchPlayers(): Result<List<Player>>
-    suspend fun getActiveQueue(playerId: String): Result<Queue?>
+    suspend fun getActiveQueue(playerId: String, includeItems: Boolean = true): Result<Queue?>
     suspend fun playMedia(queueId: String, mediaUris: List<String>, option: QueueOption): Result<Unit>
     suspend fun playIndex(queueId: String, index: Int): Result<Unit>
     suspend fun pauseQueue(queueId: String): Result<Unit>

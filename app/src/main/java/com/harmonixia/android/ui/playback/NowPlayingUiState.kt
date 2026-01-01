@@ -2,6 +2,7 @@ package com.harmonixia.android.ui.playback
 
 import androidx.media3.common.MediaItem
 import com.harmonixia.android.domain.model.PlaybackState
+import com.harmonixia.android.domain.model.Player
 import com.harmonixia.android.domain.model.RepeatMode
 import com.harmonixia.android.util.EXTRA_TRACK_QUALITY
 
@@ -23,7 +24,8 @@ data class PlaybackInfo(
     val hasNext: Boolean,
     val hasPrevious: Boolean,
     val repeatMode: RepeatMode,
-    val shuffle: Boolean
+    val shuffle: Boolean,
+    val selectedPlayer: Player?
 )
 
 fun buildNowPlayingUiState(
@@ -34,7 +36,8 @@ fun buildNowPlayingUiState(
     hasNext: Boolean,
     hasPrevious: Boolean,
     repeatMode: RepeatMode,
-    shuffle: Boolean
+    shuffle: Boolean,
+    selectedPlayer: Player?
 ): NowPlayingUiState {
     val safePosition = currentPosition.coerceAtLeast(0L)
     val safeDuration = duration.coerceAtLeast(0L)
@@ -48,7 +51,8 @@ fun buildNowPlayingUiState(
         hasNext = hasNext,
         hasPrevious = hasPrevious,
         repeatMode = repeatMode,
-        shuffle = shuffle
+        shuffle = shuffle,
+        selectedPlayer = selectedPlayer
     )
     return if (playbackState == PlaybackState.IDLE) {
         NowPlayingUiState.Loading(info)
@@ -64,7 +68,8 @@ fun MediaItem.toPlaybackInfo(
     hasNext: Boolean,
     hasPrevious: Boolean,
     repeatMode: RepeatMode,
-    shuffle: Boolean
+    shuffle: Boolean,
+    selectedPlayer: Player?
 ): PlaybackInfo {
     val metadata = mediaMetadata
     return PlaybackInfo(
@@ -79,6 +84,7 @@ fun MediaItem.toPlaybackInfo(
         hasNext = hasNext,
         hasPrevious = hasPrevious,
         repeatMode = repeatMode,
-        shuffle = shuffle
+        shuffle = shuffle,
+        selectedPlayer = selectedPlayer
     )
 }

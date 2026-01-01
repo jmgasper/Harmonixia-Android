@@ -99,6 +99,7 @@ dependencies {
 
     // DataStore for preferences
     implementation("androidx.datastore:datastore-preferences:1.1.6")
+    implementation("androidx.security:security-crypto:1.1.0-alpha06")
 
     // Room
     implementation("androidx.room:room-runtime:2.6.1")

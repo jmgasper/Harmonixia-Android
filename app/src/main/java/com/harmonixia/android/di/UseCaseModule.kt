@@ -6,6 +6,7 @@ import com.harmonixia.android.domain.usecase.ControlPlaybackUseCase
 import com.harmonixia.android.domain.usecase.DeletePlaylistUseCase
 import com.harmonixia.android.domain.usecase.ApplyEqPresetUseCase
 import com.harmonixia.android.domain.usecase.GetEqSettingsUseCase
+import com.harmonixia.android.domain.usecase.GetPlayersUseCase
 import com.harmonixia.android.domain.usecase.LoadEqPresetsUseCase
 import com.harmonixia.android.domain.usecase.PlayAlbumUseCase
 import com.harmonixia.android.domain.usecase.PlayLocalTracksUseCase
@@ -72,6 +73,12 @@ object UseCaseModule {
     fun provideSearchLibraryUseCase(
         repository: MusicAssistantRepository
     ): SearchLibraryUseCase = SearchLibraryUseCase(repository)
+
+    @Provides
+    @Singleton
+    fun provideGetPlayersUseCase(
+        repository: MusicAssistantRepository
+    ): GetPlayersUseCase = GetPlayersUseCase(repository)
 
     @Provides
     @Singleton

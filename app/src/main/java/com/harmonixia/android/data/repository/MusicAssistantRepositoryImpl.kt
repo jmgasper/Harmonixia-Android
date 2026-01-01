@@ -20,12 +20,18 @@ import com.harmonixia.android.domain.repository.MusicAssistantRepository
 import com.harmonixia.android.util.Logger
 import com.harmonixia.android.util.NetworkError
 import com.harmonixia.android.util.toNetworkError
+import java.io.IOException
+import java.net.ConnectException
+import java.net.SocketTimeoutException
+import java.net.UnknownHostException
 import java.net.URLEncoder
 import java.util.Locale
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
@@ -33,14 +39,21 @@ import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.booleanOrNull
+import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.intOrNull
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.decodeFromJsonElement
+import kotlinx.serialization.json.put
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.RequestBody.Companion.toRequestBody
 
 @Singleton
 class MusicAssistantRepositoryImpl @Inject constructor(
     private val webSocketClient: MusicAssistantWebSocketClient,
+    private val okHttpClient: OkHttpClient,
     private val json: Json
 ) : MusicAssistantRepository {
     private var cachedServerUrl: String? = null
@@ -50,6 +63,63 @@ class MusicAssistantRepositoryImpl @Inject constructor(
         cachedServerUrl = serverUrl
         cachedAuthToken = authToken
         return webSocketClient.connect(serverUrl, authToken)
+    }
+
+    override suspend fun loginWithCredentials(
+        serverUrl: String,
+        username: String,
+        password: String
+    ): Result<String> {
+        return withContext(Dispatchers.IO) {
+            runCatching {
+                Logger.d(TAG, "Attempting login for user: $username")
+                val loginUrl = "${serverUrl.trimEnd('/')}/api/${ApiCommand.AUTH_LOGIN}"
+                val payload = buildJsonObject {
+                    put("username", username)
+                    put("password", password)
+                }
+                val mediaType = "application/json".toMediaType()
+                val requestBody = payload.toString().toRequestBody(mediaType)
+                val request = Request.Builder()
+                    .url(loginUrl)
+                    .post(requestBody)
+                    .build()
+                okHttpClient.newCall(request).execute().use { response ->
+                    if (!response.isSuccessful) {
+                        when (response.code) {
+                            401, 403 -> throw SecurityException("Invalid username or password")
+                            408, 504 -> throw IOException("Connection timeout. Please check your network.")
+                            500, 502, 503 -> throw IOException("Server error. Please try again later.")
+                            else -> throw IOException("Login failed: ${response.code}")
+                        }
+                    }
+                    val responseBody = response.body?.string()
+                        ?: throw IOException("Invalid server response")
+                    val element = runCatching { json.parseToJsonElement(responseBody) }
+                        .getOrElse { throw IOException("Invalid server response", it) }
+                    val payloadObject = element as? JsonObject
+                        ?: throw IOException("Invalid server response")
+                    val token = payloadObject.stringOrNull("token", "access_token", "auth_token")
+                        ?: throw IOException("Invalid server response")
+                    Logger.i(TAG, "Login successful, token obtained")
+                    token
+                }
+            }.recoverCatching { error ->
+                when (error) {
+                    is SecurityException -> throw error
+                    is SocketTimeoutException ->
+                        throw IOException("Connection timeout. Please check your network.", error)
+                    is UnknownHostException,
+                    is ConnectException,
+                    is IllegalArgumentException ->
+                        throw IOException("Cannot connect to server. Please check the URL.", error)
+                    is IOException -> throw error
+                    else -> throw IOException(error.message ?: "Login failed", error)
+                }
+            }.onFailure { error ->
+                Logger.e(TAG, "Login failed: ${error.message}", error)
+            }
+        }
     }
 
     override suspend fun disconnect() {
@@ -220,7 +290,7 @@ class MusicAssistantRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun getActiveQueue(playerId: String): Result<Queue?> {
+    override suspend fun getActiveQueue(playerId: String, includeItems: Boolean): Result<Queue?> {
         return runCatching {
             val result = webSocketClient.sendRequest(
                 ApiCommand.PLAYER_QUEUES_FETCH_STATE,
@@ -228,7 +298,7 @@ class MusicAssistantRepositoryImpl @Inject constructor(
             ).getOrThrow()
             val queue = (result as? JsonObject)?.let { parseQueue(it) }
             queue ?: return@runCatching null
-            if (queue.queueId.isBlank()) return@runCatching queue
+            if (!includeItems || queue.queueId.isBlank()) return@runCatching queue
             val itemsResult = webSocketClient.sendRequest(
                 ApiCommand.PLAYER_QUEUES_ITEMS,
                 mapOf("queue_id" to queue.queueId, "limit" to QUEUE_ITEM_LIMIT, "offset" to 0)

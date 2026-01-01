@@ -31,4 +31,5 @@ object ApiCommand {
     const val MUSIC_FAVORITES_ADD_ITEM = "music/favorites/add_item"
     const val MUSIC_FAVORITES_REMOVE_ITEM = "music/favorites/remove_item"
     const val MUSIC_FAVORITES_LIBRARY_ITEMS = "music/favorites/library_items"
+    const val AUTH_LOGIN = "auth/login"
 }

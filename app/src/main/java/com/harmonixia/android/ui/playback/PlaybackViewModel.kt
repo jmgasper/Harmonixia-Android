@@ -2,10 +2,16 @@ package com.harmonixia.android.ui.playback
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.media3.common.MediaItem
 import androidx.media3.common.util.UnstableApi
+import com.harmonixia.android.data.local.SettingsDataStore
 import com.harmonixia.android.domain.model.PlaybackState
+import com.harmonixia.android.domain.model.Player
 import com.harmonixia.android.domain.model.RepeatMode
+import com.harmonixia.android.domain.usecase.GetPlayersUseCase
 import com.harmonixia.android.service.playback.PlaybackServiceConnection
+import com.harmonixia.android.service.playback.PlaybackStateManager
+import com.harmonixia.android.util.PlayerSelection
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -33,12 +39,22 @@ sealed class PlaybackUiEvent {
 @UnstableApi
 @HiltViewModel
 class PlaybackViewModel @Inject constructor(
-    private val playbackServiceConnection: PlaybackServiceConnection
+    private val playbackServiceConnection: PlaybackServiceConnection,
+    private val getPlayersUseCase: GetPlayersUseCase,
+    private val playbackStateManager: PlaybackStateManager,
+    settingsDataStore: SettingsDataStore
 ) : ViewModel() {
     val playbackState: StateFlow<PlaybackState> = playbackServiceConnection.playbackState
     val currentMediaItem = playbackServiceConnection.currentMediaItem
     val repeatMode: StateFlow<RepeatMode> = playbackServiceConnection.repeatMode
     val shuffle: StateFlow<Boolean> = playbackServiceConnection.shuffle
+    val localPlayerId: StateFlow<String?> = settingsDataStore.getSendspinClientId()
+        .map { it.trim().ifBlank { null } }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, null)
+    private val _availablePlayers = MutableStateFlow<List<Player>>(emptyList())
+    val availablePlayers: StateFlow<List<Player>> = _availablePlayers.asStateFlow()
+    private val _selectedPlayer = MutableStateFlow<Player?>(null)
+    val selectedPlayer: StateFlow<Player?> = _selectedPlayer.asStateFlow()
     private val _isRepeatModeUpdating = MutableStateFlow(false)
     val isRepeatModeUpdating: StateFlow<Boolean> = _isRepeatModeUpdating.asStateFlow()
     private val _isShuffleUpdating = MutableStateFlow(false)
@@ -118,15 +134,27 @@ class PlaybackViewModel @Inject constructor(
         duration,
         queueState
     ) { state, mediaItem, position, duration, queueState ->
-        buildNowPlayingUiState(
-            mediaItem = mediaItem,
+        NowPlayingInputs(
             playbackState = state,
-            currentPosition = position,
+            mediaItem = mediaItem,
+            position = position,
             duration = duration,
             hasNext = queueState.hasNext,
             hasPrevious = queueState.hasPrevious,
             repeatMode = queueState.repeatMode,
             shuffle = queueState.shuffle
+        )
+    }.combine(selectedPlayer) { inputs, selectedPlayer ->
+        buildNowPlayingUiState(
+            mediaItem = inputs.mediaItem,
+            playbackState = inputs.playbackState,
+            currentPosition = inputs.position,
+            duration = inputs.duration,
+            hasNext = inputs.hasNext,
+            hasPrevious = inputs.hasPrevious,
+            repeatMode = inputs.repeatMode,
+            shuffle = inputs.shuffle,
+            selectedPlayer = selectedPlayer
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), NowPlayingUiState.Idle)
     val currentTimeFormatted: StateFlow<String> = playbackPosition
@@ -141,6 +169,69 @@ class PlaybackViewModel @Inject constructor(
 
     init {
         playbackServiceConnection.connect()
+        refreshPlayers()
+        viewModelScope.launch {
+            var lastMissingPlayerId: String? = null
+            playbackStateManager.playerIdFlow.collect { playerId ->
+                if (playerId == null) return@collect
+                if (playerId == _selectedPlayer.value?.playerId) return@collect
+                val player = _availablePlayers.value.find { it.playerId == playerId }
+                if (player != null) {
+                    _selectedPlayer.value = player
+                    lastMissingPlayerId = null
+                } else if (playerId != lastMissingPlayerId) {
+                    lastMissingPlayerId = playerId
+                    refreshPlayers()
+                }
+            }
+        }
+    }
+
+    fun refreshPlayers() {
+        viewModelScope.launch {
+            getPlayersUseCase()
+                .onSuccess { players ->
+                    val resolvedLocalId = localPlayerId.value
+                    val sortedPlayers = sortPlayers(players, resolvedLocalId)
+                    _availablePlayers.value = sortedPlayers
+                    if (!playbackStateManager.hasExplicitPlayerSelection()) {
+                        selectLocalPlayer(sortedPlayers, resolvedLocalId)
+                        return@onSuccess
+                    }
+                    val playerId = playbackStateManager.currentPlayerId
+                    if (playerId != null && playerId != _selectedPlayer.value?.playerId) {
+                        val player = sortedPlayers.find { it.playerId == playerId }
+                        if (player != null) {
+                            _selectedPlayer.value = player
+                        }
+                    }
+                }
+        }
+    }
+
+    fun selectPlayer(player: Player) {
+        _selectedPlayer.value = player
+        playbackStateManager.setSelectedPlayer(player.playerId)
+    }
+
+    private fun selectLocalPlayer(players: List<Player>, localPlayerId: String?) {
+        val resolvedLocalId = localPlayerId?.takeIf { it.isNotBlank() }
+        val localPlayer = PlayerSelection.selectLocalPlayer(players, resolvedLocalId)
+        if (localPlayer != null) {
+            _selectedPlayer.value = localPlayer
+            playbackStateManager.setSelectedPlayer(localPlayer.playerId, explicit = false)
+            return
+        }
+        _selectedPlayer.value = null
+    }
+
+    private fun sortPlayers(players: List<Player>, localPlayerId: String?): List<Player> {
+        if (players.isEmpty()) return players
+        val resolvedLocalId = localPlayerId?.takeIf { it.isNotBlank() }
+        val (local, others) = players.partition { player ->
+            PlayerSelection.isLocalPlayer(player, resolvedLocalId)
+        }
+        return local + others
     }
 
     fun play() {
@@ -242,6 +333,17 @@ class PlaybackViewModel @Inject constructor(
     }
 
     private data class QueueState(
+        val hasNext: Boolean,
+        val hasPrevious: Boolean,
+        val repeatMode: RepeatMode,
+        val shuffle: Boolean
+    )
+
+    private data class NowPlayingInputs(
+        val playbackState: PlaybackState,
+        val mediaItem: MediaItem?,
+        val position: Long,
+        val duration: Long,
         val hasNext: Boolean,
         val hasPrevious: Boolean,
         val repeatMode: RepeatMode,

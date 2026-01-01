@@ -29,23 +29,27 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
+import androidx.compose.material.icons.outlined.Speaker
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -67,14 +71,17 @@ import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
 import coil3.request.bitmapConfig
 import com.harmonixia.android.R
+import com.harmonixia.android.domain.model.Player
 import com.harmonixia.android.domain.model.RepeatMode
 import com.harmonixia.android.ui.components.PlaybackControls
+import com.harmonixia.android.ui.components.PlayerSelectionDialog
 import com.harmonixia.android.ui.components.SeekBar
 import com.harmonixia.android.ui.components.formatTrackQualityLabel
 import com.harmonixia.android.ui.playback.NowPlayingUiState
 import com.harmonixia.android.ui.playback.PlaybackInfo
 import com.harmonixia.android.ui.playback.PlaybackViewModel
 import com.harmonixia.android.util.ImageQualityManager
+import com.harmonixia.android.util.PlayerSelection
 import kotlin.math.roundToInt
 import kotlinx.coroutines.launch
 
@@ -90,6 +97,10 @@ fun SharedTransitionScope.NowPlayingScreen(
     val shuffle by viewModel.shuffle.collectAsStateWithLifecycle()
     val isRepeatModeUpdating by viewModel.isRepeatModeUpdating.collectAsStateWithLifecycle()
     val isShuffleUpdating by viewModel.isShuffleUpdating.collectAsStateWithLifecycle()
+    val availablePlayers by viewModel.availablePlayers.collectAsStateWithLifecycle()
+    val selectedPlayer by viewModel.selectedPlayer.collectAsStateWithLifecycle()
+    val localPlayerId by viewModel.localPlayerId.collectAsStateWithLifecycle()
+    var showPlayerSelectionDialog by remember { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
     val context = LocalContext.current
     val haptic = LocalHapticFeedback.current
@@ -167,6 +178,19 @@ fun SharedTransitionScope.NowPlayingScreen(
                             contentDescription = stringResource(R.string.action_back)
                         )
                     }
+                },
+                actions = {
+                    IconButton(
+                        onClick = {
+                            viewModel.refreshPlayers()
+                            showPlayerSelectionDialog = true
+                        }
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.Speaker,
+                            contentDescription = stringResource(R.string.content_desc_speaker_icon)
+                        )
+                    }
                 }
             )
         },
@@ -178,15 +202,18 @@ fun SharedTransitionScope.NowPlayingScreen(
             .padding(horizontal = horizontalPadding, vertical = 16.dp)
 
         BoxWithConstraints(modifier = contentModifier) {
-            val maxArtworkHeight = if (isExpanded) {
-                maxHeight * 0.85f
-            } else {
-                maxHeight * 0.4f
+            val useSideBySide = isExpanded ||
+                windowSizeClass.widthSizeClass == WindowWidthSizeClass.Medium ||
+                maxWidth > maxHeight
+            val maxArtworkHeight = when {
+                isExpanded -> maxHeight * 0.85f
+                useSideBySide -> maxHeight * 0.75f
+                else -> maxHeight * 0.4f
             }
-            val maxArtworkWidth = if (isExpanded) {
-                maxWidth * 0.5f
-            } else {
-                maxWidth * 0.9f
+            val maxArtworkWidth = when {
+                isExpanded -> maxWidth * 0.5f
+                useSideBySide -> maxWidth * 0.45f
+                else -> maxWidth * 0.9f
             }
             val artworkSize = minOf(baseArtworkSize, maxArtworkHeight, maxArtworkWidth)
 
@@ -196,21 +223,30 @@ fun SharedTransitionScope.NowPlayingScreen(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(32.dp)
                 ) {
-                    ArtworkPanel(
-                        trackIdentity = trackIdentity,
-                        artworkSize = artworkSize,
-                        isLoading = isLoading,
-                        hasNext = displayInfo.hasNext,
-                        hasPrevious = displayInfo.hasPrevious,
-                        onNext = { viewModel.next() },
-                        onPrevious = { viewModel.previous() },
-                        haptic = haptic,
-                        dragOffsetX = dragOffsetX,
-                        swipeThreshold = swipeThreshold,
-                        enableSharedArtworkTransition = enableSharedArtworkTransition,
-                        sharedArtworkState = sharedArtworkState,
-                        placeholderPainter = placeholderPainter
-                    )
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        PlayerNamePill(
+                            player = selectedPlayer,
+                            localPlayerId = localPlayerId
+                        )
+                        ArtworkPanel(
+                            trackIdentity = trackIdentity,
+                            artworkSize = artworkSize,
+                            isLoading = isLoading,
+                            hasNext = displayInfo.hasNext,
+                            hasPrevious = displayInfo.hasPrevious,
+                            onNext = { viewModel.next() },
+                            onPrevious = { viewModel.previous() },
+                            haptic = haptic,
+                            dragOffsetX = dragOffsetX,
+                            swipeThreshold = swipeThreshold,
+                            enableSharedArtworkTransition = enableSharedArtworkTransition,
+                            sharedArtworkState = sharedArtworkState,
+                            placeholderPainter = placeholderPainter
+                        )
+                    }
                     ControlsPanel(
                         trackIdentity = trackIdentity,
                         titleStyle = titleStyle,
@@ -233,6 +269,66 @@ fun SharedTransitionScope.NowPlayingScreen(
                             .fillMaxHeight()
                     )
                 }
+            } else if (useSideBySide) {
+                Column(
+                    modifier = Modifier.fillMaxSize(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(24.dp, Alignment.CenterVertically)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(24.dp)
+                    ) {
+                        ArtworkPanel(
+                            trackIdentity = trackIdentity,
+                            artworkSize = artworkSize,
+                            isLoading = isLoading,
+                            hasNext = displayInfo.hasNext,
+                            hasPrevious = displayInfo.hasPrevious,
+                            onNext = { viewModel.next() },
+                            onPrevious = { viewModel.previous() },
+                            haptic = haptic,
+                            dragOffsetX = dragOffsetX,
+                            swipeThreshold = swipeThreshold,
+                            enableSharedArtworkTransition = enableSharedArtworkTransition,
+                            sharedArtworkState = sharedArtworkState,
+                            placeholderPainter = placeholderPainter
+                        )
+                        Column(
+                            modifier = Modifier.weight(1f),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(16.dp)
+                        ) {
+                            PlayerNamePill(
+                                player = selectedPlayer,
+                                localPlayerId = localPlayerId
+                            )
+                            TrackInfoPanel(
+                                trackIdentity = trackIdentity,
+                                titleStyle = titleStyle,
+                                artistStyle = artistStyle,
+                                albumStyle = albumStyle
+                            )
+                        }
+                    }
+                    PlaybackControlPanel(
+                        trackIdentity = trackIdentity,
+                        playbackInfo = displayInfo,
+                        controlsEnabled = controlsEnabled,
+                        onSeek = { viewModel.seek(it) },
+                        onPlayPause = { viewModel.togglePlayPause() },
+                        onNext = { viewModel.next() },
+                        onPrevious = { viewModel.previous() },
+                        repeatMode = repeatMode,
+                        shuffle = shuffle,
+                        isRepeatModeUpdating = isRepeatModeUpdating,
+                        isShuffleUpdating = isShuffleUpdating,
+                        onRepeatToggle = { viewModel.toggleRepeatMode() },
+                        onShuffleToggle = { viewModel.toggleShuffle() },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
             } else {
                 Column(
                     modifier = Modifier.fillMaxSize(),
@@ -253,6 +349,13 @@ fun SharedTransitionScope.NowPlayingScreen(
                         sharedArtworkState = sharedArtworkState,
                         placeholderPainter = placeholderPainter
                     )
+                    if (selectedPlayer != null) {
+                        PlayerNamePill(
+                            player = selectedPlayer,
+                            localPlayerId = localPlayerId,
+                            modifier = Modifier.padding(top = 16.dp)
+                        )
+                    }
                     Spacer(modifier = Modifier.height(24.dp))
                     ControlsPanel(
                         trackIdentity = trackIdentity,
@@ -290,6 +393,18 @@ fun SharedTransitionScope.NowPlayingScreen(
                 }
             }
         }
+    }
+
+    if (showPlayerSelectionDialog) {
+        PlayerSelectionDialog(
+            players = availablePlayers,
+            selectedPlayer = selectedPlayer,
+            localPlayerId = localPlayerId,
+            onPlayerSelected = { player ->
+                viewModel.selectPlayer(player)
+            },
+            onDismiss = { showPlayerSelectionDialog = false }
+        )
     }
 
     LaunchedEffect(displayInfo.hasNext, displayInfo.hasPrevious) {
@@ -424,52 +539,113 @@ private fun ControlsPanel(
     onShuffleToggle: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val context = LocalContext.current
-    val qualityLabel = formatTrackQualityLabel(trackIdentity.quality, context::getString)
     Column(
         modifier = modifier
             .fillMaxWidth()
             .animateContentSize(),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        AnimatedContent(
-            targetState = trackIdentity,
-            transitionSpec = { fadeIn() togetherWith fadeOut() },
-            label = "trackText"
-        ) { identity ->
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                if (identity.title.isNotBlank()) {
-                    Text(
-                        text = identity.title,
-                        style = titleStyle,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
-                        textAlign = TextAlign.Center
-                    )
-                }
-                if (identity.artist.isNotBlank()) {
-                    Text(
-                        text = identity.artist,
-                        style = artistStyle,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        textAlign = TextAlign.Center
-                    )
-                }
-                if (identity.album.isNotBlank()) {
-                    Text(
-                        text = identity.album,
-                        style = albumStyle,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        textAlign = TextAlign.Center
-                    )
-                }
+        TrackInfoPanel(
+            trackIdentity = trackIdentity,
+            titleStyle = titleStyle,
+            artistStyle = artistStyle,
+            albumStyle = albumStyle
+        )
+        Spacer(modifier = Modifier.height(24.dp))
+        PlaybackControlPanel(
+            trackIdentity = trackIdentity,
+            playbackInfo = playbackInfo,
+            controlsEnabled = controlsEnabled,
+            onSeek = onSeek,
+            onPlayPause = onPlayPause,
+            onNext = onNext,
+            onPrevious = onPrevious,
+            repeatMode = repeatMode,
+            shuffle = shuffle,
+            isRepeatModeUpdating = isRepeatModeUpdating,
+            isShuffleUpdating = isShuffleUpdating,
+            onRepeatToggle = onRepeatToggle,
+            onShuffleToggle = onShuffleToggle,
+            modifier = Modifier.fillMaxWidth()
+        )
+    }
+}
+
+@Composable
+private fun TrackInfoPanel(
+    trackIdentity: TrackIdentity,
+    titleStyle: TextStyle,
+    artistStyle: TextStyle,
+    albumStyle: TextStyle,
+    modifier: Modifier = Modifier,
+    horizontalAlignment: Alignment.Horizontal = Alignment.CenterHorizontally,
+    textAlign: TextAlign = TextAlign.Center
+) {
+    AnimatedContent(
+        targetState = trackIdentity,
+        transitionSpec = { fadeIn() togetherWith fadeOut() },
+        label = "trackText"
+    ) { identity ->
+        Column(
+            modifier = modifier,
+            horizontalAlignment = horizontalAlignment
+        ) {
+            if (identity.title.isNotBlank()) {
+                Text(
+                    text = identity.title,
+                    style = titleStyle,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    textAlign = textAlign
+                )
+            }
+            if (identity.artist.isNotBlank()) {
+                Text(
+                    text = identity.artist,
+                    style = artistStyle,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    textAlign = textAlign
+                )
+            }
+            if (identity.album.isNotBlank()) {
+                Text(
+                    text = identity.album,
+                    style = albumStyle,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    textAlign = textAlign
+                )
             }
         }
-        Spacer(modifier = Modifier.height(24.dp))
+    }
+}
+
+@Composable
+private fun PlaybackControlPanel(
+    trackIdentity: TrackIdentity,
+    playbackInfo: PlaybackInfo,
+    controlsEnabled: Boolean,
+    onSeek: (Long) -> Unit,
+    onPlayPause: () -> Unit,
+    onNext: () -> Unit,
+    onPrevious: () -> Unit,
+    repeatMode: RepeatMode,
+    shuffle: Boolean,
+    isRepeatModeUpdating: Boolean,
+    isShuffleUpdating: Boolean,
+    onRepeatToggle: () -> Unit,
+    onShuffleToggle: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val context = LocalContext.current
+    val qualityLabel = formatTrackQualityLabel(trackIdentity.quality, context::getString)
+    Column(
+        modifier = modifier,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
         SeekBar(
             currentPosition = playbackInfo.currentPosition,
             duration = playbackInfo.duration,
@@ -528,7 +704,34 @@ private fun emptyPlaybackInfo(): PlaybackInfo =
         hasNext = false,
         hasPrevious = false,
         repeatMode = RepeatMode.OFF,
-        shuffle = false
+        shuffle = false,
+        selectedPlayer = null
     )
+
+@Composable
+private fun PlayerNamePill(
+    player: Player?,
+    localPlayerId: String?,
+    modifier: Modifier = Modifier
+) {
+    val selected = player ?: return
+    val playerName = if (PlayerSelection.isLocalPlayer(selected, localPlayerId)) {
+        stringResource(R.string.player_selection_this_device)
+    } else {
+        selected.name
+    }
+    Surface(
+        color = MaterialTheme.colorScheme.secondaryContainer,
+        contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+        shape = MaterialTheme.shapes.small,
+        modifier = modifier
+    ) {
+        Text(
+            text = playerName,
+            style = MaterialTheme.typography.labelMedium,
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+        )
+    }
+}
 
 private const val SHARED_ARTWORK_KEY = "shared_playback_artwork"

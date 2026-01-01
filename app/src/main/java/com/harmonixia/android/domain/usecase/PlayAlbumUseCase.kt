@@ -1,10 +1,8 @@
 package com.harmonixia.android.domain.usecase
 
-import com.harmonixia.android.domain.model.Player
 import com.harmonixia.android.domain.model.QueueOption
 import com.harmonixia.android.domain.repository.MusicAssistantRepository
 import com.harmonixia.android.service.playback.PlaybackStateManager
-import com.harmonixia.android.util.PlayerSelection
 
 class PlayAlbumUseCase(
     private val repository: MusicAssistantRepository,
@@ -23,16 +21,19 @@ class PlayAlbumUseCase(
             if (tracks.isEmpty()) {
                 throw IllegalStateException("Album has no tracks")
             }
-            val player = selectPlayer(repository.fetchPlayers().getOrThrow())
-            val queue = repository.getActiveQueue(player.playerId).getOrThrow()
+            val playerId = playbackStateManager.currentPlayerId
+                ?: throw IllegalStateException("No player selected")
+            val queue = repository.getActiveQueue(playerId, includeItems = false).getOrThrow()
                 ?: throw IllegalStateException("No active queue")
             val queueId = queue.queueId
             val uris = tracks.map { it.uri }
             val safeIndex = startIndex.coerceIn(0, tracks.lastIndex)
+            playbackStateManager.seedQueue(tracks, safeIndex)
             val requestedShuffle = shuffleMode ?: queue.shuffle
             val shouldDisableShuffle = forceStartIndex && requestedShuffle
             var restoreShuffle = false
             var enableShuffleAfter = false
+            var queueUpdated = false
             if (shuffleMode == null) {
                 if (shouldDisableShuffle && queue.shuffle) {
                     restoreShuffle = repository.setShuffleMode(queueId, false).isSuccess
@@ -52,6 +53,7 @@ class PlayAlbumUseCase(
                 if (safeIndex > 0) {
                     repository.playIndex(queueId, safeIndex).getOrThrow()
                 }
+                queueUpdated = true
             } finally {
                 if (shuffleMode == null) {
                     if (restoreShuffle) {
@@ -61,12 +63,10 @@ class PlayAlbumUseCase(
                     repository.setShuffleMode(queueId, true)
                 }
             }
-            player.playerId
+            if (queueUpdated) {
+                playbackStateManager.refreshQueueNow()
+            }
+            playerId
         }
-    }
-
-    private fun selectPlayer(players: List<Player>): Player {
-        return PlayerSelection.selectLocalPlayer(players)
-            ?: throw IllegalStateException("No local playback device available")
     }
 }

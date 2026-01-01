@@ -1,9 +1,7 @@
 package com.harmonixia.android.domain.usecase
 
-import com.harmonixia.android.domain.model.Player
 import com.harmonixia.android.domain.repository.MusicAssistantRepository
 import com.harmonixia.android.service.playback.PlaybackStateManager
-import com.harmonixia.android.util.PlayerSelection
 
 enum class PlaybackCommand {
     PLAY,
@@ -19,8 +17,9 @@ class ControlPlaybackUseCase(
 ) {
     suspend operator fun invoke(command: PlaybackCommand, position: Int? = null): Result<Unit> {
         return runCatching {
-            val player = selectPlayer(repository.fetchPlayers().getOrThrow())
-            val queue = repository.getActiveQueue(player.playerId).getOrThrow()
+            val playerId = playbackStateManager.currentPlayerId
+                ?: throw IllegalStateException("No player selected")
+            val queue = repository.getActiveQueue(playerId, includeItems = false).getOrThrow()
                 ?: throw IllegalStateException("No active queue")
             val queueId = queue.queueId
             when (command) {
@@ -38,10 +37,5 @@ class ControlPlaybackUseCase(
                 }
             }
         }
-    }
-
-    private fun selectPlayer(players: List<Player>): Player {
-        return PlayerSelection.selectLocalPlayer(players)
-            ?: throw IllegalStateException("No local playback device available")
     }
 }

@@ -14,6 +14,9 @@ fun OnboardingScreenPreviewInitial() {
             connectionState = ConnectionState.Disconnected,
             onServerUrlChange = {},
             onAuthTokenChange = {},
+            onAuthMethodChange = {},
+            onUsernameChange = {},
+            onPasswordChange = {},
             onConnect = {},
             onClearError = {}
         )
@@ -31,6 +34,9 @@ fun OnboardingScreenPreviewConnecting() {
             connectionState = ConnectionState.Connecting,
             onServerUrlChange = {},
             onAuthTokenChange = {},
+            onAuthMethodChange = {},
+            onUsernameChange = {},
+            onPasswordChange = {},
             onConnect = {},
             onClearError = {}
         )
@@ -49,6 +55,9 @@ fun OnboardingScreenPreviewError() {
             connectionState = ConnectionState.Error("Connection failed"),
             onServerUrlChange = {},
             onAuthTokenChange = {},
+            onAuthMethodChange = {},
+            onUsernameChange = {},
+            onPasswordChange = {},
             onConnect = {},
             onClearError = {}
         )
@@ -66,6 +75,9 @@ fun OnboardingScreenPreviewSuccess() {
             connectionState = ConnectionState.Connected,
             onServerUrlChange = {},
             onAuthTokenChange = {},
+            onAuthMethodChange = {},
+            onUsernameChange = {},
+            onPasswordChange = {},
             onConnect = {},
             onClearError = {}
         )

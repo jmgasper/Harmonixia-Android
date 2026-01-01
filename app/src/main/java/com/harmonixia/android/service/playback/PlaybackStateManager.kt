@@ -42,6 +42,8 @@ class PlaybackStateManager(
     private val syncSeekLock = Any()
     private var pendingSyncSeeks = 0
     private var lastSyncSeekAtMs = 0L
+    private val playerSelectionLock = Any()
+    private var isPlayerExplicitlySelected = false
 
     private val _playbackState = MutableStateFlow(PlaybackState.IDLE)
     val playbackState: StateFlow<PlaybackState> = _playbackState.asStateFlow()
@@ -61,6 +63,10 @@ class PlaybackStateManager(
     val currentPlayerId: String? get() = _playerId.value
     val currentQueueId: String? get() = _queueId.value
 
+    fun hasExplicitPlayerSelection(): Boolean {
+        return synchronized(playerSelectionLock) { isPlayerExplicitlySelected }
+    }
+
     fun attachPlayer(player: ExoPlayer) {
         this.player = player
     }
@@ -71,19 +77,81 @@ class PlaybackStateManager(
         suppressAutoPlay = false
     }
 
+    fun seedQueue(tracks: List<Track>, startIndex: Int) {
+        if (tracks.isEmpty()) return
+        val safeIndex = startIndex.coerceIn(0, tracks.lastIndex)
+        val track = tracks[safeIndex]
+        scope.launch {
+            withContext(mainDispatcher) {
+                queueManager.seedQueue(track)
+            }
+        }
+    }
+
+    suspend fun refreshQueueNow() {
+        val result = withContext(ioDispatcher) {
+            val playerId = resolvePlayerId() ?: return@withContext null
+            playerId to repository.getActiveQueue(playerId)
+        } ?: return
+        val (playerId, queueResult) = result
+        queueResult
+            .onSuccess { queue ->
+                applyQueueUpdate(playerId, queue, allowPartialItems = false)
+            }
+            .onFailure { error ->
+                Logger.w(TAG, "Failed to refresh queue state", error)
+            }
+    }
+
+    fun setSelectedPlayer(playerId: String, explicit: Boolean = true) {
+        val previousPlayerId: String?
+        val shouldRefresh: Boolean
+        synchronized(playerSelectionLock) {
+            previousPlayerId = _playerId.value
+            _playerId.value = playerId
+            if (explicit) {
+                isPlayerExplicitlySelected = true
+            }
+            shouldRefresh = previousPlayerId != null && previousPlayerId != playerId
+        }
+
+        if (previousPlayerId != null && previousPlayerId != playerId) {
+            Logger.i(TAG, "Player switched from $previousPlayerId to $playerId")
+            _queueId.value = null
+            _playbackState.value = PlaybackState.IDLE
+            lastQueue = null
+            queueManager.updateQueueId(null)
+            val localPlayer = player
+            if (localPlayer?.isPlaying == true) {
+                scope.launch(mainDispatcher) {
+                    localPlayer.pause()
+                }
+            }
+            if (shouldRefresh) {
+                refreshQueueFast()
+            }
+        }
+    }
+
     fun start() {
         if (pollJob != null) return
         startupAutoPausePending = !userInitiatedPlayback
         suppressAutoPlay = false
+        scope.launch {
+            val shouldResolve = synchronized(playerSelectionLock) {
+                !isPlayerExplicitlySelected && _playerId.value.isNullOrBlank()
+            }
+            if (shouldResolve) {
+                resolvePlayerId()
+            }
+        }
         pollJob = scope.launch {
             while (isActive) {
                 val playerId = resolvePlayerId()
                 if (playerId != null) {
                     repository.getActiveQueue(playerId)
                         .onSuccess { queue ->
-                            withContext(mainDispatcher) {
-                                handleQueue(queue)
-                            }
+                            applyQueueUpdate(playerId, queue, allowPartialItems = false)
                         }
                         .onFailure { error ->
                             Logger.w(TAG, "Failed to fetch queue state", error)
@@ -112,10 +180,15 @@ class PlaybackStateManager(
             pendingSyncSeeks = 0
             lastSyncSeekAtMs = 0L
         }
+        synchronized(playerSelectionLock) {
+            isPlayerExplicitlySelected = false
+        }
     }
 
     private suspend fun resolvePlayerId(): String? {
+        val explicitlySelected = synchronized(playerSelectionLock) { isPlayerExplicitlySelected }
         val current = _playerId.value
+        if (explicitlySelected) return current
         if (!current.isNullOrBlank()) return current
         val players = repository.fetchPlayers().getOrNull().orEmpty()
         val selected = PlayerSelection.selectLocalPlayer(players)
@@ -124,12 +197,73 @@ class PlaybackStateManager(
                 Logger.w(TAG, "Local playback device not found; skipping remote players")
                 localPlayerMissingLogged = true
             }
-            _playerId.value = null
-            return null
+            val resolved = synchronized(playerSelectionLock) {
+                if (!isPlayerExplicitlySelected) {
+                    _playerId.value = null
+                }
+                _playerId.value
+            }
+            return resolved
         }
         localPlayerMissingLogged = false
-        _playerId.value = selected.playerId
-        return selected.playerId
+        return synchronized(playerSelectionLock) {
+            if (!isPlayerExplicitlySelected) {
+                _playerId.value = selected.playerId
+            }
+            _playerId.value
+        }
+    }
+
+    fun refreshQueue() {
+        val playerId = _playerId.value ?: return
+        scope.launch {
+            repository.getActiveQueue(playerId)
+                .onSuccess { queue ->
+                    applyQueueUpdate(playerId, queue, allowPartialItems = false)
+                }
+                .onFailure { error ->
+                    Logger.w(TAG, "Failed to refresh queue state", error)
+                }
+        }
+    }
+
+    fun refreshQueueFast() {
+        val playerId = _playerId.value ?: return
+        scope.launch {
+            // Fetch queue state first for a quicker UI update, then hydrate full items.
+            repository.getActiveQueue(playerId, includeItems = false)
+                .onSuccess { queue ->
+                    applyQueueUpdate(playerId, queue, allowPartialItems = true)
+                }
+                .onFailure { error ->
+                    Logger.w(TAG, "Failed to fetch queue state", error)
+                }
+            repository.getActiveQueue(playerId)
+                .onSuccess { queue ->
+                    applyQueueUpdate(playerId, queue, allowPartialItems = false)
+                }
+                .onFailure { error ->
+                    Logger.w(TAG, "Failed to refresh queue state", error)
+                }
+        }
+    }
+
+    private suspend fun applyQueueUpdate(
+        playerId: String,
+        queue: Queue?,
+        allowPartialItems: Boolean
+    ) {
+        if (_playerId.value != playerId) return
+        val resolvedQueue = queue?.let { resolveQueueItems(it, allowPartialItems) }
+        withContext(mainDispatcher) {
+            handleQueue(resolvedQueue)
+        }
+    }
+
+    private fun resolveQueueItems(queue: Queue, allowPartialItems: Boolean): Queue {
+        if (!allowPartialItems || queue.items.isNotEmpty()) return queue
+        val currentItem = queue.currentItem ?: return queue
+        return queue.copy(items = listOf(currentItem), currentIndex = 0)
     }
 
     private suspend fun handleQueue(queue: Queue?) {
@@ -214,7 +348,8 @@ class PlaybackStateManager(
         val localMediaId = player.currentMediaItem?.mediaId
         var needsIndexSeek = false
         if (remoteTrack != null && remoteTrack.itemId != localMediaId) {
-            val mediaItem = queueManager.buildMediaItem(remoteTrack)
+            val resolveLocal = queue.state == PlaybackState.PLAYING
+            val mediaItem = queueManager.buildMediaItem(remoteTrack, resolveLocal = resolveLocal)
             player.setMediaItem(mediaItem)
             player.prepare()
         } else if (player.mediaItemCount > 0 && player.currentMediaItemIndex != queue.currentIndex) {
@@ -229,6 +364,10 @@ class PlaybackStateManager(
         } else if (abs(remotePositionMs - localPositionMs) > POSITION_TOLERANCE_MS) {
             markSyncSeek()
             player.seekTo(remotePositionMs)
+        }
+
+        if (remoteTrack != null && queue.state == PlaybackState.PLAYING) {
+            queueManager.ensureLocalForCurrentTrack(remoteTrack)
         }
 
         when (queue.state) {

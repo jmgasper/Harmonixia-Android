@@ -8,12 +8,13 @@ import androidx.lifecycle.viewModelScope
 import com.harmonixia.android.R
 import com.harmonixia.android.data.local.SettingsDataStore
 import com.harmonixia.android.data.remote.ConnectionState
+import com.harmonixia.android.domain.model.AuthMethod
 import com.harmonixia.android.domain.usecase.ConnectToServerUseCase
 import com.harmonixia.android.domain.usecase.GetConnectionStateUseCase
 import com.harmonixia.android.util.Logger
+import com.harmonixia.android.util.NetworkError
 import com.harmonixia.android.util.UrlValidationError
 import com.harmonixia.android.util.ValidationUtils
-import com.harmonixia.android.util.NetworkError
 import com.harmonixia.android.util.toNetworkError
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -95,6 +96,66 @@ class OnboardingViewModel @Inject constructor(
         }
     }
 
+    fun updateAuthMethod(value: AuthMethod) {
+        savedStateHandle[KEY_AUTH_METHOD] = value
+        updateForm { current ->
+            when (value) {
+                AuthMethod.TOKEN -> {
+                    savedStateHandle[KEY_USERNAME] = ""
+                    savedStateHandle[KEY_PASSWORD] = ""
+                    current.copy(
+                        authMethod = value,
+                        username = "",
+                        password = "",
+                        isUsernameValid = true,
+                        isPasswordValid = true,
+                        usernameError = null,
+                        passwordError = null
+                    )
+                }
+                AuthMethod.USERNAME_PASSWORD -> {
+                    savedStateHandle[KEY_AUTH_TOKEN] = ""
+                    current.copy(
+                        authMethod = value,
+                        authToken = "",
+                        isAuthTokenValid = true,
+                        authTokenError = null
+                    )
+                }
+            }
+        }
+    }
+
+    fun updateUsername(value: String) {
+        savedStateHandle[KEY_USERNAME] = value
+        val isValid = value.isNotBlank()
+        val errorMessage = if (isValid) null else {
+            context.getString(R.string.error_username_required)
+        }
+        updateForm {
+            it.copy(
+                username = value,
+                isUsernameValid = isValid,
+                usernameError = errorMessage
+            )
+        }
+    }
+
+    fun updatePassword(value: String) {
+        savedStateHandle[KEY_PASSWORD] = value
+        val isValid = value.isNotBlank()
+        val errorMessage = if (isValid) null else {
+            context.getString(R.string.error_password_required)
+        }
+        updateForm {
+            it.copy(
+                password = value,
+                isPasswordValid = isValid,
+                passwordError = errorMessage
+            )
+        }
+    }
+
     fun clearError() {
         val current = _uiState.value
         if (current is OnboardingUiState.Error) {
@@ -111,7 +172,13 @@ class OnboardingViewModel @Inject constructor(
             val normalizedUrl = ValidationUtils.normalizeUrl(form.serverUrl)
             val token = form.authToken.trim()
             Logger.i(TAG, "Attempting connection to ${Logger.sanitizeUrl(normalizedUrl)}")
-            val result = connectToServerUseCase(normalizedUrl, token)
+            val result = connectToServerUseCase(
+                normalizedUrl,
+                token,
+                form.authMethod,
+                form.username.trim(),
+                form.password.trim()
+            )
             result.onSuccess {
                 _uiState.value = OnboardingUiState.Success(form)
                 clearSensitiveData()
@@ -124,21 +191,50 @@ class OnboardingViewModel @Inject constructor(
 
     private fun validateInputs(): Boolean {
         _uiState.value = OnboardingUiState.Validating(_uiState.value.form)
-        val validation = ValidationUtils.validateServerUrl(_uiState.value.form.serverUrl)
+        val form = _uiState.value.form
+        val validation = ValidationUtils.validateServerUrl(form.serverUrl)
         val errorMessage = validation.error?.let { errorMessageFor(it) }
         if (!validation.isValid) {
             Logger.w(TAG, "Validation failed: ${validation.error}")
         }
+        val isUsernameValid = if (form.authMethod == AuthMethod.USERNAME_PASSWORD) {
+            form.username.isNotBlank()
+        } else {
+            form.isUsernameValid
+        }
+        val isPasswordValid = if (form.authMethod == AuthMethod.USERNAME_PASSWORD) {
+            form.password.isNotBlank()
+        } else {
+            form.isPasswordValid
+        }
+        val usernameError = if (form.authMethod == AuthMethod.USERNAME_PASSWORD && !isUsernameValid) {
+            context.getString(R.string.error_username_required)
+        } else {
+            form.usernameError
+        }
+        val passwordError = if (form.authMethod == AuthMethod.USERNAME_PASSWORD && !isPasswordValid) {
+            context.getString(R.string.error_password_required)
+        } else {
+            form.passwordError
+        }
         updateForm {
             it.copy(
                 isServerUrlValid = validation.isValid,
-                serverUrlError = errorMessage
+                serverUrlError = errorMessage,
+                isUsernameValid = isUsernameValid,
+                isPasswordValid = isPasswordValid,
+                usernameError = usernameError,
+                passwordError = passwordError
             )
         }
-        if (!validation.isValid) {
+        val isValid = validation.isValid && when (form.authMethod) {
+            AuthMethod.TOKEN -> true
+            AuthMethod.USERNAME_PASSWORD -> isUsernameValid && isPasswordValid
+        }
+        if (!isValid) {
             _uiState.value = OnboardingUiState.Initial(_uiState.value.form)
         }
-        return validation.isValid
+        return isValid
     }
 
     private fun updateForm(transform: (OnboardingFormState) -> OnboardingFormState) {
@@ -196,14 +292,29 @@ class OnboardingViewModel @Inject constructor(
     }
 
     private fun clearSensitiveData() {
-        updateForm { it.copy(authToken = "") }
+        updateForm { it.copy(authToken = "", username = "", password = "") }
         savedStateHandle[KEY_AUTH_TOKEN] = ""
+        savedStateHandle[KEY_USERNAME] = ""
+        savedStateHandle[KEY_PASSWORD] = ""
     }
 
     private fun loadFormState(): OnboardingFormState {
         val serverUrl = savedStateHandle.get<String>(KEY_SERVER_URL).orEmpty()
         val authToken = savedStateHandle.get<String>(KEY_AUTH_TOKEN).orEmpty()
-        return OnboardingFormState(serverUrl = serverUrl, authToken = authToken)
+        val authMethod = savedStateHandle.get<AuthMethod>(KEY_AUTH_METHOD)
+            ?: savedStateHandle.get<String>(KEY_AUTH_METHOD)?.let { stored ->
+                runCatching { AuthMethod.valueOf(stored) }.getOrNull()
+            }
+            ?: AuthMethod.TOKEN
+        val username = savedStateHandle.get<String>(KEY_USERNAME).orEmpty()
+        val password = savedStateHandle.get<String>(KEY_PASSWORD).orEmpty()
+        return OnboardingFormState(
+            serverUrl = serverUrl,
+            authToken = authToken,
+            authMethod = authMethod,
+            username = username,
+            password = password
+        )
     }
 
     private companion object {
@@ -211,5 +322,8 @@ class OnboardingViewModel @Inject constructor(
         private const val CONNECT_DEBOUNCE_MS = 1_000L
         private const val KEY_SERVER_URL = "onboarding_server_url"
         private const val KEY_AUTH_TOKEN = "onboarding_auth_token"
+        private const val KEY_AUTH_METHOD = "onboarding_auth_method"
+        private const val KEY_USERNAME = "onboarding_username"
+        private const val KEY_PASSWORD = "onboarding_password"
     }
 }

@@ -20,6 +20,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.Dns
 import androidx.compose.material.icons.outlined.Key
+import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.Visibility
 import androidx.compose.material.icons.outlined.VisibilityOff
 import androidx.compose.material3.Card
@@ -32,6 +33,9 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
@@ -60,6 +64,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.harmonixia.android.R
 import com.harmonixia.android.data.remote.ConnectionState
+import com.harmonixia.android.domain.model.AuthMethod
 import com.harmonixia.android.ui.components.ErrorCard
 import com.harmonixia.android.ui.components.LoadingButton
 
@@ -82,6 +87,9 @@ fun OnboardingScreen(
         connectionState = connectionState,
         onServerUrlChange = viewModel::updateServerUrl,
         onAuthTokenChange = viewModel::updateAuthToken,
+        onAuthMethodChange = viewModel::updateAuthMethod,
+        onUsernameChange = viewModel::updateUsername,
+        onPasswordChange = viewModel::updatePassword,
         onConnect = viewModel::connect,
         onClearError = viewModel::clearError
     )
@@ -94,6 +102,9 @@ internal fun OnboardingScreenContent(
     connectionState: ConnectionState,
     onServerUrlChange: (String) -> Unit,
     onAuthTokenChange: (String) -> Unit,
+    onAuthMethodChange: (AuthMethod) -> Unit,
+    onUsernameChange: (String) -> Unit,
+    onPasswordChange: (String) -> Unit,
     onConnect: () -> Unit,
     onClearError: () -> Unit
 ) {
@@ -104,7 +115,10 @@ internal fun OnboardingScreenContent(
     val scrollState = rememberScrollState()
     val focusManager = LocalFocusManager.current
     val tokenFocusRequester = remember { FocusRequester() }
+    val usernameFocusRequester = remember { FocusRequester() }
+    val passwordFocusRequester = remember { FocusRequester() }
     var isTokenVisible by rememberSaveable { mutableStateOf(false) }
+    var isPasswordVisible by rememberSaveable { mutableStateOf(false) }
 
     BackHandler(enabled = isConnecting) {
         // Disable back navigation during connection attempts.
@@ -136,6 +150,13 @@ internal fun OnboardingScreenContent(
                     text = stringResource(R.string.help_onboarding),
                     style = MaterialTheme.typography.bodyMedium
                 )
+                Spacer(modifier = Modifier.height(16.dp))
+
+                AuthMethodSelector(
+                    authMethod = form.authMethod,
+                    onAuthMethodChange = onAuthMethodChange,
+                    modifier = Modifier.fillMaxWidth()
+                )
                 Spacer(modifier = Modifier.height(24.dp))
 
                 OutlinedTextField(
@@ -164,7 +185,12 @@ internal fun OnboardingScreenContent(
                         imeAction = ImeAction.Next
                     ),
                     keyboardActions = KeyboardActions(
-                        onNext = { tokenFocusRequester.requestFocus() }
+                        onNext = {
+                            when (form.authMethod) {
+                                AuthMethod.TOKEN -> tokenFocusRequester.requestFocus()
+                                AuthMethod.USERNAME_PASSWORD -> usernameFocusRequester.requestFocus()
+                            }
+                        }
                     ),
                     modifier = Modifier
                         .fillMaxWidth()
@@ -173,75 +199,182 @@ internal fun OnboardingScreenContent(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                OutlinedTextField(
-                    value = form.authToken,
-                    onValueChange = onAuthTokenChange,
-                    label = {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(text = stringResource(R.string.label_access_token))
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = stringResource(R.string.label_optional_access_token),
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.secondary
-                            )
-                        }
-                    },
-                    placeholder = { Text(text = stringResource(R.string.placeholder_access_token_optional)) },
-                    leadingIcon = {
-                        Icon(
-                            imageVector = Icons.Outlined.Key,
-                            contentDescription = stringResource(R.string.content_desc_token_icon)
-                        )
-                    },
-                    trailingIcon = {
-                        IconButton(
-                            onClick = { isTokenVisible = !isTokenVisible }
-                        ) {
-                            Icon(
-                                imageVector = if (isTokenVisible) {
-                                    Icons.Outlined.VisibilityOff
-                                } else {
-                                    Icons.Outlined.Visibility
-                                },
-                                contentDescription = stringResource(
-                                    if (isTokenVisible) {
-                                        R.string.content_desc_visibility_off
-                                    } else {
-                                        R.string.content_desc_visibility_on
-                                    }
+                when (form.authMethod) {
+                    AuthMethod.TOKEN -> {
+                        OutlinedTextField(
+                            value = form.authToken,
+                            onValueChange = onAuthTokenChange,
+                            label = {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Text(text = stringResource(R.string.label_access_token))
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(
+                                        text = stringResource(R.string.label_optional_access_token),
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.secondary
+                                    )
+                                }
+                            },
+                            placeholder = {
+                                Text(text = stringResource(R.string.placeholder_access_token_optional))
+                            },
+                            leadingIcon = {
+                                Icon(
+                                    imageVector = Icons.Outlined.Key,
+                                    contentDescription = stringResource(R.string.content_desc_token_icon)
                                 )
-                            )
-                        }
-                    },
-                    visualTransformation = if (isTokenVisible) {
-                        VisualTransformation.None
-                    } else {
-                        PasswordVisualTransformation()
-                    },
-                    keyboardOptions = KeyboardOptions(
-                        keyboardType = KeyboardType.Password,
-                        imeAction = ImeAction.Done
-                    ),
-                    keyboardActions = KeyboardActions(
-                        onDone = {
-                            focusManager.clearFocus()
-                            if (form.isFormValid) {
-                                onConnect()
-                            }
-                        }
-                    ),
-                    supportingText = {
-                        Text(
-                            text = stringResource(R.string.placeholder_access_token_optional),
-                            style = MaterialTheme.typography.bodySmall
+                            },
+                            trailingIcon = {
+                                IconButton(
+                                    onClick = { isTokenVisible = !isTokenVisible }
+                                ) {
+                                    Icon(
+                                        imageVector = if (isTokenVisible) {
+                                            Icons.Outlined.VisibilityOff
+                                        } else {
+                                            Icons.Outlined.Visibility
+                                        },
+                                        contentDescription = stringResource(
+                                            if (isTokenVisible) {
+                                                R.string.content_desc_visibility_off
+                                            } else {
+                                                R.string.content_desc_visibility_on
+                                            }
+                                        )
+                                    )
+                                }
+                            },
+                            visualTransformation = if (isTokenVisible) {
+                                VisualTransformation.None
+                            } else {
+                                PasswordVisualTransformation()
+                            },
+                            keyboardOptions = KeyboardOptions(
+                                keyboardType = KeyboardType.Password,
+                                imeAction = ImeAction.Done
+                            ),
+                            keyboardActions = KeyboardActions(
+                                onDone = {
+                                    focusManager.clearFocus()
+                                    if (form.isFormValid) {
+                                        onConnect()
+                                    }
+                                }
+                            ),
+                            supportingText = {
+                                Text(
+                                    text = stringResource(R.string.placeholder_access_token_optional),
+                                    style = MaterialTheme.typography.bodySmall
+                                )
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .focusRequester(tokenFocusRequester)
+                                .testTag("onboarding_auth_token")
                         )
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .focusRequester(tokenFocusRequester)
-                        .testTag("onboarding_auth_token")
-                )
+                    }
+                    AuthMethod.USERNAME_PASSWORD -> {
+                        OutlinedTextField(
+                            value = form.username,
+                            onValueChange = onUsernameChange,
+                            label = { Text(text = stringResource(R.string.label_username)) },
+                            placeholder = { Text(text = stringResource(R.string.placeholder_username)) },
+                            leadingIcon = {
+                                Icon(
+                                    imageVector = Icons.Outlined.Person,
+                                    contentDescription = stringResource(R.string.content_desc_username_icon)
+                                )
+                            },
+                            isError = form.usernameError != null,
+                            supportingText = {
+                                if (form.usernameError != null) {
+                                    Text(
+                                        text = form.usernameError,
+                                        color = MaterialTheme.colorScheme.error,
+                                        style = MaterialTheme.typography.bodySmall
+                                    )
+                                }
+                            },
+                            keyboardOptions = KeyboardOptions(
+                                keyboardType = KeyboardType.Text,
+                                imeAction = ImeAction.Next
+                            ),
+                            keyboardActions = KeyboardActions(
+                                onNext = { passwordFocusRequester.requestFocus() }
+                            ),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .focusRequester(usernameFocusRequester)
+                                .testTag("onboarding_username")
+                        )
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        OutlinedTextField(
+                            value = form.password,
+                            onValueChange = onPasswordChange,
+                            label = { Text(text = stringResource(R.string.label_password)) },
+                            placeholder = { Text(text = stringResource(R.string.placeholder_password)) },
+                            leadingIcon = {
+                                Icon(
+                                    imageVector = Icons.Outlined.Key,
+                                    contentDescription = stringResource(R.string.content_desc_password_icon)
+                                )
+                            },
+                            trailingIcon = {
+                                IconButton(
+                                    onClick = { isPasswordVisible = !isPasswordVisible }
+                                ) {
+                                    Icon(
+                                        imageVector = if (isPasswordVisible) {
+                                            Icons.Outlined.VisibilityOff
+                                        } else {
+                                            Icons.Outlined.Visibility
+                                        },
+                                        contentDescription = stringResource(
+                                            if (isPasswordVisible) {
+                                                R.string.content_desc_password_visibility_off
+                                            } else {
+                                                R.string.content_desc_password_visibility_on
+                                            }
+                                        )
+                                    )
+                                }
+                            },
+                            visualTransformation = if (isPasswordVisible) {
+                                VisualTransformation.None
+                            } else {
+                                PasswordVisualTransformation()
+                            },
+                            isError = form.passwordError != null,
+                            supportingText = {
+                                if (form.passwordError != null) {
+                                    Text(
+                                        text = form.passwordError,
+                                        color = MaterialTheme.colorScheme.error,
+                                        style = MaterialTheme.typography.bodySmall
+                                    )
+                                }
+                            },
+                            keyboardOptions = KeyboardOptions(
+                                keyboardType = KeyboardType.Password,
+                                imeAction = ImeAction.Done
+                            ),
+                            keyboardActions = KeyboardActions(
+                                onDone = {
+                                    focusManager.clearFocus()
+                                    if (form.isFormValid) {
+                                        onConnect()
+                                    }
+                                }
+                            ),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .focusRequester(passwordFocusRequester)
+                                .testTag("onboarding_password")
+                        )
+                    }
+                }
 
                 Spacer(modifier = Modifier.height(24.dp))
 
@@ -310,6 +443,37 @@ internal fun OnboardingScreenContent(
                 ) {
                     CircularProgressIndicator()
                 }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun AuthMethodSelector(
+    authMethod: AuthMethod,
+    onAuthMethodChange: (AuthMethod) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val options = listOf(
+        AuthMethod.TOKEN to stringResource(R.string.label_auth_method_token),
+        AuthMethod.USERNAME_PASSWORD to stringResource(R.string.label_auth_method_username_password)
+    )
+    SingleChoiceSegmentedButtonRow(modifier = modifier) {
+        options.forEachIndexed { index, (method, label) ->
+            SegmentedButton(
+                selected = authMethod == method,
+                onClick = { onAuthMethodChange(method) },
+                shape = SegmentedButtonDefaults.itemShape(index = index, count = options.size),
+                modifier = Modifier.testTag(
+                    if (method == AuthMethod.TOKEN) {
+                        "onboarding_auth_method_token"
+                    } else {
+                        "onboarding_auth_method_username_password"
+                    }
+                )
+            ) {
+                Text(text = label)
             }
         }
     }

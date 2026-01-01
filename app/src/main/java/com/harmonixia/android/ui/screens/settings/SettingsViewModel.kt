@@ -10,6 +10,7 @@ import com.harmonixia.android.data.local.LocalMediaScanner
 import com.harmonixia.android.data.local.SettingsDataStore
 import com.harmonixia.android.data.local.EqDataStore
 import com.harmonixia.android.data.remote.ConnectionState
+import com.harmonixia.android.domain.model.AuthMethod
 import com.harmonixia.android.domain.model.EqSettings
 import com.harmonixia.android.domain.repository.EqPresetRepository
 import com.harmonixia.android.domain.usecase.ConnectToServerUseCase
@@ -72,6 +73,15 @@ class SettingsViewModel @Inject constructor(
     private val _storedAuthToken = MutableStateFlow("")
     val storedAuthToken: StateFlow<String> = _storedAuthToken.asStateFlow()
 
+    private val _storedAuthMethod = MutableStateFlow(AuthMethod.TOKEN)
+    val storedAuthMethod: StateFlow<AuthMethod> = _storedAuthMethod.asStateFlow()
+
+    private val _storedUsername = MutableStateFlow("")
+    val storedUsername: StateFlow<String> = _storedUsername.asStateFlow()
+
+    private val _storedPassword = MutableStateFlow("")
+    val storedPassword: StateFlow<String> = _storedPassword.asStateFlow()
+
     private val _localMediaFolderUri = MutableStateFlow("")
     val localMediaFolderUri: StateFlow<String> = _localMediaFolderUri.asStateFlow()
 
@@ -86,6 +96,9 @@ class SettingsViewModel @Inject constructor(
 
     private var originalServerUrl: String = ""
     private var originalAuthToken: String = ""
+    private var originalAuthMethod: AuthMethod = AuthMethod.TOKEN
+    private var originalUsername: String = ""
+    private var originalPassword: String = ""
     private var operationJob: Job? = null
     private var lastOperationTimestamp: Long = 0L
 
@@ -94,25 +107,38 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch {
             combine(
                 settingsDataStore.getServerUrl(),
-                settingsDataStore.getAuthToken()
-            ) { url, token -> url to token }
-                .collect { (url, token) ->
-                    originalServerUrl = url
-                    originalAuthToken = token
-                    _storedServerUrl.value = url
-                    _storedAuthToken.value = token
-                    val currentForm = _uiState.value.form
-                    val shouldReplace = !currentForm.isModified
-                    if (shouldReplace) {
-                        setFormState(
-                            currentForm.copy(
-                                serverUrl = url,
-                                authToken = token,
-                                isModified = false
-                            )
+                settingsDataStore.getAuthToken(),
+                settingsDataStore.getAuthMethod(),
+                settingsDataStore.getUsername(),
+                settingsDataStore.getPassword()
+            ) { url, token, method, user, pass ->
+                SettingsData(url, token, method, user, pass)
+            }.collect { data ->
+                originalServerUrl = data.url
+                originalAuthToken = data.token
+                originalAuthMethod = data.method
+                originalUsername = data.username
+                originalPassword = data.password
+                _storedServerUrl.value = data.url
+                _storedAuthToken.value = data.token
+                _storedAuthMethod.value = data.method
+                _storedUsername.value = data.username
+                _storedPassword.value = data.password
+                val currentForm = _uiState.value.form
+                val shouldReplace = !currentForm.isModified
+                if (shouldReplace) {
+                    setFormState(
+                        currentForm.copy(
+                            serverUrl = data.url,
+                            authToken = data.token,
+                            authMethod = data.method,
+                            username = data.username,
+                            password = data.password,
+                            isModified = false
                         )
-                    }
+                    )
                 }
+            }
         }
 
         viewModelScope.launch {
@@ -203,7 +229,7 @@ class SettingsViewModel @Inject constructor(
                 serverUrl = value,
                 isServerUrlValid = validation.isValid,
                 serverUrlError = errorMessage,
-                isModified = isModified(value, it.authToken)
+                isModified = isModified(value, it.authToken, it.authMethod, it.username, it.password)
             )
         }
     }
@@ -215,7 +241,73 @@ class SettingsViewModel @Inject constructor(
                 authToken = value,
                 isAuthTokenValid = true,
                 authTokenError = null,
-                isModified = isModified(it.serverUrl, value)
+                isModified = isModified(it.serverUrl, value, it.authMethod, it.username, it.password)
+            )
+        }
+    }
+
+    fun updateAuthMethod(value: AuthMethod) {
+        savedStateHandle[KEY_AUTH_METHOD] = value
+        updateForm { current ->
+            when (value) {
+                AuthMethod.TOKEN -> {
+                    savedStateHandle[KEY_USERNAME] = ""
+                    savedStateHandle[KEY_PASSWORD] = ""
+                    current.copy(
+                        authMethod = value,
+                        username = "",
+                        password = "",
+                        isUsernameValid = true,
+                        isPasswordValid = true,
+                        usernameError = null,
+                        passwordError = null,
+                        isModified = isModified(current.serverUrl, current.authToken, value, "", "")
+                    )
+                }
+                AuthMethod.USERNAME_PASSWORD -> {
+                    savedStateHandle[KEY_AUTH_TOKEN] = ""
+                    current.copy(
+                        authMethod = value,
+                        authToken = "",
+                        isAuthTokenValid = true,
+                        authTokenError = null,
+                        isModified = isModified(
+                            current.serverUrl,
+                            "",
+                            value,
+                            current.username,
+                            current.password
+                        )
+                    )
+                }
+            }
+        }
+    }
+
+    fun updateUsername(value: String) {
+        savedStateHandle[KEY_USERNAME] = value
+        val isValid = value.isNotBlank()
+        val errorMessage = if (isValid) null else context.getString(R.string.error_username_required)
+        updateForm {
+            it.copy(
+                username = value,
+                isUsernameValid = isValid,
+                usernameError = errorMessage,
+                isModified = isModified(it.serverUrl, it.authToken, it.authMethod, value, it.password)
+            )
+        }
+    }
+
+    fun updatePassword(value: String) {
+        savedStateHandle[KEY_PASSWORD] = value
+        val isValid = value.isNotBlank()
+        val errorMessage = if (isValid) null else context.getString(R.string.error_password_required)
+        updateForm {
+            it.copy(
+                password = value,
+                isPasswordValid = isValid,
+                passwordError = errorMessage,
+                isModified = isModified(it.serverUrl, it.authToken, it.authMethod, it.username, value)
             )
         }
     }
@@ -272,7 +364,14 @@ class SettingsViewModel @Inject constructor(
                 selectedTab = current.selectedTab,
                 isTesting = false
             )
-            val result = connectToServerUseCase(normalizedUrl, form.authToken.trim(), persistSettings = true)
+            val result = connectToServerUseCase(
+                normalizedUrl,
+                form.authToken.trim(),
+                form.authMethod,
+                form.username.trim(),
+                form.password.trim(),
+                persistSettings = true
+            )
             result.onSuccess {
                 val trimmedToken = form.authToken.trim()
                 originalServerUrl = normalizedUrl
@@ -323,7 +422,14 @@ class SettingsViewModel @Inject constructor(
                 selectedTab = current.selectedTab,
                 isTesting = true
             )
-            val result = connectToServerUseCase(normalizedUrl, form.authToken.trim(), persistSettings = false)
+            val result = connectToServerUseCase(
+                normalizedUrl,
+                form.authToken.trim(),
+                form.authMethod,
+                form.username.trim(),
+                form.password.trim(),
+                persistSettings = false
+            )
             result.onSuccess {
                 emitEvent(R.string.message_connection_test_success)
                 val updatedState = _uiState.value
@@ -359,17 +465,29 @@ class SettingsViewModel @Inject constructor(
             disconnectFromServerUseCase()
             originalServerUrl = ""
             originalAuthToken = ""
+            originalAuthMethod = AuthMethod.TOKEN
+            originalUsername = ""
+            originalPassword = ""
             _storedServerUrl.value = ""
             _storedAuthToken.value = ""
+            _storedAuthMethod.value = AuthMethod.TOKEN
+            _storedUsername.value = ""
+            _storedPassword.value = ""
             setFormState(
                 SettingsFormState(
                     serverUrl = "",
                     authToken = "",
+                    authMethod = AuthMethod.TOKEN,
+                    username = "",
+                    password = "",
                     isModified = false
                 )
             )
             savedStateHandle[KEY_SERVER_URL] = ""
             savedStateHandle[KEY_AUTH_TOKEN] = ""
+            savedStateHandle[KEY_AUTH_METHOD] = AuthMethod.TOKEN
+            savedStateHandle[KEY_USERNAME] = ""
+            savedStateHandle[KEY_PASSWORD] = ""
         }
     }
 
@@ -487,8 +605,18 @@ class SettingsViewModel @Inject constructor(
         return true
     }
 
-    private fun isModified(serverUrl: String, authToken: String): Boolean {
-        return serverUrl != originalServerUrl || authToken != originalAuthToken
+    private fun isModified(
+        serverUrl: String,
+        authToken: String,
+        authMethod: AuthMethod,
+        username: String,
+        password: String
+    ): Boolean {
+        return serverUrl != originalServerUrl ||
+            authToken != originalAuthToken ||
+            authMethod != originalAuthMethod ||
+            username != originalUsername ||
+            password != originalPassword
     }
 
     private fun SettingsUiState.withForm(form: SettingsFormState): SettingsUiState {
@@ -504,14 +632,38 @@ class SettingsViewModel @Inject constructor(
     private fun loadFormState(): SettingsFormState {
         val serverUrl = savedStateHandle.get<String>(KEY_SERVER_URL).orEmpty()
         val authToken = savedStateHandle.get<String>(KEY_AUTH_TOKEN).orEmpty()
-        return SettingsFormState(serverUrl = serverUrl, authToken = authToken)
+        val authMethod = savedStateHandle.get<AuthMethod>(KEY_AUTH_METHOD)
+            ?: savedStateHandle.get<String>(KEY_AUTH_METHOD)?.let { stored ->
+                runCatching { AuthMethod.valueOf(stored) }.getOrNull()
+            }
+            ?: AuthMethod.TOKEN
+        val username = savedStateHandle.get<String>(KEY_USERNAME).orEmpty()
+        val password = savedStateHandle.get<String>(KEY_PASSWORD).orEmpty()
+        return SettingsFormState(
+            serverUrl = serverUrl,
+            authToken = authToken,
+            authMethod = authMethod,
+            username = username,
+            password = password
+        )
     }
+
+    private data class SettingsData(
+        val url: String,
+        val token: String,
+        val method: AuthMethod,
+        val username: String,
+        val password: String
+    )
 
     private companion object {
         private const val TAG = "SettingsViewModel"
         private const val OPERATION_DEBOUNCE_MS = 1_000L
         private const val KEY_SERVER_URL = "settings_server_url"
         private const val KEY_AUTH_TOKEN = "settings_auth_token"
+        private const val KEY_AUTH_METHOD = "settings_auth_method"
+        private const val KEY_USERNAME = "settings_username"
+        private const val KEY_PASSWORD = "settings_password"
         private const val KEY_INITIAL_TAB_SET = "settings_initial_tab_set"
     }
 }
