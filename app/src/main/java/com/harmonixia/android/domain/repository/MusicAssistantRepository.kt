@@ -75,4 +75,5 @@ interface MusicAssistantRepository {
     suspend fun removeFromFavorites(itemId: String, provider: String, mediaType: String): Result<Unit>
     suspend fun fetchFavorites(limit: Int, offset: Int): Result<List<Track>>
     suspend fun setPlayerVolume(playerId: String, volume: Int): Result<Unit>
+    suspend fun setPlayerMute(playerId: String, muted: Boolean): Result<Unit>
 }

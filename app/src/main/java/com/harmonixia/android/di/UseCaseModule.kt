@@ -14,6 +14,8 @@ import com.harmonixia.android.domain.usecase.PlayPlaylistUseCase
 import com.harmonixia.android.domain.usecase.RenamePlaylistUseCase
 import com.harmonixia.android.domain.usecase.SearchEqPresetsUseCase
 import com.harmonixia.android.domain.usecase.SearchLibraryUseCase
+import com.harmonixia.android.domain.usecase.SetPlayerVolumeUseCase
+import com.harmonixia.android.domain.usecase.SetPlayerMuteUseCase
 import com.harmonixia.android.data.local.EqDataStore
 import com.harmonixia.android.data.local.EqPresetParser
 import com.harmonixia.android.service.playback.EqualizerManager
@@ -79,6 +81,18 @@ object UseCaseModule {
     fun provideGetPlayersUseCase(
         repository: MusicAssistantRepository
     ): GetPlayersUseCase = GetPlayersUseCase(repository)
+
+    @Provides
+    @Singleton
+    fun provideSetPlayerVolumeUseCase(
+        repository: MusicAssistantRepository
+    ): SetPlayerVolumeUseCase = SetPlayerVolumeUseCase(repository)
+
+    @Provides
+    @Singleton
+    fun provideSetPlayerMuteUseCase(
+        repository: MusicAssistantRepository
+    ): SetPlayerMuteUseCase = SetPlayerMuteUseCase(repository)
 
     @Provides
     @Singleton

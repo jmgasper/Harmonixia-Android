@@ -2,6 +2,7 @@ package com.harmonixia.android.ui.components
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -14,23 +15,32 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.Speaker
+import androidx.compose.material.icons.outlined.VolumeOff
+import androidx.compose.material.icons.outlined.VolumeUp
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.harmonixia.android.R
+import com.harmonixia.android.domain.model.PlaybackState
 import com.harmonixia.android.domain.model.Player
 import com.harmonixia.android.util.PlayerSelection
+import kotlin.math.roundToInt
 
 @Composable
 fun PlayerSelectionDialog(
@@ -38,6 +48,8 @@ fun PlayerSelectionDialog(
     selectedPlayer: Player?,
     localPlayerId: String? = null,
     onPlayerSelected: (Player) -> Unit,
+    onPlayerVolumeChange: (Player, Int) -> Unit,
+    onPlayerMuteChange: (Player, Boolean) -> Unit,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -67,6 +79,8 @@ fun PlayerSelectionDialog(
                         val isSelected = selectedPlayer?.playerId == player.playerId
                         val isAvailable = player.available
                         val isLocal = PlayerSelection.isLocalPlayer(player, localPlayerId)
+                        val isPlaying = player.playbackState == PlaybackState.PLAYING
+                        val isMuted = player.volumeMuted == true
                         val nameColor = when {
                             isSelected -> MaterialTheme.colorScheme.primary
                             isAvailable -> MaterialTheme.colorScheme.onSurface
@@ -115,15 +129,33 @@ fun PlayerSelectionDialog(
                                 }
                             },
                             supportingContent = {
-                                Text(
-                                    text = if (isAvailable) {
-                                        stringResource(R.string.player_available)
-                                    } else {
-                                        stringResource(R.string.player_unavailable)
-                                    },
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = statusColor
-                                )
+                                Column(
+                                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Text(
+                                        text = if (isAvailable) {
+                                            stringResource(R.string.player_available)
+                                        } else {
+                                            stringResource(R.string.player_unavailable)
+                                        },
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = statusColor
+                                    )
+                                    if (isPlaying) {
+                                        PlayerVolumeBar(
+                                            volume = player.volume,
+                                            isMuted = isMuted,
+                                            enabled = isAvailable,
+                                            onVolumeChange = { volume ->
+                                                onPlayerVolumeChange(player, volume)
+                                            },
+                                            onMuteToggle = { muted ->
+                                                onPlayerMuteChange(player, muted)
+                                            }
+                                        )
+                                    }
+                                }
                             },
                             leadingContent = {
                                 Icon(
@@ -162,3 +194,68 @@ fun PlayerSelectionDialog(
         modifier = modifier
     )
 }
+
+@Composable
+private fun PlayerVolumeBar(
+    volume: Int,
+    isMuted: Boolean,
+    enabled: Boolean,
+    onVolumeChange: (Int) -> Unit,
+    onMuteToggle: (Boolean) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val clampedVolume = volume.coerceIn(0, MAX_PLAYER_VOLUME)
+    val volumeLabel = stringResource(R.string.label_volume)
+    val iconTint = if (enabled) {
+        MaterialTheme.colorScheme.onSurfaceVariant
+    } else {
+        MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
+    }
+
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = modifier.fillMaxWidth()
+    ) {
+        IconButton(
+            onClick = { onMuteToggle(!isMuted) },
+            enabled = enabled
+        ) {
+            val muteLabel = stringResource(
+                if (isMuted) R.string.content_desc_unmute else R.string.content_desc_mute
+            )
+            Icon(
+                imageVector = Icons.Outlined.VolumeOff,
+                contentDescription = muteLabel,
+                tint = if (isMuted) {
+                    MaterialTheme.colorScheme.primary
+                } else {
+                    iconTint
+                }
+            )
+        }
+        Slider(
+            value = clampedVolume.toFloat(),
+            onValueChange = { value ->
+                onVolumeChange(value.roundToInt().coerceIn(0, MAX_PLAYER_VOLUME))
+            },
+            valueRange = 0f..MAX_PLAYER_VOLUME.toFloat(),
+            steps = MAX_PLAYER_VOLUME - 1,
+            enabled = enabled,
+            colors = SliderDefaults.colors(
+                activeTrackColor = MaterialTheme.colorScheme.primary,
+                inactiveTrackColor = MaterialTheme.colorScheme.surfaceVariant
+            ),
+            modifier = Modifier
+                .weight(1f)
+                .padding(horizontal = 8.dp)
+                .semantics { contentDescription = volumeLabel }
+        )
+        Icon(
+            imageVector = Icons.Outlined.VolumeUp,
+            contentDescription = stringResource(R.string.content_desc_volume_max),
+            tint = iconTint
+        )
+    }
+}
+
+private const val MAX_PLAYER_VOLUME = 100

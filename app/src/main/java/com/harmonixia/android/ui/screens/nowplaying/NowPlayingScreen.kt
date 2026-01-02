@@ -407,6 +407,12 @@ fun SharedTransitionScope.NowPlayingScreen(
             onPlayerSelected = { player ->
                 viewModel.selectPlayer(player)
             },
+            onPlayerVolumeChange = { player, volume ->
+                viewModel.setPlayerVolume(player, volume)
+            },
+            onPlayerMuteChange = { player, muted ->
+                viewModel.setPlayerMute(player, muted)
+            },
             onDismiss = { showPlayerSelectionDialog = false }
         )
     }

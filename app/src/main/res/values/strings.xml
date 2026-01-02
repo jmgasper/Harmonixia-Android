@@ -282,6 +282,9 @@
     <string name="content_desc_shuffle_button">Shuffle mode</string>
     <string name="label_seek">Seek</string>
     <string name="label_volume">Volume</string>
+    <string name="content_desc_mute">Mute</string>
+    <string name="content_desc_unmute">Unmute</string>
+    <string name="content_desc_volume_max">Max volume</string>
     <string name="content_desc_now_playing_artwork">Now playing artwork</string>
     <string name="content_desc_mini_player_artwork">Mini player artwork</string>
     <string name="content_desc_open_now_playing">Open Now Playing</string>

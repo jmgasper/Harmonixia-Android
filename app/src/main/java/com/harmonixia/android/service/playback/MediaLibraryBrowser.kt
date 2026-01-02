@@ -20,6 +20,7 @@ import com.harmonixia.android.util.EXTRA_PARENT_MEDIA_ID
 import com.harmonixia.android.util.EXTRA_STREAM_URI
 import com.harmonixia.android.util.EXTRA_TRACK_QUALITY
 import com.harmonixia.android.util.mergeWithLocal
+import com.harmonixia.android.util.replaceWithLocalMatches
 import com.harmonixia.android.util.NetworkConnectivityManager
 import java.io.File
 import java.util.concurrent.ConcurrentHashMap
@@ -33,6 +34,7 @@ class MediaLibraryBrowser(
     private val networkConnectivityManager: NetworkConnectivityManager
 ) {
     private val artistNameCache = ConcurrentHashMap<String, String>()
+    private val playlistUriCache = ConcurrentHashMap<String, String>()
     private val mediaItemCache = object : LinkedHashMap<String, MediaItem>(
         MEDIA_ITEM_CACHE_SIZE,
         0.75f,
@@ -91,6 +93,7 @@ class MediaLibraryBrowser(
         } else {
             val serverResults = repository.searchLibrary(trimmed, SEARCH_LIMIT)
                 .getOrDefault(SearchResults())
+            cachePlaylists(serverResults.playlists)
             val localTracks = localMediaRepository.searchTracks(trimmed).first()
             val localAlbums = localMediaRepository.searchAlbums(trimmed).first()
             val localArtists = localMediaRepository.searchArtists(trimmed).first()
@@ -121,6 +124,14 @@ class MediaLibraryBrowser(
     fun resolveMediaItem(mediaId: String): MediaItem? {
         if (mediaId.isBlank()) return null
         return synchronized(mediaItemCache) { mediaItemCache[mediaId] }
+    }
+
+    fun resolvePlaylistUri(parentMediaId: String): String? {
+        val (playlistId, provider) =
+            parseQualifiedId(MEDIA_ID_PREFIX_PLAYLIST, parentMediaId) ?: return null
+        val key = playlistCacheKey(playlistId, provider)
+        return playlistUriCache[key]?.takeIf { it.isNotBlank() }
+            ?: repository.getCachedPlaylist(playlistId, provider)?.uri?.takeIf { it.isNotBlank() }
     }
 
     suspend fun getParentTrackItems(parentMediaId: String): List<MediaItem> {
@@ -216,6 +227,7 @@ class MediaLibraryBrowser(
             val (offset, limit) = resolvePaging(page, pageSize)
             repository.fetchPlaylists(limit, offset).getOrDefault(emptyList())
         }
+        cachePlaylists(playlists)
         val paged = if (isOfflineMode()) applyPaging(playlists, page, pageSize) else playlists
         return paged.map { it.toBrowsableMediaItem() }
     }
@@ -288,7 +300,7 @@ class MediaLibraryBrowser(
         } else {
             val tracks = repository.getPlaylistTracks(playlistId, provider).getOrDefault(emptyList())
             val localTracks = localMediaRepository.getAllTracks().first()
-            val mergedTracks = tracks.mergeWithLocal(localTracks)
+            val mergedTracks = tracks.replaceWithLocalMatches(localTracks)
             val paged = applyPaging(mergedTracks, page, pageSize)
             val items = mutableListOf<MediaItem>()
             for (track in paged) {
@@ -323,8 +335,22 @@ class MediaLibraryBrowser(
         artistNameCache[key] = artist.name
     }
 
+    private fun cachePlaylists(playlists: List<Playlist>) {
+        playlists.forEach { playlist ->
+            val uri = playlist.uri.trim()
+            if (uri.isNotBlank()) {
+                val key = playlistCacheKey(playlist.itemId, playlist.provider)
+                playlistUriCache[key] = uri
+            }
+        }
+    }
+
     private fun artistCacheKey(artistId: String, provider: String): String {
         return "$provider:$artistId"
+    }
+
+    private fun playlistCacheKey(playlistId: String, provider: String): String {
+        return "$provider:$playlistId"
     }
 
     private suspend fun resolveArtistName(
@@ -557,7 +583,7 @@ class MediaLibraryBrowser(
         } else {
             val tracks = repository.getPlaylistTracks(playlistId, provider).getOrDefault(emptyList())
             val localTracks = localMediaRepository.getAllTracks().first()
-            val mergedTracks = tracks.mergeWithLocal(localTracks)
+            val mergedTracks = tracks.replaceWithLocalMatches(localTracks)
             for (track in mergedTracks) {
                 items.add(track.toPlayableMediaItem(parentMediaId))
             }

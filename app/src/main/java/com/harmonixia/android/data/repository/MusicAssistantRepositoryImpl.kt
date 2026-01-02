@@ -615,7 +615,14 @@ class MusicAssistantRepositoryImpl @Inject constructor(
     override suspend fun setPlayerVolume(playerId: String, volume: Int): Result<Unit> {
         return sendCommand(
             ApiCommand.PLAYERS_VOLUME_SET,
-            mapOf("player_id" to playerId, "volume" to volume)
+            mapOf("player_id" to playerId, "volume_level" to volume.coerceIn(0, 100))
+        )
+    }
+
+    override suspend fun setPlayerMute(playerId: String, muted: Boolean): Result<Unit> {
+        return sendCommand(
+            ApiCommand.PLAYERS_VOLUME_MUTE,
+            mapOf("player_id" to playerId, "muted" to muted)
         )
     }
 
@@ -1094,7 +1101,9 @@ class MusicAssistantRepositoryImpl @Inject constructor(
             name = jsonObject.stringOrEmpty("name"),
             available = jsonObject.booleanOrFalse("available"),
             enabled = jsonObject.booleanOrFalse("enabled"),
+            playbackState = parsePlaybackState(jsonObject.stringOrNull("playback_state", "state")),
             volume = jsonObject.intOrZero("volume_level"),
+            volumeMuted = jsonObject["volume_muted"]?.jsonPrimitive?.booleanOrNull,
             deviceManufacturer = deviceManufacturer,
             deviceModel = deviceModel
         )

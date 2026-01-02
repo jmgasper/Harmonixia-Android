@@ -333,6 +333,12 @@ fun MainScaffold(
                 onPlayerSelected = { player ->
                     playbackViewModel.selectPlayer(player)
                 },
+                onPlayerVolumeChange = { player, volume ->
+                    playbackViewModel.setPlayerVolume(player, volume)
+                },
+                onPlayerMuteChange = { player, muted ->
+                    playbackViewModel.setPlayerMute(player, muted)
+                },
                 onDismiss = { showPlayerDialog = false }
             )
         }

@@ -7,6 +7,7 @@ import android.media.AudioManager
 import androidx.media3.common.Player
 import com.harmonixia.android.domain.repository.MusicAssistantRepository
 import com.harmonixia.android.util.Logger
+import kotlin.math.roundToInt
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -56,10 +57,14 @@ class VolumeHandler(
 
     override fun onDeviceVolumeChanged(volume: Int, muted: Boolean) {
         val playerId = playerId ?: return
-        val streamVolume = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC)
+        val maxVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC).coerceAtLeast(1)
+        val streamVolume = volume.coerceIn(0, maxVolume)
+        val volumePercent = ((streamVolume.toFloat() / maxVolume) * 100).roundToInt()
         scope.launch {
-            repository.setPlayerVolume(playerId, streamVolume)
+            repository.setPlayerVolume(playerId, volumePercent)
                 .onFailure { Logger.w(TAG, "Failed to update player volume", it) }
+            repository.setPlayerMute(playerId, muted)
+                .onFailure { Logger.w(TAG, "Failed to update player mute", it) }
         }
     }
 

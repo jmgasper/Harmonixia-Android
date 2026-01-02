@@ -9,6 +9,8 @@ import com.harmonixia.android.domain.model.PlaybackState
 import com.harmonixia.android.domain.model.Player
 import com.harmonixia.android.domain.model.RepeatMode
 import com.harmonixia.android.domain.usecase.GetPlayersUseCase
+import com.harmonixia.android.domain.usecase.SetPlayerMuteUseCase
+import com.harmonixia.android.domain.usecase.SetPlayerVolumeUseCase
 import com.harmonixia.android.service.playback.PlaybackServiceConnection
 import com.harmonixia.android.service.playback.PlaybackStateManager
 import com.harmonixia.android.util.ImageQualityManager
@@ -43,6 +45,8 @@ sealed class PlaybackUiEvent {
 class PlaybackViewModel @Inject constructor(
     private val playbackServiceConnection: PlaybackServiceConnection,
     private val getPlayersUseCase: GetPlayersUseCase,
+    private val setPlayerVolumeUseCase: SetPlayerVolumeUseCase,
+    private val setPlayerMuteUseCase: SetPlayerMuteUseCase,
     private val playbackStateManager: PlaybackStateManager,
     settingsDataStore: SettingsDataStore,
     val imageQualityManager: ImageQualityManager
@@ -380,6 +384,59 @@ class PlaybackViewModel @Inject constructor(
             controller.volume = volume.coerceIn(0f, 1f)
         }.onFailure {
             _events.tryEmit(PlaybackUiEvent.Error(it.message ?: "Failed to set volume"))
+        }
+    }
+
+    fun setPlayerVolume(player: Player, volume: Int) {
+        val safeVolume = volume.coerceIn(0, 100)
+        val players = _availablePlayers.value
+        val index = players.indexOfFirst { it.playerId == player.playerId }
+        if (index == -1) return
+        val current = players[index]
+        val shouldUnmute = current.volumeMuted == true && safeVolume > 0
+        if (current.volume == safeVolume && !shouldUnmute) return
+        val updated = players.toMutableList()
+        updated[index] = current.copy(
+            volume = safeVolume,
+            volumeMuted = if (shouldUnmute) false else current.volumeMuted
+        )
+        _availablePlayers.value = updated
+        if (_selectedPlayer.value?.playerId == player.playerId) {
+            _selectedPlayer.value = updated[index]
+        }
+        viewModelScope.launch {
+            setPlayerVolumeUseCase(player.playerId, safeVolume)
+                .onFailure {
+                    _events.tryEmit(PlaybackUiEvent.Error(it.message ?: "Failed to set volume"))
+                }
+        }
+        if (shouldUnmute) {
+            viewModelScope.launch {
+                setPlayerMuteUseCase(player.playerId, false)
+                    .onFailure {
+                        _events.tryEmit(PlaybackUiEvent.Error(it.message ?: "Failed to unmute player"))
+                    }
+            }
+        }
+    }
+
+    fun setPlayerMute(player: Player, muted: Boolean) {
+        val players = _availablePlayers.value
+        val index = players.indexOfFirst { it.playerId == player.playerId }
+        if (index == -1) return
+        val current = players[index]
+        if (current.volumeMuted == muted) return
+        val updated = players.toMutableList()
+        updated[index] = current.copy(volumeMuted = muted)
+        _availablePlayers.value = updated
+        if (_selectedPlayer.value?.playerId == player.playerId) {
+            _selectedPlayer.value = updated[index]
+        }
+        viewModelScope.launch {
+            setPlayerMuteUseCase(player.playerId, muted)
+                .onFailure {
+                    _events.tryEmit(PlaybackUiEvent.Error(it.message ?: "Failed to update mute"))
+                }
         }
     }
 

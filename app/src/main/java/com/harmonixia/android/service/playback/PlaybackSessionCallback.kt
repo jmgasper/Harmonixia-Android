@@ -40,27 +40,13 @@ class PlaybackSessionCallback(
 ) : MediaLibrarySession.Callback {
 
     private val playerListener = object : Player.Listener {
-        override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
-            if (reason != Player.MEDIA_ITEM_TRANSITION_REASON_AUTO) return
-            markPlaybackRequestedForMediaItem(mediaItem)
-            val queueId = playbackStateManager.currentQueueId ?: return
-            val timestamp = System.currentTimeMillis()
-            Logger.d(
-                TAG,
-                "Requesting auto-advance queueId=$queueId mediaId=${mediaItem?.mediaId.orEmpty()} at $timestamp"
-            )
-            scope.launch {
-                repository.nextTrack(queueId)
-                    .onFailure { Logger.w(TAG, "Auto-advance command failed", it) }
-            }
-        }
-
         override fun onPositionDiscontinuity(
             oldPosition: Player.PositionInfo,
             newPosition: Player.PositionInfo,
             reason: Int
         ) {
             if (reason != Player.DISCONTINUITY_REASON_SEEK) return
+            if (oldPosition.mediaItemIndex != newPosition.mediaItemIndex) return
             if (playbackStateManager.consumeSyncSeekSuppression()) return
             val queueId = playbackStateManager.currentQueueId ?: return
             val positionSeconds = (player.currentPosition / 1000L).toInt()
@@ -199,17 +185,23 @@ class PlaybackSessionCallback(
         val resolvedItems = resolveMediaItems(mediaItems)
         playbackStateManager.notifyUserInitiatedPlayback()
         markPlaybackRequestedForMediaItem(resolvedItems.firstOrNull())
-        val queueId = playbackStateManager.currentQueueId
-        if (queueId != null) {
-            val uris = resolvedItems.mapNotNull { it.streamUri() }
-            scope.launch {
-                Logger.d(
-                    TAG,
-                    "Requesting playMedia queueId=$queueId option=ADD count=${uris.size}"
-                )
-                repository.playMedia(queueId, uris, QueueOption.ADD)
-                    .onFailure { Logger.w(TAG, "Add to queue failed", it) }
+        scope.launch(Dispatchers.IO) {
+            val queueId = playbackStateManager.currentQueueId ?: awaitQueueId()
+            if (queueId.isNullOrBlank()) {
+                Logger.w(TAG, "No active queue available for add request")
+                return@launch
             }
+            val uris = resolvedItems.mapNotNull { it.streamUri() }
+            if (uris.isEmpty()) {
+                Logger.w(TAG, "No stream URIs resolved for add request")
+                return@launch
+            }
+            Logger.d(
+                TAG,
+                "Requesting playMedia queueId=$queueId option=ADD count=${uris.size}"
+            )
+            repository.playMedia(queueId, uris, QueueOption.ADD)
+                .onFailure { Logger.w(TAG, "Add to queue failed", it) }
         }
         queueManager.addMediaItems(resolvedItems)
         return Futures.immediateFuture(resolvedItems)
@@ -225,11 +217,21 @@ class PlaybackSessionCallback(
         val future = SettableFuture.create<MediaSession.MediaItemsWithStartPosition>()
         scope.launch {
             val resolvedItems = resolveMediaItems(mediaItems)
-            val (queueItems, queueStartIndex) = runCatching {
-                resolveRemainingQueue(resolvedItems, startIndex)
-            }.getOrElse { error ->
-                Logger.w(TAG, "Failed to build queue from parent media", error)
-                resolvedItems to startIndex
+            val safeIndex = if (startIndex in resolvedItems.indices) startIndex else 0
+            val startItem = resolvedItems.getOrNull(safeIndex)
+            val parentMediaId = startItem?.mediaMetadata?.extras?.getString(EXTRA_PARENT_MEDIA_ID)
+            val playlistUri = parentMediaId?.let { mediaLibraryBrowser.resolvePlaylistUri(it) }
+            val startItemUri = startItem?.streamUri()
+            val usePlaylistUri = !playlistUri.isNullOrBlank() && !startItemUri.isNullOrBlank()
+            val (queueItems, queueStartIndex) = if (usePlaylistUri) {
+                resolvedItems to safeIndex
+            } else {
+                runCatching {
+                    resolveRemainingQueue(resolvedItems, startIndex)
+                }.getOrElse { error ->
+                    Logger.w(TAG, "Failed to build queue from parent media", error)
+                    resolvedItems to safeIndex
+                }
             }
             playbackStateManager.notifyUserInitiatedPlayback()
             markPlaybackRequestedForStartItem(queueItems, queueStartIndex)
@@ -238,20 +240,38 @@ class PlaybackSessionCallback(
             } else {
                 playbackStateManager.clearPendingStart()
             }
-            val queueId = playbackStateManager.currentQueueId
-            if (queueId != null) {
+            scope.launch(Dispatchers.IO) {
+                val queueId = playbackStateManager.currentQueueId ?: awaitQueueId()
+                if (queueId.isNullOrBlank()) {
+                    Logger.w(TAG, "No active queue available for play request")
+                    return@launch
+                }
+                if (usePlaylistUri) {
+                    val resolvedPlaylistUri = requireNotNull(playlistUri)
+                    val resolvedStartItemUri = requireNotNull(startItemUri)
+                    Logger.d(TAG, "Requesting playMediaItem queueId=$queueId option=REPLACE")
+                    repository.playMediaItem(
+                        queueId = queueId,
+                        media = resolvedPlaylistUri,
+                        option = QueueOption.REPLACE,
+                        startItem = resolvedStartItemUri
+                    ).onFailure { Logger.w(TAG, "Replace queue failed", it) }
+                    return@launch
+                }
                 val uris = queueItems.mapNotNull { it.streamUri() }
-                scope.launch(Dispatchers.IO) {
-                    Logger.d(
-                        TAG,
-                        "Requesting playMedia queueId=$queueId option=REPLACE count=${uris.size}"
-                    )
-                    val playResult = repository.playMedia(queueId, uris, QueueOption.REPLACE)
-                        .onFailure { Logger.w(TAG, "Replace queue failed", it) }
-                    if (queueStartIndex > 0 && playResult.isSuccess) {
-                        repository.playIndex(queueId, queueStartIndex)
-                            .onFailure { Logger.w(TAG, "Failed to set start index", it) }
-                    }
+                if (uris.isEmpty()) {
+                    Logger.w(TAG, "No stream URIs resolved for play request")
+                    return@launch
+                }
+                Logger.d(
+                    TAG,
+                    "Requesting playMedia queueId=$queueId option=REPLACE count=${uris.size}"
+                )
+                val playResult = repository.playMedia(queueId, uris, QueueOption.REPLACE)
+                    .onFailure { Logger.w(TAG, "Replace queue failed", it) }
+                if (queueStartIndex > 0 && playResult.isSuccess) {
+                    repository.playIndex(queueId, queueStartIndex)
+                        .onFailure { Logger.w(TAG, "Failed to set start index", it) }
                 }
             }
             queueManager.replaceQueue(queueItems, queueStartIndex, startPositionMs)
@@ -364,7 +384,6 @@ class PlaybackSessionCallback(
 
     private fun handleNext() {
         markPlaybackRequestedForIndex(player.nextMediaItemIndex)
-        player.seekToNext()
         val queueId = playbackStateManager.currentQueueId ?: return
         scope.launch {
             Logger.d(TAG, "Requesting next queueId=$queueId")
@@ -375,7 +394,6 @@ class PlaybackSessionCallback(
 
     private fun handlePrevious() {
         markPlaybackRequestedForIndex(player.previousMediaItemIndex)
-        player.seekToPrevious()
         val queueId = playbackStateManager.currentQueueId ?: return
         scope.launch {
             Logger.d(TAG, "Requesting previous queueId=$queueId")

@@ -3,6 +3,7 @@ package com.harmonixia.android.data.remote
 object ApiCommand {
     const val PLAYERS_FETCH_STATE = "players/all"
     const val PLAYERS_VOLUME_SET = "players/cmd/volume_set"
+    const val PLAYERS_VOLUME_MUTE = "players/cmd/volume_mute"
     const val PLAYER_QUEUES_FETCH_STATE = "player_queues/get_active_queue"
     const val PLAYER_QUEUES_ITEMS = "player_queues/items"
     const val MUSIC_GET_LIBRARY_ALBUMS = "music/albums/library_items"

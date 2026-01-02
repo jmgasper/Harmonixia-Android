@@ -44,6 +44,31 @@ fun List<Track>.mergeWithLocal(localTracks: List<Track>): List<Track> {
     return merged
 }
 
+@JvmName("replaceTracksWithLocalMatches")
+fun List<Track>.replaceWithLocalMatches(localTracks: List<Track>): List<Track> {
+    if (localTracks.isEmpty()) return this
+    val localIndicesByKey = HashMap<String, ArrayDeque<Int>>(localTracks.size)
+    localTracks.forEachIndexed { index, track ->
+        val key = trackMatchKey(track)
+        localIndicesByKey.getOrPut(key) { ArrayDeque() }.add(index)
+    }
+    val merged = ArrayList<Track>(size)
+    for (track in this) {
+        val queue = localIndicesByKey[trackMatchKey(track)]
+        val matchedIndex = if (queue != null && queue.isNotEmpty()) {
+            queue.removeFirst()
+        } else {
+            -1
+        }
+        if (matchedIndex >= 0) {
+            merged.add(localTracks[matchedIndex])
+        } else {
+            merged.add(track)
+        }
+    }
+    return merged
+}
+
 @JvmName("mergeAlbumsWithLocal")
 fun List<Album>.mergeWithLocal(localAlbums: List<Album>): List<Album> {
     if (localAlbums.isEmpty()) return this

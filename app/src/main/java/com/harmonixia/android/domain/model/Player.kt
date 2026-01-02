@@ -10,8 +10,12 @@ data class Player(
     val name: String,
     val available: Boolean = false,
     val enabled: Boolean = false,
+    @SerialName("playback_state")
+    val playbackState: PlaybackState = PlaybackState.IDLE,
     @SerialName("volume_level")
     val volume: Int = 0,
+    @SerialName("volume_muted")
+    val volumeMuted: Boolean? = null,
     val deviceManufacturer: String? = null,
     val deviceModel: String? = null
 )
