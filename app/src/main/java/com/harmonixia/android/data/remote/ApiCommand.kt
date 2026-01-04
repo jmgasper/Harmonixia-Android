@@ -11,6 +11,8 @@ object ApiCommand {
     const val MUSIC_GET_LIBRARY_PLAYLISTS = "music/playlists/library_items"
     const val MUSIC_RECENTLY_PLAYED = "music/recently_played_items"
     const val MUSIC_GET_ALBUM = "music/albums/get"
+    const val MUSIC_GET_ARTIST = "music/artists/get"
+    const val MUSIC_GET_ARTIST_ALBUMS = "music/artists/artist_albums"
     const val MUSIC_SEARCH = "music/search"
     const val MUSIC_MARK_PLAYED = "music/mark_played"
     const val PLAYER_QUEUES_PLAY_MEDIA = "player_queues/play_media"

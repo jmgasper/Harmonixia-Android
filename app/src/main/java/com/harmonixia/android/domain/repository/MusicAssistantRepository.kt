@@ -27,6 +27,12 @@ interface MusicAssistantRepository {
     suspend fun fetchRecentlyPlayedPlaylists(limit: Int): Result<List<Playlist>>
     suspend fun fetchRecentlyAdded(limit: Int): Result<List<Album>>
     suspend fun getAlbum(itemId: String, provider: String): Result<Album>
+    suspend fun getArtist(itemId: String, provider: String): Result<Artist>
+    suspend fun getArtistAlbums(
+        itemId: String,
+        provider: String,
+        inLibraryOnly: Boolean = true
+    ): Result<List<Album>>
     fun getCachedAlbum(itemId: String, provider: String): Album?
     fun getCachedPlaylist(itemId: String, provider: String): Playlist?
     fun getCachedAlbumTracks(albumId: String, provider: String): List<Track>?
@@ -71,8 +77,8 @@ interface MusicAssistantRepository {
     suspend fun deletePlaylist(playlistId: String): Result<Unit>
     suspend fun addTracksToPlaylist(playlistId: String, trackUris: List<String>): Result<Unit>
     suspend fun removeTracksFromPlaylist(playlistId: String, positions: List<Int>): Result<Unit>
-    suspend fun addToFavorites(itemId: String, provider: String, mediaType: String): Result<Unit>
-    suspend fun removeFromFavorites(itemId: String, provider: String, mediaType: String): Result<Unit>
+    suspend fun addToFavorites(track: Track): Result<Unit>
+    suspend fun removeFromFavorites(track: Track): Result<Unit>
     suspend fun fetchFavorites(limit: Int, offset: Int): Result<List<Track>>
     suspend fun setPlayerVolume(playerId: String, volume: Int): Result<Unit>
     suspend fun setPlayerMute(playerId: String, muted: Boolean): Result<Unit>

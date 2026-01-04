@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Person
@@ -44,9 +45,11 @@ import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.Saver
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -72,9 +75,11 @@ import coil3.request.ImageRequest
 import coil3.request.bitmapConfig
 import com.harmonixia.android.R
 import com.harmonixia.android.domain.model.Artist
+import com.harmonixia.android.ui.components.AlphabetFastScroller
 import com.harmonixia.android.ui.components.ArtistListItem
 import com.harmonixia.android.ui.components.ErrorCard
 import com.harmonixia.android.ui.components.OfflineModeBanner
+import com.harmonixia.android.ui.components.alphabetIndexMap
 import com.harmonixia.android.ui.navigation.MainScaffoldActions
 import com.harmonixia.android.ui.screens.settings.SettingsTab
 import com.harmonixia.android.ui.theme.rememberAdaptiveSpacing
@@ -82,6 +87,7 @@ import com.harmonixia.android.util.ImageQualityManager
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -107,6 +113,21 @@ fun ArtistsScreen(
     val successState = uiState as? ArtistsUiState.Success
     val lazyPagingItems = successState?.artists?.collectAsLazyPagingItems()
     val isRefreshing = !isOfflineMode && lazyPagingItems?.loadState?.refresh is LoadState.Loading
+    val scrollScope = rememberCoroutineScope()
+    val collapsedListState = rememberLazyListState()
+    val expandedListState = rememberLazyListState()
+    val alphabetIndexMap by remember(lazyPagingItems) {
+        derivedStateOf {
+            lazyPagingItems?.alphabetIndexMap { artist ->
+                artist.sortName?.takeIf { it.isNotBlank() } ?: artist.name
+            } ?: emptyMap()
+        }
+    }
+    val showAlphabetScroller by remember(lazyPagingItems) {
+        derivedStateOf {
+            lazyPagingItems?.itemSnapshotList?.items?.isNotEmpty() == true
+        }
+    }
 
     val titleText = if (uiState is ArtistsUiState.Success) {
         stringResource(R.string.artists_count, lazyPagingItems?.itemCount ?: 0)
@@ -292,10 +313,78 @@ fun ArtistsScreen(
                                             modifier = Modifier.fillMaxSize(),
                                             horizontalArrangement = Arrangement.spacedBy(spacing.large)
                                         ) {
-                                            LazyColumn(
+                                            AlphabetFastScroller(
                                                 modifier = Modifier
                                                     .weight(0.6f)
                                                     .fillMaxHeight(),
+                                                isEnabled = showAlphabetScroller,
+                                                onLetterChange = { letter ->
+                                                    alphabetIndexMap[letter]?.let { index ->
+                                                        scrollScope.launch {
+                                                            expandedListState.scrollToItem(index)
+                                                        }
+                                                    }
+                                                }
+                                            ) {
+                                                LazyColumn(
+                                                    modifier = Modifier.fillMaxSize(),
+                                                    state = expandedListState,
+                                                    contentPadding = listPadding
+                                                ) {
+                                                    items(
+                                                        count = items.itemCount,
+                                                        key = { index ->
+                                                            items[index]?.let { artist ->
+                                                                "${artist.provider}:${artist.itemId}"
+                                                            } ?: "placeholder_$index"
+                                                        }
+                                                    ) { index ->
+                                                        val artist = items[index]
+                                                        if (artist != null) {
+                                                            ArtistListItem(
+                                                                artist = artist,
+                                                                onClick = { handleArtistClick(artist) },
+                                                                showDivider = index < items.itemCount - 1,
+                                                                imageQualityManager = imageQualityManager
+                                                            )
+                                                        } else {
+                                                            ArtistListItemPlaceholder(
+                                                                showDivider = index < items.itemCount - 1
+                                                            )
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                            ArtistDetailPane(
+                                                artist = selectedArtist,
+                                                albumCount = selectedAlbumCount,
+                                                onViewAlbums = onArtistClick,
+                                                imageQualityManager = imageQualityManager,
+                                                modifier = Modifier
+                                                    .weight(0.4f)
+                                                    .fillMaxHeight()
+                                                    .padding(
+                                                        top = listVerticalPadding,
+                                                        bottom = listVerticalPadding,
+                                                        end = horizontalPadding
+                                                    )
+                                            )
+                                        }
+                                    } else {
+                                        AlphabetFastScroller(
+                                            modifier = Modifier.fillMaxSize(),
+                                            isEnabled = showAlphabetScroller,
+                                            onLetterChange = { letter ->
+                                                alphabetIndexMap[letter]?.let { index ->
+                                                    scrollScope.launch {
+                                                        collapsedListState.scrollToItem(index)
+                                                    }
+                                                }
+                                            }
+                                        ) {
+                                            LazyColumn(
+                                                modifier = Modifier.fillMaxSize(),
+                                                state = collapsedListState,
                                                 contentPadding = listPadding
                                             ) {
                                                 items(
@@ -319,48 +408,6 @@ fun ArtistsScreen(
                                                             showDivider = index < items.itemCount - 1
                                                         )
                                                     }
-                                                }
-                                            }
-                                            ArtistDetailPane(
-                                                artist = selectedArtist,
-                                                albumCount = selectedAlbumCount,
-                                                onViewAlbums = onArtistClick,
-                                                imageQualityManager = imageQualityManager,
-                                                modifier = Modifier
-                                                    .weight(0.4f)
-                                                    .fillMaxHeight()
-                                                    .padding(
-                                                        top = listVerticalPadding,
-                                                        bottom = listVerticalPadding,
-                                                        end = horizontalPadding
-                                                    )
-                                            )
-                                        }
-                                    } else {
-                                        LazyColumn(
-                                            modifier = Modifier.fillMaxSize(),
-                                            contentPadding = listPadding
-                                        ) {
-                                            items(
-                                                count = items.itemCount,
-                                                key = { index ->
-                                                    items[index]?.let { artist ->
-                                                        "${artist.provider}:${artist.itemId}"
-                                                    } ?: "placeholder_$index"
-                                                }
-                                            ) { index ->
-                                                val artist = items[index]
-                                                if (artist != null) {
-                                                    ArtistListItem(
-                                                        artist = artist,
-                                                        onClick = { handleArtistClick(artist) },
-                                                        showDivider = index < items.itemCount - 1,
-                                                        imageQualityManager = imageQualityManager
-                                                    )
-                                                } else {
-                                                    ArtistListItemPlaceholder(
-                                                        showDivider = index < items.itemCount - 1
-                                                    )
                                                 }
                                             }
                                         }

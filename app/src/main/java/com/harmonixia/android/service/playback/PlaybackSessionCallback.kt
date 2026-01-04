@@ -356,8 +356,19 @@ class PlaybackSessionCallback(
                 return@launch
             }
             Logger.d(TAG, "Requesting resume queueId=$queueId")
-            repository.resumeQueue(queueId)
-                .onFailure { Logger.w(TAG, "Resume command failed", it) }
+            val resumeResult = repository.resumeQueue(queueId)
+            if (resumeResult.isSuccess) return@launch
+            val error = resumeResult.exceptionOrNull()
+            Logger.w(TAG, "Resume command failed", error)
+            if (!isNoPlayableItemError(error)) return@launch
+            val fallbackIndex = resolvePlayableIndex(queueId)
+            if (fallbackIndex == null) {
+                Logger.w(TAG, "No playable queue item available for resume fallback")
+                return@launch
+            }
+            Logger.d(TAG, "Resume failed; requesting playIndex=$fallbackIndex queueId=$queueId")
+            repository.playIndex(queueId, fallbackIndex)
+                .onFailure { Logger.w(TAG, "Resume fallback failed", it) }
         }
     }
 
@@ -445,8 +456,30 @@ class PlaybackSessionCallback(
         }
     }
 
+    private suspend fun resolvePlayableIndex(queueId: String): Int? {
+        val fallback = playbackStateManager.findPlayableIndexFromCurrent()
+        val playerId = playbackStateManager.currentPlayerId ?: awaitPlayerId()
+        if (playerId.isNullOrBlank()) return fallback
+        val queue = repository.getActiveQueue(playerId, includeItems = true).getOrNull()
+            ?: return fallback
+        if (queue.queueId != queueId) return fallback
+        return playbackStateManager.findPlayableIndex(queue) ?: fallback
+    }
+
+    private suspend fun awaitPlayerId(): String? {
+        return withTimeoutOrNull(PLAYER_ID_WAIT_TIMEOUT_MS) {
+            playbackStateManager.playerIdFlow.first { !it.isNullOrBlank() }
+        }
+    }
+
+    private fun isNoPlayableItemError(error: Throwable?): Boolean {
+        val message = error?.message ?: return false
+        return message.contains("No playable item", ignoreCase = true)
+    }
+
     companion object {
         private const val TAG = "PlaybackSessionCallback"
         private const val QUEUE_ID_WAIT_TIMEOUT_MS = 3000L
+        private const val PLAYER_ID_WAIT_TIMEOUT_MS = 3000L
     }
 }

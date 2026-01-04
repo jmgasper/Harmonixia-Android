@@ -28,6 +28,8 @@ data class Track(
     @SerialName("image_url")
     val imageUrl: String? = null,
     val quality: String? = null,
+    @SerialName("available")
+    val isAvailable: Boolean = true,
     @SerialName("is_favorite")
     val isFavorite: Boolean = false,
     val albumItemId: String = "",

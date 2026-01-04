@@ -90,6 +90,9 @@ class PlaylistDetailViewModel @Inject constructor(
     private val _renameErrorMessageResId = MutableStateFlow<Int?>(null)
     val renameErrorMessageResId: StateFlow<Int?> = _renameErrorMessageResId.asStateFlow()
 
+    private val _isSavingReorder = MutableStateFlow(false)
+    val isSavingReorder: StateFlow<Boolean> = _isSavingReorder.asStateFlow()
+
     private val _events = MutableSharedFlow<PlaylistDetailUiEvent>(extraBufferCapacity = 1)
     val events = _events.asSharedFlow()
 
@@ -99,6 +102,8 @@ class PlaylistDetailViewModel @Inject constructor(
     private var hasMoreTracks = false
     private var isLoadingMoreTracks = false
     private var loadMoreJob: Job? = null
+    private var loadAllJob: Job? = null
+    private var isFullTrackListLoaded = false
     private var localTracksCache: List<Track>? = null
     val isOfflineMode: StateFlow<Boolean> = networkConnectivityManager.networkAvailabilityFlow
         .map { networkConnectivityManager.isOfflineMode() }
@@ -249,9 +254,12 @@ class PlaylistDetailViewModel @Inject constructor(
 
         loadMoreJob?.cancel()
         loadMoreJob = null
+        loadAllJob?.cancel()
+        loadAllJob = null
         currentOffset = 0
         hasMoreTracks = false
         isLoadingMoreTracks = false
+        isFullTrackListLoaded = false
 
         supervisorScope {
             val playlistDeferred = async(Dispatchers.IO) {
@@ -292,6 +300,7 @@ class PlaylistDetailViewModel @Inject constructor(
             val totalCount = cachedFullTracks?.size ?: loadedTracks.size
             currentOffset = mergedTracks.size
             hasMoreTracks = totalCount > mergedTracks.size
+            isFullTrackListLoaded = !hasMoreTracks
             isLoadingMoreTracks = false
             _uiState.value = if (mergedTracks.isEmpty()) {
                 PlaylistDetailUiState.Empty
@@ -313,12 +322,15 @@ class PlaylistDetailViewModel @Inject constructor(
                     mergedTracks.size
                 )
             }
+            if (hasMoreTracks && mergedTracks.isNotEmpty()) {
+                startAutoLoadAllTracks()
+            }
         }
     }
 
     fun loadMoreTracks() {
         if (isFavoritesPlaylist || isOfflineMode.value) return
-        if (!hasMoreTracks || isLoadingMoreTracks) return
+        if (isFullTrackListLoaded || !hasMoreTracks || isLoadingMoreTracks) return
         loadMoreJob?.cancel()
         loadMoreJob = viewModelScope.launch {
             loadMoreTracksInternal()
@@ -327,7 +339,7 @@ class PlaylistDetailViewModel @Inject constructor(
 
     private suspend fun loadMoreTracksInternal() {
         if (playlistId.isBlank() || provider.isBlank()) return
-        if (isLoadingMoreTracks || !hasMoreTracks) return
+        if (isLoadingMoreTracks || !hasMoreTracks || isFullTrackListLoaded) return
         isLoadingMoreTracks = true
         updateLoadingMoreState(true)
         val detailKey = detailKey()
@@ -338,17 +350,28 @@ class PlaylistDetailViewModel @Inject constructor(
             SUBSEQUENT_CHUNK_SIZE
         )
         result.onSuccess { chunk ->
-            if (chunk.isEmpty()) {
-                hasMoreTracks = false
-            } else {
-                currentOffset += chunk.size
-                hasMoreTracks = chunk.size >= SUBSEQUENT_CHUNK_SIZE
-            }
             val cachedFullTracks = repository.getCachedPlaylistTracks(playlistId, provider)
             val fullTracks = cachedFullTracks ?: (remoteTracks + chunk)
             remoteTracks = fullTracks
             val mergedTracks = mergeWithLocalTracks(fullTracks)
             tracks = mergedTracks
+            currentOffset = fullTracks.size
+            if (cachedFullTracks != null) {
+                hasMoreTracks = false
+                isFullTrackListLoaded = true
+            } else if (!isFullTrackListLoaded) {
+                if (chunk.isEmpty()) {
+                    hasMoreTracks = false
+                    isFullTrackListLoaded = true
+                } else if (chunk.size < SUBSEQUENT_CHUNK_SIZE) {
+                    hasMoreTracks = false
+                    isFullTrackListLoaded = true
+                } else {
+                    hasMoreTracks = true
+                }
+            } else {
+                hasMoreTracks = false
+            }
             _uiState.value = if (mergedTracks.isEmpty()) {
                 PlaylistDetailUiState.Empty
             } else {
@@ -371,6 +394,55 @@ class PlaylistDetailViewModel @Inject constructor(
         }
         isLoadingMoreTracks = false
         updateLoadingMoreState(false)
+    }
+
+    private fun startAutoLoadAllTracks() {
+        if (isFavoritesPlaylist || isOfflineMode.value) return
+        if (isFullTrackListLoaded || !hasMoreTracks) return
+        if (loadAllJob?.isActive == true) return
+        loadMoreJob?.cancel()
+        loadMoreJob = null
+        loadAllJob = viewModelScope.launch {
+            loadAllTracksInternal()
+        }
+    }
+
+    private suspend fun loadAllTracksInternal() {
+        if (playlistId.isBlank() || provider.isBlank()) return
+        if (isFullTrackListLoaded || isFavoritesPlaylist || isOfflineMode.value) return
+        if (isLoadingMoreTracks) return
+        isLoadingMoreTracks = true
+        updateLoadingMoreState(true)
+        val detailKey = detailKey()
+        val result = repository.getPlaylistTracks(playlistId, provider)
+        result.onSuccess { fullTracks ->
+            remoteTracks = fullTracks
+            val mergedTracks = mergeWithLocalTracks(fullTracks)
+            tracks = mergedTracks
+            currentOffset = fullTracks.size
+            hasMoreTracks = false
+            isFullTrackListLoaded = true
+            isLoadingMoreTracks = false
+            _uiState.value = if (mergedTracks.isEmpty()) {
+                PlaylistDetailUiState.Empty
+            } else {
+                PlaylistDetailUiState.Success(
+                    mergedTracks,
+                    hasMore = false,
+                    isLoadingMore = false
+                )
+            }
+            if (mergedTracks.isNotEmpty()) {
+                performanceMonitor.markTrackListLoaded(
+                    PerformanceMonitor.DetailType.PLAYLIST,
+                    detailKey,
+                    mergedTracks.size
+                )
+            }
+        }.onFailure {
+            isLoadingMoreTracks = false
+            updateLoadingMoreState(false)
+        }
     }
 
     private fun updateLoadingMoreState(isLoading: Boolean) {
@@ -481,7 +553,14 @@ class PlaylistDetailViewModel @Inject constructor(
                 _events.tryEmit(PlaylistDetailUiEvent.ShowMessage(R.string.offline_feature_unavailable))
                 return@launch
             }
-            val result = repository.addToFavorites(track.itemId, track.provider, "track")
+            val targetTrack = resolveFavoriteTarget(track)
+            if (targetTrack == null) {
+                _events.tryEmit(
+                    PlaylistDetailUiEvent.ShowMessage(R.string.track_favorite_offline_unavailable)
+                )
+                return@launch
+            }
+            val result = repository.addToFavorites(targetTrack)
             result.onSuccess {
                 _events.tryEmit(
                     PlaylistDetailUiEvent.ShowMessage(R.string.track_favorite_add_success)
@@ -499,7 +578,14 @@ class PlaylistDetailViewModel @Inject constructor(
                 _events.tryEmit(PlaylistDetailUiEvent.ShowMessage(R.string.offline_feature_unavailable))
                 return@launch
             }
-            val result = repository.removeFromFavorites(track.itemId, track.provider, "track")
+            val targetTrack = resolveFavoriteTarget(track)
+            if (targetTrack == null) {
+                _events.tryEmit(
+                    PlaylistDetailUiEvent.ShowMessage(R.string.track_favorite_offline_unavailable)
+                )
+                return@launch
+            }
+            val result = repository.removeFromFavorites(targetTrack)
             result.onSuccess {
                 _events.tryEmit(
                     PlaylistDetailUiEvent.ShowMessage(R.string.track_favorite_remove_success)
@@ -548,6 +634,89 @@ class PlaylistDetailViewModel @Inject constructor(
             }.onFailure {
                 _events.tryEmit(PlaylistDetailUiEvent.ShowMessage(R.string.track_remove_error))
             }
+        }
+    }
+
+    fun saveReorderedTracks(orderedTracks: List<Track>) {
+        val playlist = _playlist.value ?: return
+        if (isFavoritesPlaylist || !playlist.isEditable) return
+        if (hasMoreTracks || isLoadingMoreTracks) {
+            viewModelScope.launch {
+                _events.emit(PlaylistDetailUiEvent.ShowMessage(R.string.playlist_reorder_load_all))
+            }
+            return
+        }
+        if (orderedTracks.isEmpty()) return
+        val currentTracks = tracks
+        if (currentTracks.isEmpty()) return
+        if (orderedTracks.map(::reorderKey) == currentTracks.map(::reorderKey)) {
+            return
+        }
+        viewModelScope.launch {
+            if (_isSavingReorder.value) return@launch
+            _isSavingReorder.value = true
+            if (isOfflineMode.value) {
+                _isSavingReorder.value = false
+                _events.emit(PlaylistDetailUiEvent.ShowMessage(R.string.offline_feature_unavailable))
+                return@launch
+            }
+            val positionsByKey = mutableMapOf<String, ArrayDeque<Int>>()
+            currentTracks.forEachIndexed { index, track ->
+                val key = reorderKey(track)
+                positionsByKey.getOrPut(key) { ArrayDeque() }.add(index)
+            }
+            val reorderedRemote = orderedTracks.mapNotNull { track ->
+                val key = reorderKey(track)
+                val queue = positionsByKey[key]
+                val index = queue?.removeFirstOrNull()
+                index?.let { remoteTracks.getOrNull(it) }
+            }
+            if (reorderedRemote.size != orderedTracks.size) {
+                _isSavingReorder.value = false
+                _events.emit(PlaylistDetailUiEvent.ShowMessage(R.string.playlist_reorder_error))
+                return@launch
+            }
+            val newUris = reorderedRemote.mapNotNull { it.uri.takeIf { uri -> uri.isNotBlank() } }
+            if (newUris.size != reorderedRemote.size) {
+                _isSavingReorder.value = false
+                _events.emit(PlaylistDetailUiEvent.ShowMessage(R.string.playlist_reorder_error))
+                return@launch
+            }
+            val originalUris = remoteTracks.mapNotNull { it.uri.takeIf { uri -> uri.isNotBlank() } }
+            val positions = currentTracks.indices.toList().sortedDescending()
+            val removeResult = managePlaylistTracksUseCase.removeTracksFromPlaylist(
+                playlistId = playlist.itemId,
+                positions = positions
+            )
+            val addResult = if (removeResult.isSuccess) {
+                managePlaylistTracksUseCase.addTracksToPlaylist(
+                    playlistId = playlist.itemId,
+                    trackUris = newUris,
+                    isEditable = playlist.isEditable
+                )
+            } else {
+                removeResult
+            }
+            if (addResult.isSuccess) {
+                tracks = orderedTracks
+                remoteTracks = reorderedRemote
+                _uiState.value = PlaylistDetailUiState.Success(
+                    orderedTracks,
+                    hasMore = hasMoreTracks,
+                    isLoadingMore = false
+                )
+                _events.emit(PlaylistDetailUiEvent.ShowMessage(R.string.playlist_reorder_success))
+            } else {
+                if (removeResult.isSuccess && originalUris.isNotEmpty()) {
+                    managePlaylistTracksUseCase.addTracksToPlaylist(
+                        playlistId = playlist.itemId,
+                        trackUris = originalUris,
+                        isEditable = playlist.isEditable
+                    )
+                }
+                _events.emit(PlaylistDetailUiEvent.ShowMessage(R.string.playlist_reorder_error))
+            }
+            _isSavingReorder.value = false
         }
     }
 
@@ -708,7 +877,8 @@ class PlaylistDetailViewModel @Inject constructor(
                 -1
             }
             if (matchedIndex >= 0) {
-                merged.add(localTracks[matchedIndex])
+                val local = localTracks[matchedIndex]
+                merged.add(local.copy(isFavorite = track.isFavorite))
             } else {
                 merged.add(track)
             }
@@ -720,8 +890,59 @@ class PlaylistDetailViewModel @Inject constructor(
         return "${normalizeMatchKey(track.title)}::${normalizeMatchKey(track.artist)}::${normalizeMatchKey(track.album)}"
     }
 
+    private suspend fun resolveFavoriteTarget(track: Track): Track? {
+        if (track.provider != OFFLINE_PROVIDER) return track
+        val remoteMatch = pickBestFavoriteMatch(track, remoteTracks)
+        if (remoteMatch != null) return remoteMatch
+        val query = buildFavoriteSearchQuery(track)
+        if (query.isBlank()) return null
+        val searchResults = repository.searchLibrary(query, FAVORITE_SEARCH_LIMIT).getOrNull()
+            ?: return null
+        return pickBestFavoriteMatch(track, searchResults.tracks)
+    }
+
+    private fun pickBestFavoriteMatch(track: Track, candidates: List<Track>): Track? {
+        if (candidates.isEmpty()) return null
+        val titleKey = normalizeMatchKey(track.title)
+        if (titleKey.isBlank()) return null
+        val artistKey = normalizeMatchKey(track.artist)
+        val albumKey = normalizeMatchKey(track.album)
+        val trackNumber = track.trackNumber.takeIf { it > 0 }
+        return candidates.asSequence()
+            .filter { it.provider != OFFLINE_PROVIDER }
+            .mapNotNull { candidate ->
+                if (normalizeMatchKey(candidate.title) != titleKey) return@mapNotNull null
+                if (artistKey.isNotBlank() &&
+                    normalizeMatchKey(candidate.artist) != artistKey
+                ) return@mapNotNull null
+                if (albumKey.isNotBlank() &&
+                    normalizeMatchKey(candidate.album) != albumKey
+                ) return@mapNotNull null
+                var score = 1
+                if (artistKey.isNotBlank()) score += 1
+                if (albumKey.isNotBlank()) score += 1
+                if (trackNumber != null && candidate.trackNumber == trackNumber) {
+                    score += 2
+                }
+                candidate to score
+            }
+            .maxByOrNull { it.second }
+            ?.first
+    }
+
+    private fun buildFavoriteSearchQuery(track: Track): String {
+        return listOf(track.title, track.artist, track.album)
+            .map { it.trim() }
+            .filter { it.isNotBlank() }
+            .joinToString(" ")
+    }
+
     private fun normalizeMatchKey(value: String): String {
         return value.trim().lowercase()
+    }
+
+    private fun reorderKey(track: Track): String {
+        return "${track.itemId}::${track.provider}"
     }
 
     private fun detailKey(): String {
@@ -733,5 +954,6 @@ class PlaylistDetailViewModel @Inject constructor(
         private const val INITIAL_TRACK_CHUNK_SIZE = 50
         private const val SUBSEQUENT_CHUNK_SIZE = 150
         private const val MERGE_BATCH_SIZE = 100
+        private const val FAVORITE_SEARCH_LIMIT = 50
     }
 }

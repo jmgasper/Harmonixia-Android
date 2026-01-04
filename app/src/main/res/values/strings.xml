@@ -219,6 +219,12 @@
     <string name="playlist_detail_no_tracks">No tracks in this playlist</string>
     <string name="playlist_detail_empty_message">This playlist does not have any tracks yet.</string>
     <string name="playlist_detail_owner">By %1$s</string>
+    <string name="playlist_reorder_action">Reorder</string>
+    <string name="playlist_reorder_done">Done</string>
+    <string name="playlist_reorder_success">Playlist order updated</string>
+    <string name="playlist_reorder_error">Unable to reorder playlist</string>
+    <string name="playlist_reorder_load_all">Load all tracks before reordering</string>
+    <string name="content_desc_reorder_handle">Reorder track</string>
     <string name="playlist_editable_badge">Editable</string>
     <string name="playlist_delete_success">Playlist deleted</string>
     <string name="playlist_delete_error">Unable to delete playlist</string>
@@ -247,6 +253,7 @@
     <string name="track_favorite_add_error">Unable to add to favorites</string>
     <string name="track_favorite_remove_success">Removed from favorites</string>
     <string name="track_favorite_remove_error">Unable to remove from favorites</string>
+    <string name="track_favorite_offline_unavailable">Favorites are unavailable for offline tracks</string>
     <string name="track_remove_success">Removed track from playlist</string>
     <string name="track_remove_error">Unable to remove track from playlist</string>
     <string name="track_add_success">Added track to playlist</string>

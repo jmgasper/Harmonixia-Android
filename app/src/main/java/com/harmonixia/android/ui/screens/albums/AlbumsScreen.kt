@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.FilterList
 import androidx.compose.material.icons.outlined.MusicNote
@@ -43,6 +44,7 @@ import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.Saver
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -65,10 +67,12 @@ import coil3.compose.AsyncImage
 import com.harmonixia.android.R
 import com.harmonixia.android.domain.model.Album
 import com.harmonixia.android.domain.model.AlbumType
+import com.harmonixia.android.ui.components.AlphabetFastScroller
 import com.harmonixia.android.ui.components.AlbumGrid
 import com.harmonixia.android.ui.components.AlbumTypeFilterMenu
 import com.harmonixia.android.ui.components.ErrorCard
 import com.harmonixia.android.ui.components.OfflineModeBanner
+import com.harmonixia.android.ui.components.alphabetIndexMap
 import com.harmonixia.android.ui.navigation.MainScaffoldActions
 import com.harmonixia.android.ui.screens.settings.SettingsTab
 import com.harmonixia.android.ui.theme.rememberAdaptiveSpacing
@@ -77,6 +81,7 @@ import com.harmonixia.android.util.ImageQualityManager
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -165,6 +170,19 @@ fun AlbumsScreen(
     val lazyPagingItems = successState?.albums?.collectAsLazyPagingItems()
     val filteredCount = lazyPagingItems?.itemSnapshotList?.items?.size ?: 0
     val totalCount = lazyPagingItems?.itemCount ?: 0
+    val scrollScope = rememberCoroutineScope()
+    val collapsedGridState = rememberLazyGridState()
+    val expandedGridState = rememberLazyGridState()
+    val alphabetIndexMap by remember(lazyPagingItems) {
+        derivedStateOf {
+            lazyPagingItems?.alphabetIndexMap { album -> album.name } ?: emptyMap()
+        }
+    }
+    val showAlphabetScroller by remember(lazyPagingItems) {
+        derivedStateOf {
+            lazyPagingItems?.itemSnapshotList?.items?.isNotEmpty() == true
+        }
+    }
 
     var showFilterMenu by remember { mutableStateOf(false) }
     val showFilterLabel by remember(windowSizeClass) {
@@ -391,18 +409,31 @@ fun AlbumsScreen(
                                         modifier = Modifier.fillMaxSize(),
                                         horizontalArrangement = Arrangement.spacedBy(spacing.large)
                                     ) {
-                                        AlbumGrid(
-                                            albums = items,
-                                            onAlbumClick = handleAlbumClick,
-                                            columns = columns,
-                                            artworkSize = artworkSize,
-                                            contentPadding = gridPadding,
-                                            isOfflineMode = isOfflineMode,
-                                            imageQualityManager = imageQualityManager,
+                                        AlphabetFastScroller(
                                             modifier = Modifier
                                                 .weight(0.6f)
-                                                .fillMaxHeight()
-                                        )
+                                                .fillMaxHeight(),
+                                            isEnabled = showAlphabetScroller,
+                                            onLetterChange = { letter ->
+                                                alphabetIndexMap[letter]?.let { index ->
+                                                    scrollScope.launch {
+                                                        expandedGridState.scrollToItem(index)
+                                                    }
+                                                }
+                                            }
+                                        ) {
+                                            AlbumGrid(
+                                                albums = items,
+                                                onAlbumClick = handleAlbumClick,
+                                                gridState = expandedGridState,
+                                                columns = columns,
+                                                artworkSize = artworkSize,
+                                                contentPadding = gridPadding,
+                                                isOfflineMode = isOfflineMode,
+                                                imageQualityManager = imageQualityManager,
+                                                modifier = Modifier.fillMaxSize()
+                                            )
+                                        }
                                         AlbumDetailPane(
                                             album = selectedAlbum,
                                             artworkSize = artworkSize,
@@ -420,16 +451,29 @@ fun AlbumsScreen(
                                         )
                                     }
                                 } else {
-                                    AlbumGrid(
-                                        albums = items,
-                                        onAlbumClick = handleAlbumClick,
-                                        columns = columns,
-                                        artworkSize = artworkSize,
-                                        contentPadding = gridPadding,
-                                        isOfflineMode = isOfflineMode,
-                                        imageQualityManager = imageQualityManager,
-                                        modifier = Modifier.fillMaxSize()
-                                    )
+                                    AlphabetFastScroller(
+                                        modifier = Modifier.fillMaxSize(),
+                                        isEnabled = showAlphabetScroller,
+                                        onLetterChange = { letter ->
+                                            alphabetIndexMap[letter]?.let { index ->
+                                                scrollScope.launch {
+                                                    collapsedGridState.scrollToItem(index)
+                                                }
+                                            }
+                                        }
+                                    ) {
+                                        AlbumGrid(
+                                            albums = items,
+                                            onAlbumClick = handleAlbumClick,
+                                            gridState = collapsedGridState,
+                                            columns = columns,
+                                            artworkSize = artworkSize,
+                                            contentPadding = gridPadding,
+                                            isOfflineMode = isOfflineMode,
+                                            imageQualityManager = imageQualityManager,
+                                            modifier = Modifier.fillMaxSize()
+                                        )
+                                    }
                                 }
                             }
                         }

@@ -328,6 +328,26 @@ class PlaybackStateManager(
         return resolveTrackFromQueue(mediaId)
     }
 
+    fun findPlayableIndex(queue: Queue): Int? {
+        val items = queue.items
+        if (items.isEmpty()) {
+            return if (queue.currentItem?.isAvailable == true) queue.currentIndex else null
+        }
+        val safeStart = queue.currentIndex.coerceIn(0, items.lastIndex)
+        val forwardIndex = (safeStart until items.size).firstOrNull { index ->
+            items[index].isAvailable
+        }
+        if (forwardIndex != null) return forwardIndex
+        return (0 until safeStart).firstOrNull { index ->
+            items[index].isAvailable
+        }
+    }
+
+    fun findPlayableIndexFromCurrent(): Int? {
+        val queue = lastQueue ?: return null
+        return findPlayableIndex(queue)
+    }
+
     fun consumeSyncSeekSuppression(): Boolean {
         synchronized(syncSeekLock) {
             if (pendingSyncSeeks <= 0) return false

@@ -293,6 +293,38 @@ class MusicAssistantRepositoryImpl @Inject constructor(
         }
     }
 
+    override suspend fun getArtist(itemId: String, provider: String): Result<Artist> {
+        return runCatching {
+            val result = webSocketClient.sendRequest(
+                ApiCommand.MUSIC_GET_ARTIST,
+                mapOf("item_id" to itemId, "provider_instance_id_or_domain" to provider)
+            ).getOrThrow()
+            val payload = result as? JsonObject ?: run {
+                Logger.w(TAG, "Unexpected artist response: $result")
+                throw IllegalStateException("Unexpected artist response")
+            }
+            parseArtist(payload)
+        }
+    }
+
+    override suspend fun getArtistAlbums(
+        itemId: String,
+        provider: String,
+        inLibraryOnly: Boolean
+    ): Result<List<Album>> {
+        return runCatching {
+            val result = webSocketClient.sendRequest(
+                ApiCommand.MUSIC_GET_ARTIST_ALBUMS,
+                mapOf(
+                    "item_id" to itemId,
+                    "provider_instance_id_or_domain" to provider,
+                    "in_library_only" to inLibraryOnly
+                )
+            ).getOrThrow()
+            parseAlbumItems(result)
+        }
+    }
+
     override fun getCachedAlbum(itemId: String, provider: String): Album? {
         val key = cacheKey(itemId, provider)
         val cached = synchronized(cacheLock) { albumCache[key] }
@@ -369,7 +401,18 @@ class MusicAssistantRepositoryImpl @Inject constructor(
     }
 
     override suspend fun getPlaylistTracks(playlistId: String, provider: String): Result<List<Track>> {
-        return getPlaylistTracksChunked(playlistId, provider, 0, Int.MAX_VALUE)
+        val key = cacheKey(playlistId, provider)
+        val cached = synchronized(cacheLock) { playlistTracksCache[key] }
+        if (cached != null) {
+            return Result.success(cached)
+        }
+        return runCatching {
+            val fetched = fetchPlaylistTracks(playlistId, provider)
+            synchronized(cacheLock) {
+                playlistTracksCache[key] = fetched
+            }
+            fetched
+        }
     }
 
     override suspend fun getPlaylistTracksChunked(
@@ -674,36 +717,31 @@ class MusicAssistantRepositoryImpl @Inject constructor(
     ): Result<Unit> {
         return sendCommand(
             ApiCommand.MUSIC_REMOVE_PLAYLIST_TRACKS,
-            mapOf("db_playlist_id" to playlistId, "positions" to positions)
+            mapOf("db_playlist_id" to playlistId, "positions_to_remove" to positions)
         )
     }
 
-    override suspend fun addToFavorites(
-        itemId: String,
-        provider: String,
-        mediaType: String
-    ): Result<Unit> {
+    override suspend fun addToFavorites(track: Track): Result<Unit> {
+        val item = buildTrackPayload(track)
+            ?: return Result.failure(
+                IllegalArgumentException("Missing track metadata for favorites")
+            )
         return sendCommand(
             ApiCommand.MUSIC_FAVORITES_ADD_ITEM,
-            mapOf(
-                "item_id" to itemId,
-                "provider_instance_id_or_domain" to provider,
-                "media_type" to mediaType
-            )
+            mapOf("item" to item)
         )
     }
 
-    override suspend fun removeFromFavorites(
-        itemId: String,
-        provider: String,
-        mediaType: String
-    ): Result<Unit> {
+    override suspend fun removeFromFavorites(track: Track): Result<Unit> {
+        val itemId = track.itemId
+        if (itemId.isBlank()) {
+            return Result.failure(IllegalArgumentException("Track item id is required"))
+        }
         return sendCommand(
             ApiCommand.MUSIC_FAVORITES_REMOVE_ITEM,
             mapOf(
-                "item_id" to itemId,
-                "provider_instance_id_or_domain" to provider,
-                "media_type" to mediaType
+                "media_type" to "track",
+                "library_item_id" to itemId
             )
         )
     }
@@ -911,15 +949,38 @@ class MusicAssistantRepositoryImpl @Inject constructor(
         parser: (JsonObject) -> T
     ): Result<List<T>> {
         return runCatching {
-            val pageSize = if (limit > 0) limit else DEFAULT_PAGE_SIZE
             val params = buildMap {
                 putAll(extraParams)
-                put("limit", pageSize)
+                if (limit > 0) {
+                    put("limit", limit)
+                }
                 put("offset", offset.coerceAtLeast(0))
             }
             val result = webSocketClient.sendRequest(command, params).getOrThrow()
+            logLibraryTotalsIfPresent(command, result, offset, limit)
             extractItems(result).map(parser)
         }
+    }
+
+    private fun logLibraryTotalsIfPresent(
+        command: String,
+        result: JsonElement?,
+        offset: Int,
+        limit: Int
+    ) {
+        if (!command.endsWith("/library_items")) return
+        val payload = result as? JsonObject ?: return
+        val totals = listOf("total", "total_items", "total_count", "count")
+            .mapNotNull { key ->
+                payload[key]?.jsonPrimitive?.intOrNull?.let { key to it }
+            }
+        if (totals.isEmpty()) return
+        val itemsCount = (payload["items"] as? JsonArray)?.size ?: extractItems(payload).size
+        val totalsLabel = totals.joinToString { (key, value) -> "$key=$value" }
+        Logger.i(
+            TAG,
+            "Library totals for $command (offset=$offset, limit=$limit): $totalsLabel, items=$itemsCount"
+        )
     }
 
     private fun parseSearchResults(result: JsonElement): SearchResults {
@@ -961,17 +1022,26 @@ class MusicAssistantRepositoryImpl @Inject constructor(
     }
 
     private fun parseQueueItemTrack(jsonObject: JsonObject): Track? {
+        val available = jsonObject["available"]?.jsonPrimitive?.booleanOrNull
         val mediaItem = jsonObject["media_item"] as? JsonObject
         if (mediaItem != null) {
-            return parseTrack(mediaItem)
+            val parsed = parseTrack(mediaItem)
+            return if (available == null) parsed else parsed.copy(isAvailable = available)
         }
         val name = jsonObject.stringOrEmpty("name")
         val uri = jsonObject.stringOrEmpty("uri")
         if (name.isBlank() && uri.isBlank()) return null
+        val providerMappings = parseProviderMappings(jsonObject["provider_mappings"])
+        val mappedAvailability = if (providerMappings.isNotEmpty()) {
+            providerMappings.any { it.available }
+        } else {
+            null
+        }
+        val isAvailable = available ?: mappedAvailability ?: true
         return Track(
             itemId = jsonObject.stringOrEmpty("queue_item_id", "item_id"),
             provider = jsonObject.stringOrEmpty("provider"),
-            providerMappings = parseProviderMappings(jsonObject["provider_mappings"]),
+            providerMappings = providerMappings,
             uri = uri,
             title = name,
             artist = "",
@@ -979,7 +1049,8 @@ class MusicAssistantRepositoryImpl @Inject constructor(
             lengthSeconds = jsonObject.intOrZero("duration"),
             imageUrl = extractImageUrl(jsonObject),
             quality = jsonObject.stringOrNull("quality")
-                ?: describeTrackQuality(jsonObject["provider_mappings"])
+                ?: describeTrackQuality(jsonObject["provider_mappings"]),
+            isAvailable = isAvailable
         )
     }
 
@@ -1058,6 +1129,14 @@ class MusicAssistantRepositoryImpl @Inject constructor(
             artists.isNotEmpty() -> artists.joinToString(", ")
             else -> jsonObject.stringOrEmpty("artist_str", "artist")
         }
+        val providerMappings = parseProviderMappings(jsonObject["provider_mappings"])
+        val available = jsonObject["available"]?.jsonPrimitive?.booleanOrNull
+        val mappedAvailability = if (providerMappings.isNotEmpty()) {
+            providerMappings.any { it.available }
+        } else {
+            null
+        }
+        val isAvailable = available ?: mappedAvailability ?: true
         val albumObject = jsonObject["album"] as? JsonObject
         val albumName = albumObject
             ?.stringOrEmpty("name")
@@ -1073,7 +1152,7 @@ class MusicAssistantRepositoryImpl @Inject constructor(
         return Track(
             itemId = jsonObject.stringOrEmpty("item_id"),
             provider = jsonObject.stringOrEmpty("provider"),
-            providerMappings = parseProviderMappings(jsonObject["provider_mappings"]),
+            providerMappings = providerMappings,
             uri = jsonObject.stringOrEmpty("uri"),
             trackNumber = jsonObject.intOrZero("track_number"),
             title = jsonObject.stringOrEmpty("name", "title"),
@@ -1084,6 +1163,7 @@ class MusicAssistantRepositoryImpl @Inject constructor(
                 ?: albumObject?.let { extractImageUrl(it) },
             quality = jsonObject.stringOrNull("quality")
                 ?: describeTrackQuality(jsonObject["provider_mappings"]),
+            isAvailable = isAvailable,
             isFavorite = isFavorite,
             albumItemId = albumItemId,
             albumProvider = albumProvider,

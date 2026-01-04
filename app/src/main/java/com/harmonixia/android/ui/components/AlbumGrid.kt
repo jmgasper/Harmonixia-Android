@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -43,6 +44,7 @@ fun AlbumGrid(
     albums: LazyPagingItems<Album>,
     onAlbumClick: (Album) -> Unit,
     onAlbumLongClick: ((Album) -> Unit)? = null,
+    gridState: LazyGridState = rememberLazyGridState(),
     columns: Int,
     artworkSize: Dp,
     contentPadding: PaddingValues,
@@ -52,7 +54,6 @@ fun AlbumGrid(
 ) {
     val safeColumns = columns.coerceAtLeast(1)
     val minCardHeight = artworkSize + 70.dp
-    val gridState = rememberLazyGridState()
     val context = LocalContext.current
     val imageLoader = context.imageLoader
     val optimizedSize = imageQualityManager.getOptimalImageSize(artworkSize)

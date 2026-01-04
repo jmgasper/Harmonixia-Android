@@ -29,6 +29,38 @@ class PlaylistsPagingSource(
                 nextKey = null
             )
         }
+        if (params is LoadParams.Refresh) {
+            return try {
+                val requestSize = max(pageSize, DEFAULT_FULL_FETCH_PAGE_SIZE)
+                val initialResult = repository.fetchPlaylists(0, 0)
+                val initialPlaylists = initialResult.getOrDefault(emptyList())
+                val playlists = if (initialResult.isSuccess && initialPlaylists.isNotEmpty()) {
+                    statsTracker.recordPageLoaded(initialPlaylists.size)
+                    val remaining = fetchAllPages(
+                        pageSize = requestSize,
+                        startOffset = initialPlaylists.size,
+                        onPageLoaded = statsTracker::recordPageLoaded
+                    ) { offset, limit ->
+                        repository.fetchPlaylists(limit, offset)
+                    }
+                    initialPlaylists + remaining
+                } else {
+                    fetchAllPages(
+                        pageSize = requestSize,
+                        onPageLoaded = statsTracker::recordPageLoaded
+                    ) { offset, limit ->
+                        repository.fetchPlaylists(limit, offset)
+                    }
+                }
+                LoadResult.Page(
+                    data = playlists,
+                    prevKey = null,
+                    nextKey = null
+                )
+            } catch (error: Throwable) {
+                LoadResult.Error(error)
+            }
+        }
         val offset = params.key ?: 0
         val limit = params.loadSize.coerceAtLeast(1)
 

@@ -9,12 +9,12 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -39,16 +39,20 @@ import com.harmonixia.android.ui.screens.settings.SettingsScreen
 import com.harmonixia.android.ui.screens.settings.SettingsTab
 import com.harmonixia.android.util.Logger
 import kotlinx.coroutines.android.awaitFrame
+import kotlinx.coroutines.flow.collect
 
 @Composable
 @OptIn(ExperimentalSharedTransitionApi::class)
 fun NavGraph(
     navController: NavHostController,
-    settingsDataStore: SettingsDataStore
+    settingsDataStore: SettingsDataStore,
+    suppressNowPlayingAutoNavOnLaunch: Boolean
 ) {
     val context = LocalContext.current
-    val serverUrl by settingsDataStore.getServerUrl()
-        .collectAsStateWithLifecycle(initialValue = "")
+    val serverUrlState by produceState<String?>(initialValue = null, settingsDataStore) {
+        settingsDataStore.getServerUrl().collect { value = it }
+    }
+    val serverUrl = serverUrlState ?: return
     val startDestination = if (serverUrl.isBlank()) {
         Screen.Onboarding.route
     } else {
@@ -110,6 +114,7 @@ fun NavGraph(
                 getConnectionStateUseCase = getConnectionStateUseCase,
                 onNavigateToSettings = { tab -> navController.navigateToSettings(tab) },
                 modifier = Modifier.fillMaxSize(),
+                suppressNowPlayingAutoNavOnLaunch = suppressNowPlayingAutoNavOnLaunch,
                 enableSharedArtworkTransition = enableSharedArtworkTransition,
                 onSharedArtworkTransitionChange = { enableSharedArtworkTransition = it }
             ) { playbackViewModel ->

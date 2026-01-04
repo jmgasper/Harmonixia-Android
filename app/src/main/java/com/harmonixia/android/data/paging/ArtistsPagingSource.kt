@@ -5,6 +5,7 @@ import androidx.paging.PagingState
 import com.harmonixia.android.domain.model.Artist
 import com.harmonixia.android.domain.repository.MusicAssistantRepository
 import com.harmonixia.android.util.PagingStatsTracker
+import kotlin.math.max
 
 class ArtistsPagingSource(
     private val repository: MusicAssistantRepository,
@@ -19,6 +20,38 @@ class ArtistsPagingSource(
                 prevKey = null,
                 nextKey = null
             )
+        }
+        if (params is LoadParams.Refresh) {
+            return try {
+                val requestSize = max(pageSize, DEFAULT_FULL_FETCH_PAGE_SIZE)
+                val initialResult = repository.fetchArtists(0, 0)
+                val initialArtists = initialResult.getOrDefault(emptyList())
+                val artists = if (initialResult.isSuccess && initialArtists.isNotEmpty()) {
+                    statsTracker.recordPageLoaded(initialArtists.size)
+                    val remaining = fetchAllPages(
+                        pageSize = requestSize,
+                        startOffset = initialArtists.size,
+                        onPageLoaded = statsTracker::recordPageLoaded
+                    ) { offset, limit ->
+                        repository.fetchArtists(limit, offset)
+                    }
+                    initialArtists + remaining
+                } else {
+                    fetchAllPages(
+                        pageSize = requestSize,
+                        onPageLoaded = statsTracker::recordPageLoaded
+                    ) { offset, limit ->
+                        repository.fetchArtists(limit, offset)
+                    }
+                }
+                LoadResult.Page(
+                    data = artists,
+                    prevKey = null,
+                    nextKey = null
+                )
+            } catch (error: Throwable) {
+                LoadResult.Error(error)
+            }
         }
         val offset = params.key ?: 0
         val limit = params.loadSize.coerceAtLeast(1)

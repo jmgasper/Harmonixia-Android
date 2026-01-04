@@ -29,6 +29,38 @@ class AlbumsPagingSource(
                 nextKey = null
             )
         }
+        if (params is LoadParams.Refresh) {
+            return try {
+                val requestSize = max(pageSize, DEFAULT_FULL_FETCH_PAGE_SIZE)
+                val initialResult = repository.fetchAlbums(0, 0)
+                val initialAlbums = initialResult.getOrDefault(emptyList())
+                val albums = if (initialResult.isSuccess && initialAlbums.isNotEmpty()) {
+                    statsTracker.recordPageLoaded(initialAlbums.size)
+                    val remaining = fetchAllPages(
+                        pageSize = requestSize,
+                        startOffset = initialAlbums.size,
+                        onPageLoaded = statsTracker::recordPageLoaded
+                    ) { offset, limit ->
+                        repository.fetchAlbums(limit, offset)
+                    }
+                    initialAlbums + remaining
+                } else {
+                    fetchAllPages(
+                        pageSize = requestSize,
+                        onPageLoaded = statsTracker::recordPageLoaded
+                    ) { offset, limit ->
+                        repository.fetchAlbums(limit, offset)
+                    }
+                }
+                LoadResult.Page(
+                    data = albums,
+                    prevKey = null,
+                    nextKey = null
+                )
+            } catch (error: Throwable) {
+                LoadResult.Error(error)
+            }
+        }
         val offset = params.key ?: 0
         val limit = params.loadSize.coerceAtLeast(1)
 

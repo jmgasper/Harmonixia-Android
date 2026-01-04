@@ -85,7 +85,8 @@ class ArtistDetailViewModel @Inject constructor(
                 return@launch
             }
             _uiState.value = ArtistDetailUiState.Loading
-            if (isOfflineMode.value) {
+            val useOfflineLibrary = isOfflineMode.value || provider == OFFLINE_PROVIDER
+            if (useOfflineLibrary) {
                 val resolvedName = resolveOfflineArtistName()
                 if (resolvedName.isBlank()) {
                     _uiState.value = ArtistDetailUiState.Error("Artist not found.")
@@ -111,30 +112,26 @@ class ArtistDetailViewModel @Inject constructor(
                 return@launch
             }
             supervisorScope {
-                val artistsDeferred = async { repository.fetchArtists(ARTIST_LIST_LIMIT, 0) }
-                val albumsDeferred = async { fetchAllAlbums() }
-                val artistsResult = artistsDeferred.await()
+                val artistDeferred = async { repository.getArtist(artistId, provider) }
+                val albumsDeferred = async { repository.getArtistAlbums(artistId, provider) }
+                val artistsResult = artistDeferred.await()
                 val albumsResult = albumsDeferred.await()
                 val error = artistsResult.exceptionOrNull() ?: albumsResult.exceptionOrNull()
                 if (error != null) {
                     _uiState.value = ArtistDetailUiState.Error(error.message ?: "Unknown error")
                     return@supervisorScope
                 }
-                val artists = artistsResult.getOrDefault(emptyList())
-                val selectedArtist = artists.firstOrNull { artist ->
-                    artist.itemId == artistId && artist.provider == provider
-                }
+                val selectedArtist = artistsResult.getOrNull()
                 _artist.value = selectedArtist
                 if (selectedArtist == null) {
                     _uiState.value = ArtistDetailUiState.Error("Artist not found.")
                     return@supervisorScope
                 }
                 val albums = albumsResult.getOrDefault(emptyList())
-                val filteredAlbums = filterAlbumsForArtist(albums, selectedArtist)
-                _uiState.value = if (filteredAlbums.isEmpty()) {
+                _uiState.value = if (albums.isEmpty()) {
                     ArtistDetailUiState.Empty
                 } else {
-                    ArtistDetailUiState.Success(selectedArtist, filteredAlbums)
+                    ArtistDetailUiState.Success(selectedArtist, albums)
                 }
             }
         }
@@ -211,24 +208,6 @@ class ArtistDetailViewModel @Inject constructor(
         }
     }
 
-    private fun filterAlbumsForArtist(albums: List<Album>, artist: Artist): List<Album> {
-        val targetName = normalizeName(artist.name)
-        if (targetName.isBlank()) return emptyList()
-        return albums.filter { album ->
-            albumArtistNames(album).any { name ->
-                normalizeName(name) == targetName
-            }
-        }
-    }
-
-    private fun albumArtistNames(album: Album): List<String> {
-        return album.artists
-    }
-
-    private fun normalizeName(name: String?): String {
-        return name?.trim()?.lowercase().orEmpty()
-    }
-
     private fun resolveOfflineArtistName(): String {
         val existing = _artist.value?.name
         if (!existing.isNullOrBlank()) return existing
@@ -239,24 +218,7 @@ class ArtistDetailViewModel @Inject constructor(
         }
     }
 
-    private suspend fun fetchAllAlbums(): Result<List<Album>> {
-        return runCatching {
-            val albums = mutableListOf<Album>()
-            var offset = 0
-            while (true) {
-                val page = repository.fetchAlbums(ALBUM_LIST_LIMIT, offset).getOrThrow()
-                if (page.isEmpty()) break
-                albums.addAll(page)
-                if (page.size < ALBUM_LIST_LIMIT) break
-                offset += ALBUM_LIST_LIMIT
-            }
-            albums
-        }
-    }
-
     companion object {
-        private const val ARTIST_LIST_LIMIT = 200
-        private const val ALBUM_LIST_LIMIT = 200
         private const val PLAYLIST_LIST_LIMIT = 200
     }
 }

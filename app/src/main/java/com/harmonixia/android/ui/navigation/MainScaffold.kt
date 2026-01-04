@@ -64,6 +64,7 @@ fun MainScaffold(
     getConnectionStateUseCase: GetConnectionStateUseCase,
     onNavigateToSettings: (SettingsTab?) -> Unit,
     modifier: Modifier = Modifier,
+    suppressNowPlayingAutoNavOnLaunch: Boolean,
     enableSharedArtworkTransition: Boolean,
     onSharedArtworkTransitionChange: (Boolean) -> Unit,
     content: @Composable SharedTransitionScope.(PlaybackViewModel) -> Unit
@@ -119,9 +120,16 @@ fun MainScaffold(
         ?.any { it.route == Screen.NowPlaying.route } == true
     val isPlaybackActive = nowPlayingUiState !is NowPlayingUiState.Idle
     var wasPlaybackActive by remember { mutableStateOf(isPlaybackActive) }
+    var skippedInitialNowPlayingAutoNav by remember {
+        mutableStateOf(suppressNowPlayingAutoNavOnLaunch && isPlaybackActive)
+    }
     LaunchedEffect(isPlaybackActive) {
         if (isPlaybackActive && !wasPlaybackActive && !isNowPlayingDestination) {
-            navController.navigateToNowPlaying()
+            if (suppressNowPlayingAutoNavOnLaunch && !skippedInitialNowPlayingAutoNav) {
+                skippedInitialNowPlayingAutoNav = true
+            } else {
+                navController.navigateToNowPlaying()
+            }
         }
         wasPlaybackActive = isPlaybackActive
     }

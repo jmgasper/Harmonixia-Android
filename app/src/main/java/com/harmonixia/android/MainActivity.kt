@@ -29,6 +29,7 @@ class MainActivity : ComponentActivity() {
         window.statusBarColor = Color.TRANSPARENT
         window.navigationBarColor = Color.TRANSPARENT
         applyHighRefreshRatePreference()
+        val suppressNowPlayingAutoNavOnLaunch = savedInstanceState == null
         setContent {
             HarmonixiaTheme {
                 val navController = rememberNavController()
@@ -38,7 +39,8 @@ class MainActivity : ComponentActivity() {
                 ) {
                     NavGraph(
                         navController = navController,
-                        settingsDataStore = settingsDataStore
+                        settingsDataStore = settingsDataStore,
+                        suppressNowPlayingAutoNavOnLaunch = suppressNowPlayingAutoNavOnLaunch
                     )
                 }
             }

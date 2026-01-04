@@ -7,8 +7,10 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -21,6 +23,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
+import androidx.compose.material3.LocalMinimumInteractiveComponentSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Slider
@@ -28,6 +31,7 @@ import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -126,6 +130,14 @@ fun PlayerSelectionDialog(
                                             )
                                         }
                                     }
+                                    if (isSelected) {
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Icon(
+                                            imageVector = Icons.Outlined.CheckCircle,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.primary
+                                        )
+                                    }
                                 }
                             },
                             supportingContent = {
@@ -164,17 +176,6 @@ fun PlayerSelectionDialog(
                                     tint = iconTint
                                 )
                             },
-                            trailingContent = if (isSelected) {
-                                {
-                                    Icon(
-                                        imageVector = Icons.Outlined.CheckCircle,
-                                        contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.primary
-                                    )
-                                }
-                            } else {
-                                null
-                            },
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clickable(enabled = isAvailable) {
@@ -211,50 +212,57 @@ private fun PlayerVolumeBar(
     } else {
         MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
     }
+    val compactInteractiveSize = 36.dp
 
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = modifier.fillMaxWidth()
+    CompositionLocalProvider(
+        LocalMinimumInteractiveComponentSize provides compactInteractiveSize
     ) {
-        IconButton(
-            onClick = { onMuteToggle(!isMuted) },
-            enabled = enabled
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = modifier.fillMaxWidth()
         ) {
-            val muteLabel = stringResource(
-                if (isMuted) R.string.content_desc_unmute else R.string.content_desc_mute
+            IconButton(
+                onClick = { onMuteToggle(!isMuted) },
+                enabled = enabled,
+                modifier = Modifier.size(compactInteractiveSize)
+            ) {
+                val muteLabel = stringResource(
+                    if (isMuted) R.string.content_desc_unmute else R.string.content_desc_mute
+                )
+                Icon(
+                    imageVector = Icons.Outlined.VolumeOff,
+                    contentDescription = muteLabel,
+                    tint = if (isMuted) {
+                        MaterialTheme.colorScheme.primary
+                    } else {
+                        iconTint
+                    }
+                )
+            }
+            Slider(
+                value = clampedVolume.toFloat(),
+                onValueChange = { value ->
+                    onVolumeChange(value.roundToInt().coerceIn(0, MAX_PLAYER_VOLUME))
+                },
+                valueRange = 0f..MAX_PLAYER_VOLUME.toFloat(),
+                steps = MAX_PLAYER_VOLUME - 1,
+                enabled = enabled,
+                colors = SliderDefaults.colors(
+                    activeTrackColor = MaterialTheme.colorScheme.primary,
+                    inactiveTrackColor = MaterialTheme.colorScheme.surfaceVariant
+                ),
+                modifier = Modifier
+                    .weight(1f)
+                    .height(compactInteractiveSize)
+                    .padding(horizontal = 8.dp)
+                    .semantics { contentDescription = volumeLabel }
             )
             Icon(
-                imageVector = Icons.Outlined.VolumeOff,
-                contentDescription = muteLabel,
-                tint = if (isMuted) {
-                    MaterialTheme.colorScheme.primary
-                } else {
-                    iconTint
-                }
+                imageVector = Icons.Outlined.VolumeUp,
+                contentDescription = stringResource(R.string.content_desc_volume_max),
+                tint = iconTint
             )
         }
-        Slider(
-            value = clampedVolume.toFloat(),
-            onValueChange = { value ->
-                onVolumeChange(value.roundToInt().coerceIn(0, MAX_PLAYER_VOLUME))
-            },
-            valueRange = 0f..MAX_PLAYER_VOLUME.toFloat(),
-            steps = MAX_PLAYER_VOLUME - 1,
-            enabled = enabled,
-            colors = SliderDefaults.colors(
-                activeTrackColor = MaterialTheme.colorScheme.primary,
-                inactiveTrackColor = MaterialTheme.colorScheme.surfaceVariant
-            ),
-            modifier = Modifier
-                .weight(1f)
-                .padding(horizontal = 8.dp)
-                .semantics { contentDescription = volumeLabel }
-        )
-        Icon(
-            imageVector = Icons.Outlined.VolumeUp,
-            contentDescription = stringResource(R.string.content_desc_volume_max),
-            tint = iconTint
-        )
     }
 }
 

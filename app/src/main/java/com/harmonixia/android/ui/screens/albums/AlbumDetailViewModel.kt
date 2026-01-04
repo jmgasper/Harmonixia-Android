@@ -407,7 +407,8 @@ class AlbumDetailViewModel @Inject constructor(
             }
             if (matchedIndex >= 0) {
                 usedLocal[matchedIndex] = true
-                merged.add(localTracks[matchedIndex])
+                val local = localTracks[matchedIndex]
+                merged.add(local.copy(isFavorite = track.isFavorite))
             } else {
                 merged.add(track)
             }
@@ -524,7 +525,14 @@ class AlbumDetailViewModel @Inject constructor(
                 _events.tryEmit(AlbumDetailUiEvent.ShowMessage(R.string.offline_feature_unavailable))
                 return@launch
             }
-            val result = repository.addToFavorites(track.itemId, track.provider, "track")
+            val targetTrack = resolveFavoriteTarget(track)
+            if (targetTrack == null) {
+                _events.tryEmit(
+                    AlbumDetailUiEvent.ShowMessage(R.string.track_favorite_offline_unavailable)
+                )
+                return@launch
+            }
+            val result = repository.addToFavorites(targetTrack)
             result.onSuccess {
                 _events.tryEmit(AlbumDetailUiEvent.ShowMessage(R.string.track_favorite_add_success))
                 updateTrackFavoriteState(track, isFavorite = true)
@@ -540,7 +548,14 @@ class AlbumDetailViewModel @Inject constructor(
                 _events.tryEmit(AlbumDetailUiEvent.ShowMessage(R.string.offline_feature_unavailable))
                 return@launch
             }
-            val result = repository.removeFromFavorites(track.itemId, track.provider, "track")
+            val targetTrack = resolveFavoriteTarget(track)
+            if (targetTrack == null) {
+                _events.tryEmit(
+                    AlbumDetailUiEvent.ShowMessage(R.string.track_favorite_offline_unavailable)
+                )
+                return@launch
+            }
+            val result = repository.removeFromFavorites(targetTrack)
             result.onSuccess {
                 _events.tryEmit(
                     AlbumDetailUiEvent.ShowMessage(R.string.track_favorite_remove_success)
@@ -682,6 +697,53 @@ class AlbumDetailViewModel @Inject constructor(
         return "${normalizeMatchKey(track.title)}::${normalizeMatchKey(track.artist)}::${normalizeMatchKey(track.album)}"
     }
 
+    private suspend fun resolveFavoriteTarget(track: Track): Track? {
+        if (track.provider != OFFLINE_PROVIDER) return track
+        val remoteMatch = pickBestFavoriteMatch(track, remoteTracks)
+        if (remoteMatch != null) return remoteMatch
+        val query = buildFavoriteSearchQuery(track)
+        if (query.isBlank()) return null
+        val searchResults = repository.searchLibrary(query, FAVORITE_SEARCH_LIMIT).getOrNull()
+            ?: return null
+        return pickBestFavoriteMatch(track, searchResults.tracks)
+    }
+
+    private fun pickBestFavoriteMatch(track: Track, candidates: List<Track>): Track? {
+        if (candidates.isEmpty()) return null
+        val titleKey = normalizeMatchKey(track.title)
+        if (titleKey.isBlank()) return null
+        val artistKey = normalizeMatchKey(track.artist)
+        val albumKey = normalizeMatchKey(track.album)
+        val trackNumber = track.trackNumber.takeIf { it > 0 }
+        return candidates.asSequence()
+            .filter { it.provider != OFFLINE_PROVIDER }
+            .mapNotNull { candidate ->
+                if (normalizeMatchKey(candidate.title) != titleKey) return@mapNotNull null
+                if (artistKey.isNotBlank() &&
+                    normalizeMatchKey(candidate.artist) != artistKey
+                ) return@mapNotNull null
+                if (albumKey.isNotBlank() &&
+                    normalizeMatchKey(candidate.album) != albumKey
+                ) return@mapNotNull null
+                var score = 1
+                if (artistKey.isNotBlank()) score += 1
+                if (albumKey.isNotBlank()) score += 1
+                if (trackNumber != null && candidate.trackNumber == trackNumber) {
+                    score += 2
+                }
+                candidate to score
+            }
+            .maxByOrNull { it.second }
+            ?.first
+    }
+
+    private fun buildFavoriteSearchQuery(track: Track): String {
+        return listOf(track.title, track.artist, track.album)
+            .map { it.trim() }
+            .filter { it.isNotBlank() }
+            .joinToString(" ")
+    }
+
     private fun normalizeMatchKey(value: String): String {
         return value.trim().lowercase()
     }
@@ -697,5 +759,6 @@ class AlbumDetailViewModel @Inject constructor(
         private const val INITIAL_TRACK_CHUNK_SIZE = 50
         private const val SUBSEQUENT_CHUNK_SIZE = 150
         private const val MERGE_BATCH_SIZE = 100
+        private const val FAVORITE_SEARCH_LIMIT = 50
     }
 }

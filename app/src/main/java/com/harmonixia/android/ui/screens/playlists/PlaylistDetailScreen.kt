@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -37,6 +38,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
@@ -45,6 +47,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -76,6 +79,7 @@ import com.harmonixia.android.ui.components.PlaylistOptionsMenu
 import com.harmonixia.android.ui.components.PlaylistPickerDialog
 import com.harmonixia.android.ui.components.RenamePlaylistDialog
 import com.harmonixia.android.ui.components.TrackList
+import com.harmonixia.android.ui.components.TrackListLeadingContent
 import com.harmonixia.android.ui.screens.settings.SettingsTab
 import com.harmonixia.android.ui.theme.rememberAdaptiveSpacing
 import com.harmonixia.android.ui.util.PlaylistCoverEntryPoint
@@ -83,6 +87,7 @@ import com.harmonixia.android.ui.util.PlaylistCoverGenerator
 import com.harmonixia.android.util.ImageQualityManager
 import dagger.hilt.android.EntryPointAccessors
 import java.io.File
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -97,11 +102,13 @@ fun PlaylistDetailScreen(
     val playlists by viewModel.playlists.collectAsStateWithLifecycle()
     val isRenaming by viewModel.isRenaming.collectAsStateWithLifecycle()
     val renameErrorMessageResId by viewModel.renameErrorMessageResId.collectAsStateWithLifecycle()
+    val isSavingReorder by viewModel.isSavingReorder.collectAsStateWithLifecycle()
     val isOfflineMode by viewModel.isOfflineMode.collectAsStateWithLifecycle()
     val imageQualityManager = viewModel.imageQualityManager
     val isFavoritesPlaylist = playlist?.itemId == "favorites" && playlist?.provider == "harmonixia"
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
+    val coroutineScope = rememberCoroutineScope()
 
     var showPlaylistPicker by remember { mutableStateOf(false) }
     var pendingTrack by remember { mutableStateOf<Track?>(null) }
@@ -111,6 +118,10 @@ fun PlaylistDetailScreen(
     var showCreateDialog by remember { mutableStateOf(false) }
     var renameValue by remember { mutableStateOf("") }
     var playlistName by remember { mutableStateOf("") }
+    var isReordering by remember { mutableStateOf(false) }
+    var reorderTracks by remember { mutableStateOf<List<Track>>(emptyList()) }
+    var reorderKeys by remember { mutableStateOf<List<String>>(emptyList()) }
+    var originalTracks by remember { mutableStateOf<List<Track>>(emptyList()) }
     LaunchedEffect(viewModel) {
         viewModel.events.collect { event ->
             when (event) {
@@ -131,6 +142,24 @@ fun PlaylistDetailScreen(
                     onNavigateToPlaylist(event.playlist)
                 }
             }
+        }
+    }
+
+    val uiTracks = when (val state = uiState) {
+        is PlaylistDetailUiState.Success -> state.tracks
+        is PlaylistDetailUiState.Cached -> state.tracks
+        else -> emptyList()
+    }
+    LaunchedEffect(uiState) {
+        if (uiState !is PlaylistDetailUiState.Success) {
+            isReordering = false
+        }
+    }
+    LaunchedEffect(uiTracks, isReordering) {
+        if (!isReordering) {
+            originalTracks = uiTracks
+            reorderTracks = uiTracks
+            reorderKeys = emptyList()
         }
     }
 
@@ -200,6 +229,47 @@ fun PlaylistDetailScreen(
     val titleText = playlist?.name?.ifBlank {
         stringResource(R.string.playlist_detail_title)
     } ?: stringResource(R.string.playlist_detail_title)
+    val canShowReorder = playlist?.isEditable == true && !isFavoritesPlaylist
+    val toggleReorder: (List<Track>, Int?) -> Unit = toggleReorder@ { currentTracks, blockReasonResId ->
+        if (isSavingReorder) return@toggleReorder
+        if (isReordering) {
+            isReordering = false
+            if (reorderTracks.map { it.itemId } != originalTracks.map { it.itemId }) {
+                viewModel.saveReorderedTracks(reorderTracks)
+            }
+            return@toggleReorder
+        }
+        if (blockReasonResId != null) {
+            coroutineScope.launch {
+                snackbarHostState.showSnackbar(context.getString(blockReasonResId))
+            }
+            return@toggleReorder
+        }
+        originalTracks = currentTracks
+        reorderTracks = currentTracks
+        reorderKeys = currentTracks.mapIndexed { index, track -> "${track.itemId}-$index" }
+        isReordering = true
+    }
+    val onReorderMove: (Int, Int) -> Unit = { fromIndex, toIndex ->
+        val updatedTracks = moveItem(reorderTracks, fromIndex, toIndex)
+        val updatedKeys = if (reorderKeys.size == updatedTracks.size) {
+            moveItem(reorderKeys, fromIndex, toIndex)
+        } else {
+            updatedTracks.mapIndexed { index, track -> "${track.itemId}-$index" }
+        }
+        reorderTracks = updatedTracks
+        reorderKeys = updatedKeys
+    }
+    val reorderKeyProvider: ((Track, Int) -> Any)? = if (isReordering) {
+        { track, index -> reorderKeys.getOrNull(index) ?: "${track.itemId}-$index" }
+    } else {
+        null
+    }
+    val onTrackClick: (Track) -> Unit = if (isReordering) {
+        {}
+    } else {
+        viewModel::playTrack
+    }
 
     Scaffold(
         topBar = {
@@ -296,6 +366,11 @@ fun PlaylistDetailScreen(
                 }
             }
             PlaylistDetailUiState.Metadata -> {
+                val reorderBlockReasonResId = if (isOfflineMode) {
+                    R.string.offline_feature_unavailable
+                } else {
+                    R.string.playlist_reorder_load_all
+                }
                 PlaylistDetailContent(
                     playlist = playlist,
                     tracks = emptyList(),
@@ -306,6 +381,12 @@ fun PlaylistDetailScreen(
                     titleStyle = playlistTitleStyle,
                     ownerStyle = ownerStyle,
                     sectionHeaderStyle = sectionHeaderStyle,
+                    showReorderAction = canShowReorder || isReordering,
+                    isReordering = isReordering,
+                    isSavingReorder = isSavingReorder,
+                    onReorderClick = { toggleReorder(emptyList(), reorderBlockReasonResId) },
+                    onReorderMove = onReorderMove,
+                    itemKeyProvider = reorderKeyProvider,
                     trackTitleStyle = trackTitleStyle,
                     trackMetaStyle = trackMetaStyle,
                     rowSpacing = if (isExpanded) 32.dp else 24.dp,
@@ -316,7 +397,7 @@ fun PlaylistDetailScreen(
                     onLoadMore = null,
                     onPlayPlaylist = { viewModel.playPlaylistSequential() },
                     onShufflePlaylist = { viewModel.shufflePlaylist() },
-                    onTrackClick = viewModel::playTrack,
+                    onTrackClick = onTrackClick,
                     onAddToPlaylist = { track ->
                         pendingTrack = track
                         viewModel.refreshPlaylists()
@@ -379,9 +460,14 @@ fun PlaylistDetailScreen(
                 )
             }
             is PlaylistDetailUiState.Cached -> {
+                val reorderBlockReasonResId = when {
+                    isOfflineMode -> R.string.offline_feature_unavailable
+                    state.tracks.isEmpty() -> R.string.playlist_detail_no_tracks
+                    else -> R.string.playlist_reorder_load_all
+                }
                 PlaylistDetailContent(
                     playlist = playlist,
-                    tracks = state.tracks,
+                    tracks = if (isReordering) reorderTracks else state.tracks,
                     artworkSize = artworkSize,
                     useWideLayout = useWideLayout,
                     horizontalPadding = horizontalPadding,
@@ -389,6 +475,12 @@ fun PlaylistDetailScreen(
                     titleStyle = playlistTitleStyle,
                     ownerStyle = ownerStyle,
                     sectionHeaderStyle = sectionHeaderStyle,
+                    showReorderAction = canShowReorder || isReordering,
+                    isReordering = isReordering,
+                    isSavingReorder = isSavingReorder,
+                    onReorderClick = { toggleReorder(state.tracks, reorderBlockReasonResId) },
+                    onReorderMove = onReorderMove,
+                    itemKeyProvider = reorderKeyProvider,
                     trackTitleStyle = trackTitleStyle,
                     trackMetaStyle = trackMetaStyle,
                     rowSpacing = if (isExpanded) 32.dp else 24.dp,
@@ -399,7 +491,7 @@ fun PlaylistDetailScreen(
                     onLoadMore = null,
                     onPlayPlaylist = { viewModel.playPlaylistSequential() },
                     onShufflePlaylist = { viewModel.shufflePlaylist() },
-                    onTrackClick = viewModel::playTrack,
+                    onTrackClick = onTrackClick,
                     onAddToPlaylist = { track ->
                         pendingTrack = track
                         viewModel.refreshPlaylists()
@@ -415,9 +507,15 @@ fun PlaylistDetailScreen(
                 )
             }
             is PlaylistDetailUiState.Success -> {
+                val reorderBlockReasonResId = when {
+                    isOfflineMode -> R.string.offline_feature_unavailable
+                    state.tracks.isEmpty() -> R.string.playlist_detail_no_tracks
+                    state.hasMore || state.isLoadingMore -> R.string.playlist_reorder_load_all
+                    else -> null
+                }
                 PlaylistDetailContent(
                     playlist = playlist,
-                    tracks = state.tracks,
+                    tracks = if (isReordering) reorderTracks else state.tracks,
                     artworkSize = artworkSize,
                     useWideLayout = useWideLayout,
                     horizontalPadding = horizontalPadding,
@@ -425,6 +523,12 @@ fun PlaylistDetailScreen(
                     titleStyle = playlistTitleStyle,
                     ownerStyle = ownerStyle,
                     sectionHeaderStyle = sectionHeaderStyle,
+                    showReorderAction = canShowReorder || isReordering,
+                    isReordering = isReordering,
+                    isSavingReorder = isSavingReorder,
+                    onReorderClick = { toggleReorder(state.tracks, reorderBlockReasonResId) },
+                    onReorderMove = onReorderMove,
+                    itemKeyProvider = reorderKeyProvider,
                     trackTitleStyle = trackTitleStyle,
                     trackMetaStyle = trackMetaStyle,
                     rowSpacing = if (isExpanded) 32.dp else 24.dp,
@@ -435,7 +539,7 @@ fun PlaylistDetailScreen(
                     onLoadMore = viewModel::loadMoreTracks,
                     onPlayPlaylist = { viewModel.playPlaylistSequential() },
                     onShufflePlaylist = { viewModel.shufflePlaylist() },
-                    onTrackClick = viewModel::playTrack,
+                    onTrackClick = onTrackClick,
                     onAddToPlaylist = { track ->
                         pendingTrack = track
                         viewModel.refreshPlaylists()
@@ -543,6 +647,12 @@ private fun PlaylistDetailContent(
     titleStyle: TextStyle,
     ownerStyle: TextStyle,
     sectionHeaderStyle: TextStyle,
+    showReorderAction: Boolean,
+    isReordering: Boolean,
+    isSavingReorder: Boolean,
+    onReorderClick: () -> Unit,
+    onReorderMove: (Int, Int) -> Unit,
+    itemKeyProvider: ((Track, Int) -> Any)?,
     trackTitleStyle: TextStyle?,
     trackMetaStyle: TextStyle?,
     rowSpacing: Dp,
@@ -563,8 +673,14 @@ private fun PlaylistDetailContent(
     modifier: Modifier = Modifier
 ) {
     val spacing = rememberAdaptiveSpacing()
+    val allowTwoColumnLayout = isVeryWide && !isReordering
+    val showContextMenu = !isReordering
+    val effectiveHasMore = if (isReordering) false else hasMore
+    val effectiveIsLoadingMore = if (isReordering) false else isLoadingMore
+    val effectiveOnLoadMore = if (isReordering) null else onLoadMore
+    val shouldShowReorder = showReorderAction || isReordering
 
-    if (isVeryWide) {
+    if (allowTwoColumnLayout) {
         val indexById = remember(tracks) {
             tracks.withIndex().associate { indexed -> indexed.value.itemId to indexed.index }
         }
@@ -592,18 +708,14 @@ private fun PlaylistDetailContent(
                     imageQualityManager = imageQualityManager
                 )
                 Spacer(modifier = Modifier.height(spacing.extraLarge))
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(spacing.small)
-                ) {
-                    Text(
-                        text = stringResource(R.string.playlist_detail_tracks),
-                        style = sectionHeaderStyle
-                    )
-                    if (isRefreshing) {
-                        CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
-                    }
-                }
+                TracksHeader(
+                    isRefreshing = isRefreshing,
+                    sectionHeaderStyle = sectionHeaderStyle,
+                    showReorderAction = shouldShowReorder,
+                    isReordering = isReordering,
+                    isSavingReorder = isSavingReorder,
+                    onReorderClick = onReorderClick
+                )
                 Spacer(modifier = Modifier.height(spacing.medium))
             }
             if (tracks.isEmpty()) {
@@ -644,7 +756,7 @@ private fun PlaylistDetailContent(
                     TrackList(
                         tracks = leftTracks,
                         onTrackClick = onTrackClick,
-                        showContextMenu = true,
+                        showContextMenu = showContextMenu,
                         isEditable = playlist?.isEditable == true,
                         onAddToPlaylist = onAddToPlaylist,
                         onRemoveFromPlaylist = onRemoveFromPlaylist,
@@ -657,16 +769,19 @@ private fun PlaylistDetailContent(
                         trackTitleTextStyle = trackTitleStyle,
                         trackSupportingTextStyle = trackMetaStyle,
                         trackMetadataTextStyle = trackMetaStyle,
+                        leadingContent = TrackListLeadingContent.Artwork,
+                        imageQualityManager = imageQualityManager,
                         indexProvider = indexProvider,
-                        hasMore = hasMore,
-                        isLoadingMore = isLoadingMore,
-                        onLoadMore = onLoadMore,
+                        itemKeyProvider = itemKeyProvider,
+                        hasMore = effectiveHasMore,
+                        isLoadingMore = effectiveIsLoadingMore,
+                        onLoadMore = effectiveOnLoadMore,
                         showEmptyState = false
                     )
                     TrackList(
                         tracks = rightTracks,
                         onTrackClick = onTrackClick,
-                        showContextMenu = true,
+                        showContextMenu = showContextMenu,
                         isEditable = playlist?.isEditable == true,
                         onAddToPlaylist = onAddToPlaylist,
                         onRemoveFromPlaylist = onRemoveFromPlaylist,
@@ -679,10 +794,13 @@ private fun PlaylistDetailContent(
                         trackTitleTextStyle = trackTitleStyle,
                         trackSupportingTextStyle = trackMetaStyle,
                         trackMetadataTextStyle = trackMetaStyle,
+                        leadingContent = TrackListLeadingContent.Artwork,
+                        imageQualityManager = imageQualityManager,
                         indexProvider = indexProvider,
-                        hasMore = hasMore,
-                        isLoadingMore = isLoadingMore,
-                        onLoadMore = onLoadMore,
+                        itemKeyProvider = itemKeyProvider,
+                        hasMore = effectiveHasMore,
+                        isLoadingMore = effectiveIsLoadingMore,
+                        onLoadMore = effectiveOnLoadMore,
                         showEmptyState = false
                     )
                 }
@@ -700,7 +818,7 @@ private fun PlaylistDetailContent(
             TrackList(
                 tracks = tracks,
                 onTrackClick = onTrackClick,
-                showContextMenu = true,
+                showContextMenu = showContextMenu,
                 isEditable = playlist?.isEditable == true,
                 onAddToPlaylist = onAddToPlaylist,
                 onRemoveFromPlaylist = onRemoveFromPlaylist,
@@ -726,21 +844,14 @@ private fun PlaylistDetailContent(
                     }
                     item { Spacer(modifier = Modifier.height(spacing.extraLarge)) }
                     item {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(spacing.small)
-                        ) {
-                            Text(
-                                text = stringResource(R.string.playlist_detail_tracks),
-                                style = sectionHeaderStyle
-                            )
-                            if (isRefreshing) {
-                                CircularProgressIndicator(
-                                    modifier = Modifier.size(16.dp),
-                                    strokeWidth = 2.dp
-                                )
-                            }
-                        }
+                        TracksHeader(
+                            isRefreshing = isRefreshing,
+                            sectionHeaderStyle = sectionHeaderStyle,
+                            showReorderAction = shouldShowReorder,
+                            isReordering = isReordering,
+                            isSavingReorder = isSavingReorder,
+                            onReorderClick = onReorderClick
+                        )
                     }
                     item { Spacer(modifier = Modifier.height(spacing.medium)) }
                     if (isInitialLoading) {
@@ -768,11 +879,63 @@ private fun PlaylistDetailContent(
                 trackTitleTextStyle = trackTitleStyle,
                 trackSupportingTextStyle = trackMetaStyle,
                 trackMetadataTextStyle = trackMetaStyle,
-                hasMore = hasMore,
-                isLoadingMore = isLoadingMore,
-                onLoadMore = onLoadMore,
-                showEmptyState = !isInitialLoading
+                leadingContent = TrackListLeadingContent.Artwork,
+                imageQualityManager = imageQualityManager,
+                itemKeyProvider = itemKeyProvider,
+                hasMore = effectiveHasMore,
+                isLoadingMore = effectiveIsLoadingMore,
+                onLoadMore = effectiveOnLoadMore,
+                showEmptyState = !isInitialLoading,
+                isReordering = isReordering,
+                onReorder = if (isReordering) onReorderMove else null
             )
+        }
+    }
+}
+
+@Composable
+private fun TracksHeader(
+    isRefreshing: Boolean,
+    sectionHeaderStyle: TextStyle,
+    showReorderAction: Boolean,
+    isReordering: Boolean,
+    isSavingReorder: Boolean,
+    onReorderClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val spacing = rememberAdaptiveSpacing()
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(spacing.small)
+        ) {
+            Text(
+                text = stringResource(R.string.playlist_detail_tracks),
+                style = sectionHeaderStyle
+            )
+            if (isRefreshing) {
+                CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
+            }
+        }
+        if (showReorderAction) {
+            Spacer(modifier = Modifier.weight(1f))
+            TextButton(
+                onClick = onReorderClick,
+                enabled = !isSavingReorder,
+                contentPadding = PaddingValues(0.dp),
+                modifier = Modifier.defaultMinSize(minWidth = 0.dp, minHeight = 0.dp)
+            ) {
+                Text(
+                    text = stringResource(
+                        if (isReordering) R.string.playlist_reorder_done
+                        else R.string.playlist_reorder_action
+                    ),
+                    style = MaterialTheme.typography.labelLarge
+                )
+            }
         }
     }
 }
@@ -1143,4 +1306,17 @@ private fun PlaylistHeader(
             }
         }
     }
+}
+
+private fun <T> moveItem(
+    items: List<T>,
+    fromIndex: Int,
+    toIndex: Int
+): List<T> {
+    if (fromIndex == toIndex) return items
+    if (fromIndex !in items.indices || toIndex !in items.indices) return items
+    val mutable = items.toMutableList()
+    val item = mutable.removeAt(fromIndex)
+    mutable.add(toIndex, item)
+    return mutable
 }

@@ -55,3 +55,5 @@ playback control, and EQ presets.  Primarily built with ChatGPT Codex.
 
 - OPRA Project (https://github.com/opra-project/OPRA): EQ preset database (`database_v1.jsonl`) used for
   downloadable equalizer presets. Please review the OPRA project license for usage terms.
+- Alphabet fast scroller based on the Compose scrolling bubble example:
+  https://github.com/ekeitho/compose-scrolling-bubble

@@ -7,7 +7,9 @@ import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
 import androidx.media3.common.Player
+import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.exoplayer.source.ShuffleOrder
 import com.harmonixia.android.domain.model.Queue
 import com.harmonixia.android.domain.model.QueueOption
 import com.harmonixia.android.domain.model.Track
@@ -77,6 +79,7 @@ class QueueManager(
             playedInShuffleSession.clear()
         }
         isShuffleActive = shuffle
+        syncShuffleOrderIfNeeded()
     }
 
     suspend fun buildMediaItem(track: Track, resolveLocal: Boolean = false): MediaItem {
@@ -135,6 +138,7 @@ class QueueManager(
                 queueItems.add(mediaItem)
                 currentIndex = 0
                 player?.setMediaItems(queueItems, currentIndex, C.TIME_UNSET)
+                syncShuffleOrderIfNeeded()
                 player?.prepare()
                 clearRetention()
                 return
@@ -170,6 +174,7 @@ class QueueManager(
             queueItems.clear()
             queueItems.addAll(items)
             player?.setMediaItems(queueItems, currentIndex, C.TIME_UNSET)
+            syncShuffleOrderIfNeeded()
             player?.prepare()
         }
     }
@@ -191,6 +196,7 @@ class QueueManager(
         optimisticCurrentIndex = currentIndex
         optimisticIndexSetAtMs = SystemClock.elapsedRealtime()
         player?.setMediaItems(queueItems, currentIndex, startPositionMs)
+        syncShuffleOrderIfNeeded()
         player?.prepare()
         val until = SystemClock.elapsedRealtime() + DEFAULT_QUEUE_SEED_RETENTION_MS
         if (until > retainQueueUntilMs) {
@@ -201,6 +207,7 @@ class QueueManager(
     fun addMediaItems(mediaItems: List<MediaItem>) {
         queueItems.addAll(mediaItems)
         player?.addMediaItems(mediaItems)
+        syncShuffleOrderIfNeeded()
     }
 
     fun playNextMediaItems(mediaItems: List<MediaItem>) {
@@ -208,6 +215,7 @@ class QueueManager(
         val safeIndex = insertIndex.coerceAtMost(queueItems.size)
         queueItems.addAll(safeIndex, mediaItems)
         player?.addMediaItems(safeIndex, mediaItems)
+        syncShuffleOrderIfNeeded()
     }
 
     suspend fun playAlbum(tracks: List<Track>, startIndex: Int = 0): Result<Unit> {
@@ -359,6 +367,16 @@ class QueueManager(
 
     private fun resetLocalResolutionState() {
         lastLocalResolutionMediaId = null
+    }
+
+    @OptIn(UnstableApi::class)
+    private fun syncShuffleOrderIfNeeded() {
+        val player = player ?: return
+        if (!isShuffleActive) return
+        val itemCount = player.mediaItemCount
+        if (itemCount == 0 || itemCount != queueItems.size) return
+        // The server already provides a shuffled queue order; keep the player order sequential.
+        player.setShuffleOrder(ShuffleOrder.UnshuffledShuffleOrder(itemCount))
     }
 
     private fun clearOptimisticIndex() {

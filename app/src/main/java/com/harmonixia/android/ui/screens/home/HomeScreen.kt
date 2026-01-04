@@ -47,7 +47,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.harmonixia.android.R
 import com.harmonixia.android.domain.model.Album
-import com.harmonixia.android.ui.components.AlbumGridStatic
+import com.harmonixia.android.ui.components.AlbumCard
 import com.harmonixia.android.ui.components.ErrorCard
 import com.harmonixia.android.ui.components.OfflineModeBanner
 import com.harmonixia.android.ui.navigation.MainScaffoldActions
@@ -91,7 +91,6 @@ fun HomeScreen(
     val horizontalPadding = spacing.large
     val listVerticalPadding = if (isLandscape) 12.dp else 16.dp
     val listPadding = PaddingValues(horizontal = horizontalPadding, vertical = listVerticalPadding)
-    val gridMaxHeight = configuration.screenHeightDp.dp * if (isExpanded) 0.8f else 0.6f
     val artworkSize = if (isExpanded) 180.dp else 150.dp
     val sectionColumns = if (isExpanded) (columns / 2).coerceAtLeast(2) else columns
     val sectionSpacing = if (isExpanded) {
@@ -273,7 +272,6 @@ fun HomeScreen(
                                         albums = state.recentlyPlayed,
                                         columns = sectionColumns,
                                         artworkSize = artworkSize,
-                                        gridMaxHeight = gridMaxHeight,
                                         headerStyle = sectionHeaderStyle,
                                         bodyStyle = sectionBodyStyle,
                                         isOfflineMode = isOfflineMode,
@@ -287,7 +285,6 @@ fun HomeScreen(
                                         albums = state.recentlyAdded,
                                         columns = sectionColumns,
                                         artworkSize = artworkSize,
-                                        gridMaxHeight = gridMaxHeight,
                                         headerStyle = sectionHeaderStyle,
                                         bodyStyle = sectionBodyStyle,
                                         isOfflineMode = isOfflineMode,
@@ -305,7 +302,6 @@ fun HomeScreen(
                                     albums = state.recentlyPlayed,
                                     columns = columns,
                                     artworkSize = artworkSize,
-                                    gridMaxHeight = gridMaxHeight,
                                     headerStyle = sectionHeaderStyle,
                                     bodyStyle = sectionBodyStyle,
                                     isOfflineMode = isOfflineMode,
@@ -321,7 +317,6 @@ fun HomeScreen(
                                     albums = state.recentlyAdded,
                                     columns = columns,
                                     artworkSize = artworkSize,
-                                    gridMaxHeight = gridMaxHeight,
                                     headerStyle = sectionHeaderStyle,
                                     bodyStyle = sectionBodyStyle,
                                     isOfflineMode = isOfflineMode,
@@ -345,7 +340,6 @@ private fun HomeAlbumSection(
     albums: List<Album>,
     columns: Int,
     artworkSize: androidx.compose.ui.unit.Dp,
-    gridMaxHeight: androidx.compose.ui.unit.Dp,
     headerStyle: androidx.compose.ui.text.TextStyle,
     bodyStyle: androidx.compose.ui.text.TextStyle,
     isOfflineMode: Boolean,
@@ -368,16 +362,62 @@ private fun HomeAlbumSection(
                 modifier = Modifier.fillMaxWidth()
             )
         } else {
-            AlbumGridStatic(
+            HomeAlbumGrid(
                 albums = albums,
-                onAlbumClick = onAlbumClick,
                 columns = columns,
                 artworkSize = artworkSize,
-                contentPadding = PaddingValues(0.dp),
                 isOfflineMode = isOfflineMode,
                 imageQualityManager = imageQualityManager,
-                modifier = Modifier.heightIn(max = gridMaxHeight)
+                onAlbumClick = onAlbumClick
             )
         }
     }
 }
+
+@Composable
+private fun HomeAlbumGrid(
+    albums: List<Album>,
+    columns: Int,
+    artworkSize: androidx.compose.ui.unit.Dp,
+    isOfflineMode: Boolean,
+    imageQualityManager: ImageQualityManager,
+    onAlbumClick: (Album) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val safeColumns = columns.coerceAtLeast(1)
+    val rows = remember(albums, safeColumns) { albums.chunked(safeColumns) }
+    val minCardHeight = artworkSize + 70.dp
+
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(HomeAlbumGridSpacing)
+    ) {
+        rows.forEach { rowAlbums ->
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(HomeAlbumGridSpacing)
+            ) {
+                rowAlbums.forEach { album ->
+                    AlbumCard(
+                        album = album,
+                        onClick = { onAlbumClick(album) },
+                        artworkSize = artworkSize,
+                        isOfflineMode = isOfflineMode,
+                        imageQualityManager = imageQualityManager,
+                        modifier = Modifier
+                            .weight(1f)
+                            .heightIn(min = minCardHeight)
+                    )
+                }
+                val emptySlots = safeColumns - rowAlbums.size
+                if (emptySlots > 0) {
+                    repeat(emptySlots) {
+                        Spacer(modifier = Modifier.weight(1f))
+                    }
+                }
+            }
+        }
+    }
+}
+
+private val HomeAlbumGridSpacing = 8.dp
