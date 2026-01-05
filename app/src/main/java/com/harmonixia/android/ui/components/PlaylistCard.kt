@@ -20,9 +20,12 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.produceState
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -45,6 +48,8 @@ import com.harmonixia.android.ui.util.PlaylistCoverGenerator
 import com.harmonixia.android.util.ImageQualityManager
 import dagger.hilt.android.EntryPointAccessors
 import java.io.File
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 @Composable
 @OptIn(ExperimentalFoundationApi::class)
@@ -187,6 +192,7 @@ private fun PlaylistArtwork(
     val context = LocalContext.current
     val optimizedSize = imageQualityManager.getOptimalImageSize(size)
     val sizePx = with(LocalDensity.current) { optimizedSize.roundToPx() }
+    val needsGeneratedCover = playlist.imageUrl.isNullOrBlank()
     val entryPoint = remember(context) {
         EntryPointAccessors.fromApplication(context, PlaylistCoverEntryPoint::class.java)
     }
@@ -198,13 +204,25 @@ private fun PlaylistArtwork(
             imageQualityManager
         )
     }
-    val coverPath by produceState<String?>(
-        initialValue = null,
+    var coverPath by rememberSaveable(
         playlist.itemId,
         playlist.provider,
-        sizePx
+        sizePx,
+        needsGeneratedCover
     ) {
-        value = generator.getCoverPath(playlist, sizePx)
+        mutableStateOf<String?>(null)
+    }
+    LaunchedEffect(playlist.itemId, playlist.provider, sizePx, needsGeneratedCover) {
+        if (!needsGeneratedCover) {
+            coverPath = null
+            return@LaunchedEffect
+        }
+        val existingPath = coverPath
+        if (existingPath != null) {
+            val exists = withContext(Dispatchers.IO) { File(existingPath).exists() }
+            if (exists) return@LaunchedEffect
+        }
+        coverPath = generator.getCoverPath(playlist, sizePx)
     }
     val imageData = coverPath?.let { File(it) } ?: playlist.imageUrl
 
