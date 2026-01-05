@@ -167,11 +167,11 @@ class PlaybackViewModel @Inject constructor(
         playbackServiceConnection.mediaController,
         displayedMediaItem
     ) { controller, mediaItem ->
-        val controllerDuration = controller?.duration ?: 0L
         val metadataDuration = mediaItem?.mediaMetadata?.durationMs ?: 0L
+        val controllerDuration = controller?.duration ?: 0L
         when {
-            controllerDuration > 0L -> controllerDuration
             metadataDuration > 0L -> metadataDuration
+            controllerDuration > 0L -> controllerDuration
             else -> 0L
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0L)
