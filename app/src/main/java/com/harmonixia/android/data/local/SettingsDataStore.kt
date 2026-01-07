@@ -6,6 +6,7 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import com.harmonixia.android.domain.model.AuthMethod
+import com.harmonixia.android.util.LibraryViewMode
 import com.harmonixia.android.util.Logger
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
@@ -61,6 +62,18 @@ class SettingsDataStore @Inject constructor(
         }
     }
 
+    suspend fun saveAlbumsViewMode(mode: LibraryViewMode) {
+        dataStore.edit { preferences ->
+            preferences[ALBUMS_VIEW_MODE_KEY] = mode.name
+        }
+    }
+
+    suspend fun savePlaylistsViewMode(mode: LibraryViewMode) {
+        dataStore.edit { preferences ->
+            preferences[PLAYLISTS_VIEW_MODE_KEY] = mode.name
+        }
+    }
+
     fun getServerUrl(): Flow<String> {
         return dataStore.data.map { preferences ->
             preferences[SERVER_URL_KEY] ?: ""
@@ -108,6 +121,18 @@ class SettingsDataStore @Inject constructor(
         }
     }
 
+    fun getAlbumsViewMode(): Flow<LibraryViewMode> {
+        return dataStore.data.map { preferences ->
+            parseViewMode(preferences[ALBUMS_VIEW_MODE_KEY])
+        }
+    }
+
+    fun getPlaylistsViewMode(): Flow<LibraryViewMode> {
+        return dataStore.data.map { preferences ->
+            parseViewMode(preferences[PLAYLISTS_VIEW_MODE_KEY])
+        }
+    }
+
     suspend fun clearSettings() {
         dataStore.edit { preferences ->
             preferences.clear()
@@ -123,6 +148,14 @@ class SettingsDataStore @Inject constructor(
         val PASSWORD_KEY = stringPreferencesKey("password")
         val SENDSPIN_CLIENT_ID_KEY = stringPreferencesKey("sendspin_client_id")
         val LOCAL_MEDIA_FOLDER_URI_KEY = stringPreferencesKey("local_media_folder_uri")
+        val ALBUMS_VIEW_MODE_KEY = stringPreferencesKey("albums_view_mode")
+        val PLAYLISTS_VIEW_MODE_KEY = stringPreferencesKey("playlists_view_mode")
         private const val TAG = "SettingsDataStore"
+    }
+
+    private fun parseViewMode(value: String?): LibraryViewMode {
+        if (value.isNullOrBlank()) return LibraryViewMode.AUTO
+        return runCatching { LibraryViewMode.valueOf(value.trim().uppercase()) }
+            .getOrElse { LibraryViewMode.AUTO }
     }
 }

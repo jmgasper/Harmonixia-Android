@@ -2,6 +2,7 @@ package com.harmonixia.android.ui.screens.settings
 
 import android.app.Activity
 import android.content.Intent
+import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -93,6 +94,8 @@ import com.harmonixia.android.domain.model.AuthMethod
 import com.harmonixia.android.ui.components.ConnectionStatusIndicator
 import com.harmonixia.android.ui.components.ErrorCard
 import com.harmonixia.android.ui.components.LoadingButton
+import com.harmonixia.android.ui.components.PlayerSelectionAction
+import com.harmonixia.android.ui.playback.PlaybackViewModel
 import com.harmonixia.android.ui.screens.settings.eq.EqSettingsScreenContent
 import com.harmonixia.android.ui.screens.settings.eq.EqSettingsViewModel
 
@@ -109,6 +112,12 @@ fun SettingsScreen(
     val localMediaFolderUri by viewModel.localMediaFolderUri.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     val context = LocalContext.current
+    val activity = context as? ComponentActivity
+    val playbackViewModel: PlaybackViewModel = if (activity != null) {
+        hiltViewModel(activity)
+    } else {
+        hiltViewModel()
+    }
     val folderPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocumentTree()
     ) { uri ->
@@ -152,7 +161,8 @@ fun SettingsScreen(
         onClearError = viewModel::clearError,
         onSelectFolder = { folderPickerLauncher.launch(null) },
         onScanLocalMedia = viewModel::scanLocalMedia,
-        eqViewModel = eqViewModel
+        eqViewModel = eqViewModel,
+        playbackViewModel = playbackViewModel
     )
 }
 
@@ -179,7 +189,8 @@ internal fun SettingsScreenContent(
     onClearError: () -> Unit,
     onSelectFolder: () -> Unit,
     onScanLocalMedia: () -> Unit,
-    eqViewModel: EqSettingsViewModel? = null
+    eqViewModel: EqSettingsViewModel? = null,
+    playbackViewModel: PlaybackViewModel? = null
 ) {
     val isConnecting = uiState is SettingsUiState.Connecting
     val isTesting = (uiState as? SettingsUiState.Connecting)?.isTesting == true
@@ -226,6 +237,11 @@ internal fun SettingsScreenContent(
                             imageVector = Icons.Outlined.ArrowBack,
                             contentDescription = stringResource(R.string.action_back)
                         )
+                    }
+                },
+                actions = {
+                    playbackViewModel?.let {
+                        PlayerSelectionAction(playbackViewModel = it)
                     }
                 }
             )

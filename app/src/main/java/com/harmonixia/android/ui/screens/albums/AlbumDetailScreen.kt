@@ -67,6 +67,7 @@ import com.harmonixia.android.ui.components.ErrorCard
 import com.harmonixia.android.ui.components.OfflineModeBanner
 import com.harmonixia.android.ui.components.PlaylistPickerDialog
 import com.harmonixia.android.ui.components.TrackList
+import com.harmonixia.android.ui.navigation.MainScaffoldActions
 import com.harmonixia.android.ui.screens.settings.SettingsTab
 import com.harmonixia.android.ui.screens.playlists.CreatePlaylistDialog
 import com.harmonixia.android.ui.theme.rememberAdaptiveSpacing
@@ -210,6 +211,7 @@ fun AlbumDetailScreen(
                         }
                     },
                     actions = {
+                        MainScaffoldActions()
                         IconButton(onClick = { onNavigateToSettings(null) }) {
                             Icon(
                                 imageVector = Icons.Outlined.Settings,

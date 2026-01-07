@@ -10,9 +10,14 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.MusicNote
@@ -60,10 +65,11 @@ import coil3.request.bitmapConfig
 import com.harmonixia.android.R
 import com.harmonixia.android.domain.model.Album
 import com.harmonixia.android.domain.model.Artist
-import com.harmonixia.android.ui.components.AlbumGridStatic
+import com.harmonixia.android.ui.components.AlbumCard
 import com.harmonixia.android.ui.components.ErrorCard
 import com.harmonixia.android.ui.components.OfflineModeBanner
 import com.harmonixia.android.ui.components.PlaylistPickerDialog
+import com.harmonixia.android.ui.navigation.MainScaffoldActions
 import com.harmonixia.android.ui.screens.settings.SettingsTab
 import com.harmonixia.android.ui.screens.playlists.CreatePlaylistDialog
 import com.harmonixia.android.ui.theme.rememberAdaptiveSpacing
@@ -129,19 +135,24 @@ fun ArtistDetailScreen(
         }
     }
     val horizontalPadding = spacing.large
-    val gridVerticalPadding = if (isLandscape) spacing.large * 0.75f else spacing.large
     val avatarSize by remember(windowSizeClass) {
         derivedStateOf {
             when (windowSizeClass.widthSizeClass) {
-                WindowWidthSizeClass.Compact -> 120.dp
-                WindowWidthSizeClass.Medium -> 140.dp
-                WindowWidthSizeClass.Expanded -> 160.dp
-                else -> 120.dp
+                WindowWidthSizeClass.Compact -> 96.dp
+                WindowWidthSizeClass.Medium -> 120.dp
+                WindowWidthSizeClass.Expanded -> 144.dp
+                else -> 96.dp
             }
         }
     }
     val artworkSize = if (isLandscape) 140.dp else 150.dp
-    val gridPadding = PaddingValues(horizontal = horizontalPadding, vertical = gridVerticalPadding)
+    val gridVerticalPadding = if (isLandscape) spacing.large * 0.75f else spacing.large
+    val gridPadding = PaddingValues(
+        start = horizontalPadding,
+        end = horizontalPadding,
+        top = spacing.medium,
+        bottom = gridVerticalPadding
+    )
     val sectionHeaderStyle = if (isExpanded) {
         MaterialTheme.typography.headlineSmall
     } else {
@@ -182,6 +193,7 @@ fun ArtistDetailScreen(
                         }
                     },
                     actions = {
+                        MainScaffoldActions()
                         IconButton(onClick = { onNavigateToSettings(null) }) {
                             Icon(
                                 imageVector = Icons.Outlined.Settings,
@@ -247,7 +259,6 @@ fun ArtistDetailScreen(
                     albums = emptyList(),
                     isOfflineMode = isOfflineMode,
                     columns = columns,
-                    horizontalPadding = horizontalPadding,
                     gridPadding = gridPadding,
                     avatarSize = avatarSize,
                     artworkSize = artworkSize,
@@ -272,7 +283,6 @@ fun ArtistDetailScreen(
                     albums = state.albums,
                     isOfflineMode = isOfflineMode,
                     columns = columns,
-                    horizontalPadding = horizontalPadding,
                     gridPadding = gridPadding,
                     avatarSize = avatarSize,
                     artworkSize = artworkSize,
@@ -332,7 +342,6 @@ private fun ArtistDetailContent(
     albums: List<Album>,
     isOfflineMode: Boolean,
     columns: Int,
-    horizontalPadding: Dp,
     gridPadding: PaddingValues,
     avatarSize: Dp,
     artworkSize: Dp,
@@ -345,46 +354,56 @@ private fun ArtistDetailContent(
     modifier: Modifier = Modifier
 ) {
     val spacing = rememberAdaptiveSpacing()
-    Column(
+    val gridSpacing = 8.dp
+    val safeColumns = columns.coerceAtLeast(1)
+    val minCardHeight = artworkSize + 70.dp
+    LazyVerticalGrid(
+        columns = GridCells.Fixed(safeColumns),
+        contentPadding = gridPadding,
+        horizontalArrangement = Arrangement.spacedBy(gridSpacing),
+        verticalArrangement = Arrangement.spacedBy(gridSpacing),
         modifier = modifier.fillMaxSize()
     ) {
-        ArtistHeader(
-            artist = artist,
-            albumCount = albums.size,
-            avatarSize = avatarSize,
-            horizontalPadding = horizontalPadding,
-            titleStyle = titleStyle,
-            metaStyle = metaStyle,
-            imageQualityManager = imageQualityManager
-        )
-        Spacer(modifier = Modifier.height(spacing.large))
+        item(span = { GridItemSpan(maxLineSpan) }) {
+            ArtistHeader(
+                artist = artist,
+                avatarSize = avatarSize,
+                titleStyle = titleStyle,
+                imageQualityManager = imageQualityManager
+            )
+        }
         if (albums.isEmpty()) {
-            ArtistAlbumsEmptyState(
-                isOfflineMode = isOfflineMode,
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxWidth()
-                    .padding(horizontal = horizontalPadding),
-                textStyle = metaStyle
-            )
+            item(span = { GridItemSpan(maxLineSpan) }) {
+                ArtistAlbumsEmptyState(
+                    isOfflineMode = isOfflineMode,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = spacing.large),
+                    textStyle = metaStyle
+                )
+            }
         } else {
-            Text(
-                text = stringResource(R.string.artist_detail_albums),
-                style = sectionHeaderStyle,
-                modifier = Modifier.padding(horizontal = horizontalPadding)
-            )
-            Spacer(modifier = Modifier.height(spacing.medium))
-            AlbumGridStatic(
-                albums = albums,
-                onAlbumClick = onAlbumClick,
-                onAlbumLongClick = onAlbumLongClick,
-                columns = columns,
-                artworkSize = artworkSize,
-                contentPadding = gridPadding,
-                isOfflineMode = isOfflineMode,
-                imageQualityManager = imageQualityManager,
-                modifier = Modifier.weight(1f)
-            )
+            item(span = { GridItemSpan(maxLineSpan) }) {
+                Text(
+                    text = stringResource(R.string.artist_detail_album_count, albums.size),
+                    style = sectionHeaderStyle,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+            items(
+                items = albums,
+                key = { album -> "${album.provider}:${album.itemId}" }
+            ) { album ->
+                AlbumCard(
+                    album = album,
+                    onClick = { onAlbumClick(album) },
+                    onLongClick = onAlbumLongClick?.let { callback -> { callback(album) } },
+                    artworkSize = artworkSize,
+                    isOfflineMode = isOfflineMode,
+                    imageQualityManager = imageQualityManager,
+                    modifier = Modifier.heightIn(min = minCardHeight)
+                )
+            }
         }
     }
 }
@@ -392,11 +411,8 @@ private fun ArtistDetailContent(
 @Composable
 private fun ArtistHeader(
     artist: Artist?,
-    albumCount: Int,
     avatarSize: Dp,
-    horizontalPadding: Dp,
     titleStyle: androidx.compose.ui.text.TextStyle,
-    metaStyle: androidx.compose.ui.text.TextStyle,
     imageQualityManager: ImageQualityManager,
     modifier: Modifier = Modifier
 ) {
@@ -417,9 +433,9 @@ private fun ArtistHeader(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = horizontalPadding, vertical = spacing.extraLarge),
+            .padding(top = spacing.large, bottom = spacing.medium),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(spacing.medium)
+        verticalArrangement = Arrangement.spacedBy(spacing.small)
     ) {
         if (imageUrl.isNullOrBlank()) {
             Surface(
@@ -454,11 +470,6 @@ private fun ArtistHeader(
             maxLines = 2,
             overflow = TextOverflow.Ellipsis
         )
-        Text(
-            text = stringResource(R.string.artist_detail_album_count, albumCount),
-            style = metaStyle,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
     }
 }
 
@@ -470,7 +481,7 @@ private fun ArtistAlbumsEmptyState(
 ) {
     val spacing = rememberAdaptiveSpacing()
     Box(
-        modifier = modifier.fillMaxSize(),
+        modifier = modifier.fillMaxWidth(),
         contentAlignment = Alignment.Center
     ) {
         Column(

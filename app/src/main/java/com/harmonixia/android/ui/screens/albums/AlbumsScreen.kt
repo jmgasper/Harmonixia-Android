@@ -18,11 +18,16 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.FilterList
+import androidx.compose.material.icons.outlined.GridView
 import androidx.compose.material.icons.outlined.MusicNote
 import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material.icons.outlined.ViewList
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -69,6 +74,8 @@ import com.harmonixia.android.domain.model.Album
 import com.harmonixia.android.domain.model.AlbumType
 import com.harmonixia.android.ui.components.AlphabetFastScroller
 import com.harmonixia.android.ui.components.AlbumGrid
+import com.harmonixia.android.ui.components.AlbumListItem
+import com.harmonixia.android.ui.components.AlbumListItemPlaceholder
 import com.harmonixia.android.ui.components.AlbumTypeFilterMenu
 import com.harmonixia.android.ui.components.ErrorCard
 import com.harmonixia.android.ui.components.OfflineModeBanner
@@ -78,6 +85,7 @@ import com.harmonixia.android.ui.screens.settings.SettingsTab
 import com.harmonixia.android.ui.theme.rememberAdaptiveSpacing
 import com.harmonixia.android.ui.util.buildAlbumArtworkRequest
 import com.harmonixia.android.util.ImageQualityManager
+import com.harmonixia.android.util.LibraryViewMode
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -93,6 +101,7 @@ fun AlbumsScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val isOfflineMode by viewModel.isOfflineMode.collectAsStateWithLifecycle()
     val imageQualityManager = viewModel.imageQualityManager
+    val viewMode by viewModel.viewMode.collectAsStateWithLifecycle()
 
     val windowSizeClass = calculateWindowSizeClass(activity = LocalContext.current as Activity)
     val configuration = LocalConfiguration.current
@@ -116,6 +125,8 @@ fun AlbumsScreen(
         }
     }
     val horizontalPadding = spacing.large
+    val listVerticalPadding = if (isLandscape) spacing.medium * 0.75f else spacing.medium
+    val listPadding = PaddingValues(horizontal = horizontalPadding, vertical = listVerticalPadding)
     val gridVerticalPadding = if (isLandscape) spacing.large * 0.75f else spacing.large
     val gridPadding = PaddingValues(horizontal = horizontalPadding, vertical = gridVerticalPadding)
 
@@ -171,6 +182,11 @@ fun AlbumsScreen(
     val filteredCount = lazyPagingItems?.itemSnapshotList?.items?.size ?: 0
     val totalCount = lazyPagingItems?.itemCount ?: 0
     val scrollScope = rememberCoroutineScope()
+    val isListView by remember(viewMode) {
+        derivedStateOf { viewMode == LibraryViewMode.LIST }
+    }
+    val collapsedListState = rememberLazyListState()
+    val expandedListState = rememberLazyListState()
     val collapsedGridState = rememberLazyGridState()
     val expandedGridState = rememberLazyGridState()
     val alphabetIndexMap by remember(lazyPagingItems) {
@@ -261,6 +277,31 @@ fun AlbumsScreen(
                                 onDismiss = { showFilterMenu = false }
                             )
                         }
+                    }
+                    IconButton(
+                        onClick = {
+                            val nextMode = if (isListView) {
+                                LibraryViewMode.GRID
+                            } else {
+                                LibraryViewMode.LIST
+                            }
+                            viewModel.updateViewMode(nextMode)
+                        }
+                    ) {
+                        Icon(
+                            imageVector = if (isListView) {
+                                Icons.Outlined.GridView
+                            } else {
+                                Icons.Outlined.ViewList
+                            },
+                            contentDescription = stringResource(
+                                if (isListView) {
+                                    R.string.content_desc_show_grid_view
+                                } else {
+                                    R.string.content_desc_show_list_view
+                                }
+                            )
+                        )
                     }
                     MainScaffoldActions()
                     IconButton(onClick = { onNavigateToSettings(null) }) {
@@ -396,28 +437,186 @@ fun AlbumsScreen(
                             )
                         }
                         else -> {
-                            AnimatedContent(
-                                targetState = isExpanded,
-                                transitionSpec = { fadeIn() togetherWith fadeOut() },
-                                label = "albumsLayout",
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .weight(1f)
-                            ) { expanded ->
-                                if (expanded) {
-                                    Row(
-                                        modifier = Modifier.fillMaxSize(),
-                                        horizontalArrangement = Arrangement.spacedBy(spacing.large)
-                                    ) {
+                            if (isListView) {
+                                AnimatedContent(
+                                    targetState = isExpanded,
+                                    transitionSpec = { fadeIn() togetherWith fadeOut() },
+                                    label = "albumsListLayout",
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .weight(1f)
+                                ) { expanded ->
+                                    if (expanded) {
+                                        Row(
+                                            modifier = Modifier.fillMaxSize(),
+                                            horizontalArrangement = Arrangement.spacedBy(spacing.large)
+                                        ) {
+                                            AlphabetFastScroller(
+                                                modifier = Modifier
+                                                    .weight(0.6f)
+                                                    .fillMaxHeight(),
+                                                isEnabled = showAlphabetScroller,
+                                                onLetterChange = { letter ->
+                                                    alphabetIndexMap[letter]?.let { index ->
+                                                        scrollScope.launch {
+                                                            expandedListState.scrollToItem(index)
+                                                        }
+                                                    }
+                                                }
+                                            ) {
+                                                LazyColumn(
+                                                    modifier = Modifier.fillMaxSize(),
+                                                    state = expandedListState,
+                                                    contentPadding = listPadding
+                                                ) {
+                                                    items(
+                                                        count = items.itemCount,
+                                                        key = { index ->
+                                                            items[index]?.let { album ->
+                                                                "${album.provider}:${album.itemId}"
+                                                            } ?: "placeholder_$index"
+                                                        }
+                                                    ) { index ->
+                                                        val album = items[index]
+                                                        if (album != null) {
+                                                            AlbumListItem(
+                                                                album = album,
+                                                                onClick = { handleAlbumClick(album) },
+                                                                showDivider = index < items.itemCount - 1,
+                                                                isOfflineMode = isOfflineMode,
+                                                                imageQualityManager = imageQualityManager
+                                                            )
+                                                        } else {
+                                                            AlbumListItemPlaceholder(
+                                                                showDivider = index < items.itemCount - 1
+                                                            )
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                            AlbumDetailPane(
+                                                album = selectedAlbum,
+                                                artworkSize = artworkSize,
+                                                onOpenAlbum = onAlbumClick,
+                                                isOfflineMode = isOfflineMode,
+                                                imageQualityManager = imageQualityManager,
+                                                modifier = Modifier
+                                                    .weight(0.4f)
+                                                    .fillMaxHeight()
+                                                    .padding(
+                                                        top = listVerticalPadding,
+                                                        bottom = listVerticalPadding,
+                                                        end = horizontalPadding
+                                                    )
+                                            )
+                                        }
+                                    } else {
                                         AlphabetFastScroller(
-                                            modifier = Modifier
-                                                .weight(0.6f)
-                                                .fillMaxHeight(),
+                                            modifier = Modifier.fillMaxSize(),
                                             isEnabled = showAlphabetScroller,
                                             onLetterChange = { letter ->
                                                 alphabetIndexMap[letter]?.let { index ->
                                                     scrollScope.launch {
-                                                        expandedGridState.scrollToItem(index)
+                                                        collapsedListState.scrollToItem(index)
+                                                    }
+                                                }
+                                            }
+                                        ) {
+                                            LazyColumn(
+                                                modifier = Modifier.fillMaxSize(),
+                                                state = collapsedListState,
+                                                contentPadding = listPadding
+                                            ) {
+                                                items(
+                                                    count = items.itemCount,
+                                                    key = { index ->
+                                                        items[index]?.let { album ->
+                                                            "${album.provider}:${album.itemId}"
+                                                        } ?: "placeholder_$index"
+                                                    }
+                                                ) { index ->
+                                                    val album = items[index]
+                                                    if (album != null) {
+                                                        AlbumListItem(
+                                                            album = album,
+                                                            onClick = { handleAlbumClick(album) },
+                                                            showDivider = index < items.itemCount - 1,
+                                                            isOfflineMode = isOfflineMode,
+                                                            imageQualityManager = imageQualityManager
+                                                        )
+                                                    } else {
+                                                        AlbumListItemPlaceholder(
+                                                            showDivider = index < items.itemCount - 1
+                                                        )
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            } else {
+                                AnimatedContent(
+                                    targetState = isExpanded,
+                                    transitionSpec = { fadeIn() togetherWith fadeOut() },
+                                    label = "albumsLayout",
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .weight(1f)
+                                ) { expanded ->
+                                    if (expanded) {
+                                        Row(
+                                            modifier = Modifier.fillMaxSize(),
+                                            horizontalArrangement = Arrangement.spacedBy(spacing.large)
+                                        ) {
+                                            AlphabetFastScroller(
+                                                modifier = Modifier
+                                                    .weight(0.6f)
+                                                    .fillMaxHeight(),
+                                                isEnabled = showAlphabetScroller,
+                                                onLetterChange = { letter ->
+                                                    alphabetIndexMap[letter]?.let { index ->
+                                                        scrollScope.launch {
+                                                            expandedGridState.scrollToItem(index)
+                                                        }
+                                                    }
+                                                }
+                                            ) {
+                                                AlbumGrid(
+                                                    albums = items,
+                                                    onAlbumClick = handleAlbumClick,
+                                                    gridState = expandedGridState,
+                                                    columns = columns,
+                                                    artworkSize = artworkSize,
+                                                    contentPadding = gridPadding,
+                                                    isOfflineMode = isOfflineMode,
+                                                    imageQualityManager = imageQualityManager,
+                                                    modifier = Modifier.fillMaxSize()
+                                                )
+                                            }
+                                            AlbumDetailPane(
+                                                album = selectedAlbum,
+                                                artworkSize = artworkSize,
+                                                onOpenAlbum = onAlbumClick,
+                                                isOfflineMode = isOfflineMode,
+                                                imageQualityManager = imageQualityManager,
+                                                modifier = Modifier
+                                                    .weight(0.4f)
+                                                    .fillMaxHeight()
+                                                    .padding(
+                                                        top = gridVerticalPadding,
+                                                        bottom = gridVerticalPadding,
+                                                        end = horizontalPadding
+                                                    )
+                                            )
+                                        }
+                                    } else {
+                                        AlphabetFastScroller(
+                                            modifier = Modifier.fillMaxSize(),
+                                            isEnabled = showAlphabetScroller,
+                                            onLetterChange = { letter ->
+                                                alphabetIndexMap[letter]?.let { index ->
+                                                    scrollScope.launch {
+                                                        collapsedGridState.scrollToItem(index)
                                                     }
                                                 }
                                             }
@@ -425,7 +624,7 @@ fun AlbumsScreen(
                                             AlbumGrid(
                                                 albums = items,
                                                 onAlbumClick = handleAlbumClick,
-                                                gridState = expandedGridState,
+                                                gridState = collapsedGridState,
                                                 columns = columns,
                                                 artworkSize = artworkSize,
                                                 contentPadding = gridPadding,
@@ -434,45 +633,6 @@ fun AlbumsScreen(
                                                 modifier = Modifier.fillMaxSize()
                                             )
                                         }
-                                        AlbumDetailPane(
-                                            album = selectedAlbum,
-                                            artworkSize = artworkSize,
-                                            onOpenAlbum = onAlbumClick,
-                                            isOfflineMode = isOfflineMode,
-                                            imageQualityManager = imageQualityManager,
-                                            modifier = Modifier
-                                                .weight(0.4f)
-                                                .fillMaxHeight()
-                                                .padding(
-                                                    top = gridVerticalPadding,
-                                                    bottom = gridVerticalPadding,
-                                                    end = horizontalPadding
-                                                )
-                                        )
-                                    }
-                                } else {
-                                    AlphabetFastScroller(
-                                        modifier = Modifier.fillMaxSize(),
-                                        isEnabled = showAlphabetScroller,
-                                        onLetterChange = { letter ->
-                                            alphabetIndexMap[letter]?.let { index ->
-                                                scrollScope.launch {
-                                                    collapsedGridState.scrollToItem(index)
-                                                }
-                                            }
-                                        }
-                                    ) {
-                                        AlbumGrid(
-                                            albums = items,
-                                            onAlbumClick = handleAlbumClick,
-                                            gridState = collapsedGridState,
-                                            columns = columns,
-                                            artworkSize = artworkSize,
-                                            contentPadding = gridPadding,
-                                            isOfflineMode = isOfflineMode,
-                                            imageQualityManager = imageQualityManager,
-                                            modifier = Modifier.fillMaxSize()
-                                        )
                                     }
                                 }
                             }

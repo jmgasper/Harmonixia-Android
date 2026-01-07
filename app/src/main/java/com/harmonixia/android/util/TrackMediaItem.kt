@@ -18,6 +18,7 @@ fun Track.toPlaybackMediaItem(): MediaItem {
         }
         putString(EXTRA_STREAM_URI, uri)
         putBoolean(EXTRA_IS_LOCAL_FILE, isLocal)
+        putProviderExtras(provider, providerMappings)
     }
     val metadata = MediaMetadata.Builder()
         .setTitle(if (title.isNotBlank()) title else uri)

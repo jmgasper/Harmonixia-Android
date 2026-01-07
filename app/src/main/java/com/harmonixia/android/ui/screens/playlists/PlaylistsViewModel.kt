@@ -9,6 +9,7 @@ import androidx.paging.cachedIn
 import androidx.paging.filter
 import androidx.paging.insertFooterItem
 import com.harmonixia.android.R
+import com.harmonixia.android.data.local.SettingsDataStore
 import com.harmonixia.android.data.paging.PlaylistsPagingSource
 import com.harmonixia.android.data.remote.WebSocketMessage
 import com.harmonixia.android.data.remote.ConnectionState
@@ -20,6 +21,7 @@ import com.harmonixia.android.domain.usecase.DeletePlaylistUseCase
 import com.harmonixia.android.domain.usecase.GetConnectionStateUseCase
 import com.harmonixia.android.domain.usecase.RenamePlaylistUseCase
 import com.harmonixia.android.util.ImageQualityManager
+import com.harmonixia.android.util.LibraryViewMode
 import com.harmonixia.android.util.NetworkConnectivityManager
 import com.harmonixia.android.util.PagingStatsTracker
 import com.harmonixia.android.util.matchesLocal
@@ -53,6 +55,7 @@ sealed class PlaylistsUiEvent {
 class PlaylistsViewModel @Inject constructor(
     private val repository: MusicAssistantRepository,
     private val localMediaRepository: LocalMediaRepository,
+    private val settingsDataStore: SettingsDataStore,
     private val deletePlaylistUseCase: DeletePlaylistUseCase,
     private val renamePlaylistUseCase: RenamePlaylistUseCase,
     getConnectionStateUseCase: GetConnectionStateUseCase,
@@ -84,6 +87,13 @@ class PlaylistsViewModel @Inject constructor(
 
     private val _renameErrorMessageResId = MutableStateFlow<Int?>(null)
     val renameErrorMessageResId: StateFlow<Int?> = _renameErrorMessageResId.asStateFlow()
+
+    val viewMode: StateFlow<LibraryViewMode> = settingsDataStore.getPlaylistsViewMode()
+        .stateIn(
+            viewModelScope,
+            SharingStarted.WhileSubscribed(5_000),
+            LibraryViewMode.AUTO
+        )
 
     private val pagingConfig = MutableStateFlow(
         PagingConfig(
@@ -188,6 +198,12 @@ class PlaylistsViewModel @Inject constructor(
             initialLoadSize = pageSize
         )
         pagingSource?.invalidate()
+    }
+
+    fun updateViewMode(mode: LibraryViewMode) {
+        viewModelScope.launch {
+            settingsDataStore.savePlaylistsViewMode(mode)
+        }
     }
 
     fun createPlaylist(name: String) {

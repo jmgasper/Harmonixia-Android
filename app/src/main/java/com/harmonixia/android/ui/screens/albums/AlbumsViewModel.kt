@@ -8,6 +8,7 @@ import androidx.paging.PagingData
 import androidx.paging.cachedIn
 import androidx.paging.filter
 import androidx.paging.insertFooterItem
+import com.harmonixia.android.data.local.SettingsDataStore
 import com.harmonixia.android.data.paging.AlbumsPagingSource
 import com.harmonixia.android.data.remote.ConnectionState
 import com.harmonixia.android.domain.model.Album
@@ -17,6 +18,7 @@ import com.harmonixia.android.domain.repository.MusicAssistantRepository
 import com.harmonixia.android.domain.repository.OFFLINE_PROVIDER
 import com.harmonixia.android.domain.usecase.GetConnectionStateUseCase
 import com.harmonixia.android.util.ImageQualityManager
+import com.harmonixia.android.util.LibraryViewMode
 import com.harmonixia.android.util.NetworkConnectivityManager
 import com.harmonixia.android.util.PagingStatsTracker
 import com.harmonixia.android.util.mergeWithLocal
@@ -40,6 +42,7 @@ import kotlinx.coroutines.flow.SharingStarted
 class AlbumsViewModel @Inject constructor(
     private val repository: MusicAssistantRepository,
     private val localMediaRepository: LocalMediaRepository,
+    private val settingsDataStore: SettingsDataStore,
     getConnectionStateUseCase: GetConnectionStateUseCase,
     private val networkConnectivityManager: NetworkConnectivityManager,
     private val pagingStatsTracker: PagingStatsTracker,
@@ -61,6 +64,13 @@ class AlbumsViewModel @Inject constructor(
 
     private val _uiState = MutableStateFlow<AlbumsUiState>(AlbumsUiState.Loading)
     val uiState: StateFlow<AlbumsUiState> = _uiState.asStateFlow()
+
+    val viewMode: StateFlow<LibraryViewMode> = settingsDataStore.getAlbumsViewMode()
+        .stateIn(
+            viewModelScope,
+            SharingStarted.WhileSubscribed(5_000),
+            LibraryViewMode.AUTO
+        )
 
     private val defaultAlbumTypes = setOf(
         AlbumType.ALBUM,
@@ -214,6 +224,12 @@ class AlbumsViewModel @Inject constructor(
         val currentState = _uiState.value
         if (currentState is AlbumsUiState.Success) {
             _uiState.value = currentState.copy(selectedAlbumTypes = updated)
+        }
+    }
+
+    fun updateViewMode(mode: LibraryViewMode) {
+        viewModelScope.launch {
+            settingsDataStore.saveAlbumsViewMode(mode)
         }
     }
 

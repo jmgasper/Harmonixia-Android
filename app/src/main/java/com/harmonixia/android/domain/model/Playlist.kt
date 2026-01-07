@@ -16,7 +16,9 @@ data class Playlist(
     @SerialName("is_editable")
     val isEditable: Boolean = false,
     @SerialName("image_url")
-    val imageUrl: String? = null
+    val imageUrl: String? = null,
+    @SerialName("track_count")
+    val trackCount: Int = 0
 )
 
 val Playlist.downloadId: String

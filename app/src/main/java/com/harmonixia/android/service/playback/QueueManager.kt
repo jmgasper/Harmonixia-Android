@@ -21,14 +21,17 @@ import com.harmonixia.android.util.EXTRA_STREAM_URI
 import com.harmonixia.android.util.EXTRA_TRACK_QUALITY
 import com.harmonixia.android.util.Logger
 import com.harmonixia.android.util.matchesLocal
+import com.harmonixia.android.util.putProviderExtras
 import java.io.File
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 
 class QueueManager(
     private val repository: MusicAssistantRepository,
-    private val localMediaRepository: LocalMediaRepository
+    private val localMediaRepository: LocalMediaRepository,
+    private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO
 ) {
     private val queueItems = mutableListOf<MediaItem>()
     private var currentIndex: Int = 0
@@ -114,6 +117,7 @@ class QueueManager(
             }
             putBoolean(EXTRA_IS_LOCAL_FILE, isLocalFile)
             putString(EXTRA_STREAM_URI, track.uri)
+            putProviderExtras(track.provider, track.providerMappings)
         }
         metadataBuilder.setExtras(extras)
         return MediaItem.Builder()
@@ -296,13 +300,13 @@ class QueueManager(
     }
 
     private suspend fun resolveLocalFile(track: Track): File? {
-        val localPath = if (track.provider == OFFLINE_PROVIDER) {
-            track.uri
-        } else {
-            resolveMappedLocalPath(track) ?: resolveMatchedLocalPath(track)
-        }
-        if (localPath.isNullOrBlank()) return null
-        return withContext(Dispatchers.IO) {
+        return withContext(ioDispatcher) {
+            val localPath = if (track.provider == OFFLINE_PROVIDER) {
+                track.uri
+            } else {
+                resolveMappedLocalPath(track) ?: resolveMatchedLocalPath(track)
+            }
+            if (localPath.isNullOrBlank()) return@withContext null
             val file = File(localPath)
             if (file.exists() && file.length() > 0L) {
                 file

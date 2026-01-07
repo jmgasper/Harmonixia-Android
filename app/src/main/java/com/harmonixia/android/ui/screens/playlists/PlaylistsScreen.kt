@@ -19,11 +19,14 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.outlined.Add
+import androidx.compose.material.icons.outlined.GridView
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material.icons.outlined.ViewList
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -49,6 +52,7 @@ import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -64,14 +68,18 @@ import androidx.paging.LoadState
 import androidx.paging.compose.collectAsLazyPagingItems
 import com.harmonixia.android.R
 import com.harmonixia.android.domain.model.Playlist
+import com.harmonixia.android.ui.components.AlphabetFastScroller
 import com.harmonixia.android.ui.components.ErrorCard
 import com.harmonixia.android.ui.components.OfflineModeBanner
 import com.harmonixia.android.ui.components.PlaylistCard
 import com.harmonixia.android.ui.components.PlaylistOptionsMenu
 import com.harmonixia.android.ui.components.RenamePlaylistDialog
+import com.harmonixia.android.ui.components.alphabetIndexMap
 import com.harmonixia.android.ui.navigation.MainScaffoldActions
 import com.harmonixia.android.ui.screens.settings.SettingsTab
 import com.harmonixia.android.ui.theme.rememberAdaptiveSpacing
+import com.harmonixia.android.util.LibraryViewMode
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -85,6 +93,7 @@ fun PlaylistsScreen(
     val renameErrorMessageResId by viewModel.renameErrorMessageResId.collectAsStateWithLifecycle()
     val isOfflineMode by viewModel.isOfflineMode.collectAsStateWithLifecycle()
     val imageQualityManager = viewModel.imageQualityManager
+    val viewMode by viewModel.viewMode.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
     val favoritesPlaylist = remember {
@@ -134,8 +143,15 @@ fun PlaylistsScreen(
     val windowSizeClass = calculateWindowSizeClass(activity = LocalContext.current as Activity)
     val configuration = LocalConfiguration.current
     val spacing = rememberAdaptiveSpacing()
-    val isGrid by remember(windowSizeClass) {
-        derivedStateOf { windowSizeClass.widthSizeClass != WindowWidthSizeClass.Compact }
+    val isGrid by remember(viewMode, windowSizeClass) {
+        derivedStateOf {
+            when (viewMode) {
+                LibraryViewMode.LIST -> false
+                LibraryViewMode.GRID -> true
+                LibraryViewMode.AUTO ->
+                    windowSizeClass.widthSizeClass != WindowWidthSizeClass.Compact
+            }
+        }
     }
     val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
     val columns by remember(windowSizeClass, configuration) {
@@ -187,6 +203,19 @@ fun PlaylistsScreen(
 
     val successState = uiState as? PlaylistsUiState.Success
     val lazyPagingItems = successState?.playlists?.collectAsLazyPagingItems()
+    val scrollScope = rememberCoroutineScope()
+    val listState = rememberLazyListState()
+    val favoritesIndexOffset = 1
+    val alphabetIndexMap by remember(lazyPagingItems) {
+        derivedStateOf {
+            lazyPagingItems?.alphabetIndexMap { playlist -> playlist.name } ?: emptyMap()
+        }
+    }
+    val showAlphabetScroller by remember(lazyPagingItems) {
+        derivedStateOf {
+            lazyPagingItems?.itemSnapshotList?.items?.isNotEmpty() == true
+        }
+    }
     val isRefreshing = !isOfflineMode && lazyPagingItems?.loadState?.refresh is LoadState.Loading
 
     val openRename: (Playlist) -> Unit = { target ->
@@ -205,6 +234,31 @@ fun PlaylistsScreen(
             TopAppBar(
                 title = { Text(text = stringResource(R.string.playlists_title)) },
                 actions = {
+                    IconButton(
+                        onClick = {
+                            val nextMode = if (isGrid) {
+                                LibraryViewMode.LIST
+                            } else {
+                                LibraryViewMode.GRID
+                            }
+                            viewModel.updateViewMode(nextMode)
+                        }
+                    ) {
+                        Icon(
+                            imageVector = if (isGrid) {
+                                Icons.Outlined.ViewList
+                            } else {
+                                Icons.Outlined.GridView
+                            },
+                            contentDescription = stringResource(
+                                if (isGrid) {
+                                    R.string.content_desc_show_list_view
+                                } else {
+                                    R.string.content_desc_show_grid_view
+                                }
+                            )
+                        )
+                    }
                     MainScaffoldActions()
                     IconButton(onClick = { onNavigateToSettings(null) }) {
                         Icon(
@@ -295,8 +349,10 @@ fun PlaylistsScreen(
                 }
                 is PlaylistsUiState.Success -> {
                     val items = lazyPagingItems ?: return@Column
+                    val hasItems = items.itemCount > 0
+                    val refreshState = items.loadState.refresh
                     when {
-                        !isOfflineMode && items.loadState.refresh is LoadState.Loading -> {
+                        !isOfflineMode && refreshState is LoadState.Loading && !hasItems -> {
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -313,8 +369,8 @@ fun PlaylistsScreen(
                                 }
                             }
                         }
-                        items.loadState.refresh is LoadState.Error -> {
-                            val error = items.loadState.refresh as LoadState.Error
+                        refreshState is LoadState.Error && !hasItems -> {
+                            val error = refreshState
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -418,70 +474,83 @@ fun PlaylistsScreen(
                             }
                         }
                         else -> {
-                            LazyColumn(
+                            AlphabetFastScroller(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .weight(1f),
-                                contentPadding = listPadding,
-                                verticalArrangement = Arrangement.spacedBy(listSpacing)
-                            ) {
-                                item(key = "favorites") {
-                                    PlaylistCard(
-                                        playlist = favoritesPlaylist,
-                                        onClick = { onPlaylistClick(favoritesPlaylist) },
-                                        isGrid = false,
-                                        placeholderIcon = Icons.Filled.Favorite,
-                                        imageQualityManager = imageQualityManager
-                                    )
-                                }
-                                items(
-                                    count = items.itemCount,
-                                    key = { index ->
-                                        items[index]?.let { playlist ->
-                                            "${playlist.provider}:${playlist.itemId}"
-                                        } ?: "placeholder_$index"
+                                isEnabled = showAlphabetScroller,
+                                onLetterChange = { letter ->
+                                    alphabetIndexMap[letter]?.let { index ->
+                                        scrollScope.launch {
+                                            listState.scrollToItem(index + favoritesIndexOffset)
+                                        }
                                     }
-                                ) { index ->
-                                    val playlist = items[index]
-                                    if (playlist != null) {
-                                        Box {
-                                            PlaylistCard(
-                                                playlist = playlist,
-                                                onClick = { onPlaylistClick(playlist) },
-                                                onLongClick = {
-                                                    if (playlist.isEditable) {
-                                                        menuPlaylist = playlist
-                                                    }
-                                                },
-                                                isGrid = false,
-                                                imageQualityManager = imageQualityManager
-                                            )
-                                            if (playlist.isEditable) {
-                                                Box(modifier = Modifier.align(Alignment.TopEnd)) {
-                                                    IconButton(
-                                                        onClick = { menuPlaylist = playlist }
-                                                    ) {
-                                                        Icon(
-                                                            imageVector = Icons.Outlined.MoreVert,
-                                                            contentDescription = stringResource(
-                                                                R.string.playlist_options_menu
+                                }
+                            ) {
+                                LazyColumn(
+                                    modifier = Modifier.fillMaxSize(),
+                                    state = listState,
+                                    contentPadding = listPadding,
+                                    verticalArrangement = Arrangement.spacedBy(listSpacing)
+                                ) {
+                                    item(key = "favorites") {
+                                        PlaylistCard(
+                                            playlist = favoritesPlaylist,
+                                            onClick = { onPlaylistClick(favoritesPlaylist) },
+                                            isGrid = false,
+                                            placeholderIcon = Icons.Filled.Favorite,
+                                            imageQualityManager = imageQualityManager
+                                        )
+                                    }
+                                    items(
+                                        count = items.itemCount,
+                                        key = { index ->
+                                            items[index]?.let { playlist ->
+                                                "${playlist.provider}:${playlist.itemId}"
+                                            } ?: "placeholder_$index"
+                                        }
+                                    ) { index ->
+                                        val playlist = items[index]
+                                        if (playlist != null) {
+                                            Box {
+                                                PlaylistCard(
+                                                    playlist = playlist,
+                                                    onClick = { onPlaylistClick(playlist) },
+                                                    onLongClick = {
+                                                        if (playlist.isEditable) {
+                                                            menuPlaylist = playlist
+                                                        }
+                                                    },
+                                                    isGrid = false,
+                                                    imageQualityManager = imageQualityManager
+                                                )
+                                                if (playlist.isEditable) {
+                                                    Box(modifier = Modifier.align(Alignment.TopEnd)) {
+                                                        IconButton(
+                                                            onClick = { menuPlaylist = playlist }
+                                                        ) {
+                                                            Icon(
+                                                                imageVector = Icons.Outlined.MoreVert,
+                                                                contentDescription = stringResource(
+                                                                    R.string.playlist_options_menu
+                                                                )
                                                             )
+                                                        }
+                                                        PlaylistOptionsMenu(
+                                                            expanded = menuPlaylist == playlist,
+                                                            onDismissRequest = { menuPlaylist = null },
+                                                            onRename = { openRename(playlist) },
+                                                            onDelete = { openDelete(playlist) }
                                                         )
                                                     }
-                                                    PlaylistOptionsMenu(
-                                                        expanded = menuPlaylist == playlist,
-                                                        onDismissRequest = { menuPlaylist = null },
-                                                        onRename = { openRename(playlist) },
-                                                        onDelete = { openDelete(playlist) }
-                                                    )
                                                 }
                                             }
+                                        } else {
+                                            PlaylistCardPlaceholder(
+                                                isGrid = false,
+                                                modifier = Modifier.fillMaxWidth()
+                                            )
                                         }
-                                    } else {
-                                        PlaylistCardPlaceholder(
-                                            isGrid = false,
-                                            modifier = Modifier.fillMaxWidth()
-                                        )
                                     }
                                 }
                             }
@@ -615,6 +684,12 @@ private fun PlaylistCardPlaceholder(
                     Box(
                         modifier = Modifier
                             .fillMaxWidth(0.4f)
+                            .height(10.dp)
+                            .background(MaterialTheme.colorScheme.surfaceVariant)
+                    )
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth(0.3f)
                             .height(10.dp)
                             .background(MaterialTheme.colorScheme.surfaceVariant)
                     )

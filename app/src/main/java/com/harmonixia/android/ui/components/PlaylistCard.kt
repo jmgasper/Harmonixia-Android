@@ -173,6 +173,13 @@ private fun PlaylistListContent(
                     overflow = TextOverflow.Ellipsis
                 )
             }
+            Text(
+                text = stringResource(R.string.library_track_count, playlist.trackCount),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
         }
         if (playlist.isEditable) {
             EditableBadge()

@@ -19,11 +19,11 @@ import com.harmonixia.android.util.EXTRA_IS_LOCAL_FILE
 import com.harmonixia.android.util.EXTRA_PARENT_MEDIA_ID
 import com.harmonixia.android.util.EXTRA_STREAM_URI
 import com.harmonixia.android.util.EXTRA_TRACK_QUALITY
+import com.harmonixia.android.util.putProviderExtras
 import com.harmonixia.android.util.mergeWithLocal
 import com.harmonixia.android.util.replaceWithLocalMatches
 import com.harmonixia.android.util.NetworkConnectivityManager
 import java.io.File
-import java.util.concurrent.ConcurrentHashMap
 import kotlinx.coroutines.flow.first
 
 @UnstableApi
@@ -33,8 +33,24 @@ class MediaLibraryBrowser(
     private val offlineLibraryRepository: OfflineLibraryRepository,
     private val networkConnectivityManager: NetworkConnectivityManager
 ) {
-    private val artistNameCache = ConcurrentHashMap<String, String>()
-    private val playlistUriCache = ConcurrentHashMap<String, String>()
+    private val artistNameCache = object : LinkedHashMap<String, String>(
+        ARTIST_NAME_CACHE_SIZE,
+        0.75f,
+        true
+    ) {
+        override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, String>?): Boolean {
+            return size > ARTIST_NAME_CACHE_SIZE
+        }
+    }
+    private val playlistUriCache = object : LinkedHashMap<String, String>(
+        PLAYLIST_URI_CACHE_SIZE,
+        0.75f,
+        true
+    ) {
+        override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, String>?): Boolean {
+            return size > PLAYLIST_URI_CACHE_SIZE
+        }
+    }
     private val mediaItemCache = object : LinkedHashMap<String, MediaItem>(
         MEDIA_ITEM_CACHE_SIZE,
         0.75f,
@@ -76,7 +92,9 @@ class MediaLibraryBrowser(
                     parentId.startsWith("$MEDIA_ID_PREFIX_ARTIST:") -> {
                         val (artistId, provider) =
                             parseQualifiedId(MEDIA_ID_PREFIX_ARTIST, parentId) ?: return emptyList()
-                        val cachedName = artistNameCache[artistCacheKey(artistId, provider)].orEmpty()
+                        val cachedName = synchronized(artistNameCache) {
+                            artistNameCache[artistCacheKey(artistId, provider)].orEmpty()
+                        }
                         buildArtistAlbums(artistId, provider, cachedName)
                     }
                     else -> emptyList()
@@ -130,7 +148,8 @@ class MediaLibraryBrowser(
         val (playlistId, provider) =
             parseQualifiedId(MEDIA_ID_PREFIX_PLAYLIST, parentMediaId) ?: return null
         val key = playlistCacheKey(playlistId, provider)
-        return playlistUriCache[key]?.takeIf { it.isNotBlank() }
+        val cached = synchronized(playlistUriCache) { playlistUriCache[key] }
+        return cached?.takeIf { it.isNotBlank() }
             ?: repository.getCachedPlaylist(playlistId, provider)?.uri?.takeIf { it.isNotBlank() }
     }
 
@@ -332,7 +351,9 @@ class MediaLibraryBrowser(
 
     private fun cacheArtistName(artist: Artist) {
         val key = artistCacheKey(artist.itemId, artist.provider)
-        artistNameCache[key] = artist.name
+        synchronized(artistNameCache) {
+            artistNameCache[key] = artist.name
+        }
     }
 
     private fun cachePlaylists(playlists: List<Playlist>) {
@@ -340,7 +361,9 @@ class MediaLibraryBrowser(
             val uri = playlist.uri.trim()
             if (uri.isNotBlank()) {
                 val key = playlistCacheKey(playlist.itemId, playlist.provider)
-                playlistUriCache[key] = uri
+                synchronized(playlistUriCache) {
+                    playlistUriCache[key] = uri
+                }
             }
         }
     }
@@ -360,7 +383,7 @@ class MediaLibraryBrowser(
     ): String {
         if (cachedName.isNotBlank()) return cachedName
         val key = artistCacheKey(artistId, provider)
-        val cached = artistNameCache[key]
+        val cached = synchronized(artistNameCache) { artistNameCache[key] }
         if (!cached.isNullOrBlank()) return cached
         if (provider == OFFLINE_PROVIDER) {
             return Uri.decode(artistId)
@@ -486,6 +509,7 @@ class MediaLibraryBrowser(
             }
             putBoolean(EXTRA_IS_LOCAL_FILE, isLocalFile)
             putString(EXTRA_STREAM_URI, uri)
+            putProviderExtras(provider, providerMappings)
             if (!parentMediaId.isNullOrBlank()) {
                 putString(EXTRA_PARENT_MEDIA_ID, parentMediaId)
             }
@@ -677,5 +701,7 @@ class MediaLibraryBrowser(
         private const val ALBUM_PAGE_LIMIT = 200
         private const val ARTIST_PAGE_LIMIT = 200
         private const val MEDIA_ITEM_CACHE_SIZE = 500
+        private const val ARTIST_NAME_CACHE_SIZE = 500
+        private const val PLAYLIST_URI_CACHE_SIZE = 500
     }
 }

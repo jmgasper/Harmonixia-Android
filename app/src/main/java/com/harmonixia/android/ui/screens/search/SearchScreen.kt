@@ -1,16 +1,22 @@
 package com.harmonixia.android.ui.screens.search
 
 import android.app.Activity
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Close
@@ -23,10 +29,9 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TextField
-import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
@@ -38,11 +43,13 @@ import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -100,6 +107,60 @@ fun SearchScreen(
             if (windowSizeClass.widthSizeClass == WindowWidthSizeClass.Expanded) 2 else 1
         }
     }
+    val searchFieldHeight by remember(windowSizeClass) {
+        derivedStateOf {
+            when (windowSizeClass.widthSizeClass) {
+                WindowWidthSizeClass.Compact -> 48.dp
+                WindowWidthSizeClass.Medium -> 52.dp
+                WindowWidthSizeClass.Expanded -> 52.dp
+                else -> 48.dp
+            }
+        }
+    }
+    val searchFieldMaxWidth by remember(windowSizeClass) {
+        derivedStateOf {
+            when (windowSizeClass.widthSizeClass) {
+                WindowWidthSizeClass.Compact -> 560.dp
+                WindowWidthSizeClass.Medium -> 520.dp
+                WindowWidthSizeClass.Expanded -> 600.dp
+                else -> 560.dp
+            }
+        }
+    }
+    val searchFieldEndPadding by remember(windowSizeClass) {
+        derivedStateOf {
+            when (windowSizeClass.widthSizeClass) {
+                WindowWidthSizeClass.Compact -> 8.dp
+                WindowWidthSizeClass.Medium -> 12.dp
+                WindowWidthSizeClass.Expanded -> 16.dp
+                else -> 8.dp
+            }
+        }
+    }
+    val searchFieldHorizontalPadding by remember(windowSizeClass) {
+        derivedStateOf {
+            when (windowSizeClass.widthSizeClass) {
+                WindowWidthSizeClass.Compact -> 12.dp
+                WindowWidthSizeClass.Medium -> 16.dp
+                WindowWidthSizeClass.Expanded -> 20.dp
+                else -> 12.dp
+            }
+        }
+    }
+    val searchFieldIconSpacing by remember(windowSizeClass) {
+        derivedStateOf {
+            when (windowSizeClass.widthSizeClass) {
+                WindowWidthSizeClass.Compact -> 8.dp
+                WindowWidthSizeClass.Medium -> 12.dp
+                WindowWidthSizeClass.Expanded -> 12.dp
+                else -> 8.dp
+            }
+        }
+    }
+    val searchFieldTextStyle = when (windowSizeClass.widthSizeClass) {
+        WindowWidthSizeClass.Compact -> MaterialTheme.typography.bodyMedium
+        else -> MaterialTheme.typography.bodyLarge
+    }
 
     val expandedSections = remember { mutableStateMapOf<String, Boolean>() }
     val successState = uiState as? SearchUiState.Success
@@ -112,39 +173,22 @@ fun SearchScreen(
         topBar = {
             TopAppBar(
                 title = {
-                    TextField(
-                        value = searchQuery,
-                        onValueChange = viewModel::onSearchQueryChanged,
-                        leadingIcon = {
-                            Icon(
-                                imageVector = Icons.Outlined.Search,
-                                contentDescription = null
-                            )
-                        },
-                        trailingIcon = {
-                            if (searchQuery.isNotBlank()) {
-                                IconButton(onClick = { viewModel.onSearchQueryChanged("") }) {
-                                    Icon(
-                                        imageVector = Icons.Outlined.Close,
-                                        contentDescription = stringResource(
-                                            R.string.content_desc_clear_search
-                                        )
-                                    )
-                                }
-                            }
-                        },
-                        singleLine = true,
-                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                        colors = TextFieldDefaults.colors(
-                            focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-                            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-                            disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-                            focusedIndicatorColor = Color.Transparent,
-                            unfocusedIndicatorColor = Color.Transparent,
-                            disabledIndicatorColor = Color.Transparent
-                        ),
-                        modifier = Modifier.fillMaxWidth()
-                    )
+                    Box(modifier = Modifier.fillMaxWidth()) {
+                        SearchInputField(
+                            query = searchQuery,
+                            onQueryChange = viewModel::onSearchQueryChanged,
+                            onClearQuery = { viewModel.onSearchQueryChanged("") },
+                            placeholder = stringResource(R.string.search_query_hint),
+                            height = searchFieldHeight,
+                            horizontalPadding = searchFieldHorizontalPadding,
+                            iconSpacing = searchFieldIconSpacing,
+                            textStyle = searchFieldTextStyle,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .widthIn(max = searchFieldMaxWidth)
+                                .padding(end = searchFieldEndPadding)
+                        )
+                    }
                 },
                 actions = {
                     MainScaffoldActions()
@@ -335,6 +379,81 @@ fun SearchScreen(
 private fun ShowMoreButton(onClick: () -> Unit) {
     TextButton(onClick = onClick, modifier = Modifier.fillMaxWidth()) {
         Text(text = stringResource(R.string.search_show_more))
+    }
+}
+
+@Composable
+private fun SearchInputField(
+    query: String,
+    onQueryChange: (String) -> Unit,
+    onClearQuery: () -> Unit,
+    placeholder: String,
+    height: Dp,
+    horizontalPadding: Dp,
+    iconSpacing: Dp,
+    textStyle: TextStyle,
+    modifier: Modifier = Modifier
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isFocused by interactionSource.collectIsFocusedAsState()
+    val iconTint = if (isFocused) {
+        MaterialTheme.colorScheme.onSurface
+    } else {
+        MaterialTheme.colorScheme.onSurfaceVariant
+    }
+
+    Surface(
+        color = MaterialTheme.colorScheme.surfaceVariant,
+        contentColor = MaterialTheme.colorScheme.onSurface,
+        shape = MaterialTheme.shapes.medium,
+        border = if (isFocused) {
+            BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.6f))
+        } else {
+            null
+        },
+        modifier = modifier.height(height)
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(iconSpacing),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = horizontalPadding)
+        ) {
+            Icon(
+                imageVector = Icons.Outlined.Search,
+                contentDescription = null,
+                tint = iconTint
+            )
+            Box(modifier = Modifier.weight(1f)) {
+                if (query.isBlank()) {
+                    Text(
+                        text = placeholder,
+                        style = textStyle,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                BasicTextField(
+                    value = query,
+                    onValueChange = onQueryChange,
+                    singleLine = true,
+                    textStyle = textStyle.copy(color = MaterialTheme.colorScheme.onSurface),
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                    cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+                    interactionSource = interactionSource,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+            if (query.isNotBlank()) {
+                IconButton(onClick = onClearQuery) {
+                    Icon(
+                        imageVector = Icons.Outlined.Close,
+                        contentDescription = stringResource(R.string.content_desc_clear_search),
+                        tint = iconTint
+                    )
+                }
+            }
+        }
     }
 }
 

@@ -7,14 +7,18 @@ import androidx.media3.common.util.UnstableApi
 import com.harmonixia.android.data.local.SettingsDataStore
 import com.harmonixia.android.domain.model.PlaybackState
 import com.harmonixia.android.domain.model.Player
+import com.harmonixia.android.domain.model.ProviderBadge
 import com.harmonixia.android.domain.model.RepeatMode
 import com.harmonixia.android.domain.usecase.GetPlayersUseCase
+import com.harmonixia.android.domain.usecase.ResolveProviderBadgeUseCase
 import com.harmonixia.android.domain.usecase.SetPlayerMuteUseCase
 import com.harmonixia.android.domain.usecase.SetPlayerVolumeUseCase
 import com.harmonixia.android.service.playback.PlaybackServiceConnection
 import com.harmonixia.android.service.playback.PlaybackStateManager
 import com.harmonixia.android.util.ImageQualityManager
 import com.harmonixia.android.util.PlayerSelection
+import com.harmonixia.android.util.EXTRA_PROVIDER_DOMAINS
+import com.harmonixia.android.util.EXTRA_PROVIDER_ID
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -47,6 +51,7 @@ class PlaybackViewModel @Inject constructor(
     private val getPlayersUseCase: GetPlayersUseCase,
     private val setPlayerVolumeUseCase: SetPlayerVolumeUseCase,
     private val setPlayerMuteUseCase: SetPlayerMuteUseCase,
+    private val resolveProviderBadgeUseCase: ResolveProviderBadgeUseCase,
     private val playbackStateManager: PlaybackStateManager,
     settingsDataStore: SettingsDataStore,
     val imageQualityManager: ImageQualityManager
@@ -76,6 +81,41 @@ class PlaybackViewModel @Inject constructor(
         SharingStarted.WhileSubscribed(5_000),
         currentMediaItem.value
     )
+    private val providerMetadata: StateFlow<ProviderMetadata?> = displayedMediaItem
+        .map { mediaItem ->
+            val extras = mediaItem?.mediaMetadata?.extras ?: return@map null
+            val providerKey = extras.getString(EXTRA_PROVIDER_ID)?.trim().orEmpty()
+            val providerDomains = extras.getStringArray(EXTRA_PROVIDER_DOMAINS)
+                ?.map { it.trim() }
+                ?.filter { it.isNotBlank() }
+                ?.distinct()
+                ?.sorted()
+                .orEmpty()
+            if (providerKey.isBlank() && providerDomains.isEmpty()) {
+                null
+            } else {
+                ProviderMetadata(providerKey.takeIf { it.isNotBlank() }, providerDomains)
+            }
+        }
+        .distinctUntilChanged()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+    private val providerBadge: StateFlow<ProviderBadge?> = providerMetadata
+        .flatMapLatest { metadata ->
+            if (metadata == null) {
+                flowOf<ProviderBadge?>(null)
+            } else {
+                flow {
+                    emit(
+                        resolveProviderBadgeUseCase(
+                            metadata.providerKey,
+                            metadata.providerDomains
+                        ).getOrNull()
+                    )
+                }
+            }
+        }
+        .distinctUntilChanged()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
     val repeatMode: StateFlow<RepeatMode> = combine(
         playbackServiceConnection.repeatMode,
         _optimisticRepeatMode
@@ -187,8 +227,11 @@ class PlaybackViewModel @Inject constructor(
             mediaItem = mediaItem,
             position = position,
             duration = duration,
-            queueState = queueState
+            queueState = queueState,
+            providerBadge = null
         )
+    }.combine(providerBadge) { inputs, badge ->
+        inputs.copy(providerBadge = badge)
     }.combine(selectedPlayer) { inputs, player ->
         buildNowPlayingUiState(
             mediaItem = inputs.mediaItem,
@@ -199,6 +242,7 @@ class PlaybackViewModel @Inject constructor(
             hasPrevious = inputs.queueState.hasPrevious,
             repeatMode = inputs.queueState.repeatMode,
             shuffle = inputs.queueState.shuffle,
+            providerBadge = inputs.providerBadge,
             selectedPlayer = player
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), NowPlayingUiState.Idle)
@@ -456,7 +500,13 @@ class PlaybackViewModel @Inject constructor(
         val mediaItem: MediaItem?,
         val position: Long,
         val duration: Long,
-        val queueState: QueueState
+        val queueState: QueueState,
+        val providerBadge: ProviderBadge?
+    )
+
+    private data class ProviderMetadata(
+        val providerKey: String?,
+        val providerDomains: List<String>
     )
 
     private fun setOptimisticQueueMove(offset: Int) {

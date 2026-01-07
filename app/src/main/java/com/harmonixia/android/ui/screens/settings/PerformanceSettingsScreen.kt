@@ -11,14 +11,15 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
+import androidx.activity.ComponentActivity
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -26,8 +27,11 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.ImageLoader
 import com.harmonixia.android.R
+import com.harmonixia.android.ui.components.PlayerSelectionAction
+import com.harmonixia.android.ui.playback.PlaybackViewModel
 import com.harmonixia.android.ui.screens.settings.entrypoints.PerformanceSettingsEntryPoint
 import dagger.hilt.android.EntryPointAccessors
+import androidx.hilt.navigation.compose.hiltViewModel
 
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
@@ -37,6 +41,12 @@ fun PerformanceSettingsScreen(
     val context = LocalContext.current
     val entryPoint = remember(context) {
         EntryPointAccessors.fromApplication(context, PerformanceSettingsEntryPoint::class.java)
+    }
+    val activity = context as? ComponentActivity
+    val playbackViewModel: PlaybackViewModel = if (activity != null) {
+        hiltViewModel(activity)
+    } else {
+        hiltViewModel()
     }
     val performanceMonitor = entryPoint.performanceMonitor()
     val pagingStatsTracker = entryPoint.pagingStatsTracker()
@@ -101,6 +111,9 @@ fun PerformanceSettingsScreen(
                             contentDescription = stringResource(R.string.action_back)
                         )
                     }
+                },
+                actions = {
+                    PlayerSelectionAction(playbackViewModel = playbackViewModel)
                 }
             )
         }

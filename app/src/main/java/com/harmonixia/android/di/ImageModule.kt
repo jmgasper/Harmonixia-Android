@@ -18,6 +18,7 @@ import coil3.request.allowHardware
 import coil3.request.allowRgb565
 import coil3.request.bitmapConfig
 import coil3.request.crossfade
+import coil3.svg.SvgDecoder
 import com.harmonixia.android.data.local.AuthTokenProvider
 import com.harmonixia.android.ui.util.AudioFileAlbumArtFetcher
 import com.harmonixia.android.util.ImageQualityManager
@@ -76,6 +77,7 @@ object ImageModule {
         return ImageLoader.Builder(context)
             .components {
                 add(AudioFileAlbumArtFetcher.Factory())
+                add(SvgDecoder.Factory())
                 add(
                     DedupingNetworkFetcherFactory(
                         OkHttpNetworkFetcherFactory(

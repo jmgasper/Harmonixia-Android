@@ -31,11 +31,13 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.activity.ComponentActivity
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
@@ -44,7 +46,9 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.harmonixia.android.R
 import com.harmonixia.android.ui.components.EqGraphCanvas
 import com.harmonixia.android.ui.components.ErrorCard
+import com.harmonixia.android.ui.components.PlayerSelectionAction
 import com.harmonixia.android.ui.components.PresetDetailsCard
+import com.harmonixia.android.ui.playback.PlaybackViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -58,6 +62,13 @@ fun EqSettingsScreen(
     val selectedPreset by viewModel.selectedPreset.collectAsStateWithLifecycle()
     val eqSettings by viewModel.eqSettings.collectAsStateWithLifecycle()
     val presetDetails by viewModel.presetDetails.collectAsStateWithLifecycle()
+    val context = LocalContext.current
+    val activity = context as? ComponentActivity
+    val playbackViewModel: PlaybackViewModel = if (activity != null) {
+        hiltViewModel(activity)
+    } else {
+        hiltViewModel()
+    }
 
     Scaffold(
         topBar = {
@@ -70,6 +81,9 @@ fun EqSettingsScreen(
                             contentDescription = stringResource(R.string.action_back)
                         )
                     }
+                },
+                actions = {
+                    PlayerSelectionAction(playbackViewModel = playbackViewModel)
                 }
             )
         }

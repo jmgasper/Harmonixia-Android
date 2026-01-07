@@ -3,6 +3,7 @@ package com.harmonixia.android.ui.playback
 import androidx.media3.common.MediaItem
 import com.harmonixia.android.domain.model.PlaybackState
 import com.harmonixia.android.domain.model.Player
+import com.harmonixia.android.domain.model.ProviderBadge
 import com.harmonixia.android.domain.model.RepeatMode
 import com.harmonixia.android.util.EXTRA_TRACK_QUALITY
 
@@ -18,6 +19,9 @@ data class PlaybackInfo(
     val album: String,
     val artworkUrl: String?,
     val quality: String?,
+    val providerName: String?,
+    val providerIconSvg: String?,
+    val providerIconUrl: String?,
     val duration: Long,
     val currentPosition: Long,
     val isPlaying: Boolean,
@@ -37,6 +41,7 @@ fun buildNowPlayingUiState(
     hasPrevious: Boolean,
     repeatMode: RepeatMode,
     shuffle: Boolean,
+    providerBadge: ProviderBadge?,
     selectedPlayer: Player?
 ): NowPlayingUiState {
     val safePosition = currentPosition.coerceAtLeast(0L)
@@ -52,6 +57,7 @@ fun buildNowPlayingUiState(
         hasPrevious = hasPrevious,
         repeatMode = repeatMode,
         shuffle = shuffle,
+        providerBadge = providerBadge,
         selectedPlayer = selectedPlayer
     )
     return if (playbackState == PlaybackState.IDLE) {
@@ -69,15 +75,22 @@ fun MediaItem.toPlaybackInfo(
     hasPrevious: Boolean,
     repeatMode: RepeatMode,
     shuffle: Boolean,
+    providerBadge: ProviderBadge?,
     selectedPlayer: Player?
 ): PlaybackInfo {
     val metadata = mediaMetadata
+    val providerName = providerBadge?.name?.trim().orEmpty()
+    val providerIconSvg = providerBadge?.iconSvg?.trim()
+    val providerIconUrl = providerBadge?.iconUrl?.trim()
     return PlaybackInfo(
         title = metadata.title?.toString().orEmpty(),
         artist = metadata.artist?.toString().orEmpty(),
         album = metadata.albumTitle?.toString().orEmpty(),
         artworkUrl = metadata.artworkUri?.toString(),
         quality = metadata.extras?.getString(EXTRA_TRACK_QUALITY),
+        providerName = providerName.takeIf { it.isNotBlank() },
+        providerIconSvg = providerIconSvg?.takeIf { it.isNotBlank() },
+        providerIconUrl = providerIconUrl?.takeIf { it.isNotBlank() },
         duration = duration,
         currentPosition = currentPosition,
         isPlaying = playbackState == PlaybackState.PLAYING,

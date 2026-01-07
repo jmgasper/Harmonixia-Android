@@ -34,6 +34,7 @@ fun LocalAlbumEntity.toAlbum(): Album {
         uri = "offline:album:$encodedId",
         name = trimmedName,
         artists = artists,
-        imageUrl = imageUrl
+        imageUrl = imageUrl,
+        trackCount = trackCount
     )
 }

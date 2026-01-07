@@ -30,6 +30,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.Speaker
+import androidx.compose.material.icons.outlined.Wifi
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -41,6 +42,7 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
 import androidx.compose.runtime.Composable
@@ -80,6 +82,8 @@ import com.harmonixia.android.ui.components.formatTrackQualityLabel
 import com.harmonixia.android.ui.playback.NowPlayingUiState
 import com.harmonixia.android.ui.playback.PlaybackInfo
 import com.harmonixia.android.ui.playback.PlaybackViewModel
+import com.harmonixia.android.ui.theme.ExternalPlaybackGreen
+import com.harmonixia.android.ui.theme.ExternalPlaybackOnGreen
 import com.harmonixia.android.util.ImageQualityManager
 import com.harmonixia.android.util.PlayerSelection
 import kotlin.math.roundToInt
@@ -125,6 +129,9 @@ fun SharedTransitionScope.NowPlayingScreen(
     val isIdle = nowPlayingUiState is NowPlayingUiState.Idle
     val isLoading = nowPlayingUiState is NowPlayingUiState.Loading
     val controlsEnabled = !isIdle
+    val isExternalPlayback = selectedPlayer?.let {
+        !PlayerSelection.isLocalPlayer(it, localPlayerId)
+    } == true
 
     val windowSizeClass = calculateWindowSizeClass(activity = context as Activity)
     val isExpanded = windowSizeClass.widthSizeClass == WindowWidthSizeClass.Expanded
@@ -160,6 +167,21 @@ fun SharedTransitionScope.NowPlayingScreen(
     val dragOffsetX = remember { Animatable(0f) }
     val swipeThreshold = with(LocalDensity.current) { 100.dp.toPx() }
     val displayInfo = playbackInfo ?: emptyPlaybackInfo()
+    val scaffoldContainerColor = if (isExternalPlayback) {
+        ExternalPlaybackGreen
+    } else {
+        MaterialTheme.colorScheme.background
+    }
+    val topAppBarColors = if (isExternalPlayback) {
+        TopAppBarDefaults.topAppBarColors(
+            containerColor = ExternalPlaybackGreen,
+            titleContentColor = ExternalPlaybackOnGreen,
+            navigationIconContentColor = ExternalPlaybackOnGreen,
+            actionIconContentColor = ExternalPlaybackOnGreen
+        )
+    } else {
+        TopAppBarDefaults.topAppBarColors()
+    }
     val trackIdentity = TrackIdentity(
         title = displayInfo.title,
         artist = displayInfo.artist,
@@ -169,9 +191,11 @@ fun SharedTransitionScope.NowPlayingScreen(
     )
 
     Scaffold(
+        containerColor = scaffoldContainerColor,
         topBar = {
             TopAppBar(
                 title = { Text(text = stringResource(R.string.now_playing_title)) },
+                colors = topAppBarColors,
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(
@@ -187,10 +211,24 @@ fun SharedTransitionScope.NowPlayingScreen(
                             showPlayerSelectionDialog = true
                         }
                     ) {
-                        Icon(
-                            imageVector = Icons.Outlined.Speaker,
-                            contentDescription = stringResource(R.string.content_desc_speaker_icon)
-                        )
+                        Box(
+                            modifier = Modifier.size(24.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Outlined.Speaker,
+                                contentDescription = stringResource(R.string.content_desc_speaker_icon)
+                            )
+                            if (isExternalPlayback) {
+                                Icon(
+                                    imageVector = Icons.Outlined.Wifi,
+                                    contentDescription = null,
+                                    modifier = Modifier
+                                        .align(Alignment.BottomEnd)
+                                        .size(12.dp)
+                                )
+                            }
+                        }
                     }
                 }
             )
@@ -228,9 +266,12 @@ fun SharedTransitionScope.NowPlayingScreen(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
-                        PlayerNamePill(
+                        PlayerProviderRow(
                             player = selectedPlayer,
-                            localPlayerId = localPlayerId
+                            localPlayerId = localPlayerId,
+                            providerName = displayInfo.providerName,
+                            providerIconSvg = displayInfo.providerIconSvg,
+                            providerIconUrl = displayInfo.providerIconUrl
                         )
                         ArtworkPanel(
                             trackIdentity = trackIdentity,
@@ -303,9 +344,12 @@ fun SharedTransitionScope.NowPlayingScreen(
                             horizontalAlignment = Alignment.CenterHorizontally,
                             verticalArrangement = Arrangement.spacedBy(16.dp)
                         ) {
-                            PlayerNamePill(
+                            PlayerProviderRow(
                                 player = selectedPlayer,
-                                localPlayerId = localPlayerId
+                                localPlayerId = localPlayerId,
+                                providerName = displayInfo.providerName,
+                                providerIconSvg = displayInfo.providerIconSvg,
+                                providerIconUrl = displayInfo.providerIconUrl
                             )
                             TrackInfoPanel(
                                 trackIdentity = trackIdentity,
@@ -353,13 +397,14 @@ fun SharedTransitionScope.NowPlayingScreen(
                         placeholderPainter = placeholderPainter,
                         imageQualityManager = imageQualityManager
                     )
-                    if (selectedPlayer != null) {
-                        PlayerNamePill(
-                            player = selectedPlayer,
-                            localPlayerId = localPlayerId,
-                            modifier = Modifier.padding(top = 16.dp)
-                        )
-                    }
+                    PlayerProviderRow(
+                        player = selectedPlayer,
+                        localPlayerId = localPlayerId,
+                        providerName = displayInfo.providerName,
+                        providerIconSvg = displayInfo.providerIconSvg,
+                        providerIconUrl = displayInfo.providerIconUrl,
+                        modifier = Modifier.padding(top = 16.dp)
+                    )
                     Spacer(modifier = Modifier.height(24.dp))
                     ControlsPanel(
                         trackIdentity = trackIdentity,
@@ -591,44 +636,132 @@ private fun TrackInfoPanel(
     horizontalAlignment: Alignment.Horizontal = Alignment.CenterHorizontally,
     textAlign: TextAlign = TextAlign.Center
 ) {
-    AnimatedContent(
-        targetState = trackIdentity,
-        transitionSpec = { fadeIn() togetherWith fadeOut() },
-        label = "trackText"
-    ) { identity ->
-        Column(
-            modifier = modifier,
-            horizontalAlignment = horizontalAlignment
-        ) {
-            if (identity.title.isNotBlank()) {
-                Text(
-                    text = identity.title,
-                    style = titleStyle,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                    textAlign = textAlign
-                )
+    Column(
+        modifier = modifier,
+        horizontalAlignment = horizontalAlignment
+    ) {
+        AnimatedContent(
+            targetState = trackIdentity,
+            transitionSpec = { fadeIn() togetherWith fadeOut() },
+            label = "trackText"
+        ) { identity ->
+            Column(horizontalAlignment = horizontalAlignment) {
+                if (identity.title.isNotBlank()) {
+                    Text(
+                        text = identity.title,
+                        style = titleStyle,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                        textAlign = textAlign
+                    )
+                }
+                if (identity.artist.isNotBlank()) {
+                    Text(
+                        text = identity.artist,
+                        style = artistStyle,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        textAlign = textAlign
+                    )
+                }
+                if (identity.album.isNotBlank()) {
+                    Text(
+                        text = identity.album,
+                        style = albumStyle,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        textAlign = textAlign
+                    )
+                }
             }
-            if (identity.artist.isNotBlank()) {
-                Text(
-                    text = identity.artist,
-                    style = artistStyle,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    textAlign = textAlign
-                )
+        }
+    }
+}
+
+@Composable
+private fun PlayerProviderRow(
+    player: Player?,
+    localPlayerId: String?,
+    providerName: String?,
+    providerIconSvg: String?,
+    providerIconUrl: String?,
+    modifier: Modifier = Modifier
+) {
+    val hasProvider = !providerName.isNullOrBlank() ||
+        !providerIconSvg.isNullOrBlank() ||
+        !providerIconUrl.isNullOrBlank()
+    if (player == null && !hasProvider) return
+    Row(
+        modifier = modifier,
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        PlayerNamePill(
+            player = player,
+            localPlayerId = localPlayerId
+        )
+        if (hasProvider) {
+            ProviderBadgeRow(
+                providerName = providerName,
+                providerIconSvg = providerIconSvg,
+                providerIconUrl = providerIconUrl,
+                textAlign = TextAlign.Start
+            )
+        }
+    }
+}
+
+@Composable
+private fun ProviderBadgeRow(
+    providerName: String?,
+    providerIconSvg: String?,
+    providerIconUrl: String?,
+    textAlign: TextAlign,
+    modifier: Modifier = Modifier
+) {
+    val label = providerName?.trim().orEmpty()
+    val iconSvg = providerIconSvg?.trim()
+    val iconUrl = providerIconUrl?.trim()
+    if (label.isBlank() && iconSvg.isNullOrBlank() && iconUrl.isNullOrBlank()) return
+    val iconModel = remember(iconSvg, iconUrl) {
+        when {
+            !iconSvg.isNullOrBlank() -> iconSvg.toByteArray(Charsets.UTF_8)
+            !iconUrl.isNullOrBlank() -> iconUrl
+            else -> null
+        }
+    }
+    val context = LocalContext.current
+    val iconSize = 14.dp
+    val sizePx = with(LocalDensity.current) { iconSize.roundToPx() }
+    Row(
+        modifier = modifier,
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(6.dp)
+    ) {
+        if (iconModel != null) {
+            val request = remember(iconModel, sizePx) {
+                ImageRequest.Builder(context)
+                    .data(iconModel)
+                    .size(sizePx)
+                    .build()
             }
-            if (identity.album.isNotBlank()) {
-                Text(
-                    text = identity.album,
-                    style = albumStyle,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    textAlign = textAlign
-                )
-            }
+            AsyncImage(
+                model = request,
+                contentDescription = null,
+                modifier = Modifier.size(iconSize)
+            )
+        }
+        if (label.isNotBlank()) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                textAlign = textAlign
+            )
         }
     }
 }
@@ -708,6 +841,9 @@ private fun emptyPlaybackInfo(): PlaybackInfo =
         album = "",
         artworkUrl = null,
         quality = null,
+        providerName = null,
+        providerIconSvg = null,
+        providerIconUrl = null,
         duration = 0L,
         currentPosition = 0L,
         isPlaying = false,

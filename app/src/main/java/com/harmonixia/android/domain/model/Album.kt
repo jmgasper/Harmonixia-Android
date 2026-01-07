@@ -22,7 +22,9 @@ data class Album(
     @SerialName("added_at")
     val addedAt: String? = null,
     @SerialName("last_played")
-    val lastPlayed: String? = null
+    val lastPlayed: String? = null,
+    @SerialName("track_count")
+    val trackCount: Int = 0
 )
 
 val Album.downloadId: String

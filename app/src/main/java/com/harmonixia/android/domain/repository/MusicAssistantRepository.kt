@@ -6,6 +6,7 @@ import com.harmonixia.android.domain.model.Album
 import com.harmonixia.android.domain.model.Artist
 import com.harmonixia.android.domain.model.Playlist
 import com.harmonixia.android.domain.model.Player
+import com.harmonixia.android.domain.model.ProviderBadge
 import com.harmonixia.android.domain.model.Queue
 import com.harmonixia.android.domain.model.QueueOption
 import com.harmonixia.android.domain.model.RepeatMode
@@ -80,6 +81,10 @@ interface MusicAssistantRepository {
     suspend fun addToFavorites(track: Track): Result<Unit>
     suspend fun removeFromFavorites(track: Track): Result<Unit>
     suspend fun fetchFavorites(limit: Int, offset: Int): Result<List<Track>>
+    suspend fun resolveProviderBadge(
+        providerKey: String?,
+        providerDomains: List<String> = emptyList()
+    ): Result<ProviderBadge?>
     suspend fun setPlayerVolume(playerId: String, volume: Int): Result<Unit>
     suspend fun setPlayerMute(playerId: String, muted: Boolean): Result<Unit>
 }

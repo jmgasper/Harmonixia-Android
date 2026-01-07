@@ -105,6 +105,7 @@
     <string name="nav_artists">Artists</string>
     <string name="nav_playlists">Playlists</string>
     <string name="nav_search">Search</string>
+    <string name="search_query_hint">Search library</string>
     <string name="search_no_results">No results found for \"%1$s\"</string>
     <string name="search_error">Search failed</string>
     <string name="search_section_albums">Albums</string>
@@ -142,6 +143,8 @@
     <string name="home_offline_no_content">No offline content available. Download albums to listen offline.</string>
     <string name="action_retry">Retry</string>
     <string name="content_desc_album_artwork">Album artwork</string>
+    <string name="content_desc_show_list_view">Show list view</string>
+    <string name="content_desc_show_grid_view">Show grid view</string>
     <string name="action_open_settings">Open Settings</string>
     <string name="action_open_album">Open Album</string>
     <string name="action_view_albums">View Albums</string>
@@ -170,6 +173,7 @@
     <string name="artist_detail_loading_albums">Loading albums...</string>
     <string name="artist_detail_no_albums">No albums found for this artist</string>
     <string name="artist_detail_album_count">%1$d albums</string>
+    <string name="library_track_count">%1$d tracks</string>
     <string name="artist_detail_placeholder">Select an artist to view details</string>
     <string name="content_desc_artist_image">Artist image</string>
     <string name="track_quality_hires">Hi-Res</string>

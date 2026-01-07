@@ -80,6 +80,7 @@ import com.harmonixia.android.ui.components.PlaylistPickerDialog
 import com.harmonixia.android.ui.components.RenamePlaylistDialog
 import com.harmonixia.android.ui.components.TrackList
 import com.harmonixia.android.ui.components.TrackListLeadingContent
+import com.harmonixia.android.ui.navigation.MainScaffoldActions
 import com.harmonixia.android.ui.screens.settings.SettingsTab
 import com.harmonixia.android.ui.theme.rememberAdaptiveSpacing
 import com.harmonixia.android.ui.util.PlaylistCoverEntryPoint
@@ -304,6 +305,7 @@ fun PlaylistDetailScreen(
                         }
                     },
                     actions = {
+                        MainScaffoldActions()
                         if (playlist?.isEditable == true && !isFavoritesPlaylist) {
                             Box {
                                 IconButton(onClick = { showOptionsMenu = true }) {

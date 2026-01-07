@@ -61,6 +61,8 @@ import coil3.request.bitmapConfig
 import com.harmonixia.android.R
 import com.harmonixia.android.domain.model.Player
 import com.harmonixia.android.ui.playback.PlaybackInfo
+import com.harmonixia.android.ui.theme.ExternalPlaybackGreen
+import com.harmonixia.android.ui.theme.ExternalPlaybackOnGreen
 import com.harmonixia.android.util.ImageQualityManager
 import com.harmonixia.android.util.PlayerSelection
 import kotlin.math.abs
@@ -111,6 +113,19 @@ fun SharedTransitionScope.MiniPlayer(
     val context = LocalContext.current
     val qualityLabel = formatTrackQualityLabel(playbackInfo.quality, context::getString)
     val playerName = getPlayerDisplayName(selectedPlayer, context, localPlayerId)
+    val isExternalPlayback = selectedPlayer?.let {
+        !PlayerSelection.isLocalPlayer(it, localPlayerId)
+    } == true
+    val containerColor = if (isExternalPlayback) {
+        ExternalPlaybackGreen
+    } else {
+        MaterialTheme.colorScheme.surface
+    }
+    val contentColor = if (isExternalPlayback) {
+        ExternalPlaybackOnGreen
+    } else {
+        MaterialTheme.colorScheme.onSurface
+    }
     val optimizedSize = imageQualityManager.getOptimalImageSize(artworkSize)
     val sizePx = with(LocalDensity.current) { optimizedSize.roundToPx() }
     val artworkRequest = ImageRequest.Builder(context)
@@ -141,6 +156,8 @@ fun SharedTransitionScope.MiniPlayer(
             baseArtworkModifier
         }
         Surface(
+            color = containerColor,
+            contentColor = contentColor,
             modifier = modifier
                 .fillMaxWidth()
                 .clickable(

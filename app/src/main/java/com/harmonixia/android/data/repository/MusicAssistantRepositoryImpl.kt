@@ -10,6 +10,7 @@ import com.harmonixia.android.domain.model.Artist
 import com.harmonixia.android.domain.model.PlaybackState
 import com.harmonixia.android.domain.model.Playlist
 import com.harmonixia.android.domain.model.Player
+import com.harmonixia.android.domain.model.ProviderBadge
 import com.harmonixia.android.domain.model.ProviderMapping
 import com.harmonixia.android.domain.model.Queue
 import com.harmonixia.android.domain.model.QueueOption
@@ -93,6 +94,9 @@ class MusicAssistantRepositoryImpl @Inject constructor(
                 return size > TRACKS_CACHE_SIZE
             }
         }
+    private val providerCacheLock = Any()
+    private var providerManifestsCache: Map<String, ProviderManifest>? = null
+    private var providerInstancesCache: Map<String, ProviderInstance>? = null
     private val cacheScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     init {
@@ -106,6 +110,10 @@ class MusicAssistantRepositoryImpl @Inject constructor(
     override suspend fun connect(serverUrl: String, authToken: String): Result<Unit> {
         cachedServerUrl = serverUrl
         cachedAuthToken = authToken
+        synchronized(providerCacheLock) {
+            providerManifestsCache = null
+            providerInstancesCache = null
+        }
         return webSocketClient.connect(serverUrl, authToken)
     }
 
@@ -117,10 +125,15 @@ class MusicAssistantRepositoryImpl @Inject constructor(
         return withContext(Dispatchers.IO) {
             runCatching {
                 Logger.d(TAG, "Attempting login for user: $username")
-                val loginUrl = "${serverUrl.trimEnd('/')}/api/${ApiCommand.AUTH_LOGIN}"
+                val loginUrl = "${serverUrl.trimEnd('/')}/${ApiCommand.AUTH_LOGIN}"
                 val payload = buildJsonObject {
-                    put("username", username)
-                    put("password", password)
+                    put(
+                        "credentials",
+                        buildJsonObject {
+                            put("username", username)
+                            put("password", password)
+                        }
+                    )
                 }
                 val mediaType = "application/json".toMediaType()
                 val requestBody = payload.toString().toRequestBody(mediaType)
@@ -129,20 +142,34 @@ class MusicAssistantRepositoryImpl @Inject constructor(
                     .post(requestBody)
                     .build()
                 okHttpClient.newCall(request).execute().use { response ->
+                    val responseBody = response.body?.string().orEmpty()
                     if (!response.isSuccessful) {
+                        val errorMessage = runCatching {
+                            val element = json.parseToJsonElement(responseBody)
+                            val payloadObject = element as? JsonObject
+                            payloadObject?.stringOrNull("error", "message", "detail")
+                        }.getOrNull()
                         when (response.code) {
-                            401, 403 -> throw SecurityException("Invalid username or password")
+                            401, 403 ->
+                                throw SecurityException(errorMessage ?: "Invalid username or password")
                             408, 504 -> throw IOException("Connection timeout. Please check your network.")
                             500, 502, 503 -> throw IOException("Server error. Please try again later.")
-                            else -> throw IOException("Login failed: ${response.code}")
+                            else -> throw IOException(errorMessage ?: "Login failed: ${response.code}")
                         }
                     }
-                    val responseBody = response.body?.string()
-                        ?: throw IOException("Invalid server response")
+                    if (responseBody.isBlank()) {
+                        throw IOException("Invalid server response")
+                    }
                     val element = runCatching { json.parseToJsonElement(responseBody) }
                         .getOrElse { throw IOException("Invalid server response", it) }
                     val payloadObject = element as? JsonObject
                         ?: throw IOException("Invalid server response")
+                    val success = payloadObject["success"]?.jsonPrimitive?.booleanOrNull
+                    if (success == false) {
+                        val message = payloadObject.stringOrNull("error", "message", "detail")
+                            ?: "Invalid username or password"
+                        throw SecurityException(message)
+                    }
                     val token = payloadObject.stringOrNull("token", "access_token", "auth_token")
                         ?: throw IOException("Invalid server response")
                     Logger.i(TAG, "Login successful, token obtained")
@@ -755,6 +782,35 @@ class MusicAssistantRepositoryImpl @Inject constructor(
         ) { parseTrack(it) }
     }
 
+    override suspend fun resolveProviderBadge(
+        providerKey: String?,
+        providerDomains: List<String>
+    ): Result<ProviderBadge?> {
+        return runCatching {
+            val trimmedKey = providerKey?.trim().orEmpty()
+            val domains = providerDomains.map { it.trim() }
+                .filter { it.isNotBlank() }
+                .distinct()
+            if (trimmedKey.isBlank() && domains.isEmpty()) return@runCatching null
+            val catalog = ensureProviderCatalog()
+            val manifest = resolveProviderManifest(trimmedKey, domains, catalog)
+            val badgeName = manifest?.name?.trim().orEmpty()
+            val iconSvg = manifest?.preferredIconSvg()
+            val iconUrl = manifest?.icon?.takeIf {
+                it.startsWith("http://") || it.startsWith("https://") || it.startsWith("data:")
+            }
+            if (badgeName.isBlank() && iconSvg.isNullOrBlank() && iconUrl.isNullOrBlank()) {
+                null
+            } else {
+                ProviderBadge(
+                    name = badgeName,
+                    iconSvg = iconSvg,
+                    iconUrl = iconUrl
+                )
+            }
+        }
+    }
+
     private suspend fun fetchAlbumTracks(albumId: String, provider: String): List<Track> {
         val result = webSocketClient.sendRequest(
             ApiCommand.MUSIC_GET_ALBUM_TRACKS,
@@ -773,6 +829,28 @@ class MusicAssistantRepositoryImpl @Inject constructor(
             )
         ).getOrThrow()
         return parseTrackItems(result)
+    }
+
+    private suspend fun ensureProviderCatalog(): ProviderCatalog {
+        val cached = synchronized(providerCacheLock) {
+            val manifests = providerManifestsCache
+            val instances = providerInstancesCache
+            if (manifests != null && instances != null) {
+                ProviderCatalog(manifests, instances)
+            } else {
+                null
+            }
+        }
+        if (cached != null) return cached
+        val providersResult = webSocketClient.sendRequest(ApiCommand.PROVIDERS).getOrThrow()
+        val manifestsResult = webSocketClient.sendRequest(ApiCommand.PROVIDERS_MANIFESTS).getOrThrow()
+        val instances = parseProviderInstances(providersResult)
+        val manifests = parseProviderManifests(manifestsResult)
+        synchronized(providerCacheLock) {
+            providerInstancesCache = instances
+            providerManifestsCache = manifests
+        }
+        return ProviderCatalog(manifests, instances)
     }
 
     private fun invalidateCachesForEvent(event: WebSocketMessage.EventMessage) {
@@ -1060,7 +1138,8 @@ class MusicAssistantRepositoryImpl @Inject constructor(
                 val decoded = runCatching { json.decodeFromJsonElement<Playlist>(result) }
                     .getOrElse { parsePlaylist(result) }
                 val imageUrl = extractImageUrl(result) ?: decoded.imageUrl
-                decoded.copy(imageUrl = imageUrl)
+                val trackCount = result.intOrZero("track_count", "track_total", "total_tracks")
+                decoded.copy(imageUrl = imageUrl, trackCount = trackCount)
             }
             else -> {
                 Logger.w(TAG, "Unexpected playlist response: $result")
@@ -1096,7 +1175,8 @@ class MusicAssistantRepositoryImpl @Inject constructor(
             albumType = parseAlbumType(jsonObject.stringOrNull("album_type")),
             providerMappings = parseProviderMappings(jsonObject["provider_mappings"]),
             addedAt = jsonObject.stringOrNull("timestamp_added", "added_at"),
-            lastPlayed = jsonObject.stringOrNull("last_played")
+            lastPlayed = jsonObject.stringOrNull("last_played"),
+            trackCount = jsonObject.intOrZero("track_count", "track_total", "total_tracks")
         )
     }
 
@@ -1119,7 +1199,8 @@ class MusicAssistantRepositoryImpl @Inject constructor(
             name = jsonObject.stringOrEmpty("name"),
             owner = jsonObject.stringOrNull("owner"),
             isEditable = jsonObject.booleanOrFalse("is_editable"),
-            imageUrl = extractImageUrl(jsonObject)
+            imageUrl = extractImageUrl(jsonObject),
+            trackCount = jsonObject.intOrZero("track_count", "track_total", "total_tracks")
         )
     }
 
@@ -1222,6 +1303,71 @@ class MusicAssistantRepositoryImpl @Inject constructor(
                 available = obj.booleanOrFalse("available")
             )
         }
+    }
+
+    private fun parseProviderInstances(result: JsonElement?): Map<String, ProviderInstance> {
+        return extractItems(result)
+            .mapNotNull { parseProviderInstance(it) }
+            .associateBy { it.instanceId }
+    }
+
+    private fun parseProviderManifests(result: JsonElement?): Map<String, ProviderManifest> {
+        return extractItems(result)
+            .mapNotNull { parseProviderManifest(it) }
+            .associateBy { it.domain }
+    }
+
+    private fun parseProviderInstance(jsonObject: JsonObject): ProviderInstance? {
+        val instanceId = jsonObject.stringOrNull("instance_id", "provider_instance", "id")
+            ?.trim()
+            .orEmpty()
+        if (instanceId.isBlank()) return null
+        val domain = jsonObject.stringOrNull("domain", "provider_domain")?.trim().orEmpty()
+        val name = jsonObject.stringOrNull("name")?.trim()
+        return ProviderInstance(
+            instanceId = instanceId,
+            domain = domain,
+            name = name
+        )
+    }
+
+    private fun parseProviderManifest(jsonObject: JsonObject): ProviderManifest? {
+        val domain = jsonObject.stringOrNull("domain")?.trim().orEmpty()
+        if (domain.isBlank()) return null
+        val name = jsonObject.stringOrNull("name")?.trim().orEmpty()
+        val icon = jsonObject.stringOrNull("icon")?.trim()
+        val iconSvg = jsonObject.stringOrNull("icon_svg")?.trim()
+        val iconSvgMonochrome = jsonObject.stringOrNull("icon_svg_monochrome")?.trim()
+        val iconSvgDark = jsonObject.stringOrNull("icon_svg_dark")?.trim()
+        return ProviderManifest(
+            domain = domain,
+            name = name,
+            icon = icon,
+            iconSvg = iconSvg,
+            iconSvgMonochrome = iconSvgMonochrome,
+            iconSvgDark = iconSvgDark
+        )
+    }
+
+    private fun resolveProviderManifest(
+        providerKey: String,
+        providerDomains: List<String>,
+        catalog: ProviderCatalog
+    ): ProviderManifest? {
+        if (providerKey.isNotBlank()) {
+            catalog.manifests[providerKey]?.let { return it }
+            val instance = catalog.instances[providerKey]
+            val mappedDomain = instance?.domain?.trim().orEmpty()
+            if (mappedDomain.isNotBlank()) {
+                catalog.manifests[mappedDomain]?.let { return it }
+            }
+        }
+        for (domain in providerDomains) {
+            val trimmed = domain.trim()
+            if (trimmed.isBlank()) continue
+            catalog.manifests[trimmed]?.let { return it }
+        }
+        return null
     }
 
     private fun describeTrackQuality(providerMappings: JsonElement?): String? {
@@ -1445,6 +1591,31 @@ class MusicAssistantRepositoryImpl @Inject constructor(
             if (value != null) return value
         }
         return false
+    }
+
+    private data class ProviderCatalog(
+        val manifests: Map<String, ProviderManifest>,
+        val instances: Map<String, ProviderInstance>
+    )
+
+    private data class ProviderManifest(
+        val domain: String,
+        val name: String,
+        val icon: String?,
+        val iconSvg: String?,
+        val iconSvgMonochrome: String?,
+        val iconSvgDark: String?
+    )
+
+    private data class ProviderInstance(
+        val instanceId: String,
+        val domain: String,
+        val name: String?
+    )
+
+    private fun ProviderManifest.preferredIconSvg(): String? {
+        return listOf(iconSvg, iconSvgMonochrome, iconSvgDark)
+            .firstOrNull { !it.isNullOrBlank() }
     }
 
     companion object {
