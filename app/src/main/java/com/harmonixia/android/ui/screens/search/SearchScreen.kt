@@ -2,6 +2,7 @@ package com.harmonixia.android.ui.screens.search
 
 import android.app.Activity
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.layout.Arrangement
@@ -14,6 +15,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.text.BasicTextField
@@ -23,6 +25,7 @@ import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.Button
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -75,6 +78,7 @@ fun SearchScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val searchQuery by viewModel.searchQuery.collectAsStateWithLifecycle()
+    val libraryOnly by viewModel.libraryOnly.collectAsStateWithLifecycle()
     val isOfflineMode by viewModel.isOfflineMode.collectAsStateWithLifecycle()
     val imageQualityManager = viewModel.imageQualityManager
 
@@ -165,7 +169,7 @@ fun SearchScreen(
     val expandedSections = remember { mutableStateMapOf<String, Boolean>() }
     val successState = uiState as? SearchUiState.Success
 
-    LaunchedEffect(successState?.query) {
+    LaunchedEffect(successState?.query, libraryOnly) {
         expandedSections.clear()
     }
 
@@ -216,6 +220,12 @@ fun SearchScreen(
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
+            }
+            item {
+                SearchScopeToggle(
+                    libraryOnly = libraryOnly,
+                    onLibraryOnlyChange = viewModel::onLibraryOnlyChanged
+                )
             }
             when (val state = uiState) {
                     SearchUiState.Idle -> {
@@ -454,6 +464,30 @@ private fun SearchInputField(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun SearchScopeToggle(
+    libraryOnly: Boolean,
+    onLibraryOnlyChange: (Boolean) -> Unit
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onLibraryOnlyChange(!libraryOnly) }
+            .padding(vertical = 4.dp)
+    ) {
+        Checkbox(
+            checked = libraryOnly,
+            onCheckedChange = null
+        )
+        Spacer(modifier = Modifier.width(8.dp))
+        Text(
+            text = stringResource(R.string.search_library_only),
+            style = MaterialTheme.typography.bodyMedium
+        )
     }
 }
 

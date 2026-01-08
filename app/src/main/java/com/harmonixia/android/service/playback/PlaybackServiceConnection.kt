@@ -79,6 +79,14 @@ class PlaybackServiceConnection(
             updateQueue()
         }
 
+        override fun onRepeatModeChanged(repeatMode: Int) {
+            _repeatMode.value = repeatMode.toDomainRepeatMode()
+        }
+
+        override fun onShuffleModeEnabledChanged(shuffleModeEnabled: Boolean) {
+            _shuffle.value = shuffleModeEnabled
+        }
+
         override fun onVolumeChanged(volume: Float) {
             _volume.value = volume.coerceIn(0f, 1f)
         }
@@ -146,6 +154,12 @@ class PlaybackServiceConnection(
     }
 
     suspend fun setRepeatMode(repeatMode: RepeatMode): Result<Unit> {
+        if (playbackStateManager.isLocalPlaybackActive()) {
+            val controller = controllerState.value
+                ?: return Result.failure(IllegalStateException("Not connected"))
+            controller.repeatMode = repeatMode.toPlayerRepeatMode()
+            return Result.success(Unit)
+        }
         val queueId = playbackStateManager.currentQueueId
             ?: return Result.failure(IllegalStateException("Queue ID unavailable"))
         return withContext(Dispatchers.IO) {
@@ -154,6 +168,12 @@ class PlaybackServiceConnection(
     }
 
     suspend fun setShuffleMode(shuffle: Boolean): Result<Unit> {
+        if (playbackStateManager.isLocalPlaybackActive()) {
+            val controller = controllerState.value
+                ?: return Result.failure(IllegalStateException("Not connected"))
+            controller.shuffleModeEnabled = shuffle
+            return Result.success(Unit)
+        }
         val queueId = playbackStateManager.currentQueueId
             ?: return Result.failure(IllegalStateException("Queue ID unavailable"))
         return withContext(Dispatchers.IO) {
@@ -171,6 +191,8 @@ class PlaybackServiceConnection(
                     controllerState.value = controller
                     _currentMediaItem.value = controller.currentMediaItem
                     _volume.value = controller.volume.coerceIn(0f, 1f)
+                    _repeatMode.value = controller.repeatMode.toDomainRepeatMode()
+                    _shuffle.value = controller.shuffleModeEnabled
                     updatePlaybackState()
                     updateQueue()
                     startPositionUpdates()
@@ -198,6 +220,22 @@ class PlaybackServiceConnection(
             } finally {
                 positionJob = null
             }
+        }
+    }
+
+    private fun Int.toDomainRepeatMode(): RepeatMode {
+        return when (this) {
+            Player.REPEAT_MODE_ONE -> RepeatMode.ONE
+            Player.REPEAT_MODE_ALL -> RepeatMode.ALL
+            else -> RepeatMode.OFF
+        }
+    }
+
+    private fun RepeatMode.toPlayerRepeatMode(): Int {
+        return when (this) {
+            RepeatMode.OFF -> Player.REPEAT_MODE_OFF
+            RepeatMode.ONE -> Player.REPEAT_MODE_ONE
+            RepeatMode.ALL -> Player.REPEAT_MODE_ALL
         }
     }
 

@@ -27,6 +27,22 @@ fun formatTrackQualityLabel(
     return resolved ?: raw.takeIf { it.isNotBlank() }
 }
 
+enum class TrackQualityCategory {
+    LOSSLESS,
+    LOSSY,
+    UNKNOWN
+}
+
+fun trackQualityCategory(quality: String?): TrackQualityCategory? {
+    val normalized = quality?.trim()?.lowercase().orEmpty()
+    if (normalized.isBlank()) return null
+    return when {
+        isLosslessQuality(normalized) -> TrackQualityCategory.LOSSLESS
+        isLossyQuality(normalized) -> TrackQualityCategory.LOSSY
+        else -> TrackQualityCategory.UNKNOWN
+    }
+}
+
 private fun qualityLabelRes(normalized: String): Int? {
     return when {
         isHiResQuality(normalized) -> R.string.track_quality_hires

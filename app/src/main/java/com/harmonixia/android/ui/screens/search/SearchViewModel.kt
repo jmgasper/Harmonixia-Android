@@ -62,10 +62,15 @@ class SearchViewModel @Inject constructor(
     )
     val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
 
+    private val _libraryOnly = MutableStateFlow(
+        savedStateHandle.get<Boolean>(KEY_LIBRARY_ONLY) ?: true
+    )
+    val libraryOnly: StateFlow<Boolean> = _libraryOnly.asStateFlow()
+
     private val sectionLimits = MutableStateFlow(SectionLimits())
-    private val cache = LinkedHashMap<String, CachedResult>()
+    private val cache = LinkedHashMap<SearchCacheKey, CachedResult>()
     private var lastResults: SearchResults? = null
-    private var lastQuery: String? = null
+    private var lastParams: SearchParams? = null
 
     init {
         viewModelScope.launch {
@@ -73,21 +78,22 @@ class SearchViewModel @Inject constructor(
                 if (offline) {
                     cache.clear()
                     lastResults = null
-                    lastQuery = null
+                    lastParams = null
                 }
             }
         }
         viewModelScope.launch {
-            searchQuery
+            combine(searchQuery, libraryOnly) { query, libraryOnly ->
+                SearchParams(query.trim(), libraryOnly)
+            }
                 .debounce(SEARCH_DEBOUNCE_MS)
-                .collectLatest { query ->
-                    val trimmed = query.trim()
-                    if (trimmed.isBlank()) {
+                .collectLatest { params ->
+                    if (params.query.isBlank()) {
                         _uiState.value = SearchUiState.Idle
                         return@collectLatest
                     }
                     sectionLimits.value = SectionLimits()
-                    performSearch(trimmed)
+                    performSearch(params)
                 }
         }
     }
@@ -97,14 +103,19 @@ class SearchViewModel @Inject constructor(
         savedStateHandle[KEY_SEARCH_QUERY] = query
     }
 
+    fun onLibraryOnlyChanged(libraryOnly: Boolean) {
+        _libraryOnly.value = libraryOnly
+        savedStateHandle[KEY_LIBRARY_ONLY] = libraryOnly
+    }
+
     fun retrySearch() {
-        val trimmed = _searchQuery.value.trim()
-        if (trimmed.isBlank()) {
+        val params = SearchParams(_searchQuery.value.trim(), _libraryOnly.value)
+        if (params.query.isBlank()) {
             _uiState.value = SearchUiState.Idle
             return
         }
         viewModelScope.launch {
-            performSearch(trimmed)
+            performSearch(params)
         }
     }
 
@@ -136,7 +147,7 @@ class SearchViewModel @Inject constructor(
         val updated = update(sectionLimits.value)
         sectionLimits.value = updated
         val results = lastResults ?: return
-        val query = lastQuery ?: return
+        val query = lastParams?.query ?: return
         val isEmpty = results.isEmpty()
         _uiState.value = SearchUiState.Success(
             query = query,
@@ -149,18 +160,20 @@ class SearchViewModel @Inject constructor(
         )
     }
 
-    private suspend fun performSearch(query: String) {
+    private suspend fun performSearch(params: SearchParams) {
+        val query = params.query
         val offline = networkConnectivityManager.isOfflineMode() ||
             connectionState.value !is ConnectionState.Connected
         _uiState.value = SearchUiState.Loading
         val results = if (offline) {
             offlineLibraryRepository.searchDownloadedContent(query).first()
         } else {
-            val cached = cache[query]
+            val cacheKey = SearchCacheKey(query, params.libraryOnly)
+            val cached = cache[cacheKey]
             val baseResults = if (cached != null && cached.isFresh()) {
                 cached.results
             } else {
-                val result = searchLibraryUseCase(query, SEARCH_RESULT_LIMIT)
+                val result = searchLibraryUseCase(query, SEARCH_RESULT_LIMIT, params.libraryOnly)
                 result.getOrElse {
                     _uiState.value = SearchUiState.Error(it.message.orEmpty())
                     return
@@ -175,11 +188,11 @@ class SearchViewModel @Inject constructor(
                 playlists = baseResults.playlists,
                 tracks = baseResults.tracks.mergeWithLocal(localTracks)
             ).also { merged ->
-                cache[query] = CachedResult(merged, System.currentTimeMillis())
+                cache[cacheKey] = CachedResult(merged, System.currentTimeMillis())
             }
         }
         lastResults = results
-        lastQuery = query
+        lastParams = params
         val limits = sectionLimits.value
         _uiState.value = SearchUiState.Success(
             query = query,
@@ -216,6 +229,16 @@ class SearchViewModel @Inject constructor(
         return albums.isEmpty() && artists.isEmpty() && playlists.isEmpty() && tracks.isEmpty()
     }
 
+    private data class SearchParams(
+        val query: String,
+        val libraryOnly: Boolean
+    )
+
+    private data class SearchCacheKey(
+        val query: String,
+        val libraryOnly: Boolean
+    )
+
     private data class CachedResult(
         val results: SearchResults,
         val timestampMs: Long
@@ -236,6 +259,7 @@ class SearchViewModel @Inject constructor(
         private const val SEARCH_RESULT_LIMIT = 50
         private const val SEARCH_DEBOUNCE_MS = 300L
         private const val KEY_SEARCH_QUERY = "search_query"
+        private const val KEY_LIBRARY_ONLY = "search_library_only"
         private const val INITIAL_RESULT_LIMIT = 20
         private const val SHOW_MORE_INCREMENT = 20
         private const val CACHE_TTL_MS = 5 * 60 * 1000L

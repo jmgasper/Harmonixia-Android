@@ -1,12 +1,17 @@
 package com.harmonixia.android.ui.components
 
-import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
+import androidx.compose.material3.SliderState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -16,22 +21,33 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.DpSize
+import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.unit.dp
 import com.harmonixia.android.R
 import kotlin.math.roundToLong
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SeekBar(
     currentPosition: Long,
     duration: Long,
     onSeek: (Long) -> Unit,
     enabled: Boolean = true,
+    centerContent: (@Composable () -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     val safeDuration = duration.coerceAtLeast(0L)
+    val isEnabled = enabled && safeDuration > 0L
     var isDragging by remember { mutableStateOf(false) }
     var sliderPosition by remember { mutableFloatStateOf(0f) }
     val progress by remember(currentPosition, safeDuration) {
@@ -56,6 +72,15 @@ fun SeekBar(
         currentPosition.coerceAtLeast(0L)
     }
     val seekLabel = stringResource(R.string.label_seek)
+    val interactionSource = remember { MutableInteractionSource() }
+    val inactiveTrackColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.35f)
+    val activeTrackColor = MaterialTheme.colorScheme.primary
+    val timeColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f)
+    val sliderColors = SliderDefaults.colors(
+        thumbColor = activeTrackColor,
+        activeTrackColor = activeTrackColor,
+        inactiveTrackColor = inactiveTrackColor
+    )
 
     Column(modifier = modifier) {
         Slider(
@@ -71,32 +96,115 @@ fun SeekBar(
                 }
             },
             valueRange = 0f..1f,
-            enabled = enabled && safeDuration > 0L,
-            colors = SliderDefaults.colors(
-                activeTrackColor = MaterialTheme.colorScheme.primary,
-                inactiveTrackColor = MaterialTheme.colorScheme.surfaceVariant
-            ),
+            enabled = isEnabled,
+            colors = sliderColors,
+            interactionSource = interactionSource,
+            thumb = {
+                SliderDefaults.Thumb(
+                    interactionSource = interactionSource,
+                    colors = sliderColors,
+                    enabled = isEnabled,
+                    thumbSize = SeekBarThumbSize
+                )
+            },
+            track = { sliderState ->
+                SeekBarTrack(
+                    sliderState = sliderState,
+                    activeColor = activeTrackColor,
+                    inactiveColor = inactiveTrackColor,
+                    enabled = isEnabled
+                )
+            },
             modifier = Modifier.semantics {
                 contentDescription = seekLabel
             }
         )
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(
-                text = formatTime(displayedPosition),
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Text(
-                text = formatTime(safeDuration),
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            Box(
+                modifier = Modifier.weight(1f),
+                contentAlignment = Alignment.CenterStart
+            ) {
+                Text(
+                    text = formatTime(displayedPosition),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = timeColor
+                )
+            }
+            Box(
+                modifier = Modifier.weight(1f),
+                contentAlignment = Alignment.Center
+            ) {
+                centerContent?.invoke()
+            }
+            Box(
+                modifier = Modifier.weight(1f),
+                contentAlignment = Alignment.CenterEnd
+            ) {
+                Text(
+                    text = formatTime(safeDuration),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = timeColor
+                )
+            }
         }
     }
 }
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun SeekBarTrack(
+    sliderState: SliderState,
+    activeColor: Color,
+    inactiveColor: Color,
+    enabled: Boolean
+) {
+    val isRtl = LocalLayoutDirection.current == LayoutDirection.Rtl
+    val active = if (enabled) activeColor else activeColor.copy(alpha = 0.4f)
+    val inactive = if (enabled) inactiveColor else inactiveColor.copy(alpha = 0.2f)
+    val valueRange = sliderState.valueRange
+    val fraction = if (valueRange.endInclusive > valueRange.start) {
+        val coercedValue = sliderState.value.coerceIn(valueRange.start, valueRange.endInclusive)
+        ((coercedValue - valueRange.start) / (valueRange.endInclusive - valueRange.start))
+            .coerceIn(0f, 1f)
+    } else {
+        0f
+    }
+    Canvas(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(SeekBarTrackHeight)
+    ) {
+        val sliderLeft = Offset(0f, center.y)
+        val sliderRight = Offset(size.width, center.y)
+        val sliderStart = if (isRtl) sliderRight else sliderLeft
+        val sliderEnd = if (isRtl) sliderLeft else sliderRight
+        val strokeWidth = SeekBarTrackHeight.toPx()
+        drawLine(
+            color = inactive,
+            start = sliderStart,
+            end = sliderEnd,
+            strokeWidth = strokeWidth,
+            cap = StrokeCap.Round
+        )
+        val activeEnd = Offset(
+            x = sliderStart.x + (sliderEnd.x - sliderStart.x) * fraction,
+            y = center.y
+        )
+        drawLine(
+            color = active,
+            start = sliderStart,
+            end = activeEnd,
+            strokeWidth = strokeWidth,
+            cap = StrokeCap.Round
+        )
+    }
+}
+
+private val SeekBarThumbSize = DpSize(8.dp, 8.dp)
+private val SeekBarTrackHeight = 4.dp
 
 @Composable
 private fun formatTime(milliseconds: Long): String {

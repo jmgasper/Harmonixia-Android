@@ -239,6 +239,22 @@ class MusicAssistantRepositoryImplTest {
     }
 
     @Test
+    fun searchLibrary_respectsLibraryOnlyFlag() = runBlocking {
+        val client = FakeMusicAssistantWebSocketClient { command, params ->
+            assertEquals(ApiCommand.MUSIC_SEARCH, command)
+            assertEquals("query", params["search_query"])
+            assertEquals(10, params["limit"])
+            assertEquals(false, params["library_only"])
+            Result.success(buildJsonObject { })
+        }
+        val repository = MusicAssistantRepositoryImpl(client, okHttpClient, json, performanceMonitor)
+
+        val result = repository.searchLibrary("query", 10, libraryOnly = false)
+
+        assertTrue(result.isSuccess)
+    }
+
+    @Test
     fun getAlbumTracks_returnsTracks() = runBlocking {
         val resultPayload = buildJsonArray {
             add(

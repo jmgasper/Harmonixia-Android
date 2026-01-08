@@ -1,5 +1,6 @@
 package com.harmonixia.android.ui.playback
 
+import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.media3.common.MediaItem
@@ -9,8 +10,12 @@ import com.harmonixia.android.domain.model.PlaybackState
 import com.harmonixia.android.domain.model.Player
 import com.harmonixia.android.domain.model.ProviderBadge
 import com.harmonixia.android.domain.model.RepeatMode
+import com.harmonixia.android.domain.model.Artist
+import com.harmonixia.android.domain.repository.LocalMediaRepository
+import com.harmonixia.android.domain.repository.OFFLINE_PROVIDER
 import com.harmonixia.android.domain.usecase.GetPlayersUseCase
 import com.harmonixia.android.domain.usecase.ResolveProviderBadgeUseCase
+import com.harmonixia.android.domain.usecase.SearchLibraryUseCase
 import com.harmonixia.android.domain.usecase.SetPlayerMuteUseCase
 import com.harmonixia.android.domain.usecase.SetPlayerVolumeUseCase
 import com.harmonixia.android.service.playback.PlaybackServiceConnection
@@ -37,7 +42,9 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 
 sealed class PlaybackUiEvent {
@@ -52,6 +59,8 @@ class PlaybackViewModel @Inject constructor(
     private val setPlayerVolumeUseCase: SetPlayerVolumeUseCase,
     private val setPlayerMuteUseCase: SetPlayerMuteUseCase,
     private val resolveProviderBadgeUseCase: ResolveProviderBadgeUseCase,
+    private val searchLibraryUseCase: SearchLibraryUseCase,
+    private val localMediaRepository: LocalMediaRepository,
     private val playbackStateManager: PlaybackStateManager,
     settingsDataStore: SettingsDataStore,
     val imageQualityManager: ImageQualityManager
@@ -418,6 +427,78 @@ class PlaybackViewModel @Inject constructor(
         }
     }
 
+    fun resolveNowPlayingArtist(onResolved: (Artist?) -> Unit) {
+        val mediaItem = displayedMediaItem.value
+        viewModelScope.launch {
+            val artist = resolveArtistFromMediaItem(mediaItem)
+            onResolved(artist)
+        }
+    }
+
+    private suspend fun resolveArtistFromMediaItem(mediaItem: MediaItem?): Artist? {
+        val rawArtistName = mediaItem?.mediaMetadata?.artist?.toString().orEmpty()
+        val artistName = rawArtistName.substringBefore(',').trim()
+        if (artistName.isBlank()) return null
+        val providerId = mediaItem?.mediaMetadata?.extras
+            ?.getString(EXTRA_PROVIDER_ID)
+            ?.trim()
+            ?.takeIf { it.isNotBlank() }
+        return resolveArtistByName(artistName, providerId)
+    }
+
+    private suspend fun resolveArtistByName(artistName: String, providerId: String?): Artist? =
+        withContext(Dispatchers.IO) {
+            val normalizedTarget = normalizeArtistName(artistName)
+            if (normalizedTarget.isBlank()) {
+                return@withContext null
+            }
+            if (providerId == OFFLINE_PROVIDER) {
+                return@withContext buildOfflineArtist(artistName)
+            }
+            val searchResult = searchLibraryUseCase(
+                artistName,
+                ARTIST_LOOKUP_LIMIT,
+                libraryOnly = true
+            )
+            if (searchResult.isSuccess) {
+                val artists = searchResult.getOrNull()?.artists.orEmpty()
+                return@withContext findMatchingArtist(artists, normalizedTarget, providerId)
+            }
+            val localArtists = localMediaRepository.searchArtists(artistName).first()
+            findMatchingArtist(localArtists, normalizedTarget, OFFLINE_PROVIDER)
+        }
+
+    private fun findMatchingArtist(
+        artists: List<Artist>,
+        normalizedTarget: String,
+        providerId: String?
+    ): Artist? {
+        if (artists.isEmpty()) return null
+        val matches = artists.filter { normalizeArtistName(it.name) == normalizedTarget }
+        if (matches.isEmpty()) return null
+        if (!providerId.isNullOrBlank()) {
+            matches.firstOrNull { it.provider == providerId }?.let { return it }
+        }
+        return matches.firstOrNull()
+    }
+
+    private fun normalizeArtistName(name: String): String {
+        return name.trim().lowercase()
+    }
+
+    private fun buildOfflineArtist(name: String): Artist {
+        val trimmed = name.trim()
+        val encoded = Uri.encode(trimmed)
+        return Artist(
+            itemId = encoded,
+            provider = OFFLINE_PROVIDER,
+            uri = "offline:artist:$encoded",
+            name = trimmed,
+            sortName = trimmed.lowercase(),
+            imageUrl = null
+        )
+    }
+
     fun setVolume(volume: Float) {
         val controller = playbackServiceConnection.mediaController.value
         if (controller == null) {
@@ -579,3 +660,4 @@ private const val OPTIMISTIC_PLAYBACK_STATE_TIMEOUT_MS = 2_000L
 private const val OPTIMISTIC_REPEAT_TIMEOUT_MS = 3_000L
 private const val OPTIMISTIC_SHUFFLE_TIMEOUT_MS = 3_000L
 private const val OPTIMISTIC_QUEUE_MOVE_TIMEOUT_MS = 1_500L
+private const val ARTIST_LOOKUP_LIMIT = 50

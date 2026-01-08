@@ -314,14 +314,21 @@ class SettingsViewModel @Inject constructor(
 
     fun updateLocalMediaFolder(uri: String) {
         viewModelScope.launch {
+            val previousUri = _localMediaFolderUri.value
             settingsDataStore.saveLocalMediaFolderUri(uri)
             _localMediaFolderUri.value = uri
             emitEvent("Local media folder updated")
+            if (uri.isNotBlank() && uri != previousUri) {
+                startLocalMediaScan(uri)
+            }
         }
     }
 
     fun scanLocalMedia() {
-        val folderUri = _localMediaFolderUri.value
+        startLocalMediaScan(_localMediaFolderUri.value)
+    }
+
+    private fun startLocalMediaScan(folderUri: String) {
         if (folderUri.isBlank()) {
             emitEvent("Please select a folder first")
             return

@@ -18,6 +18,16 @@ private val ExternalPlaybackOnGreenLight = Color(0xFF1B5E20)
 private val ExternalPlaybackGreenDark = Color(0xFF1B5E20)
 private val ExternalPlaybackOnGreenDark = Color(0xFFE8F5E9)
 
+private val LosslessQualityGreenLight = Color(0xFFDFF5D8)
+private val LosslessQualityOnGreenLight = Color(0xFF1B5E20)
+private val LosslessQualityGreenDark = Color(0xFF1B5E20)
+private val LosslessQualityOnGreenDark = Color(0xFFE8F5E9)
+
+private val CompressedQualityOrangeLight = Color(0xFFFFE3C2)
+private val CompressedQualityOnOrangeLight = Color(0xFF7A3E00)
+private val CompressedQualityOrangeDark = Color(0xFFB35A00)
+private val CompressedQualityOnOrangeDark = Color(0xFFFFEAD6)
+
 val ExternalPlaybackGreen: Color
     @Composable
     get() = if (isDarkTheme()) ExternalPlaybackGreenDark else ExternalPlaybackGreenLight
@@ -25,6 +35,22 @@ val ExternalPlaybackGreen: Color
 val ExternalPlaybackOnGreen: Color
     @Composable
     get() = if (isDarkTheme()) ExternalPlaybackOnGreenDark else ExternalPlaybackOnGreenLight
+
+val LosslessQualityGreen: Color
+    @Composable
+    get() = if (isDarkTheme()) LosslessQualityGreenDark else LosslessQualityGreenLight
+
+val LosslessQualityOnGreen: Color
+    @Composable
+    get() = if (isDarkTheme()) LosslessQualityOnGreenDark else LosslessQualityOnGreenLight
+
+val CompressedQualityOrange: Color
+    @Composable
+    get() = if (isDarkTheme()) CompressedQualityOrangeDark else CompressedQualityOrangeLight
+
+val CompressedQualityOnOrange: Color
+    @Composable
+    get() = if (isDarkTheme()) CompressedQualityOnOrangeDark else CompressedQualityOnOrangeLight
 
 @Composable
 private fun isDarkTheme(): Boolean {

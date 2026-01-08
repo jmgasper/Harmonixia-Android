@@ -41,18 +41,28 @@ fun AlphabetFastScroller(
     onLetterChange: (Char) -> Unit,
     content: @Composable BoxScope.() -> Unit
 ) {
-    val alphabetHeightInPixels = with(LocalDensity.current) { AlphabetItemSize.toPx() }
     var alphabetRelativeDragYOffset by remember { mutableStateOf<Float?>(null) }
     var alphabetDistanceFromTopOfScreen by remember { mutableStateOf(0F) }
     var lastLetter by remember { mutableStateOf<Char?>(null) }
 
     BoxWithConstraints(modifier = modifier) {
+        val alphabetCount = AlphabetCharList.size.toFloat()
+        val availableHeight = if (maxHeight == Dp.Infinity) {
+            AlphabetItemSize * alphabetCount
+        } else {
+            maxHeight
+        }
+        val itemHeight = minOf(AlphabetItemSize, availableHeight / alphabetCount)
+        val alphabetHeightInPixels = with(LocalDensity.current) {
+            itemHeight.coerceAtLeast(1.dp).toPx()
+        }
         content()
 
         if (!isEnabled) return@BoxWithConstraints
 
         AlphabetScroller(
             modifier = Modifier.align(Alignment.CenterEnd),
+            itemHeight = itemHeight,
             onAlphabetListDrag = { relativeDragYOffset, containerDistance ->
                 alphabetRelativeDragYOffset = relativeDragYOffset
                 alphabetDistanceFromTopOfScreen = containerDistance
@@ -86,6 +96,7 @@ fun AlphabetFastScroller(
 @Composable
 private fun AlphabetScroller(
     modifier: Modifier = Modifier,
+    itemHeight: Dp,
     onAlphabetListDrag: (relativeDragYOffset: Float?, distanceFromTopOfScreen: Float) -> Unit
 ) {
     var distanceFromTopOfScreen by remember { mutableStateOf(0F) }
@@ -116,7 +127,7 @@ private fun AlphabetScroller(
     ) {
         for (letter in AlphabetCharList) {
             Text(
-                modifier = Modifier.height(AlphabetItemSize),
+                modifier = Modifier.height(itemHeight),
                 text = letter.toString(),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant

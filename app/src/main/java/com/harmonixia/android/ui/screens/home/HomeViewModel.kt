@@ -6,6 +6,8 @@ import com.harmonixia.android.data.remote.ConnectionState
 import com.harmonixia.android.domain.repository.LocalMediaRepository
 import com.harmonixia.android.domain.repository.MusicAssistantRepository
 import com.harmonixia.android.domain.usecase.GetConnectionStateUseCase
+import com.harmonixia.android.domain.usecase.PlayTrackUseCase
+import com.harmonixia.android.domain.model.Track
 import com.harmonixia.android.util.ImageQualityManager
 import com.harmonixia.android.util.NetworkConnectivityManager
 import com.harmonixia.android.util.PrefetchScheduler
@@ -29,6 +31,7 @@ class HomeViewModel @Inject constructor(
     getConnectionStateUseCase: GetConnectionStateUseCase,
     private val networkConnectivityManager: NetworkConnectivityManager,
     private val prefetchScheduler: PrefetchScheduler,
+    private val playTrackUseCase: PlayTrackUseCase,
     val imageQualityManager: ImageQualityManager
 ) : ViewModel() {
     val connectionState: StateFlow<ConnectionState> = getConnectionStateUseCase()
@@ -94,6 +97,13 @@ class HomeViewModel @Inject constructor(
         }
     }
 
+    fun playTrack(track: Track) {
+        viewModelScope.launch {
+            if (isOfflineMode.value) return@launch
+            playTrackUseCase(track)
+        }
+    }
+
     private suspend fun loadHomeData() {
         if (isOfflineMode.value) {
             return
@@ -115,8 +125,10 @@ class HomeViewModel @Inject constructor(
         supervisorScope {
             val recentlyPlayedDeferred = async { repository.fetchRecentlyPlayed(HOME_LIST_LIMIT) }
             val recentlyAddedDeferred = async { repository.fetchRecentlyAdded(HOME_LIST_LIMIT) }
+            val recommendationsDeferred = async { repository.fetchRecommendations() }
             val recentlyPlayed = recentlyPlayedDeferred.await()
             val recentlyAdded = recentlyAddedDeferred.await()
+            val recommendations = recommendationsDeferred.await()
             val error = recentlyPlayed.exceptionOrNull() ?: recentlyAdded.exceptionOrNull()
             if (error != null) {
                 _uiState.value = HomeUiState.Error(error.message ?: "Unknown error")
@@ -124,9 +136,12 @@ class HomeViewModel @Inject constructor(
             }
             val recentlyPlayedList = recentlyPlayed.getOrDefault(emptyList())
             val recentlyAddedList = recentlyAdded.getOrDefault(emptyList())
+            val recommendationsList = recommendations.getOrDefault(emptyList())
             _uiState.value = HomeUiState.Success(
                 recentlyPlayed = recentlyPlayedList,
-                recentlyAdded = recentlyAddedList
+                recentlyAdded = recentlyAddedList,
+                recommendations = recommendationsList,
+                recommendationsLoadError = recommendations.isFailure
             )
             prefetchScheduler.scheduleAlbumTrackPrefetch(recentlyPlayedList)
         }

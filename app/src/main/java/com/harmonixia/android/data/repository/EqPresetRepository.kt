@@ -15,6 +15,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 @Singleton
 class EqPresetRepositoryImpl @Inject constructor(
@@ -37,31 +38,33 @@ class EqPresetRepositoryImpl @Inject constructor(
             return Result.success(cached)
         }
 
-        return runCatching {
-            val cacheFile = eqPresetCache.getCacheFile()
-            val shouldDownload = forceRefresh || !eqPresetCache.isCacheValid(cacheFile)
-            val databaseFile = if (shouldDownload) {
-                runCatching { eqPresetCache.downloadOpraDatabaseAsync().getOrThrow() }
-                    .getOrElse {
-                        Logger.w(TAG, "OPRA download failed, falling back to cache", it)
-                        cacheFile
-                    }
-            } else {
-                cacheFile
-            }
+        return withContext(Dispatchers.IO) {
+            runCatching {
+                val cacheFile = eqPresetCache.getCacheFile()
+                val shouldDownload = forceRefresh || !eqPresetCache.isCacheValid(cacheFile)
+                val databaseFile = if (shouldDownload) {
+                    runCatching { eqPresetCache.downloadOpraDatabaseAsync().getOrThrow() }
+                        .getOrElse {
+                            Logger.w(TAG, "OPRA download failed, falling back to cache", it)
+                            cacheFile
+                        }
+                } else {
+                    cacheFile
+                }
 
-            if (!databaseFile.exists()) {
-                throw IllegalStateException("OPRA cache missing")
-            }
+                if (!databaseFile.exists()) {
+                    throw IllegalStateException("OPRA cache missing")
+                }
 
-            val parsed = eqPresetCache.parseJsonl(databaseFile)
-            if (!shouldDownload && parsed.eqEntries.isEmpty()) {
-                throw IllegalStateException("OPRA cache is empty")
+                val parsed = eqPresetCache.parseJsonl(databaseFile)
+                if (!shouldDownload && parsed.eqEntries.isEmpty()) {
+                    throw IllegalStateException("OPRA cache is empty")
+                }
+                val presets = eqPresetParser.normalizeOpraDatabase(parsed)
+                presetsCache = presets
+                ensureSelectedPresetValid(presets)
+                presets
             }
-            val presets = eqPresetParser.normalizeOpraDatabase(parsed)
-            presetsCache = presets
-            ensureSelectedPresetValid(presets)
-            presets
         }
     }
 

@@ -14,6 +14,8 @@ import androidx.navigation.compose.rememberNavController
 import com.harmonixia.android.data.local.SettingsDataStore
 import com.harmonixia.android.ui.navigation.NavGraph
 import com.harmonixia.android.ui.theme.HarmonixiaTheme
+import com.harmonixia.android.util.ConnectionRecoveryManager
+import com.harmonixia.android.util.NetworkConnectivityManager
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 
@@ -21,6 +23,10 @@ import javax.inject.Inject
 class MainActivity : ComponentActivity() {
     @Inject
     lateinit var settingsDataStore: SettingsDataStore
+    @Inject
+    lateinit var networkConnectivityManager: NetworkConnectivityManager
+    @Inject
+    lateinit var connectionRecoveryManager: ConnectionRecoveryManager
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -45,6 +51,12 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        networkConnectivityManager.refresh()
+        connectionRecoveryManager.onAppResumed()
     }
 
     private fun applyHighRefreshRatePreference() {

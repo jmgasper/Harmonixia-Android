@@ -68,6 +68,8 @@ class PlaybackStateManager(
     val currentPlayerId: String? get() = _playerId.value
     val currentQueueId: String? get() = _queueId.value
 
+    fun isLocalPlaybackActive(): Boolean = queueManager.isLocalQueueActive()
+
     fun hasExplicitPlayerSelection(): Boolean {
         return synchronized(playerSelectionLock) { isPlayerExplicitlySelected }
     }
@@ -295,6 +297,7 @@ class PlaybackStateManager(
     }
 
     private suspend fun handleQueue(queue: Queue?) {
+        if (queueManager.isLocalQueueActive()) return
         if (queue == null) {
             _queueId.value = null
             _playbackState.value = PlaybackState.IDLE

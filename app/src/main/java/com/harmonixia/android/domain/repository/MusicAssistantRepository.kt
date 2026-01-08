@@ -9,6 +9,7 @@ import com.harmonixia.android.domain.model.Player
 import com.harmonixia.android.domain.model.ProviderBadge
 import com.harmonixia.android.domain.model.Queue
 import com.harmonixia.android.domain.model.QueueOption
+import com.harmonixia.android.domain.model.RecommendationSection
 import com.harmonixia.android.domain.model.RepeatMode
 import com.harmonixia.android.domain.model.SearchResults
 import com.harmonixia.android.domain.model.Track
@@ -27,6 +28,7 @@ interface MusicAssistantRepository {
     suspend fun fetchRecentlyPlayed(limit: Int): Result<List<Album>>
     suspend fun fetchRecentlyPlayedPlaylists(limit: Int): Result<List<Playlist>>
     suspend fun fetchRecentlyAdded(limit: Int): Result<List<Album>>
+    suspend fun fetchRecommendations(): Result<List<RecommendationSection>>
     suspend fun getAlbum(itemId: String, provider: String): Result<Album>
     suspend fun getArtist(itemId: String, provider: String): Result<Artist>
     suspend fun getArtistAlbums(
@@ -38,7 +40,11 @@ interface MusicAssistantRepository {
     fun getCachedPlaylist(itemId: String, provider: String): Playlist?
     fun getCachedAlbumTracks(albumId: String, provider: String): List<Track>?
     fun getCachedPlaylistTracks(playlistId: String, provider: String): List<Track>?
-    suspend fun searchLibrary(query: String, limit: Int): Result<SearchResults>
+    suspend fun searchLibrary(
+        query: String,
+        limit: Int,
+        libraryOnly: Boolean = true
+    ): Result<SearchResults>
     suspend fun getAlbumTracks(albumId: String, provider: String): Result<List<Track>>
     suspend fun getAlbumTracksChunked(
         albumId: String,

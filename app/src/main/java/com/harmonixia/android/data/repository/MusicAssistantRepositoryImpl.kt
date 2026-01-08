@@ -14,6 +14,9 @@ import com.harmonixia.android.domain.model.ProviderBadge
 import com.harmonixia.android.domain.model.ProviderMapping
 import com.harmonixia.android.domain.model.Queue
 import com.harmonixia.android.domain.model.QueueOption
+import com.harmonixia.android.domain.model.RecommendationItem
+import com.harmonixia.android.domain.model.RecommendationMediaType
+import com.harmonixia.android.domain.model.RecommendationSection
 import com.harmonixia.android.domain.model.RepeatMode
 import com.harmonixia.android.domain.model.SearchResults
 import com.harmonixia.android.domain.model.Track
@@ -301,6 +304,15 @@ class MusicAssistantRepositoryImpl @Inject constructor(
         }
     }
 
+    override suspend fun fetchRecommendations(): Result<List<RecommendationSection>> {
+        return runCatching {
+            val result = webSocketClient.sendRequest(
+                ApiCommand.MUSIC_RECOMMENDATIONS
+            ).getOrThrow()
+            parseRecommendationSections(result)
+        }
+    }
+
     override suspend fun getAlbum(itemId: String, provider: String): Result<Album> {
         return runCatching {
             val result = webSocketClient.sendRequest(
@@ -380,14 +392,18 @@ class MusicAssistantRepositoryImpl @Inject constructor(
         return cached
     }
 
-    override suspend fun searchLibrary(query: String, limit: Int): Result<SearchResults> {
+    override suspend fun searchLibrary(
+        query: String,
+        limit: Int,
+        libraryOnly: Boolean
+    ): Result<SearchResults> {
         return runCatching {
             val result = webSocketClient.sendRequest(
                 ApiCommand.MUSIC_SEARCH,
                 mapOf(
                     "search_query" to query,
                     "limit" to limit,
-                    "library_only" to true
+                    "library_only" to libraryOnly
                 )
             ).getOrThrow()
             parseSearchResults(result)
@@ -1075,6 +1091,109 @@ class MusicAssistantRepositoryImpl @Inject constructor(
         )
     }
 
+    private fun parseRecommendationSections(result: JsonElement?): List<RecommendationSection> {
+        val folders = when (result) {
+            is JsonArray -> result.mapNotNull { it as? JsonObject }
+            is JsonObject -> listOf(result)
+            else -> emptyList()
+        }
+        return folders.mapNotNull { folder ->
+            val title = folder.stringOrNull("name", "title").orEmpty().trim()
+            val resolvedTitle = if (title.isBlank()) {
+                DEFAULT_RECOMMENDATION_SECTION_TITLE
+            } else {
+                title
+            }
+            val items = extractItems(folder["items"])
+                .mapNotNull { parseRecommendationItem(it) }
+            if (items.isEmpty()) null else RecommendationSection(resolvedTitle, items)
+        }
+    }
+
+    private fun parseRecommendationItem(item: JsonObject): RecommendationItem? {
+        val rawMediaType = item.stringOrNull("media_type")
+            ?.lowercase(Locale.getDefault())
+            .orEmpty()
+        if (rawMediaType == MEDIA_TYPE_FOLDER) return null
+        val fallbackTitle = item.stringOrNull("name", "sort_name", "title").orEmpty().trim()
+        val fallbackImageUrl = extractImageUrl(item)
+        return when (rawMediaType) {
+            MEDIA_TYPE_ALBUM -> {
+                val album = parseAlbum(item)
+                val title = album.name.ifBlank { fallbackTitle.ifBlank { UNKNOWN_ALBUM_TITLE } }
+                val subtitle = album.artists.joinToString(", ")
+                RecommendationItem(
+                    mediaType = RecommendationMediaType.ALBUM,
+                    title = title,
+                    subtitle = subtitle,
+                    imageUrl = album.imageUrl ?: fallbackImageUrl,
+                    album = album
+                )
+            }
+            MEDIA_TYPE_PLAYLIST -> {
+                val playlist = parsePlaylist(item)
+                val title = playlist.name.ifBlank {
+                    fallbackTitle.ifBlank { UNKNOWN_PLAYLIST_TITLE }
+                }
+                val resolvedImageUrl = playlist.imageUrl ?: fallbackImageUrl
+                val resolvedPlaylist = playlist.copy(
+                    name = title,
+                    imageUrl = resolvedImageUrl
+                )
+                cachePlaylistIfAbsent(resolvedPlaylist)
+                RecommendationItem(
+                    mediaType = RecommendationMediaType.PLAYLIST,
+                    title = title,
+                    subtitle = "",
+                    imageUrl = resolvedImageUrl,
+                    playlist = resolvedPlaylist
+                )
+            }
+            MEDIA_TYPE_ARTIST -> {
+                val artist = parseArtist(item)
+                val title = artist.name.ifBlank { fallbackTitle.ifBlank { UNKNOWN_ARTIST_TITLE } }
+                RecommendationItem(
+                    mediaType = RecommendationMediaType.ARTIST,
+                    title = title,
+                    subtitle = "",
+                    imageUrl = artist.imageUrl ?: fallbackImageUrl,
+                    artist = artist
+                )
+            }
+            MEDIA_TYPE_TRACK -> {
+                val track = parseTrack(item)
+                val title = track.title.ifBlank { fallbackTitle.ifBlank { UNKNOWN_TRACK_TITLE } }
+                RecommendationItem(
+                    mediaType = RecommendationMediaType.TRACK,
+                    title = title,
+                    subtitle = track.artist,
+                    imageUrl = track.imageUrl ?: fallbackImageUrl,
+                    track = track
+                )
+            }
+            else -> {
+                val title = fallbackTitle.ifBlank { UNKNOWN_RECOMMENDATION_TITLE }
+                val subtitle = formatMediaTypeLabel(rawMediaType)
+                RecommendationItem(
+                    mediaType = RecommendationMediaType.OTHER,
+                    title = title,
+                    subtitle = subtitle,
+                    imageUrl = fallbackImageUrl
+                )
+            }
+        }
+    }
+
+    private fun cachePlaylistIfAbsent(playlist: Playlist) {
+        if (playlist.itemId.isBlank() || playlist.provider.isBlank()) return
+        val key = cacheKey(playlist.itemId, playlist.provider)
+        synchronized(cacheLock) {
+            if (!playlistCache.containsKey(key)) {
+                playlistCache[key] = playlist
+            }
+        }
+    }
+
     private fun parseAlbumItems(result: JsonElement?): List<Album> {
         return extractItems(result).map { parseAlbum(it) }
     }
@@ -1486,6 +1605,23 @@ class MusicAssistantRepositoryImpl @Inject constructor(
         }
     }
 
+    private fun formatMediaTypeLabel(value: String): String {
+        if (value.isBlank()) return ""
+        return value
+            .split('_')
+            .filter { it.isNotBlank() }
+            .joinToString(" ") { part ->
+                part.lowercase(Locale.getDefault())
+                    .replaceFirstChar { char ->
+                        if (char.isLowerCase()) {
+                            char.titlecase(Locale.getDefault())
+                        } else {
+                            char.toString()
+                        }
+                    }
+            }
+    }
+
     private fun resolveImageUrl(raw: String?): String? {
         if (raw.isNullOrBlank()) return null
         if (raw.startsWith("http://") || raw.startsWith("https://")) return raw
@@ -1625,5 +1761,16 @@ class MusicAssistantRepositoryImpl @Inject constructor(
         private const val ALBUM_CACHE_SIZE = 100
         private const val PLAYLIST_CACHE_SIZE = 50
         private const val TRACKS_CACHE_SIZE = 50
+        private const val MEDIA_TYPE_ALBUM = "album"
+        private const val MEDIA_TYPE_PLAYLIST = "playlist"
+        private const val MEDIA_TYPE_ARTIST = "artist"
+        private const val MEDIA_TYPE_TRACK = "track"
+        private const val MEDIA_TYPE_FOLDER = "folder"
+        private const val DEFAULT_RECOMMENDATION_SECTION_TITLE = "Recommendations"
+        private const val UNKNOWN_RECOMMENDATION_TITLE = "Recommendation"
+        private const val UNKNOWN_ALBUM_TITLE = "Unknown Album"
+        private const val UNKNOWN_PLAYLIST_TITLE = "Untitled Playlist"
+        private const val UNKNOWN_ARTIST_TITLE = "Unknown Artist"
+        private const val UNKNOWN_TRACK_TITLE = "Unknown Track"
     }
 }

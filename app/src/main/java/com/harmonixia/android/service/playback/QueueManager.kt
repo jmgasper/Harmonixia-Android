@@ -17,6 +17,8 @@ import com.harmonixia.android.domain.repository.LocalMediaRepository
 import com.harmonixia.android.domain.repository.MusicAssistantRepository
 import com.harmonixia.android.domain.repository.OFFLINE_PROVIDER
 import com.harmonixia.android.util.EXTRA_IS_LOCAL_FILE
+import com.harmonixia.android.util.EXTRA_PROVIDER_DOMAINS
+import com.harmonixia.android.util.EXTRA_PROVIDER_ID
 import com.harmonixia.android.util.EXTRA_STREAM_URI
 import com.harmonixia.android.util.EXTRA_TRACK_QUALITY
 import com.harmonixia.android.util.Logger
@@ -180,6 +182,9 @@ class QueueManager(
             player?.setMediaItems(queueItems, currentIndex, C.TIME_UNSET)
             syncShuffleOrderIfNeeded()
             player?.prepare()
+        } else {
+            // Merge richer metadata without resetting the queue ordering.
+            maybeUpdateMetadata(items)
         }
     }
 
@@ -270,12 +275,32 @@ class QueueManager(
 
     fun currentIndex(): Int = currentIndex
 
+    fun isLocalQueueActive(): Boolean {
+        return areMediaItemsLocal(queueItems)
+    }
+
+    fun areMediaItemsLocal(mediaItems: List<MediaItem>): Boolean {
+        if (mediaItems.isEmpty()) return false
+        return mediaItems.all { it.isLocalOnlyItem() }
+    }
+
     private suspend fun buildMediaItems(tracks: List<Track>): List<MediaItem> {
         val items = mutableListOf<MediaItem>()
         for (track in tracks) {
             items.add(buildMediaItem(track, resolveLocal = false))
         }
         return items
+    }
+
+    private fun MediaItem.isLocalOnlyItem(): Boolean {
+        val extras = mediaMetadata.extras
+        val providerId = extras?.getString(EXTRA_PROVIDER_ID)?.trim()
+        if (providerId == OFFLINE_PROVIDER) return true
+        if (!providerId.isNullOrBlank()) return false
+        val isLocalFile = extras?.getBoolean(EXTRA_IS_LOCAL_FILE) == true
+        if (!isLocalFile) return false
+        val scheme = localConfiguration?.uri?.scheme?.lowercase()
+        return scheme.isNullOrBlank() || scheme == "file" || scheme == "content"
     }
 
     suspend fun ensureLocalForCurrentTrack(track: Track) {
@@ -346,6 +371,201 @@ class QueueManager(
 
     private fun normalizeMatchKey(value: String): String {
         return value.trim().lowercase()
+    }
+
+    private fun maybeUpdateMetadata(remoteItems: List<MediaItem>) {
+        if (remoteItems.size != queueItems.size || remoteItems.isEmpty()) return
+        val player = player
+        val currentPlayerIndex = player?.currentMediaItemIndex ?: currentIndex
+        val currentPosition = player?.currentPosition ?: 0L
+        var updatedCurrent = false
+        remoteItems.forEachIndexed { index, incoming ->
+            val existing = queueItems[index]
+            if (existing.mediaId != incoming.mediaId) return@forEachIndexed
+            if (!shouldUpdateMetadata(existing, incoming)) return@forEachIndexed
+            val merged = mergeMediaItem(existing, incoming)
+            queueItems[index] = merged
+            player?.replaceMediaItem(index, merged)
+            if (index == currentPlayerIndex) {
+                updatedCurrent = true
+            }
+        }
+        if (updatedCurrent && player != null) {
+            player.seekTo(currentPlayerIndex, currentPosition)
+        }
+    }
+
+    private fun shouldUpdateMetadata(existing: MediaItem, incoming: MediaItem): Boolean {
+        val existingMetadata = existing.mediaMetadata
+        val incomingMetadata = incoming.mediaMetadata
+        val existingTitle = existingMetadata.title?.toString()?.trim().orEmpty()
+        val incomingTitle = incomingMetadata.title?.toString()?.trim().orEmpty()
+        val existingArtist = existingMetadata.artist?.toString()?.trim().orEmpty()
+        val incomingArtist = incomingMetadata.artist?.toString()?.trim().orEmpty()
+        val existingAlbum = existingMetadata.albumTitle?.toString()?.trim().orEmpty()
+        val incomingAlbum = incomingMetadata.albumTitle?.toString()?.trim().orEmpty()
+        val existingDuration = existingMetadata.durationMs ?: 0L
+        val incomingDuration = incomingMetadata.durationMs ?: 0L
+        val existingArtwork = existingMetadata.artworkUri?.toString()?.trim().orEmpty()
+        val incomingArtwork = incomingMetadata.artworkUri?.toString()?.trim().orEmpty()
+        val titleUpgrade = isFallbackTitle(existingTitle, existing) && incomingTitle.isNotBlank()
+        val artistUpgrade = existingArtist.isBlank() && incomingArtist.isNotBlank()
+        val albumUpgrade = existingAlbum.isBlank() && incomingAlbum.isNotBlank()
+        val durationUpgrade = existingDuration <= 0L && incomingDuration > 0L
+        val artworkUpgrade = existingArtwork.isBlank() && incomingArtwork.isNotBlank()
+        val extrasUpgrade = shouldUpdateExtras(existingMetadata.extras, incomingMetadata.extras)
+        return titleUpgrade || artistUpgrade || albumUpgrade || durationUpgrade || artworkUpgrade || extrasUpgrade
+    }
+
+    private fun isFallbackTitle(title: String, mediaItem: MediaItem): Boolean {
+        if (title.isBlank()) return true
+        val streamUri = mediaItem.mediaMetadata.extras?.getString(EXTRA_STREAM_URI).orEmpty()
+        val itemUri = mediaItem.localConfiguration?.uri?.toString().orEmpty()
+        return title == streamUri || (itemUri.isNotBlank() && title == itemUri)
+    }
+
+    private fun shouldUpdateExtras(existing: Bundle?, incoming: Bundle?): Boolean {
+        val existingQuality = existing?.getString(EXTRA_TRACK_QUALITY).orEmpty()
+        val incomingQuality = incoming?.getString(EXTRA_TRACK_QUALITY).orEmpty()
+        if (existingQuality.isBlank() && incomingQuality.isNotBlank()) return true
+        val existingProvider = existing?.getString(EXTRA_PROVIDER_ID).orEmpty()
+        val incomingProvider = incoming?.getString(EXTRA_PROVIDER_ID).orEmpty()
+        if (existingProvider.isBlank() && incomingProvider.isNotBlank()) return true
+        val existingDomains = existing?.getStringArray(EXTRA_PROVIDER_DOMAINS)
+        val incomingDomains = incoming?.getStringArray(EXTRA_PROVIDER_DOMAINS)
+        if ((existingDomains == null || existingDomains.isEmpty()) && !incomingDomains.isNullOrEmpty()) return true
+        val existingStream = existing?.getString(EXTRA_STREAM_URI).orEmpty()
+        val incomingStream = incoming?.getString(EXTRA_STREAM_URI).orEmpty()
+        if (existingStream.isBlank() && incomingStream.isNotBlank()) return true
+        val existingLocal = existing?.getBoolean(EXTRA_IS_LOCAL_FILE, false) ?: false
+        val incomingLocal = incoming?.getBoolean(EXTRA_IS_LOCAL_FILE, false) ?: false
+        if (!existingLocal && incomingLocal) return true
+        return false
+    }
+
+    private fun mergeMediaItem(existing: MediaItem, incoming: MediaItem): MediaItem {
+        val existingUri = existing.localConfiguration?.uri
+        val incomingUri = incoming.localConfiguration?.uri
+        val preferExistingUri = shouldPreferExistingUri(existing, incoming)
+        val resolvedUri = when {
+            preferExistingUri && existingUri != null -> existingUri
+            incomingUri != null -> incomingUri
+            else -> existingUri
+        }
+        val existingTitle = existing.mediaMetadata.title?.toString()?.trim().orEmpty()
+        val preferIncomingTitle = isFallbackTitle(existingTitle, existing)
+        val mergedMetadata = mergeMetadata(
+            existing.mediaMetadata,
+            incoming.mediaMetadata,
+            preferIncomingTitle
+        )
+        val builder = MediaItem.Builder().setMediaId(existing.mediaId)
+        if (resolvedUri != null) {
+            builder.setUri(resolvedUri)
+        }
+        builder.setMediaMetadata(mergedMetadata)
+        return builder.build()
+    }
+
+    private fun shouldPreferExistingUri(existing: MediaItem, incoming: MediaItem): Boolean {
+        val existingExtras = existing.mediaMetadata.extras
+        val incomingExtras = incoming.mediaMetadata.extras
+        val existingLocal = existingExtras?.getBoolean(EXTRA_IS_LOCAL_FILE, false) ?: false
+        if (existingLocal) return true
+        val incomingLocal = incomingExtras?.getBoolean(EXTRA_IS_LOCAL_FILE, false) ?: false
+        if (!incomingLocal) {
+            val existingUri = existing.localConfiguration?.uri
+            val incomingUri = incoming.localConfiguration?.uri
+            if (existingUri != null && incomingUri != null) {
+                val existingIsLocal = existingUri.scheme == "file" || existingUri.scheme == "content"
+                val incomingIsLocal = incomingUri.scheme == "file" || incomingUri.scheme == "content"
+                if (existingIsLocal && !incomingIsLocal) return true
+            }
+        }
+        return false
+    }
+
+    private fun mergeMetadata(
+        existing: MediaMetadata,
+        incoming: MediaMetadata,
+        preferIncomingTitle: Boolean
+    ): MediaMetadata {
+        val title = if (preferIncomingTitle && !incoming.title.isNullOrBlank()) {
+            incoming.title
+        } else {
+            pickText(existing.title, incoming.title)
+        }
+        val artist = pickText(existing.artist, incoming.artist)
+        val album = pickText(existing.albumTitle, incoming.albumTitle)
+        val artwork = existing.artworkUri ?: incoming.artworkUri
+        val duration = (existing.durationMs ?: 0L).takeIf { it > 0L }
+            ?: (incoming.durationMs ?: 0L).takeIf { it > 0L }
+        val extras = mergeExtras(existing.extras, incoming.extras)
+        return MediaMetadata.Builder().apply {
+            if (!title.isNullOrBlank()) setTitle(title)
+            if (!artist.isNullOrBlank()) setArtist(artist)
+            if (!album.isNullOrBlank()) setAlbumTitle(album)
+            if (artwork != null) setArtworkUri(artwork)
+            if (duration != null) setDurationMs(duration)
+            if (extras != null) setExtras(extras)
+        }.build()
+    }
+
+    private fun pickText(existing: CharSequence?, incoming: CharSequence?): CharSequence? {
+        val existingText = existing?.toString()?.trim().orEmpty()
+        if (existingText.isNotBlank()) return existing
+        return incoming
+    }
+
+    private fun mergeExtras(existing: Bundle?, incoming: Bundle?): Bundle? {
+        if (existing == null && incoming == null) return null
+        val merged = Bundle()
+        if (existing != null) merged.putAll(existing)
+        if (incoming != null) merged.putAll(incoming)
+        val quality = pickBestString(
+            existing?.getString(EXTRA_TRACK_QUALITY),
+            incoming?.getString(EXTRA_TRACK_QUALITY)
+        )
+        if (!quality.isNullOrBlank()) {
+            merged.putString(EXTRA_TRACK_QUALITY, quality)
+        }
+        val providerId = pickBestString(
+            existing?.getString(EXTRA_PROVIDER_ID),
+            incoming?.getString(EXTRA_PROVIDER_ID)
+        )
+        if (!providerId.isNullOrBlank()) {
+            merged.putString(EXTRA_PROVIDER_ID, providerId)
+        }
+        val existingDomains = existing?.getStringArray(EXTRA_PROVIDER_DOMAINS)
+        val incomingDomains = incoming?.getStringArray(EXTRA_PROVIDER_DOMAINS)
+        val resolvedDomains = when {
+            !existingDomains.isNullOrEmpty() -> existingDomains
+            !incomingDomains.isNullOrEmpty() -> incomingDomains
+            else -> null
+        }
+        if (!resolvedDomains.isNullOrEmpty()) {
+            merged.putStringArray(EXTRA_PROVIDER_DOMAINS, resolvedDomains)
+        }
+        val streamUri = pickBestString(
+            existing?.getString(EXTRA_STREAM_URI),
+            incoming?.getString(EXTRA_STREAM_URI)
+        )
+        if (!streamUri.isNullOrBlank()) {
+            merged.putString(EXTRA_STREAM_URI, streamUri)
+        }
+        val existingLocal = existing?.getBoolean(EXTRA_IS_LOCAL_FILE, false) ?: false
+        val incomingLocal = incoming?.getBoolean(EXTRA_IS_LOCAL_FILE, false) ?: false
+        if (existingLocal || incomingLocal) {
+            merged.putBoolean(EXTRA_IS_LOCAL_FILE, true)
+        }
+        return merged
+    }
+
+    private fun pickBestString(existing: String?, incoming: String?): String? {
+        val existingText = existing?.trim().orEmpty()
+        if (existingText.isNotBlank()) return existingText
+        val incomingText = incoming?.trim().orEmpty()
+        return incomingText.takeIf { it.isNotBlank() }
     }
 
     private fun maybeSkipPlayedShuffleItem(player: ExoPlayer, mediaItem: MediaItem?): Boolean {

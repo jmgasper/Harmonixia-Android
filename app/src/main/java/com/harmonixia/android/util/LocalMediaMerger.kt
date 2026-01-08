@@ -84,9 +84,8 @@ fun List<Album>.mergeWithLocal(localAlbums: List<Album>): List<Album> {
     for (album in this) {
         val key = albumMatchKey(album)
         val local = localByKey[key]
-        if (local != null) {
+        if (local != null && usedKeys.add(key)) {
             merged.add(local)
-            usedKeys.add(key)
         } else {
             merged.add(album)
         }
@@ -114,9 +113,8 @@ fun List<Artist>.mergeWithLocal(localArtists: List<Artist>): List<Artist> {
     for (artist in this) {
         val key = artistMatchKey(artist)
         val local = localByKey[key]
-        if (local != null) {
+        if (local != null && usedKeys.add(key)) {
             merged.add(local)
-            usedKeys.add(key)
         } else {
             merged.add(artist)
         }

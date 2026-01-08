@@ -7,11 +7,15 @@ import javax.inject.Inject
 class SearchLibraryUseCase @Inject constructor(
     private val repository: MusicAssistantRepository
 ) {
-    suspend operator fun invoke(query: String, limit: Int): Result<SearchResults> {
+    suspend operator fun invoke(
+        query: String,
+        limit: Int,
+        libraryOnly: Boolean = true
+    ): Result<SearchResults> {
         val trimmed = query.trim()
         if (trimmed.isBlank()) {
             return Result.failure(IllegalArgumentException("Search query is required"))
         }
-        return repository.searchLibrary(trimmed, limit)
+        return repository.searchLibrary(trimmed, limit, libraryOnly)
     }
 }

@@ -62,9 +62,9 @@ class EqSettingsViewModel @Inject constructor(
 
     val filteredPresets: StateFlow<List<EqPreset>> = _searchQuery
         .debounce(SEARCH_DEBOUNCE_MS)
-        .combine(presetsFlow) { query, presets ->
+        .combine(presetsFlow) { query, _ ->
             if (query.isBlank()) {
-                presets
+                emptyList()
             } else {
                 searchEqPresetsUseCase(query)
             }

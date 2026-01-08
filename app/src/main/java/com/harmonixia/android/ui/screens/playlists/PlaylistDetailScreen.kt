@@ -1023,7 +1023,7 @@ private fun PlaylistDetails(
     } ?: stringResource(R.string.playlist_detail_title)
     val owner = playlist?.owner?.trim().orEmpty()
     val buttonRowModifier = Modifier.fillMaxWidth(0.8f)
-    val canPlayTracks = playlist != null && canPlay
+    val canPlayTracks = canPlay
     Column(
         modifier = modifier.fillMaxWidth(),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -1172,7 +1172,7 @@ private fun PlaylistHeader(
     } ?: stringResource(R.string.playlist_detail_title)
     val owner = playlist?.owner?.trim().orEmpty()
     val buttonRowModifier = if (useWideLayout) Modifier else Modifier.fillMaxWidth(0.8f)
-    val canPlayTracks = playlist != null && canPlay
+    val canPlayTracks = canPlay
     if (useWideLayout) {
         Row(
             modifier = modifier.fillMaxWidth(),

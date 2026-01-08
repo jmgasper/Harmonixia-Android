@@ -124,6 +124,7 @@ internal fun EqSettingsScreenContent(
     onToggleEnabled: (Boolean) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val showPresetResults = searchQuery.isNotBlank()
     val isLoading = uiState is EqSettingsUiState.Loading
     val errorMessage = (uiState as? EqSettingsUiState.Error)?.message
     val placeholderText = when {
@@ -188,7 +189,14 @@ internal fun EqSettingsScreenContent(
                         style = MaterialTheme.typography.titleSmall
                     )
                     Spacer(modifier = Modifier.height(8.dp))
-                    if (isLoading) {
+                    if (!showPresetResults) {
+                        Text(
+                            text = stringResource(R.string.eq_search_hint),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(vertical = 8.dp)
+                        )
+                    } else if (isLoading) {
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()

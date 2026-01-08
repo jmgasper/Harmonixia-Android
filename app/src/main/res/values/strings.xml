@@ -106,6 +106,7 @@
     <string name="nav_playlists">Playlists</string>
     <string name="nav_search">Search</string>
     <string name="search_query_hint">Search library</string>
+    <string name="search_library_only">Search library only</string>
     <string name="search_no_results">No results found for \"%1$s\"</string>
     <string name="search_error">Search failed</string>
     <string name="search_section_albums">Albums</string>
@@ -134,6 +135,8 @@
     <string name="home_recently_added">Recently Added Albums</string>
     <string name="home_empty_recently_played">Play an album to see it here.</string>
     <string name="home_empty_recently_added">Recently added albums will appear here.</string>
+    <string name="home_empty_recommendations">Recommendations will appear here.</string>
+    <string name="home_error_recommendations">Unable to load recommendations.</string>
     <string name="home_empty_no_connection">Connect to your Music Assistant server to see your music.</string>
     <string name="home_loading">Loading your music...</string>
     <string name="home_error_load_failed">Unable to load home data</string>
@@ -143,6 +146,7 @@
     <string name="home_offline_no_content">No offline content available. Download albums to listen offline.</string>
     <string name="action_retry">Retry</string>
     <string name="content_desc_album_artwork">Album artwork</string>
+    <string name="content_desc_recommendation_artwork">Recommendation artwork</string>
     <string name="content_desc_show_list_view">Show list view</string>
     <string name="content_desc_show_grid_view">Show grid view</string>
     <string name="action_open_settings">Open Settings</string>
@@ -278,6 +282,7 @@
     <string name="content_desc_create_playlist">Create playlist</string>
     <string name="now_playing_title">Now Playing</string>
     <string name="now_playing_empty">No track playing</string>
+    <string name="now_playing_artist_not_found">Artist not found</string>
     <string name="action_play">Play</string>
     <string name="action_pause">Pause</string>
     <string name="action_next_track">Next track</string>

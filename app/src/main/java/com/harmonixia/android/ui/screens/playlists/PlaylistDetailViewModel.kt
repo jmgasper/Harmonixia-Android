@@ -281,10 +281,12 @@ class PlaylistDetailViewModel @Inject constructor(
                 }
             }
             val tracksResult = tracksDeferred.await()
-            val error = playlistResult.exceptionOrNull() ?: tracksResult.exceptionOrNull()
-            if (error != null) {
+            val tracksError = tracksResult.exceptionOrNull()
+            if (tracksError != null) {
                 if (cachedForDisplay == null) {
-                    _uiState.value = PlaylistDetailUiState.Error(error.message ?: "Unknown error")
+                    _uiState.value = PlaylistDetailUiState.Error(
+                        tracksError.message ?: "Unknown error"
+                    )
                 }
                 return@supervisorScope
             }

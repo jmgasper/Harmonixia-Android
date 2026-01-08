@@ -129,6 +129,17 @@ fun NavGraph(
                             onNavigateToSettings = { tab -> navController.navigateToSettings(tab) },
                             onAlbumClick = { album ->
                                 mainNavController.navigateToAlbumDetail(album.itemId, album.provider)
+                            },
+                            onPlaylistClick = { playlist ->
+                                mainNavController.navigate(
+                                    Screen.PlaylistDetail.createRoute(
+                                        playlist.itemId,
+                                        playlist.provider
+                                    )
+                                )
+                            },
+                            onArtistClick = { artist ->
+                                mainNavController.navigateToArtistDetail(artist.itemId, artist.provider)
                             }
                         )
                     }
@@ -191,6 +202,9 @@ fun NavGraph(
                             onNavigateBack = {
                                 enableSharedArtworkTransition = false
                                 mainNavController.popBackStack()
+                            },
+                            onNavigateToArtist = { artistId, provider ->
+                                mainNavController.navigateToArtistDetail(artistId, provider)
                             },
                             viewModel = playbackViewModel,
                             enableSharedArtworkTransition = enableSharedArtworkTransition

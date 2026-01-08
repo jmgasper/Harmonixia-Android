@@ -12,6 +12,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.spring
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -51,6 +52,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -62,6 +64,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.TextStyle
@@ -78,12 +82,18 @@ import com.harmonixia.android.domain.model.RepeatMode
 import com.harmonixia.android.ui.components.PlaybackControls
 import com.harmonixia.android.ui.components.PlayerSelectionDialog
 import com.harmonixia.android.ui.components.SeekBar
+import com.harmonixia.android.ui.components.TrackQualityCategory
 import com.harmonixia.android.ui.components.formatTrackQualityLabel
+import com.harmonixia.android.ui.components.trackQualityCategory
 import com.harmonixia.android.ui.playback.NowPlayingUiState
 import com.harmonixia.android.ui.playback.PlaybackInfo
 import com.harmonixia.android.ui.playback.PlaybackViewModel
+import com.harmonixia.android.ui.theme.CompressedQualityOnOrange
+import com.harmonixia.android.ui.theme.CompressedQualityOrange
 import com.harmonixia.android.ui.theme.ExternalPlaybackGreen
 import com.harmonixia.android.ui.theme.ExternalPlaybackOnGreen
+import com.harmonixia.android.ui.theme.LosslessQualityGreen
+import com.harmonixia.android.ui.theme.LosslessQualityOnGreen
 import com.harmonixia.android.util.ImageQualityManager
 import com.harmonixia.android.util.PlayerSelection
 import kotlin.math.roundToInt
@@ -93,6 +103,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun SharedTransitionScope.NowPlayingScreen(
     onNavigateBack: () -> Unit,
+    onNavigateToArtist: (String, String) -> Unit,
     viewModel: PlaybackViewModel = hiltViewModel(),
     enableSharedArtworkTransition: Boolean = true
 ) {
@@ -107,6 +118,7 @@ fun SharedTransitionScope.NowPlayingScreen(
     val localPlayerId by viewModel.localPlayerId.collectAsStateWithLifecycle()
     var showPlayerSelectionDialog by remember { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
+    val coroutineScope = rememberCoroutineScope()
     val context = LocalContext.current
     val haptic = LocalHapticFeedback.current
     BackHandler(onBack = onNavigateBack)
@@ -167,6 +179,23 @@ fun SharedTransitionScope.NowPlayingScreen(
     val dragOffsetX = remember { Animatable(0f) }
     val swipeThreshold = with(LocalDensity.current) { 100.dp.toPx() }
     val displayInfo = playbackInfo ?: emptyPlaybackInfo()
+    val artistNotFoundMessage = stringResource(R.string.now_playing_artist_not_found)
+    val latestOnNavigateToArtist by rememberUpdatedState(onNavigateToArtist)
+    val onArtistClick = if (displayInfo.artist.isNotBlank()) {
+        {
+            viewModel.resolveNowPlayingArtist { artist ->
+                if (artist != null) {
+                    latestOnNavigateToArtist(artist.itemId, artist.provider)
+                } else {
+                    coroutineScope.launch {
+                        snackbarHostState.showSnackbar(artistNotFoundMessage)
+                    }
+                }
+            }
+        }
+    } else {
+        null
+    }
     val scaffoldContainerColor = if (isExternalPlayback) {
         ExternalPlaybackGreen
     } else {
@@ -295,6 +324,7 @@ fun SharedTransitionScope.NowPlayingScreen(
                         titleStyle = titleStyle,
                         artistStyle = artistStyle,
                         albumStyle = albumStyle,
+                        onArtistClick = onArtistClick,
                         playbackInfo = displayInfo,
                         controlsEnabled = controlsEnabled,
                         onSeek = { viewModel.seek(it) },
@@ -355,7 +385,8 @@ fun SharedTransitionScope.NowPlayingScreen(
                                 trackIdentity = trackIdentity,
                                 titleStyle = titleStyle,
                                 artistStyle = artistStyle,
-                                albumStyle = albumStyle
+                                albumStyle = albumStyle,
+                                onArtistClick = onArtistClick
                             )
                         }
                     }
@@ -411,6 +442,7 @@ fun SharedTransitionScope.NowPlayingScreen(
                         titleStyle = titleStyle,
                         artistStyle = artistStyle,
                         albumStyle = albumStyle,
+                        onArtistClick = onArtistClick,
                         playbackInfo = displayInfo,
                         controlsEnabled = controlsEnabled,
                         onSeek = { viewModel.seek(it) },
@@ -580,6 +612,7 @@ private fun ControlsPanel(
     titleStyle: TextStyle,
     artistStyle: TextStyle,
     albumStyle: TextStyle,
+    onArtistClick: (() -> Unit)?,
     playbackInfo: PlaybackInfo,
     controlsEnabled: Boolean,
     onSeek: (Long) -> Unit,
@@ -604,7 +637,8 @@ private fun ControlsPanel(
             trackIdentity = trackIdentity,
             titleStyle = titleStyle,
             artistStyle = artistStyle,
-            albumStyle = albumStyle
+            albumStyle = albumStyle,
+            onArtistClick = onArtistClick
         )
         Spacer(modifier = Modifier.height(24.dp))
         PlaybackControlPanel(
@@ -632,6 +666,7 @@ private fun TrackInfoPanel(
     titleStyle: TextStyle,
     artistStyle: TextStyle,
     albumStyle: TextStyle,
+    onArtistClick: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
     horizontalAlignment: Alignment.Horizontal = Alignment.CenterHorizontally,
     textAlign: TextAlign = TextAlign.Center
@@ -656,13 +691,30 @@ private fun TrackInfoPanel(
                     )
                 }
                 if (identity.artist.isNotBlank()) {
+                    val artistClick = onArtistClick
+                    val artistModifier = if (artistClick != null) {
+                        Modifier.clickable(role = Role.Button, onClick = artistClick)
+                    } else {
+                        Modifier
+                    }
+                    val isArtistClickable = artistClick != null
+                    val artistTextStyle = if (isArtistClickable) {
+                        artistStyle.copy(textDecoration = TextDecoration.Underline)
+                    } else {
+                        artistStyle
+                    }
                     Text(
                         text = identity.artist,
-                        style = artistStyle,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        style = artistTextStyle,
+                        color = if (isArtistClickable) {
+                            MaterialTheme.colorScheme.primary
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        },
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
-                        textAlign = textAlign
+                        textAlign = textAlign,
+                        modifier = artistModifier
                     )
                 }
                 if (identity.album.isNotBlank()) {
@@ -735,33 +787,40 @@ private fun ProviderBadgeRow(
     val context = LocalContext.current
     val iconSize = 14.dp
     val sizePx = with(LocalDensity.current) { iconSize.roundToPx() }
-    Row(
-        modifier = modifier,
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(6.dp)
+    Surface(
+        color = MaterialTheme.colorScheme.secondaryContainer,
+        contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+        shape = MaterialTheme.shapes.small,
+        modifier = modifier
     ) {
-        if (iconModel != null) {
-            val request = remember(iconModel, sizePx) {
-                ImageRequest.Builder(context)
-                    .data(iconModel)
-                    .size(sizePx)
-                    .build()
+        Row(
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            if (iconModel != null) {
+                val request = remember(iconModel, sizePx) {
+                    ImageRequest.Builder(context)
+                        .data(iconModel)
+                        .size(sizePx)
+                        .build()
+                }
+                AsyncImage(
+                    model = request,
+                    contentDescription = null,
+                    modifier = Modifier.size(iconSize)
+                )
             }
-            AsyncImage(
-                model = request,
-                contentDescription = null,
-                modifier = Modifier.size(iconSize)
-            )
-        }
-        if (label.isNotBlank()) {
-            Text(
-                text = label,
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                textAlign = textAlign
-            )
+            if (label.isNotBlank()) {
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSecondaryContainer,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    textAlign = textAlign
+                )
+            }
         }
     }
 }
@@ -784,7 +843,15 @@ private fun PlaybackControlPanel(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
-    val qualityLabel = formatTrackQualityLabel(trackIdentity.quality, context::getString)
+    val qualityLabel = formatTrackQualityLabel(
+        trackIdentity.quality,
+        context::getString,
+        showLosslessDetail = false
+    )
+    val qualityCategory = trackQualityCategory(trackIdentity.quality)
+    val qualityBadgeContent: (@Composable () -> Unit)? = qualityLabel?.let { label ->
+        { NowPlayingQualityBadge(text = label, category = qualityCategory) }
+    }
     Column(
         modifier = modifier,
         horizontalAlignment = Alignment.CenterHorizontally
@@ -794,19 +861,9 @@ private fun PlaybackControlPanel(
             duration = playbackInfo.duration,
             onSeek = onSeek,
             enabled = controlsEnabled,
+            centerContent = qualityBadgeContent,
             modifier = Modifier.fillMaxWidth()
         )
-        if (qualityLabel != null) {
-            Spacer(modifier = Modifier.height(12.dp))
-            Text(
-                text = qualityLabel,
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                textAlign = TextAlign.Center
-            )
-        }
         Spacer(modifier = Modifier.height(24.dp))
         PlaybackControls(
             isPlaying = playbackInfo.isPlaying,
@@ -822,6 +879,33 @@ private fun PlaybackControlPanel(
             onNext = onNext,
             onPrevious = onPrevious,
             enabled = controlsEnabled
+        )
+    }
+}
+
+@Composable
+private fun NowPlayingQualityBadge(
+    text: String,
+    category: TrackQualityCategory?,
+    modifier: Modifier = Modifier
+) {
+    val (containerColor, contentColor) = when (category) {
+        TrackQualityCategory.LOSSLESS -> LosslessQualityGreen to LosslessQualityOnGreen
+        TrackQualityCategory.LOSSY -> CompressedQualityOrange to CompressedQualityOnOrange
+        else -> MaterialTheme.colorScheme.secondaryContainer to MaterialTheme.colorScheme.onSecondaryContainer
+    }
+    Surface(
+        color = containerColor,
+        contentColor = contentColor,
+        shape = RoundedCornerShape(12.dp),
+        modifier = modifier
+    ) {
+        Text(
+            text = text,
+            style = MaterialTheme.typography.labelSmall,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
         )
     }
 }

@@ -10,6 +10,7 @@ object ApiCommand {
     const val MUSIC_GET_LIBRARY_ARTISTS = "music/artists/library_items"
     const val MUSIC_GET_LIBRARY_PLAYLISTS = "music/playlists/library_items"
     const val MUSIC_RECENTLY_PLAYED = "music/recently_played_items"
+    const val MUSIC_RECOMMENDATIONS = "music/recommendations"
     const val MUSIC_GET_ALBUM = "music/albums/get"
     const val MUSIC_GET_ARTIST = "music/artists/get"
     const val MUSIC_GET_ARTIST_ALBUMS = "music/artists/artist_albums"

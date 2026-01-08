@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.MusicNote
 import androidx.compose.material.icons.outlined.Settings
@@ -47,9 +48,15 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.harmonixia.android.R
 import com.harmonixia.android.domain.model.Album
+import com.harmonixia.android.domain.model.Artist
+import com.harmonixia.android.domain.model.Playlist
+import com.harmonixia.android.domain.model.RecommendationItem
+import com.harmonixia.android.domain.model.RecommendationSection
+import com.harmonixia.android.domain.model.Track
 import com.harmonixia.android.ui.components.AlbumCard
 import com.harmonixia.android.ui.components.ErrorCard
 import com.harmonixia.android.ui.components.OfflineModeBanner
+import com.harmonixia.android.ui.components.RecommendationCard
 import com.harmonixia.android.ui.navigation.MainScaffoldActions
 import com.harmonixia.android.ui.screens.settings.SettingsTab
 import com.harmonixia.android.ui.theme.rememberAdaptiveSpacing
@@ -60,12 +67,15 @@ import com.harmonixia.android.util.ImageQualityManager
 fun HomeScreen(
     onNavigateToSettings: (SettingsTab?) -> Unit,
     onAlbumClick: (Album) -> Unit,
+    onPlaylistClick: (Playlist) -> Unit,
+    onArtistClick: (Artist) -> Unit,
     viewModel: HomeViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val isRefreshing by viewModel.isRefreshing.collectAsStateWithLifecycle()
     val isOfflineMode by viewModel.isOfflineMode.collectAsStateWithLifecycle()
     val imageQualityManager = viewModel.imageQualityManager
+    val onTrackClick = viewModel::playTrack
 
     val windowSizeClass = calculateWindowSizeClass(activity = LocalContext.current as Activity)
     val configuration = LocalConfiguration.current
@@ -255,6 +265,29 @@ fun HomeScreen(
                     }
                 }
                 is HomeUiState.Success -> {
+                    val recentlyPlayedKeys = state.recentlyPlayed
+                        .map { album -> "${album.provider}:${album.itemId}" }
+                        .toSet()
+                    val recentlyAddedKeys = state.recentlyAdded
+                        .map { album -> "${album.provider}:${album.itemId}" }
+                        .toSet()
+                    val filteredRecommendations = state.recommendations.filterNot { section ->
+                        val albumItems = section.items.mapNotNull { it.album }
+                        if (albumItems.isEmpty() || albumItems.size != section.items.size) {
+                            return@filterNot false
+                        }
+                        val isRecentlyPlayed = recentlyPlayedKeys.isNotEmpty() &&
+                            albumItems.all { album ->
+                                "${album.provider}:${album.itemId}" in recentlyPlayedKeys
+                            }
+                        val isRecentlyAdded = recentlyAddedKeys.isNotEmpty() &&
+                            albumItems.all { album ->
+                                "${album.provider}:${album.itemId}" in recentlyAddedKeys
+                            }
+                        isRecentlyPlayed || isRecentlyAdded
+                    }
+                    val showRecommendationPlaceholder =
+                        state.recommendationsLoadError || state.recommendations.isEmpty()
                     LazyColumn(
                         modifier = Modifier.fillMaxSize(),
                         contentPadding = listPadding,
@@ -322,6 +355,40 @@ fun HomeScreen(
                                     isOfflineMode = isOfflineMode,
                                     onAlbumClick = onAlbumClick,
                                     imageQualityManager = imageQualityManager,
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                            }
+                        }
+                        if (filteredRecommendations.isNotEmpty()) {
+                            items(
+                                items = filteredRecommendations,
+                                key = { section -> section.title }
+                            ) { section ->
+                                HomeRecommendationSection(
+                                    section = section,
+                                    columns = columns,
+                                    artworkSize = artworkSize,
+                                    headerStyle = sectionHeaderStyle,
+                                    bodyStyle = sectionBodyStyle,
+                                    imageQualityManager = imageQualityManager,
+                                    onAlbumClick = onAlbumClick,
+                                    onPlaylistClick = onPlaylistClick,
+                                    onArtistClick = onArtistClick,
+                                    onTrackClick = onTrackClick,
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                            }
+                        } else if (showRecommendationPlaceholder) {
+                            item {
+                                val message = if (state.recommendationsLoadError) {
+                                    stringResource(R.string.home_error_recommendations)
+                                } else {
+                                    stringResource(R.string.home_empty_recommendations)
+                                }
+                                Text(
+                                    text = message,
+                                    style = sectionBodyStyle,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     modifier = Modifier.fillMaxWidth()
                                 )
                             }
@@ -410,6 +477,117 @@ private fun HomeAlbumGrid(
                     )
                 }
                 val emptySlots = safeColumns - rowAlbums.size
+                if (emptySlots > 0) {
+                    repeat(emptySlots) {
+                        Spacer(modifier = Modifier.weight(1f))
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun HomeRecommendationSection(
+    section: RecommendationSection,
+    columns: Int,
+    artworkSize: androidx.compose.ui.unit.Dp,
+    headerStyle: androidx.compose.ui.text.TextStyle,
+    bodyStyle: androidx.compose.ui.text.TextStyle,
+    imageQualityManager: ImageQualityManager,
+    onAlbumClick: (Album) -> Unit,
+    onPlaylistClick: (Playlist) -> Unit,
+    onArtistClick: (Artist) -> Unit,
+    onTrackClick: (Track) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val spacing = rememberAdaptiveSpacing()
+    Column(modifier = modifier) {
+        Text(
+            text = section.title,
+            style = headerStyle
+        )
+        Spacer(modifier = Modifier.height(spacing.medium))
+        if (section.items.isEmpty()) {
+            Text(
+                text = stringResource(R.string.home_empty_recommendations),
+                style = bodyStyle,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.fillMaxWidth()
+            )
+        } else {
+            HomeRecommendationGrid(
+                items = section.items,
+                columns = columns,
+                artworkSize = artworkSize,
+                imageQualityManager = imageQualityManager,
+                onAlbumClick = onAlbumClick,
+                onPlaylistClick = onPlaylistClick,
+                onArtistClick = onArtistClick,
+                onTrackClick = onTrackClick
+            )
+        }
+    }
+}
+
+@Composable
+private fun HomeRecommendationGrid(
+    items: List<RecommendationItem>,
+    columns: Int,
+    artworkSize: androidx.compose.ui.unit.Dp,
+    imageQualityManager: ImageQualityManager,
+    onAlbumClick: (Album) -> Unit,
+    onPlaylistClick: (Playlist) -> Unit,
+    onArtistClick: (Artist) -> Unit,
+    onTrackClick: (Track) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val safeColumns = columns.coerceAtLeast(1)
+    val rows = remember(items, safeColumns) { items.chunked(safeColumns) }
+    val minCardHeight = artworkSize + 70.dp
+
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(HomeAlbumGridSpacing)
+    ) {
+        rows.forEach { rowItems ->
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(HomeAlbumGridSpacing)
+            ) {
+                rowItems.forEach { item ->
+                    val album = item.album
+                    val playlist = item.playlist
+                    val artist = item.artist
+                    val track = item.track
+                    val onClick = when {
+                        album?.itemId?.isNotBlank() == true && album.provider.isNotBlank() -> {
+                            ({ onAlbumClick(album) })
+                        }
+                        playlist?.itemId?.isNotBlank() == true && playlist.provider.isNotBlank() -> {
+                            ({ onPlaylistClick(playlist) })
+                        }
+                        artist?.itemId?.isNotBlank() == true && artist.provider.isNotBlank() -> {
+                            ({ onArtistClick(artist) })
+                        }
+                        track?.uri?.isNotBlank() == true -> {
+                            ({ onTrackClick(track) })
+                        }
+                        else -> null
+                    }
+                    RecommendationCard(
+                        title = item.title,
+                        subtitle = item.subtitle,
+                        imageUrl = item.imageUrl,
+                        artworkSize = artworkSize,
+                        imageQualityManager = imageQualityManager,
+                        onClick = onClick,
+                        modifier = Modifier
+                            .weight(1f)
+                            .heightIn(min = minCardHeight)
+                    )
+                }
+                val emptySlots = safeColumns - rowItems.size
                 if (emptySlots > 0) {
                     repeat(emptySlots) {
                         Spacer(modifier = Modifier.weight(1f))

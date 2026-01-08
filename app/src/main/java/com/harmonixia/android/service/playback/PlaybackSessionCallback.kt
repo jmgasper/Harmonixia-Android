@@ -48,6 +48,7 @@ class PlaybackSessionCallback(
             if (reason != Player.DISCONTINUITY_REASON_SEEK) return
             if (oldPosition.mediaItemIndex != newPosition.mediaItemIndex) return
             if (playbackStateManager.consumeSyncSeekSuppression()) return
+            if (queueManager.isLocalQueueActive()) return
             val queueId = playbackStateManager.currentQueueId ?: return
             val positionSeconds = (player.currentPosition / 1000L).toInt()
             val timestamp = System.currentTimeMillis()
@@ -183,9 +184,14 @@ class PlaybackSessionCallback(
         mediaItems: List<MediaItem>
     ): ListenableFuture<List<MediaItem>> {
         val resolvedItems = resolveMediaItems(mediaItems)
+        val isLocalQueue = queueManager.areMediaItemsLocal(resolvedItems)
         playbackStateManager.notifyUserInitiatedPlayback()
         markPlaybackRequestedForMediaItem(resolvedItems.firstOrNull())
         scope.launch(Dispatchers.IO) {
+            if (isLocalQueue) {
+                Logger.d(TAG, "Skipping remote add for local queue")
+                return@launch
+            }
             val queueId = playbackStateManager.currentQueueId ?: awaitQueueId()
             if (queueId.isNullOrBlank()) {
                 Logger.w(TAG, "No active queue available for add request")
@@ -233,6 +239,7 @@ class PlaybackSessionCallback(
                     resolvedItems to safeIndex
                 }
             }
+            val isLocalQueue = queueManager.areMediaItemsLocal(queueItems)
             playbackStateManager.notifyUserInitiatedPlayback()
             markPlaybackRequestedForStartItem(queueItems, queueStartIndex)
             if (queueStartIndex > 0) {
@@ -241,6 +248,10 @@ class PlaybackSessionCallback(
                 playbackStateManager.clearPendingStart()
             }
             scope.launch(Dispatchers.IO) {
+                if (isLocalQueue) {
+                    Logger.d(TAG, "Skipping remote queue replace for local items")
+                    return@launch
+                }
                 val queueId = playbackStateManager.currentQueueId ?: awaitQueueId()
                 if (queueId.isNullOrBlank()) {
                     Logger.w(TAG, "No active queue available for play request")
@@ -349,6 +360,7 @@ class PlaybackSessionCallback(
         playbackStateManager.notifyUserInitiatedPlayback()
         markPlaybackRequestedForMediaItem(player.currentMediaItem)
         player.play()
+        if (isLocalQueueActive()) return
         scope.launch {
             val queueId = playbackStateManager.currentQueueId ?: awaitQueueId()
             if (queueId.isNullOrBlank()) {
@@ -374,6 +386,7 @@ class PlaybackSessionCallback(
 
     private fun handlePause() {
         player.pause()
+        if (isLocalQueueActive()) return
         val queueId = playbackStateManager.currentQueueId ?: return
         scope.launch {
             Logger.d(TAG, "Requesting pause queueId=$queueId")
@@ -385,6 +398,7 @@ class PlaybackSessionCallback(
     private fun handleStop() {
         player.stop()
         performanceMonitor.clearPlaybackRequests()
+        if (isLocalQueueActive()) return
         val queueId = playbackStateManager.currentQueueId ?: return
         scope.launch {
             Logger.d(TAG, "Requesting stop (pause) queueId=$queueId")
@@ -395,6 +409,7 @@ class PlaybackSessionCallback(
 
     private fun handleNext() {
         markPlaybackRequestedForIndex(player.nextMediaItemIndex)
+        if (isLocalQueueActive()) return
         val queueId = playbackStateManager.currentQueueId ?: return
         scope.launch {
             Logger.d(TAG, "Requesting next queueId=$queueId")
@@ -405,6 +420,7 @@ class PlaybackSessionCallback(
 
     private fun handlePrevious() {
         markPlaybackRequestedForIndex(player.previousMediaItemIndex)
+        if (isLocalQueueActive()) return
         val queueId = playbackStateManager.currentQueueId ?: return
         scope.launch {
             Logger.d(TAG, "Requesting previous queueId=$queueId")
@@ -414,6 +430,7 @@ class PlaybackSessionCallback(
     }
 
     private fun handleShuffleModeChange(shuffleModeEnabled: Boolean) {
+        if (isLocalQueueActive()) return
         if (shuffleModeEnabled == playbackStateManager.shuffle.value) return
         scope.launch(Dispatchers.IO) {
             val queueId = playbackStateManager.currentQueueId ?: awaitQueueId()
@@ -428,6 +445,7 @@ class PlaybackSessionCallback(
     }
 
     private fun handleRepeatModeChange(@Player.RepeatMode repeatMode: Int) {
+        if (isLocalQueueActive()) return
         val targetMode = repeatMode.toDomainRepeatMode()
         if (targetMode == playbackStateManager.repeatMode.value) return
         scope.launch(Dispatchers.IO) {
@@ -475,6 +493,10 @@ class PlaybackSessionCallback(
     private fun isNoPlayableItemError(error: Throwable?): Boolean {
         val message = error?.message ?: return false
         return message.contains("No playable item", ignoreCase = true)
+    }
+
+    private fun isLocalQueueActive(): Boolean {
+        return queueManager.isLocalQueueActive()
     }
 
     companion object {
