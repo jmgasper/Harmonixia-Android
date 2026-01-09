@@ -1,3 +1,5 @@
+import org.gradle.api.tasks.bundling.AbstractArchiveTask
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
@@ -85,6 +87,20 @@ android {
 
     lint {
         lintConfig = file("lint.xml")
+    }
+}
+
+androidComponents {
+    onVariants(selector().withBuildType("release")) { variant ->
+        variant.outputs.forEach { output ->
+            output.outputFileName.set("Harmonixia.apk")
+        }
+    }
+}
+
+tasks.withType<AbstractArchiveTask>().configureEach {
+    if (name == "bundleRelease") {
+        archiveFileName.set("Harmonixia.aab")
     }
 }
 

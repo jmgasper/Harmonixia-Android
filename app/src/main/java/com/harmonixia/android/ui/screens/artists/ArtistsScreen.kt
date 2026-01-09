@@ -180,11 +180,7 @@ fun ArtistsScreen(
     } else {
         null
     }
-    val titleText = if (uiState is ArtistsUiState.Success) {
-        stringResource(R.string.artists_count, cachedCount ?: (lazyPagingItems?.itemCount ?: 0))
-    } else {
-        stringResource(R.string.artists_title)
-    }
+    val titleText = stringResource(R.string.artists_title)
 
     var selectedArtist by rememberSaveable(stateSaver = ArtistSaver) {
         mutableStateOf<Artist?>(null)

@@ -234,11 +234,7 @@ fun AlbumsScreen(
         derivedStateOf { windowSizeClass.widthSizeClass != WindowWidthSizeClass.Compact }
     }
 
-    val titleText = if (uiState is AlbumsUiState.Success) {
-        stringResource(R.string.albums_filter_count, filteredCount, totalCount)
-    } else {
-        stringResource(R.string.albums_title)
-    }
+    val titleText = stringResource(R.string.albums_title)
 
     var selectedAlbum by rememberSaveable(stateSaver = AlbumSaver) { mutableStateOf<Album?>(null) }
     val handleAlbumClick: (Album) -> Unit = { album ->
