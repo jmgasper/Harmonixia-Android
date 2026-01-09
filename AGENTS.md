@@ -6,7 +6,7 @@
 
 ## Dev requirements
 - JDK 17.
-- Android SDK 35 (compileSdk/targetSdk 35, minSdk 34).
+- Android SDK 35 (compileSdk/targetSdk 35, minSdk 30).
 - Android Studio or Gradle (`./gradlew`).
 
 ## Build, run, test

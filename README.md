@@ -13,7 +13,7 @@ playback control, and EQ presets.  Primarily built with ChatGPT Codex.
 ## Requirements
 
 ### Runtime
-- Android 14 (API 34) or later (minSdk 34)
+- Android 11 (API 30) or later (minSdk 30)
 - Music Assistant 2.7 server reachable either on the local network or via the public internet (required)
 - Optional: a long-lived Music Assistant access token for authenticated servers
 

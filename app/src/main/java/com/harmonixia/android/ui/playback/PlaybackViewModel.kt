@@ -465,7 +465,18 @@ class PlaybackViewModel @Inject constructor(
             )
             if (searchResult.isSuccess) {
                 val artists = searchResult.getOrNull()?.artists.orEmpty()
-                return@withContext findMatchingArtist(artists, normalizedTarget, providerId)
+                val match = findMatchingArtist(artists, normalizedTarget, providerId)
+                if (match != null) return@withContext match
+                val expandedResult = searchLibraryUseCase(
+                    artistName,
+                    ARTIST_LOOKUP_LIMIT,
+                    libraryOnly = false
+                )
+                if (expandedResult.isSuccess) {
+                    val expandedArtists = expandedResult.getOrNull()?.artists.orEmpty()
+                    val expandedMatch = findMatchingArtist(expandedArtists, normalizedTarget, providerId)
+                    if (expandedMatch != null) return@withContext expandedMatch
+                }
             }
             val localArtists = localMediaRepository.searchArtists(artistName).first()
             findMatchingArtist(localArtists, normalizedTarget, OFFLINE_PROVIDER)
