@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
@@ -99,6 +100,8 @@ fun ArtistsScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val albumCounts by viewModel.artistAlbumCounts.collectAsStateWithLifecycle()
     val isOfflineMode by viewModel.isOfflineMode.collectAsStateWithLifecycle()
+    val cachedArtists by viewModel.cachedArtists.collectAsStateWithLifecycle()
+    val isArtistCacheComplete by viewModel.isArtistCacheComplete.collectAsStateWithLifecycle()
     val imageQualityManager = viewModel.imageQualityManager
 
     val windowSizeClass = calculateWindowSizeClass(activity = LocalContext.current as Activity)
@@ -116,21 +119,69 @@ fun ArtistsScreen(
     val scrollScope = rememberCoroutineScope()
     val collapsedListState = rememberLazyListState()
     val expandedListState = rememberLazyListState()
-    val alphabetIndexMap by remember(lazyPagingItems) {
+    val sortedArtists by remember(
+        lazyPagingItems,
+        cachedArtists,
+        isArtistCacheComplete,
+        isOfflineMode
+    ) {
         derivedStateOf {
-            lazyPagingItems?.alphabetIndexMap { artist ->
-                artist.sortName?.takeIf { it.isNotBlank() } ?: artist.name
-            } ?: emptyMap()
+            if (!isOfflineMode && isArtistCacheComplete && cachedArtists.isNotEmpty()) {
+                return@derivedStateOf cachedArtists.sortedWith(ArtistAlphabeticalComparator)
+            }
+            val snapshot = lazyPagingItems?.itemSnapshotList ?: return@derivedStateOf emptyList()
+            if (snapshot.placeholdersBefore != 0 || snapshot.placeholdersAfter != 0) {
+                return@derivedStateOf emptyList()
+            }
+            val endReached = lazyPagingItems?.loadState?.append?.endOfPaginationReached == true
+            if (!endReached) {
+                return@derivedStateOf emptyList()
+            }
+            snapshot.items.sortedWith(ArtistAlphabeticalComparator)
         }
     }
-    val showAlphabetScroller by remember(lazyPagingItems) {
+    val alphabetIndexMap by remember(
+        lazyPagingItems,
+        cachedArtists,
+        isArtistCacheComplete,
+        isOfflineMode
+    ) {
         derivedStateOf {
-            lazyPagingItems?.itemSnapshotList?.items?.isNotEmpty() == true
+            if (sortedArtists.isNotEmpty()) {
+                sortedArtists.alphabetIndexMap { artist ->
+                    artist.sortName?.takeIf { it.isNotBlank() } ?: artist.name
+                }
+            } else {
+                lazyPagingItems?.alphabetIndexMap { artist ->
+                    artist.sortName?.takeIf { it.isNotBlank() } ?: artist.name
+                } ?: emptyMap()
+            }
+        }
+    }
+    val showAlphabetScroller by remember(
+        lazyPagingItems,
+        cachedArtists,
+        isArtistCacheComplete,
+        isOfflineMode
+    ) {
+        derivedStateOf {
+            if (sortedArtists.isNotEmpty()) {
+                true
+            } else {
+                val endReached =
+                    lazyPagingItems?.loadState?.append?.endOfPaginationReached == true
+                endReached && lazyPagingItems?.itemSnapshotList?.items?.isNotEmpty() == true
+            }
         }
     }
 
+    val cachedCount = if (!isOfflineMode && isArtistCacheComplete && cachedArtists.isNotEmpty()) {
+        cachedArtists.size
+    } else {
+        null
+    }
     val titleText = if (uiState is ArtistsUiState.Success) {
-        stringResource(R.string.artists_count, lazyPagingItems?.itemCount ?: 0)
+        stringResource(R.string.artists_count, cachedCount ?: (lazyPagingItems?.itemCount ?: 0))
     } else {
         stringResource(R.string.artists_title)
     }
@@ -313,10 +364,10 @@ fun ArtistsScreen(
                                             modifier = Modifier.fillMaxSize(),
                                             horizontalArrangement = Arrangement.spacedBy(spacing.large)
                                         ) {
-                                            AlphabetFastScroller(
-                                                modifier = Modifier
-                                                    .weight(0.6f)
-                                                    .fillMaxHeight(),
+                                        AlphabetFastScroller(
+                                            modifier = Modifier
+                                                .weight(0.6f)
+                                                .fillMaxHeight(),
                                                 isEnabled = showAlphabetScroller,
                                                 onLetterChange = { letter ->
                                                     alphabetIndexMap[letter]?.let { index ->
@@ -331,26 +382,42 @@ fun ArtistsScreen(
                                                     state = expandedListState,
                                                     contentPadding = listPadding
                                                 ) {
-                                                    items(
-                                                        count = items.itemCount,
-                                                        key = { index ->
-                                                            items[index]?.let { artist ->
+                                                    if (sortedArtists.isNotEmpty()) {
+                                                        itemsIndexed(
+                                                            items = sortedArtists,
+                                                            key = { _, artist ->
                                                                 "${artist.provider}:${artist.itemId}"
-                                                            } ?: "placeholder_$index"
-                                                        }
-                                                    ) { index ->
-                                                        val artist = items[index]
-                                                        if (artist != null) {
+                                                            }
+                                                        ) { index, artist ->
                                                             ArtistListItem(
                                                                 artist = artist,
                                                                 onClick = { handleArtistClick(artist) },
-                                                                showDivider = index < items.itemCount - 1,
+                                                                showDivider = index < sortedArtists.lastIndex,
                                                                 imageQualityManager = imageQualityManager
                                                             )
-                                                        } else {
-                                                            ArtistListItemPlaceholder(
-                                                                showDivider = index < items.itemCount - 1
-                                                            )
+                                                        }
+                                                    } else {
+                                                        items(
+                                                            count = items.itemCount,
+                                                            key = { index ->
+                                                                items[index]?.let { artist ->
+                                                                    "${artist.provider}:${artist.itemId}"
+                                                                } ?: "placeholder_$index"
+                                                            }
+                                                        ) { index ->
+                                                            val artist = items[index]
+                                                            if (artist != null) {
+                                                                ArtistListItem(
+                                                                    artist = artist,
+                                                                    onClick = { handleArtistClick(artist) },
+                                                                    showDivider = index < items.itemCount - 1,
+                                                                    imageQualityManager = imageQualityManager
+                                                                )
+                                                            } else {
+                                                                ArtistListItemPlaceholder(
+                                                                    showDivider = index < items.itemCount - 1
+                                                                )
+                                                            }
                                                         }
                                                     }
                                                 }
@@ -387,26 +454,42 @@ fun ArtistsScreen(
                                                 state = collapsedListState,
                                                 contentPadding = listPadding
                                             ) {
-                                                items(
-                                                    count = items.itemCount,
-                                                    key = { index ->
-                                                        items[index]?.let { artist ->
+                                                if (sortedArtists.isNotEmpty()) {
+                                                    itemsIndexed(
+                                                        items = sortedArtists,
+                                                        key = { _, artist ->
                                                             "${artist.provider}:${artist.itemId}"
-                                                        } ?: "placeholder_$index"
-                                                    }
-                                                ) { index ->
-                                                    val artist = items[index]
-                                                    if (artist != null) {
+                                                        }
+                                                    ) { index, artist ->
                                                         ArtistListItem(
                                                             artist = artist,
                                                             onClick = { handleArtistClick(artist) },
-                                                            showDivider = index < items.itemCount - 1,
+                                                            showDivider = index < sortedArtists.lastIndex,
                                                             imageQualityManager = imageQualityManager
                                                         )
-                                                    } else {
-                                                        ArtistListItemPlaceholder(
-                                                            showDivider = index < items.itemCount - 1
-                                                        )
+                                                    }
+                                                } else {
+                                                    items(
+                                                        count = items.itemCount,
+                                                        key = { index ->
+                                                            items[index]?.let { artist ->
+                                                                "${artist.provider}:${artist.itemId}"
+                                                            } ?: "placeholder_$index"
+                                                        }
+                                                    ) { index ->
+                                                        val artist = items[index]
+                                                        if (artist != null) {
+                                                            ArtistListItem(
+                                                                artist = artist,
+                                                                onClick = { handleArtistClick(artist) },
+                                                                showDivider = index < items.itemCount - 1,
+                                                                imageQualityManager = imageQualityManager
+                                                            )
+                                                        } else {
+                                                            ArtistListItemPlaceholder(
+                                                                showDivider = index < items.itemCount - 1
+                                                            )
+                                                        }
                                                     }
                                                 }
                                             }
@@ -581,3 +664,12 @@ private val ArtistSaver = Saver<Artist?, String>(
     save = { artist -> artist?.let { Json.encodeToString(it) } },
     restore = { json -> json?.let { Json.decodeFromString<Artist>(it) } }
 )
+
+private fun artistSortKey(artist: Artist): String {
+    val name = artist.sortName?.takeIf { it.isNotBlank() } ?: artist.name
+    return name.trim().lowercase()
+}
+
+private val ArtistAlphabeticalComparator = compareBy<Artist> { artistSortKey(it) }
+    .thenBy { it.name.trim().lowercase() }
+    .thenBy { "${it.provider}:${it.itemId}" }

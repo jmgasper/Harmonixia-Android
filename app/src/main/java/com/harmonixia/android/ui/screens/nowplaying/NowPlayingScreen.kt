@@ -112,6 +112,7 @@ fun SharedTransitionScope.NowPlayingScreen(
     val shuffle by viewModel.shuffle.collectAsStateWithLifecycle()
     val isRepeatModeUpdating by viewModel.isRepeatModeUpdating.collectAsStateWithLifecycle()
     val isShuffleUpdating by viewModel.isShuffleUpdating.collectAsStateWithLifecycle()
+    val isPlayPauseUpdating by viewModel.isPlayPauseUpdating.collectAsStateWithLifecycle()
     val imageQualityManager = viewModel.imageQualityManager
     val availablePlayers by viewModel.availablePlayers.collectAsStateWithLifecycle()
     val selectedPlayer by viewModel.selectedPlayer.collectAsStateWithLifecycle()
@@ -327,6 +328,7 @@ fun SharedTransitionScope.NowPlayingScreen(
                         onArtistClick = onArtistClick,
                         playbackInfo = displayInfo,
                         controlsEnabled = controlsEnabled,
+                        isPlayPauseUpdating = isPlayPauseUpdating,
                         onSeek = { viewModel.seek(it) },
                         onPlayPause = { viewModel.togglePlayPause() },
                         onNext = { viewModel.next() },
@@ -394,6 +396,7 @@ fun SharedTransitionScope.NowPlayingScreen(
                         trackIdentity = trackIdentity,
                         playbackInfo = displayInfo,
                         controlsEnabled = controlsEnabled,
+                        isPlayPauseUpdating = isPlayPauseUpdating,
                         onSeek = { viewModel.seek(it) },
                         onPlayPause = { viewModel.togglePlayPause() },
                         onNext = { viewModel.next() },
@@ -445,6 +448,7 @@ fun SharedTransitionScope.NowPlayingScreen(
                         onArtistClick = onArtistClick,
                         playbackInfo = displayInfo,
                         controlsEnabled = controlsEnabled,
+                        isPlayPauseUpdating = isPlayPauseUpdating,
                         onSeek = { viewModel.seek(it) },
                         onPlayPause = { viewModel.togglePlayPause() },
                         onNext = { viewModel.next() },
@@ -615,6 +619,7 @@ private fun ControlsPanel(
     onArtistClick: (() -> Unit)?,
     playbackInfo: PlaybackInfo,
     controlsEnabled: Boolean,
+    isPlayPauseUpdating: Boolean,
     onSeek: (Long) -> Unit,
     onPlayPause: () -> Unit,
     onNext: () -> Unit,
@@ -645,6 +650,7 @@ private fun ControlsPanel(
             trackIdentity = trackIdentity,
             playbackInfo = playbackInfo,
             controlsEnabled = controlsEnabled,
+            isPlayPauseUpdating = isPlayPauseUpdating,
             onSeek = onSeek,
             onPlayPause = onPlayPause,
             onNext = onNext,
@@ -830,6 +836,7 @@ private fun PlaybackControlPanel(
     trackIdentity: TrackIdentity,
     playbackInfo: PlaybackInfo,
     controlsEnabled: Boolean,
+    isPlayPauseUpdating: Boolean,
     onSeek: (Long) -> Unit,
     onPlayPause: () -> Unit,
     onNext: () -> Unit,
@@ -873,6 +880,7 @@ private fun PlaybackControlPanel(
             shuffle = shuffle,
             isRepeatModeUpdating = isRepeatModeUpdating,
             isShuffleUpdating = isShuffleUpdating,
+            isPlayPauseUpdating = isPlayPauseUpdating,
             onRepeatToggle = onRepeatToggle,
             onShuffleToggle = onShuffleToggle,
             onPlayPause = onPlayPause,

@@ -3,6 +3,9 @@ package com.harmonixia.android.ui.components
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.outlined.Favorite
+import androidx.compose.material.icons.outlined.PlayArrow
+import androidx.compose.material.icons.outlined.PlaylistAdd
+import androidx.compose.material.icons.outlined.PlaylistRemove
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
@@ -35,6 +38,9 @@ fun TrackContextMenu(
             onClick = {
                 onPlay()
                 onDismissRequest()
+            },
+            leadingIcon = {
+                Icon(imageVector = Icons.Outlined.PlayArrow, contentDescription = null)
             }
         )
         DropdownMenuItem(
@@ -42,6 +48,9 @@ fun TrackContextMenu(
             onClick = {
                 onAddToPlaylist()
                 onDismissRequest()
+            },
+            leadingIcon = {
+                Icon(imageVector = Icons.Outlined.PlaylistAdd, contentDescription = null)
             }
         )
         if (!isFavorite) {
@@ -73,6 +82,9 @@ fun TrackContextMenu(
                 onClick = {
                     onRemoveFromPlaylist()
                     onDismissRequest()
+                },
+                leadingIcon = {
+                    Icon(imageVector = Icons.Outlined.PlaylistRemove, contentDescription = null)
                 }
             )
         }

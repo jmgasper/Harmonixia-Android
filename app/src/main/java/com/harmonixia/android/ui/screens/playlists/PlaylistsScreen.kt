@@ -687,12 +687,6 @@ private fun PlaylistCardPlaceholder(
                             .height(10.dp)
                             .background(MaterialTheme.colorScheme.surfaceVariant)
                     )
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth(0.3f)
-                            .height(10.dp)
-                            .background(MaterialTheme.colorScheme.surfaceVariant)
-                    )
                 }
             }
         }

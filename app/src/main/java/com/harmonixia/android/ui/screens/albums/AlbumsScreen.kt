@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
@@ -74,6 +75,7 @@ import com.harmonixia.android.domain.model.Album
 import com.harmonixia.android.domain.model.AlbumType
 import com.harmonixia.android.ui.components.AlphabetFastScroller
 import com.harmonixia.android.ui.components.AlbumGrid
+import com.harmonixia.android.ui.components.AlbumGridStatic
 import com.harmonixia.android.ui.components.AlbumListItem
 import com.harmonixia.android.ui.components.AlbumListItemPlaceholder
 import com.harmonixia.android.ui.components.AlbumTypeFilterMenu
@@ -100,6 +102,8 @@ fun AlbumsScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val isOfflineMode by viewModel.isOfflineMode.collectAsStateWithLifecycle()
+    val cachedAlbums by viewModel.cachedAlbums.collectAsStateWithLifecycle()
+    val isAlbumCacheComplete by viewModel.isAlbumCacheComplete.collectAsStateWithLifecycle()
     val imageQualityManager = viewModel.imageQualityManager
     val viewMode by viewModel.viewMode.collectAsStateWithLifecycle()
 
@@ -179,8 +183,13 @@ fun AlbumsScreen(
 
     val successState = uiState as? AlbumsUiState.Success
     val lazyPagingItems = successState?.albums?.collectAsLazyPagingItems()
-    val filteredCount = lazyPagingItems?.itemSnapshotList?.items?.size ?: 0
-    val totalCount = lazyPagingItems?.itemCount ?: 0
+    val cachedCount = if (!isOfflineMode && isAlbumCacheComplete && cachedAlbums.isNotEmpty()) {
+        cachedAlbums.size
+    } else {
+        null
+    }
+    val filteredCount = cachedCount ?: (lazyPagingItems?.itemSnapshotList?.items?.size ?: 0)
+    val totalCount = cachedCount ?: (lazyPagingItems?.itemCount ?: 0)
     val scrollScope = rememberCoroutineScope()
     val isListView by remember(viewMode) {
         derivedStateOf { viewMode == LibraryViewMode.LIST }
@@ -189,14 +198,34 @@ fun AlbumsScreen(
     val expandedListState = rememberLazyListState()
     val collapsedGridState = rememberLazyGridState()
     val expandedGridState = rememberLazyGridState()
+    val sortedAlbums by remember(lazyPagingItems, cachedAlbums, isAlbumCacheComplete, isOfflineMode) {
+        derivedStateOf {
+            if (!isOfflineMode && isAlbumCacheComplete && cachedAlbums.isNotEmpty()) {
+                return@derivedStateOf cachedAlbums.sortedWith(AlbumAlphabeticalComparator)
+            }
+            val snapshot = lazyPagingItems?.itemSnapshotList ?: return@derivedStateOf emptyList()
+            if (snapshot.placeholdersBefore != 0 || snapshot.placeholdersAfter != 0) {
+                return@derivedStateOf emptyList()
+            }
+            snapshot.items.sortedWith(AlbumAlphabeticalComparator)
+        }
+    }
     val alphabetIndexMap by remember(lazyPagingItems) {
         derivedStateOf {
-            lazyPagingItems?.alphabetIndexMap { album -> album.name } ?: emptyMap()
+            if (sortedAlbums.isNotEmpty()) {
+                sortedAlbums.alphabetIndexMap { album -> album.name }
+            } else {
+                lazyPagingItems?.alphabetIndexMap { album -> album.name } ?: emptyMap()
+            }
         }
     }
     val showAlphabetScroller by remember(lazyPagingItems) {
         derivedStateOf {
-            lazyPagingItems?.itemSnapshotList?.items?.isNotEmpty() == true
+            if (sortedAlbums.isNotEmpty()) {
+                true
+            } else {
+                lazyPagingItems?.itemSnapshotList?.items?.isNotEmpty() == true
+            }
         }
     }
 
@@ -469,27 +498,44 @@ fun AlbumsScreen(
                                                     state = expandedListState,
                                                     contentPadding = listPadding
                                                 ) {
-                                                    items(
-                                                        count = items.itemCount,
-                                                        key = { index ->
-                                                            items[index]?.let { album ->
+                                                    if (sortedAlbums.isNotEmpty()) {
+                                                        itemsIndexed(
+                                                            items = sortedAlbums,
+                                                            key = { _, album ->
                                                                 "${album.provider}:${album.itemId}"
-                                                            } ?: "placeholder_$index"
-                                                        }
-                                                    ) { index ->
-                                                        val album = items[index]
-                                                        if (album != null) {
+                                                            }
+                                                        ) { index, album ->
                                                             AlbumListItem(
                                                                 album = album,
                                                                 onClick = { handleAlbumClick(album) },
-                                                                showDivider = index < items.itemCount - 1,
+                                                                showDivider = index < sortedAlbums.lastIndex,
                                                                 isOfflineMode = isOfflineMode,
                                                                 imageQualityManager = imageQualityManager
                                                             )
-                                                        } else {
-                                                            AlbumListItemPlaceholder(
-                                                                showDivider = index < items.itemCount - 1
-                                                            )
+                                                        }
+                                                    } else {
+                                                        items(
+                                                            count = items.itemCount,
+                                                            key = { index ->
+                                                                items[index]?.let { album ->
+                                                                    "${album.provider}:${album.itemId}"
+                                                                } ?: "placeholder_$index"
+                                                            }
+                                                        ) { index ->
+                                                            val album = items[index]
+                                                            if (album != null) {
+                                                                AlbumListItem(
+                                                                    album = album,
+                                                                    onClick = { handleAlbumClick(album) },
+                                                                    showDivider = index < items.itemCount - 1,
+                                                                    isOfflineMode = isOfflineMode,
+                                                                    imageQualityManager = imageQualityManager
+                                                                )
+                                                            } else {
+                                                                AlbumListItemPlaceholder(
+                                                                    showDivider = index < items.itemCount - 1
+                                                                )
+                                                            }
                                                         }
                                                     }
                                                 }
@@ -527,27 +573,44 @@ fun AlbumsScreen(
                                                 state = collapsedListState,
                                                 contentPadding = listPadding
                                             ) {
-                                                items(
-                                                    count = items.itemCount,
-                                                    key = { index ->
-                                                        items[index]?.let { album ->
+                                                if (sortedAlbums.isNotEmpty()) {
+                                                    itemsIndexed(
+                                                        items = sortedAlbums,
+                                                        key = { _, album ->
                                                             "${album.provider}:${album.itemId}"
-                                                        } ?: "placeholder_$index"
-                                                    }
-                                                ) { index ->
-                                                    val album = items[index]
-                                                    if (album != null) {
+                                                        }
+                                                    ) { index, album ->
                                                         AlbumListItem(
                                                             album = album,
                                                             onClick = { handleAlbumClick(album) },
-                                                            showDivider = index < items.itemCount - 1,
+                                                            showDivider = index < sortedAlbums.lastIndex,
                                                             isOfflineMode = isOfflineMode,
                                                             imageQualityManager = imageQualityManager
                                                         )
-                                                    } else {
-                                                        AlbumListItemPlaceholder(
-                                                            showDivider = index < items.itemCount - 1
-                                                        )
+                                                    }
+                                                } else {
+                                                    items(
+                                                        count = items.itemCount,
+                                                        key = { index ->
+                                                            items[index]?.let { album ->
+                                                                "${album.provider}:${album.itemId}"
+                                                            } ?: "placeholder_$index"
+                                                        }
+                                                    ) { index ->
+                                                        val album = items[index]
+                                                        if (album != null) {
+                                                            AlbumListItem(
+                                                                album = album,
+                                                                onClick = { handleAlbumClick(album) },
+                                                                showDivider = index < items.itemCount - 1,
+                                                                isOfflineMode = isOfflineMode,
+                                                                imageQualityManager = imageQualityManager
+                                                            )
+                                                        } else {
+                                                            AlbumListItemPlaceholder(
+                                                                showDivider = index < items.itemCount - 1
+                                                            )
+                                                        }
                                                     }
                                                 }
                                             }
@@ -581,17 +644,31 @@ fun AlbumsScreen(
                                                     }
                                                 }
                                             ) {
-                                                AlbumGrid(
-                                                    albums = items,
-                                                    onAlbumClick = handleAlbumClick,
-                                                    gridState = expandedGridState,
-                                                    columns = columns,
-                                                    artworkSize = artworkSize,
-                                                    contentPadding = gridPadding,
-                                                    isOfflineMode = isOfflineMode,
-                                                    imageQualityManager = imageQualityManager,
-                                                    modifier = Modifier.fillMaxSize()
-                                                )
+                                                if (sortedAlbums.isNotEmpty()) {
+                                                    AlbumGridStatic(
+                                                        albums = sortedAlbums,
+                                                        onAlbumClick = handleAlbumClick,
+                                                        gridState = expandedGridState,
+                                                        columns = columns,
+                                                        artworkSize = artworkSize,
+                                                        contentPadding = gridPadding,
+                                                        isOfflineMode = isOfflineMode,
+                                                        imageQualityManager = imageQualityManager,
+                                                        modifier = Modifier.fillMaxSize()
+                                                    )
+                                                } else {
+                                                    AlbumGrid(
+                                                        albums = items,
+                                                        onAlbumClick = handleAlbumClick,
+                                                        gridState = expandedGridState,
+                                                        columns = columns,
+                                                        artworkSize = artworkSize,
+                                                        contentPadding = gridPadding,
+                                                        isOfflineMode = isOfflineMode,
+                                                        imageQualityManager = imageQualityManager,
+                                                        modifier = Modifier.fillMaxSize()
+                                                    )
+                                                }
                                             }
                                             AlbumDetailPane(
                                                 album = selectedAlbum,
@@ -621,17 +698,31 @@ fun AlbumsScreen(
                                                 }
                                             }
                                         ) {
-                                            AlbumGrid(
-                                                albums = items,
-                                                onAlbumClick = handleAlbumClick,
-                                                gridState = collapsedGridState,
-                                                columns = columns,
-                                                artworkSize = artworkSize,
-                                                contentPadding = gridPadding,
-                                                isOfflineMode = isOfflineMode,
-                                                imageQualityManager = imageQualityManager,
-                                                modifier = Modifier.fillMaxSize()
-                                            )
+                                            if (sortedAlbums.isNotEmpty()) {
+                                                AlbumGridStatic(
+                                                    albums = sortedAlbums,
+                                                    onAlbumClick = handleAlbumClick,
+                                                    gridState = collapsedGridState,
+                                                    columns = columns,
+                                                    artworkSize = artworkSize,
+                                                    contentPadding = gridPadding,
+                                                    isOfflineMode = isOfflineMode,
+                                                    imageQualityManager = imageQualityManager,
+                                                    modifier = Modifier.fillMaxSize()
+                                                )
+                                            } else {
+                                                AlbumGrid(
+                                                    albums = items,
+                                                    onAlbumClick = handleAlbumClick,
+                                                    gridState = collapsedGridState,
+                                                    columns = columns,
+                                                    artworkSize = artworkSize,
+                                                    contentPadding = gridPadding,
+                                                    isOfflineMode = isOfflineMode,
+                                                    imageQualityManager = imageQualityManager,
+                                                    modifier = Modifier.fillMaxSize()
+                                                )
+                                            }
                                         }
                                     }
                                 }
@@ -753,3 +844,11 @@ private val AlbumSaver = Saver<Album?, String>(
     save = { album -> album?.let { Json.encodeToString(it) } },
     restore = { json -> json?.let { Json.decodeFromString<Album>(it) } }
 )
+
+private fun albumSortKey(album: Album): String {
+    return album.name.trim().lowercase()
+}
+
+private val AlbumAlphabeticalComparator = compareBy<Album> { albumSortKey(it) }
+    .thenBy { it.artists.firstOrNull().orEmpty().trim().lowercase() }
+    .thenBy { "${it.provider}:${it.itemId}" }

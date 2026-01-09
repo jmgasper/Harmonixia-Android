@@ -10,6 +10,7 @@ import androidx.paging.filter
 import androidx.paging.insertFooterItem
 import com.harmonixia.android.data.local.SettingsDataStore
 import com.harmonixia.android.data.paging.AlbumsPagingSource
+import com.harmonixia.android.data.repository.AlbumCacheRepository
 import com.harmonixia.android.data.remote.ConnectionState
 import com.harmonixia.android.domain.model.Album
 import com.harmonixia.android.domain.model.AlbumType
@@ -46,6 +47,7 @@ class AlbumsViewModel @Inject constructor(
     getConnectionStateUseCase: GetConnectionStateUseCase,
     private val networkConnectivityManager: NetworkConnectivityManager,
     private val pagingStatsTracker: PagingStatsTracker,
+    private val albumCacheRepository: AlbumCacheRepository,
     val imageQualityManager: ImageQualityManager
 ) : ViewModel() {
     val connectionState: StateFlow<ConnectionState> = getConnectionStateUseCase()
@@ -109,7 +111,8 @@ class AlbumsViewModel @Inject constructor(
                     repository,
                     config.pageSize,
                     pagingStatsTracker,
-                    isOfflineMode = { isOfflineMode.value }
+                    isOfflineMode = { isOfflineMode.value },
+                    albumCacheRepository = albumCacheRepository
                 ).also { pagingSource = it }
             }.flow
         }
@@ -159,6 +162,23 @@ class AlbumsViewModel @Inject constructor(
 
     val albumsFlow: Flow<PagingData<Album>> = mergedAlbumsFlow.cachedIn(viewModelScope)
 
+    val cachedAlbums: StateFlow<List<Album>> = combine(
+        albumCacheRepository.observeCachedAlbums(),
+        localMediaRepository.getAllAlbums(),
+        selectedAlbumTypes,
+        offlineModeChanges
+    ) { cached, localAlbums, types, offline ->
+        if (offline || types.isEmpty()) {
+            emptyList()
+        } else {
+            val filteredCached = cached.filter { album -> types.contains(album.albumType) }
+            val filteredLocal = localAlbums.filter { album -> types.contains(album.albumType) }
+            filteredCached.mergeWithLocal(filteredLocal)
+        }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    val isAlbumCacheComplete: StateFlow<Boolean> = albumCacheRepository.isCacheComplete
+
     init {
         viewModelScope.launch {
             offlineModeChanges.collect { offline ->
@@ -169,6 +189,8 @@ class AlbumsViewModel @Inject constructor(
                         albums = localAlbumsFlow,
                         selectedAlbumTypes = selectedAlbumTypes.value
                     )
+                } else {
+                    albumCacheRepository.prefetchIfIdle()
                 }
             }
         }
@@ -197,6 +219,9 @@ class AlbumsViewModel @Inject constructor(
     }
 
     fun refresh() {
+        if (!isOfflineMode.value) {
+            albumCacheRepository.refresh()
+        }
         pagingSource?.invalidate()
     }
 

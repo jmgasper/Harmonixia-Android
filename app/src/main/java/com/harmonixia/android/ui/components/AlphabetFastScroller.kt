@@ -195,3 +195,20 @@ internal fun <T : Any> LazyPagingItems<T>.alphabetIndexMap(
     }
     return firstLetterIndexes
 }
+
+internal fun <T : Any> List<T>.alphabetIndexMap(
+    labelSelector: (T) -> String
+): Map<Char, Int> {
+    if (isEmpty()) return emptyMap()
+    val firstLetterIndexes = mutableMapOf<Char, Int>()
+    forEachIndexed { index, item ->
+        val label = labelSelector(item).trim()
+        if (label.isEmpty()) return@forEachIndexed
+        val firstChar = label.first().uppercaseChar()
+        if (firstChar !in AlphabetCharSet) return@forEachIndexed
+        if (!firstLetterIndexes.containsKey(firstChar)) {
+            firstLetterIndexes[firstChar] = index
+        }
+    }
+    return firstLetterIndexes
+}

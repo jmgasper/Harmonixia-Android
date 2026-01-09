@@ -236,7 +236,10 @@ fun PlayerSelectionDialog(
                     }
                 }
 
-                if (players.isNotEmpty() && volumePlayer != null) {
+                val showVolumeSection = players.isNotEmpty() &&
+                    volumePlayer != null &&
+                    !PlayerSelection.isLocalPlayer(volumePlayer, localPlayerId)
+                if (showVolumeSection) {
                     HorizontalDivider()
                     PlayerVolumeSection(
                         player = volumePlayer,

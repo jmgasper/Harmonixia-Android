@@ -2,7 +2,6 @@ package com.harmonixia.android.ui.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -64,25 +63,18 @@ fun AlbumListItem(
                     overflow = TextOverflow.Ellipsis
                 )
             },
-            supportingContent = {
-                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    if (showAlbumName) {
-                        Text(
-                            text = albumName,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    }
+            supportingContent = if (showAlbumName) {
+                {
                     Text(
-                        text = stringResource(R.string.library_track_count, album.trackCount),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        text = albumName,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
                 }
+            } else {
+                null
             }
         )
         if (showDivider) {
@@ -115,20 +107,12 @@ fun AlbumListItemPlaceholder(
                 )
             },
             supportingContent = {
-                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth(0.45f)
-                            .height(10.dp)
-                            .background(MaterialTheme.colorScheme.surfaceVariant)
-                    )
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth(0.3f)
-                            .height(10.dp)
-                            .background(MaterialTheme.colorScheme.surfaceVariant)
-                    )
-                }
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth(0.45f)
+                        .height(10.dp)
+                        .background(MaterialTheme.colorScheme.surfaceVariant)
+                )
             }
         )
         if (showDivider) {

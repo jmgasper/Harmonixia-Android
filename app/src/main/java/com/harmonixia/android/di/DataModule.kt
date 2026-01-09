@@ -7,6 +7,8 @@ import androidx.datastore.preferences.preferencesDataStore
 import androidx.room.Room
 import com.harmonixia.android.data.local.LocalMediaDatabase
 import com.harmonixia.android.data.local.LocalMediaScanner
+import com.harmonixia.android.data.local.dao.CachedAlbumDao
+import com.harmonixia.android.data.local.dao.CachedArtistDao
 import com.harmonixia.android.data.local.dao.LocalAlbumDao
 import com.harmonixia.android.data.local.dao.LocalArtistDao
 import com.harmonixia.android.data.local.dao.LocalTrackDao
@@ -81,7 +83,11 @@ abstract class DataModule {
                 LocalMediaDatabase::class.java,
                 LocalMediaDatabase.DATABASE_NAME
             )
-                .addMigrations(LocalMediaDatabase.MIGRATION_1_2)
+                .addMigrations(
+                    LocalMediaDatabase.MIGRATION_1_2,
+                    LocalMediaDatabase.MIGRATION_2_3,
+                    LocalMediaDatabase.MIGRATION_3_4
+                )
                 .build()
         }
 
@@ -102,6 +108,18 @@ abstract class DataModule {
         fun provideLocalArtistDao(
             database: LocalMediaDatabase
         ): LocalArtistDao = database.localArtistDao()
+
+        @Provides
+        @Singleton
+        fun provideCachedAlbumDao(
+            database: LocalMediaDatabase
+        ): CachedAlbumDao = database.cachedAlbumDao()
+
+        @Provides
+        @Singleton
+        fun provideCachedArtistDao(
+            database: LocalMediaDatabase
+        ): CachedArtistDao = database.cachedArtistDao()
 
         @Provides
         @Singleton

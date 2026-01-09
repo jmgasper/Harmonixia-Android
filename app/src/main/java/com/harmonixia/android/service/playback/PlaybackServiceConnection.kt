@@ -37,6 +37,9 @@ class PlaybackServiceConnection(
     private val _playbackState = MutableStateFlow(PlaybackState.IDLE)
     val playbackState: StateFlow<PlaybackState> = _playbackState.asStateFlow()
 
+    private val _pendingPlaybackState = MutableStateFlow<PlaybackState?>(null)
+    val pendingPlaybackState: StateFlow<PlaybackState?> = _pendingPlaybackState.asStateFlow()
+
     private val _currentMediaItem = MutableStateFlow<MediaItem?>(null)
     val currentMediaItem: StateFlow<MediaItem?> = _currentMediaItem.asStateFlow()
 
@@ -56,6 +59,7 @@ class PlaybackServiceConnection(
     val volume: StateFlow<Float> = _volume.asStateFlow()
 
     private var positionJob: Job? = null
+    private var pendingPlaybackJob: Job? = null
 
     private val playerListener = object : Player.Listener {
         override fun onIsPlayingChanged(isPlaying: Boolean) {
@@ -114,6 +118,7 @@ class PlaybackServiceConnection(
         controller.release()
         controllerState.value = null
         _playbackState.value = PlaybackState.IDLE
+        _pendingPlaybackState.value = null
         _currentMediaItem.value = null
         _playbackPosition.value = 0L
         _queue.value = emptyList()
@@ -121,16 +126,20 @@ class PlaybackServiceConnection(
         _shuffle.value = false
         _volume.value = 1f
         stopPositionUpdates()
+        pendingPlaybackJob?.cancel()
+        pendingPlaybackJob = null
     }
 
     fun play(): Result<Unit> {
         val controller = controllerState.value ?: return Result.failure(IllegalStateException("Not connected"))
+        setPendingPlaybackState(PlaybackState.PLAYING)
         controller.play()
         return Result.success(Unit)
     }
 
     fun pause(): Result<Unit> {
         val controller = controllerState.value ?: return Result.failure(IllegalStateException("Not connected"))
+        setPendingPlaybackState(PlaybackState.PAUSED)
         controller.pause()
         return Result.success(Unit)
     }
@@ -252,6 +261,12 @@ class PlaybackServiceConnection(
             controller.playWhenReady -> PlaybackState.PLAYING
             else -> PlaybackState.PAUSED
         }
+        val pending = _pendingPlaybackState.value
+        if (pending != null && pending == _playbackState.value) {
+            _pendingPlaybackState.value = null
+            pendingPlaybackJob?.cancel()
+            pendingPlaybackJob = null
+        }
     }
 
     private fun updateQueue() {
@@ -262,8 +277,21 @@ class PlaybackServiceConnection(
         _queue.value = mediaItems
     }
 
+    private fun setPendingPlaybackState(expected: PlaybackState) {
+        if (_playbackState.value == expected) return
+        _pendingPlaybackState.value = expected
+        pendingPlaybackJob?.cancel()
+        pendingPlaybackJob = scope.launch {
+            delay(PENDING_PLAYBACK_STATE_TIMEOUT_MS)
+            if (_pendingPlaybackState.value == expected) {
+                _pendingPlaybackState.value = null
+            }
+        }
+    }
+
     companion object {
         private const val TAG = "PlaybackServiceConn"
         private const val POSITION_UPDATE_INTERVAL_MS = 1000L
+        private const val PENDING_PLAYBACK_STATE_TIMEOUT_MS = 3000L
     }
 }

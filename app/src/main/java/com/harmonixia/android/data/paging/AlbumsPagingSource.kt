@@ -2,6 +2,7 @@ package com.harmonixia.android.data.paging
 
 import androidx.paging.PagingSource
 import androidx.paging.PagingState
+import com.harmonixia.android.data.repository.AlbumCacheRepository
 import com.harmonixia.android.domain.model.Album
 import com.harmonixia.android.domain.repository.MusicAssistantRepository
 import com.harmonixia.android.util.PagingStatsTracker
@@ -16,7 +17,8 @@ class AlbumsPagingSource(
     private val repository: MusicAssistantRepository,
     private val pageSize: Int = PAGE_SIZE,
     private val statsTracker: PagingStatsTracker,
-    private val isOfflineMode: () -> Boolean
+    private val isOfflineMode: () -> Boolean,
+    private val albumCacheRepository: AlbumCacheRepository
 ) : PagingSource<Int, Album>() {
     private val batchMutex = Mutex()
     private var pendingBatch: BatchRequest? = null
@@ -30,39 +32,52 @@ class AlbumsPagingSource(
             )
         }
         if (params is LoadParams.Refresh) {
-            return try {
-                val requestSize = max(pageSize, DEFAULT_FULL_FETCH_PAGE_SIZE)
-                val initialResult = repository.fetchAlbums(0, 0)
-                val initialAlbums = initialResult.getOrDefault(emptyList())
-                val albums = if (initialResult.isSuccess && initialAlbums.isNotEmpty()) {
-                    statsTracker.recordPageLoaded(initialAlbums.size)
-                    val remaining = fetchAllPages(
-                        pageSize = requestSize,
-                        startOffset = initialAlbums.size,
-                        onPageLoaded = statsTracker::recordPageLoaded
-                    ) { offset, limit ->
-                        repository.fetchAlbums(limit, offset)
-                    }
-                    initialAlbums + remaining
-                } else {
-                    fetchAllPages(
-                        pageSize = requestSize,
-                        onPageLoaded = statsTracker::recordPageLoaded
-                    ) { offset, limit ->
-                        repository.fetchAlbums(limit, offset)
-                    }
-                }
-                LoadResult.Page(
-                    data = albums,
+            val offset = 0
+            val limit = params.loadSize.coerceAtLeast(1)
+            val cachedPage = albumCacheRepository.getCachedPage(offset, limit)
+            if (cachedPage != null && cachedPage.albums.isNotEmpty()) {
+                statsTracker.recordPageLoaded(cachedPage.albums.size)
+                albumCacheRepository.prefetchIfIdle()
+                val nextKey = if (cachedPage.albums.size < limit) null else offset + limit
+                return LoadResult.Page(
+                    data = cachedPage.albums,
                     prevKey = null,
-                    nextKey = null
+                    nextKey = nextKey
                 )
-            } catch (error: Throwable) {
-                LoadResult.Error(error)
             }
+            return repository.fetchAlbums(limit, offset)
+                .fold(
+                    onSuccess = { albums ->
+                        statsTracker.recordPageLoaded(albums.size)
+                        albumCacheRepository.prefetchFromInitialPage(
+                            initialAlbums = albums,
+                            startOffset = albums.size,
+                            force = true
+                        )
+                        val nextKey = if (albums.size < limit) null else offset + limit
+                        LoadResult.Page(
+                            data = albums,
+                            prevKey = null,
+                            nextKey = nextKey
+                        )
+                    },
+                    onFailure = { error -> LoadResult.Error(error) }
+                )
         }
         val offset = params.key ?: 0
         val limit = params.loadSize.coerceAtLeast(1)
+
+        val cachedPage = albumCacheRepository.getCachedPage(offset, limit)
+        if (cachedPage != null) {
+            statsTracker.recordPageLoaded(cachedPage.albums.size)
+            val prevKey = if (offset == 0) null else (offset - limit).coerceAtLeast(0)
+            val nextKey = if (cachedPage.albums.size < limit) null else offset + limit
+            return LoadResult.Page(
+                data = cachedPage.albums,
+                prevKey = prevKey,
+                nextKey = nextKey
+            )
+        }
 
         val waiter = PendingRequest(offset, limit, CompletableDeferred())
         val batch = batchMutex.withLock {

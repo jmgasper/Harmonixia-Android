@@ -16,6 +16,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -36,6 +37,7 @@ fun PlaybackControls(
     shuffle: Boolean,
     isRepeatModeUpdating: Boolean,
     isShuffleUpdating: Boolean,
+    isPlayPauseUpdating: Boolean,
     onRepeatToggle: () -> Unit,
     onShuffleToggle: () -> Unit,
     onPlayPause: () -> Unit,
@@ -51,6 +53,7 @@ fun PlaybackControls(
     val shuffleTint = if (shuffle) activeTint else inactiveTint
     val controlButtonSize = 48.dp
     val spinnerSize = 20.dp
+    val playPauseSpinnerSize = 24.dp
     val repeatIcon = when (repeatMode) {
         RepeatMode.OFF -> Icons.Filled.Repeat
         RepeatMode.ALL -> Icons.Filled.Repeat
@@ -115,23 +118,31 @@ fun PlaybackControls(
                 haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                 onPlayPause()
             },
-            enabled = enabled,
+            enabled = enabled && !isPlayPauseUpdating,
             modifier = Modifier.size(64.dp)
         ) {
-            Icon(
-                imageVector = if (isPlaying) {
-                    Icons.Filled.Pause
-                } else {
-                    Icons.Filled.PlayArrow
-                },
-                contentDescription = stringResource(
-                    if (isPlaying) {
-                        R.string.action_pause
-                    } else {
-                        R.string.action_play
-                    }
+            if (isPlayPauseUpdating) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(playPauseSpinnerSize),
+                    strokeWidth = 2.dp,
+                    color = LocalContentColor.current
                 )
-            )
+            } else {
+                Icon(
+                    imageVector = if (isPlaying) {
+                        Icons.Filled.Pause
+                    } else {
+                        Icons.Filled.PlayArrow
+                    },
+                    contentDescription = stringResource(
+                        if (isPlaying) {
+                            R.string.action_pause
+                        } else {
+                            R.string.action_play
+                        }
+                    )
+                )
+            }
         }
         IconButton(
             onClick = {

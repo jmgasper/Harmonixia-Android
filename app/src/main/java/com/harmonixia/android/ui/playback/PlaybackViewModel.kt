@@ -156,6 +156,9 @@ class PlaybackViewModel @Inject constructor(
     val isRepeatModeUpdating: StateFlow<Boolean> = _isRepeatModeUpdating.asStateFlow()
     private val _isShuffleUpdating = MutableStateFlow(false)
     val isShuffleUpdating: StateFlow<Boolean> = _isShuffleUpdating.asStateFlow()
+    val isPlayPauseUpdating: StateFlow<Boolean> = playbackServiceConnection.pendingPlaybackState
+        .map { it != null }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
     private val playbackPositionTicks = playbackState
         .map { it == PlaybackState.PLAYING }
         .distinctUntilChanged()

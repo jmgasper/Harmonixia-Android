@@ -1,12 +1,15 @@
 package com.harmonixia.android.ui.components
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
@@ -100,11 +103,9 @@ fun SeekBar(
             colors = sliderColors,
             interactionSource = interactionSource,
             thumb = {
-                SliderDefaults.Thumb(
-                    interactionSource = interactionSource,
-                    colors = sliderColors,
+                SeekBarThumb(
                     enabled = isEnabled,
-                    thumbSize = SeekBarThumbSize
+                    color = activeTrackColor
                 )
             },
             track = { sliderState ->
@@ -151,6 +152,23 @@ fun SeekBar(
             }
         }
     }
+}
+
+@Composable
+private fun SeekBarThumb(
+    enabled: Boolean,
+    color: Color,
+    modifier: Modifier = Modifier
+) {
+    val thumbColor = if (enabled) color else color.copy(alpha = 0.4f)
+    Box(
+        modifier = modifier
+            .size(SeekBarThumbSize)
+            .background(
+                color = thumbColor,
+                shape = CircleShape
+            )
+    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -203,7 +221,7 @@ private fun SeekBarTrack(
     }
 }
 
-private val SeekBarThumbSize = DpSize(8.dp, 8.dp)
+private val SeekBarThumbSize = DpSize(20.dp, 20.dp)
 private val SeekBarTrackHeight = 4.dp
 
 @Composable

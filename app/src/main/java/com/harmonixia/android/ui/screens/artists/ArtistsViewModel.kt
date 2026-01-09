@@ -9,6 +9,7 @@ import androidx.paging.cachedIn
 import androidx.paging.filter
 import androidx.paging.insertFooterItem
 import com.harmonixia.android.data.paging.ArtistsPagingSource
+import com.harmonixia.android.data.repository.ArtistCacheRepository
 import com.harmonixia.android.data.remote.ConnectionState
 import com.harmonixia.android.domain.model.Artist
 import com.harmonixia.android.domain.repository.LocalMediaRepository
@@ -43,6 +44,7 @@ class ArtistsViewModel @Inject constructor(
     getConnectionStateUseCase: GetConnectionStateUseCase,
     private val networkConnectivityManager: NetworkConnectivityManager,
     private val pagingStatsTracker: PagingStatsTracker,
+    private val artistCacheRepository: ArtistCacheRepository,
     val imageQualityManager: ImageQualityManager
 ) : ViewModel() {
     val connectionState: StateFlow<ConnectionState> = getConnectionStateUseCase()
@@ -85,7 +87,8 @@ class ArtistsViewModel @Inject constructor(
                 repository,
                 ArtistsPagingSource.PAGE_SIZE,
                 pagingStatsTracker,
-                isOfflineMode = { isOfflineMode.value }
+                isOfflineMode = { isOfflineMode.value },
+                artistCacheRepository = artistCacheRepository
             ).also { pagingSource = it }
         }.flow
     }
@@ -126,6 +129,20 @@ class ArtistsViewModel @Inject constructor(
 
     val artistsFlow: Flow<PagingData<Artist>> = mergedArtistsFlow.cachedIn(viewModelScope)
 
+    val cachedArtists: StateFlow<List<Artist>> = combine(
+        artistCacheRepository.observeCachedArtists(),
+        localMediaRepository.getAllArtists(),
+        offlineModeChanges
+    ) { cached, localArtists, offline ->
+        if (offline) {
+            emptyList()
+        } else {
+            cached.mergeWithLocal(localArtists)
+        }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    val isArtistCacheComplete: StateFlow<Boolean> = artistCacheRepository.isCacheComplete
+
     init {
         viewModelScope.launch {
             offlineModeChanges.collect { offline ->
@@ -134,6 +151,8 @@ class ArtistsViewModel @Inject constructor(
                     _artistAlbumCounts.value = emptyMap()
                     artistsFlowReset.value = artistsFlowReset.value + 1
                     _uiState.value = ArtistsUiState.Success(localArtistsFlow)
+                } else {
+                    artistCacheRepository.prefetchIfIdle()
                 }
             }
         }
@@ -156,6 +175,9 @@ class ArtistsViewModel @Inject constructor(
     }
 
     fun refresh() {
+        if (!isOfflineMode.value) {
+            artistCacheRepository.refresh()
+        }
         pagingSource?.invalidate()
     }
 

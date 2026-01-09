@@ -125,6 +125,7 @@ fun AlbumGridStatic(
     albums: List<Album>,
     onAlbumClick: (Album) -> Unit,
     onAlbumLongClick: ((Album) -> Unit)? = null,
+    gridState: LazyGridState = rememberLazyGridState(),
     columns: Int,
     artworkSize: Dp,
     contentPadding: PaddingValues,
@@ -134,9 +135,37 @@ fun AlbumGridStatic(
 ) {
     val safeColumns = columns.coerceAtLeast(1)
     val minCardHeight = artworkSize + 70.dp
+    val context = LocalContext.current
+    val imageLoader = context.imageLoader
+    val optimizedSize = imageQualityManager.getOptimalImageSize(artworkSize)
+    val sizePx = with(LocalDensity.current) { optimizedSize.roundToPx() }
+    val bitmapConfig = imageQualityManager.getOptimalBitmapConfig()
+
+    LaunchedEffect(albums.size, gridState.firstVisibleItemIndex, sizePx, bitmapConfig) {
+        if (albums.isEmpty()) return@LaunchedEffect
+        val startIndex = (gridState.firstVisibleItemIndex + PREFETCH_START_OFFSET)
+            .coerceAtMost(albums.size - 1)
+        val endIndex = (gridState.firstVisibleItemIndex + PREFETCH_END_OFFSET)
+            .coerceAtMost(albums.size - 1)
+        if (startIndex > endIndex) return@LaunchedEffect
+        for (index in startIndex..endIndex) {
+            val album = albums[index]
+            if (album.imageUrl.isNullOrBlank()) continue
+            imageLoader.enqueue(
+                buildAlbumArtworkRequest(
+                    context = context,
+                    album = album,
+                    sizePx = sizePx,
+                    bitmapConfig = bitmapConfig,
+                    isOfflineMode = isOfflineMode
+                )
+            )
+        }
+    }
 
     LazyVerticalGrid(
         columns = GridCells.Fixed(safeColumns),
+        state = gridState,
         contentPadding = contentPadding,
         horizontalArrangement = Arrangement.spacedBy(AlbumGridSpacing),
         verticalArrangement = Arrangement.spacedBy(AlbumGridSpacing),

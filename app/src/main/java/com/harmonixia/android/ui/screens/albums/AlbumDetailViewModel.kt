@@ -26,6 +26,7 @@ import javax.inject.Inject
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -84,6 +85,8 @@ class AlbumDetailViewModel @Inject constructor(
     private var isLoadingMoreTracks = false
     private var loadMoreJob: Job? = null
     private var localAlbumTracks: List<Track> = emptyList()
+    private var trackDetailsRetryJob: Job? = null
+    private var trackDetailsRetryCount = 0
     val isOfflineMode: StateFlow<Boolean> = networkConnectivityManager.networkAvailabilityFlow
         .map { networkConnectivityManager.isOfflineMode() }
         .distinctUntilChanged()
@@ -117,6 +120,7 @@ class AlbumDetailViewModel @Inject constructor(
         showLoading: Boolean,
         isRefresh: Boolean
     ) {
+        cancelTrackDetailsRetry()
         if (albumId.isBlank() || provider.isBlank()) {
             _uiState.value = AlbumDetailUiState.Error("Missing album details.")
             return
@@ -283,6 +287,7 @@ class AlbumDetailViewModel @Inject constructor(
                     finalMerged.size
                 )
             }
+            handleTrackDetailsRetry()
         }
     }
 
@@ -300,6 +305,7 @@ class AlbumDetailViewModel @Inject constructor(
             } finally {
                 isLoadingMoreTracks = false
                 updateLoadingMoreState(false, currentAlbum)
+                handleTrackDetailsRetry()
             }
         }
     }
@@ -361,6 +367,45 @@ class AlbumDetailViewModel @Inject constructor(
             hasMore = hasMoreTracks,
             isLoadingMore = isLoading
         )
+    }
+
+    private fun cancelTrackDetailsRetry() {
+        trackDetailsRetryJob?.cancel()
+        trackDetailsRetryJob = null
+    }
+
+    private fun handleTrackDetailsRetry() {
+        if (isOfflineMode.value || provider == OFFLINE_PROVIDER) return
+        if (isLoadingMoreTracks) return
+        val currentTracks = tracks
+        if (!hasMissingTrackDetails(currentTracks)) {
+            trackDetailsRetryCount = 0
+            cancelTrackDetailsRetry()
+            return
+        }
+        if (trackDetailsRetryCount >= TRACK_DETAILS_RETRY_LIMIT) return
+        if (trackDetailsRetryJob?.isActive == true) return
+        val delayMs = TRACK_DETAILS_RETRY_DELAYS_MS
+            .getOrNull(trackDetailsRetryCount)
+            ?: TRACK_DETAILS_RETRY_DELAYS_MS.last()
+        trackDetailsRetryJob = viewModelScope.launch {
+            delay(delayMs)
+            if (isOfflineMode.value || provider == OFFLINE_PROVIDER) return@launch
+            if (isLoadingMoreTracks) return@launch
+            if (!hasMissingTrackDetails(tracks)) {
+                trackDetailsRetryCount = 0
+                return@launch
+            }
+            trackDetailsRetryCount += 1
+            refreshAlbum(showLoading = false)
+        }
+    }
+
+    private fun hasMissingTrackDetails(tracks: List<Track>): Boolean {
+        if (tracks.isEmpty()) return false
+        return tracks.any { track ->
+            !track.isLocal && (track.imageUrl.isNullOrBlank() || track.quality.isNullOrBlank())
+        }
     }
 
     private suspend fun mergeWithLocalTracks(
@@ -758,6 +803,8 @@ class AlbumDetailViewModel @Inject constructor(
         private const val ALBUM_PREFETCH_LIMIT = 50
         private const val INITIAL_TRACK_CHUNK_SIZE = 50
         private const val SUBSEQUENT_CHUNK_SIZE = 150
+        private const val TRACK_DETAILS_RETRY_LIMIT = 2
+        private val TRACK_DETAILS_RETRY_DELAYS_MS = longArrayOf(1_000L, 3_000L)
         private const val MERGE_BATCH_SIZE = 100
         private const val FAVORITE_SEARCH_LIMIT = 50
     }
