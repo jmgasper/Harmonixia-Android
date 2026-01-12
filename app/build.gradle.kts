@@ -1,4 +1,67 @@
+import com.android.build.api.artifact.SingleArtifact
+import org.gradle.api.DefaultTask
+import org.gradle.api.file.DirectoryProperty
+import org.gradle.api.tasks.InputDirectory
+import org.gradle.api.tasks.OutputDirectory
+import org.gradle.api.tasks.TaskAction
 import org.gradle.api.tasks.bundling.AbstractArchiveTask
+import java.io.File
+
+abstract class RenameApkTask : DefaultTask() {
+    @get:InputDirectory
+    abstract val inputApkDir: DirectoryProperty
+
+    @get:OutputDirectory
+    abstract val outputApkDir: DirectoryProperty
+
+    @TaskAction
+    fun run() {
+        val inputDir = inputApkDir.get().asFile
+        val outputDir = outputApkDir.get().asFile
+        outputDir.mkdirs()
+        val metadataFile = inputDir.resolve(APK_METADATA_FILE)
+        val (originalApkName, updatedMetadata) = if (metadataFile.exists()) {
+            val text = metadataFile.readText()
+            val matches = OUTPUT_FILE_REGEX.findAll(text).toList()
+            if (matches.size == 1) {
+                val original = matches.first().groupValues[1]
+                original to OUTPUT_FILE_REGEX.replace(text, "\"outputFile\": \"$TARGET_APK_NAME\"")
+            } else {
+                null to null
+            }
+        } else {
+            null to null
+        }
+
+        inputDir.walkTopDown().forEach { file ->
+            if (!file.isFile) return@forEach
+            val relative = file.relativeTo(inputDir)
+            val renamedRelative = if (originalApkName != null && file.name == originalApkName) {
+                val parent = relative.parentFile
+                if (parent != null) {
+                    parent.resolve(TARGET_APK_NAME)
+                } else {
+                    File(TARGET_APK_NAME)
+                }
+            } else {
+                relative
+            }
+            val targetFile = outputDir.resolve(renamedRelative.path)
+            targetFile.parentFile?.mkdirs()
+            if (file == metadataFile && updatedMetadata != null) {
+                targetFile.writeText(updatedMetadata)
+            } else {
+                file.copyTo(targetFile, overwrite = true)
+            }
+        }
+    }
+
+    private companion object {
+        private const val APK_METADATA_FILE = "output-metadata.json"
+        private const val TARGET_APK_NAME = "Harmonixia.apk"
+        private val OUTPUT_FILE_REGEX = Regex("\"outputFile\"\\s*:\\s*\"([^\"]+)\"")
+    }
+}
 
 plugins {
     id("com.android.application")
@@ -92,9 +155,13 @@ android {
 
 androidComponents {
     onVariants(selector().withBuildType("release")) { variant ->
-        variant.outputs.forEach { output ->
-            output.outputFileName.set("Harmonixia.apk")
+        val taskName = "rename${variant.name.replaceFirstChar { it.uppercaseChar() }}Apk"
+        val renameTask = tasks.register<RenameApkTask>(taskName) {
+            outputApkDir.set(layout.buildDirectory.dir("outputs/apk/${variant.name}"))
         }
+        variant.artifacts.use(renameTask)
+            .wiredWithDirectories(RenameApkTask::inputApkDir, RenameApkTask::outputApkDir)
+            .toTransformMany(SingleArtifact.APK)
     }
 }
 

@@ -1,6 +1,7 @@
 package com.harmonixia.android.ui.playback
 
 import android.net.Uri
+import android.os.Build
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.media3.common.MediaItem
@@ -293,10 +294,11 @@ class PlaybackViewModel @Inject constructor(
             getPlayersUseCase()
                 .onSuccess { players ->
                     val resolvedLocalId = localPlayerId.value
-                    val sortedPlayers = sortPlayers(players, resolvedLocalId)
+                    val displayPlayers = addLocalPlaceholderIfMissing(players, resolvedLocalId)
+                    val sortedPlayers = sortPlayers(displayPlayers, resolvedLocalId)
                     _availablePlayers.value = sortedPlayers
                     if (!playbackStateManager.hasExplicitPlayerSelection()) {
-                        selectLocalPlayer(sortedPlayers, resolvedLocalId)
+                        selectLocalPlayer(players, resolvedLocalId)
                         return@onSuccess
                     }
                     val playerId = playbackStateManager.currentPlayerId
@@ -333,6 +335,34 @@ class PlaybackViewModel @Inject constructor(
             PlayerSelection.isLocalPlayer(player, resolvedLocalId)
         }
         return local + others
+    }
+
+    private fun addLocalPlaceholderIfMissing(
+        players: List<Player>,
+        localPlayerId: String?
+    ): List<Player> {
+        val resolvedId = localPlayerId?.takeIf { it.isNotBlank() } ?: return players
+        if (players.any { it.playerId == resolvedId }) return players
+        val manufacturer = Build.MANUFACTURER.orEmpty().trim()
+        val model = Build.MODEL.orEmpty().trim()
+        val displayName = when {
+            manufacturer.isNotBlank() && model.isNotBlank() -> "$manufacturer $model"
+            model.isNotBlank() -> model
+            manufacturer.isNotBlank() -> manufacturer
+            else -> "Android Device"
+        }
+        val placeholder = Player(
+            playerId = resolvedId,
+            name = displayName,
+            available = false,
+            enabled = false,
+            playbackState = PlaybackState.IDLE,
+            volume = 0,
+            volumeMuted = null,
+            deviceManufacturer = manufacturer.ifBlank { null },
+            deviceModel = model.ifBlank { null }
+        )
+        return listOf(placeholder) + players
     }
 
     fun play() {

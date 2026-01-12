@@ -116,6 +116,15 @@ fun SharedTransitionScope.MiniPlayer(
     val isExternalPlayback = selectedPlayer?.let {
         !PlayerSelection.isLocalPlayer(it, localPlayerId)
     } == true
+    val swipePlayers = remember(availablePlayers, selectedPlayer) {
+        val available = availablePlayers.filter { it.available }
+        val selected = selectedPlayer
+        if (selected != null && available.none { it.playerId == selected.playerId }) {
+            available + selected
+        } else {
+            available
+        }
+    }
     val containerColor = if (isExternalPlayback) {
         ExternalPlaybackGreen
     } else {
@@ -165,20 +174,20 @@ fun SharedTransitionScope.MiniPlayer(
                     onClickLabel = stringResource(R.string.content_desc_open_now_playing),
                     onClick = onExpandClick
                 )
-                .pointerInput(availablePlayers, selectedPlayer) {
-                    if (availablePlayers.size > 1) {
+                .pointerInput(swipePlayers, selectedPlayer) {
+                    if (swipePlayers.size > 1) {
                         detectHorizontalDragGestures(
                             onDragEnd = {
-                                if (abs(dragOffset) > SWIPE_THRESHOLD && availablePlayers.size > 1) {
-                                    val currentIndex = availablePlayers.indexOfFirst {
+                                if (abs(dragOffset) > SWIPE_THRESHOLD && swipePlayers.size > 1) {
+                                    val currentIndex = swipePlayers.indexOfFirst {
                                         it.playerId == selectedPlayer?.playerId
                                     }.let { index -> if (index == -1) 0 else index }
                                     val newIndex = if (dragOffset < 0) {
-                                        (currentIndex + 1) % availablePlayers.size
+                                        (currentIndex + 1) % swipePlayers.size
                                     } else {
-                                        (currentIndex - 1 + availablePlayers.size) % availablePlayers.size
+                                        (currentIndex - 1 + swipePlayers.size) % swipePlayers.size
                                     }
-                                    onPlayerSwipe(availablePlayers[newIndex])
+                                    onPlayerSwipe(swipePlayers[newIndex])
                                 }
                                 dragOffset = 0f
                             },
