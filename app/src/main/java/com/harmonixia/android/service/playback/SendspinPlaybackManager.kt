@@ -70,6 +70,7 @@ class SendspinPlaybackManager(
     private var reconnectDelayMs = INITIAL_RECONNECT_DELAY_MS
     private var authFailureToken: String? = null
     private var streamActive = false
+    private var lastServerMessageAtMs = 0L
 
     private var volume: Float = 1f
     private var muted: Boolean = false
@@ -186,6 +187,7 @@ class SendspinPlaybackManager(
         connecting = false
         handshakeComplete = false
         streamActive = false
+        lastServerMessageAtMs = 0L
         cancelHandshakeJobs()
         audioOutput.stop()
     }
@@ -237,6 +239,7 @@ class SendspinPlaybackManager(
                 Logger.w(TAG, "Failed to parse Sendspin message", error)
                 return
             }
+        markServerMessage()
         when (root["type"]?.jsonPrimitive?.contentOrNull) {
             "auth_ok" -> sendClientHello()
             "auth_invalid" -> {
@@ -260,6 +263,7 @@ class SendspinPlaybackManager(
         val messageType = payload[0].toInt() and 0xFF
         if (messageType != AUDIO_CHUNK_MESSAGE_TYPE) return
         if (!streamActive) return
+        markServerMessage()
         val timestampUs = parseTimestampUs(payload)
         val audioData = payload.copyOfRange(BINARY_HEADER_SIZE, payload.size)
         audioOutput.enqueueAudio(timestampUs, audioData)
@@ -421,6 +425,11 @@ class SendspinPlaybackManager(
 
     private fun sendPlayerState() {
         if (!handshakeComplete) return
+        if (isConnectionStale()) {
+            Logger.w(TAG, "Sendspin connection stale; reconnecting")
+            handleDisconnect()
+            return
+        }
         val volumePercent = (volume.coerceIn(0f, 1f) * 100f).roundToInt()
         val payload = buildJsonObject {
             put("type", JsonPrimitive("client/state"))
@@ -443,6 +452,11 @@ class SendspinPlaybackManager(
 
     private fun sendTimeSync() {
         if (!handshakeComplete) return
+        if (isConnectionStale()) {
+            Logger.w(TAG, "Sendspin connection stale; reconnecting")
+            handleDisconnect()
+            return
+        }
         val payload = buildJsonObject {
             put("type", JsonPrimitive("client/time"))
             put(
@@ -460,6 +474,7 @@ class SendspinPlaybackManager(
         val text = json.encodeToString(JsonObject.serializer(), payload)
         if (!socket.send(text)) {
             Logger.w(TAG, "Failed to send Sendspin message")
+            handleDisconnect()
         }
     }
 
@@ -518,6 +533,17 @@ class SendspinPlaybackManager(
         return "ma_android_${UUID.randomUUID().toString().replace("-", "").take(10)}"
     }
 
+    private fun markServerMessage() {
+        lastServerMessageAtMs = SystemClock.elapsedRealtime()
+    }
+
+    private fun isConnectionStale(): Boolean {
+        if (!handshakeComplete) return false
+        val lastMessageAt = lastServerMessageAtMs
+        if (lastMessageAt <= 0L) return false
+        return SystemClock.elapsedRealtime() - lastMessageAt > STALE_CONNECTION_MS
+    }
+
     private fun nowUs(): Long = SystemClock.elapsedRealtimeNanos() / 1000L
 
     private fun parseTimestampUs(payload: ByteArray): Long {
@@ -556,6 +582,7 @@ class SendspinPlaybackManager(
         private const val BINARY_HEADER_SIZE = 9
         private const val HANDSHAKE_TIMEOUT_MS = 10_000L
         private const val STATE_INTERVAL_MS = 10_000L
+        private const val STALE_CONNECTION_MS = 60_000L
         private const val INITIAL_RECONNECT_DELAY_MS = 1_000L
         private const val MAX_RECONNECT_DELAY_MS = 30_000L
         private const val NORMAL_CLOSE_CODE = 1000

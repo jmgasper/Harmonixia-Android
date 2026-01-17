@@ -66,6 +66,7 @@ abstract class RenameApkTask : DefaultTask() {
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
+    id("org.jetbrains.kotlin.kapt")
     id("com.google.dagger.hilt.android")
     id("com.google.devtools.ksp")
     id("org.jetbrains.kotlin.plugin.compose")
@@ -153,6 +154,10 @@ android {
     }
 }
 
+kapt {
+    correctErrorTypes = true
+}
+
 androidComponents {
     onVariants(selector().withBuildType("release")) { variant ->
         val taskName = "rename${variant.name.replaceFirstChar { it.uppercaseChar() }}Apk"
@@ -204,7 +209,7 @@ dependencies {
 
     // Hilt Dependency Injection
     implementation("com.google.dagger:hilt-android:2.57.2")
-    ksp("com.google.dagger:hilt-compiler:2.57.2")
+    kapt("com.google.dagger:hilt-compiler:2.57.2")
 
     // DataStore for preferences
     implementation("androidx.datastore:datastore-preferences:1.1.6")

@@ -5,6 +5,14 @@
     <string name="settings_tab_connection">Connection</string>
     <string name="settings_tab_equalizer">Equalizer</string>
     <string name="settings_tab_local_media">Local Media</string>
+    <string name="settings_tab_about">About</string>
+    <string name="about_links_title">GitHub Links</string>
+    <string name="about_link_android_label">Android</string>
+    <string name="about_link_android_url">https://github.com/jmgasper/Harmonixia-Android</string>
+    <string name="about_link_linux_label">Linux / GTK</string>
+    <string name="about_link_linux_url">https://github.com/jmgasper/Harmonixia-GTK</string>
+    <string name="about_link_aaos_label">Android Automotive</string>
+    <string name="about_link_aaos_url">https://github.com/jmgasper/Harmonixia-AAOS</string>
     <string name="settings_edit_connection">Edit connection settings</string>
     <string name="eq_settings_title">Equalizer</string>
     <string name="eq_enable_label">Enable equalizer</string>
@@ -283,6 +291,7 @@
     <string name="now_playing_title">Now Playing</string>
     <string name="now_playing_empty">No track playing</string>
     <string name="now_playing_artist_not_found">Artist not found</string>
+    <string name="now_playing_album_not_found">Album not found</string>
     <string name="action_play">Play</string>
     <string name="action_pause">Pause</string>
     <string name="action_next_track">Next track</string>

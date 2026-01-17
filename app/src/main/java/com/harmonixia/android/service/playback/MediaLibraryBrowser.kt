@@ -15,14 +15,11 @@ import com.harmonixia.android.domain.repository.LocalMediaRepository
 import com.harmonixia.android.domain.repository.MusicAssistantRepository
 import com.harmonixia.android.domain.repository.OFFLINE_PROVIDER
 import com.harmonixia.android.domain.repository.OfflineLibraryRepository
-import com.harmonixia.android.util.EXTRA_IS_LOCAL_FILE
-import com.harmonixia.android.util.EXTRA_PARENT_MEDIA_ID
-import com.harmonixia.android.util.EXTRA_STREAM_URI
-import com.harmonixia.android.util.EXTRA_TRACK_QUALITY
-import com.harmonixia.android.util.putProviderExtras
 import com.harmonixia.android.util.mergeWithLocal
 import com.harmonixia.android.util.replaceWithLocalMatches
 import com.harmonixia.android.util.NetworkConnectivityManager
+import com.harmonixia.android.util.buildPlaybackExtras
+import com.harmonixia.android.util.playbackDurationMs
 import java.io.File
 import kotlinx.coroutines.flow.first
 
@@ -499,21 +496,8 @@ class MediaLibraryBrowser(
             null
         }
         val isLocalFile = localFile != null
-        val durationMs = lengthSeconds
-            .takeIf { it > 0 }
-            ?.toLong()
-            ?.times(1000L)
-        val extras = Bundle().apply {
-            if (!quality.isNullOrBlank()) {
-                putString(EXTRA_TRACK_QUALITY, quality)
-            }
-            putBoolean(EXTRA_IS_LOCAL_FILE, isLocalFile)
-            putString(EXTRA_STREAM_URI, uri)
-            putProviderExtras(provider, providerMappings)
-            if (!parentMediaId.isNullOrBlank()) {
-                putString(EXTRA_PARENT_MEDIA_ID, parentMediaId)
-            }
-        }
+        val durationMs = playbackDurationMs()
+        val extras = buildPlaybackExtras(isLocalFile = isLocalFile, parentMediaId = parentMediaId)
         val metadata = MediaMetadata.Builder()
             .setTitle(title)
             .setArtist(artist)

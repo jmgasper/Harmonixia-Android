@@ -2,17 +2,22 @@ package com.harmonixia.android.ui.playback
 
 import android.net.Uri
 import android.os.Build
+import android.os.SystemClock
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.util.UnstableApi
+import com.harmonixia.android.data.remote.WebSocketMessage
 import com.harmonixia.android.data.local.SettingsDataStore
+import com.harmonixia.android.domain.model.Album
 import com.harmonixia.android.domain.model.PlaybackState
 import com.harmonixia.android.domain.model.Player
 import com.harmonixia.android.domain.model.ProviderBadge
 import com.harmonixia.android.domain.model.RepeatMode
 import com.harmonixia.android.domain.model.Artist
 import com.harmonixia.android.domain.repository.LocalMediaRepository
+import com.harmonixia.android.domain.repository.MusicAssistantRepository
 import com.harmonixia.android.domain.repository.OFFLINE_PROVIDER
 import com.harmonixia.android.domain.usecase.GetPlayersUseCase
 import com.harmonixia.android.domain.usecase.ResolveProviderBadgeUseCase
@@ -23,6 +28,7 @@ import com.harmonixia.android.service.playback.PlaybackServiceConnection
 import com.harmonixia.android.service.playback.PlaybackStateManager
 import com.harmonixia.android.util.ImageQualityManager
 import com.harmonixia.android.util.PlayerSelection
+import com.harmonixia.android.util.EXTRA_PARENT_MEDIA_ID
 import com.harmonixia.android.util.EXTRA_PROVIDER_DOMAINS
 import com.harmonixia.android.util.EXTRA_PROVIDER_ID
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -44,6 +50,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
@@ -51,6 +58,11 @@ import kotlinx.coroutines.withTimeoutOrNull
 sealed class PlaybackUiEvent {
     data class Error(val message: String) : PlaybackUiEvent()
 }
+
+data class AlbumReference(
+    val itemId: String,
+    val provider: String
+)
 
 @UnstableApi
 @HiltViewModel
@@ -63,6 +75,7 @@ class PlaybackViewModel @Inject constructor(
     private val searchLibraryUseCase: SearchLibraryUseCase,
     private val localMediaRepository: LocalMediaRepository,
     private val playbackStateManager: PlaybackStateManager,
+    private val repository: MusicAssistantRepository,
     settingsDataStore: SettingsDataStore,
     val imageQualityManager: ImageQualityManager
 ) : ViewModel() {
@@ -196,7 +209,7 @@ class PlaybackViewModel @Inject constructor(
         val index = items.indexOfFirst { it.mediaId == mediaItem?.mediaId }
         QueueState(
             hasNext = index >= 0 && index < items.lastIndex,
-            hasPrevious = index > 0,
+            hasPrevious = mediaItem != null,
             repeatMode = repeatMode,
             shuffle = shuffle
         )
@@ -266,12 +279,22 @@ class PlaybackViewModel @Inject constructor(
         .map { formatDuration(it) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), formatDuration(0L))
 
+    private var playerRefreshJob: Job? = null
+    private var lastPlayerRefreshAt = 0L
+
     private val _events = MutableSharedFlow<PlaybackUiEvent>(extraBufferCapacity = 1)
     val events: SharedFlow<PlaybackUiEvent> = _events.asSharedFlow()
 
     init {
         playbackServiceConnection.connect()
         refreshPlayers()
+        viewModelScope.launch {
+            repository.observeEvents().collect { event ->
+                if (isPlayerEvent(event)) {
+                    schedulePlayerRefresh()
+                }
+            }
+        }
         viewModelScope.launch {
             var lastMissingPlayerId: String? = null
             playbackStateManager.playerIdFlow.collect { playerId ->
@@ -310,6 +333,11 @@ class PlaybackViewModel @Inject constructor(
                     }
                 }
         }
+    }
+
+    fun onAppResumed() {
+        playbackServiceConnection.connect()
+        refreshPlayers()
     }
 
     fun selectPlayer(player: Player) {
@@ -365,6 +393,27 @@ class PlaybackViewModel @Inject constructor(
         return listOf(placeholder) + players
     }
 
+    private fun schedulePlayerRefresh() {
+        val now = SystemClock.elapsedRealtime()
+        val elapsed = now - lastPlayerRefreshAt
+        if (elapsed >= PLAYER_REFRESH_THROTTLE_MS) {
+            lastPlayerRefreshAt = now
+            refreshPlayers()
+            return
+        }
+        if (playerRefreshJob?.isActive == true) return
+        playerRefreshJob = viewModelScope.launch {
+            delay(PLAYER_REFRESH_THROTTLE_MS - elapsed)
+            lastPlayerRefreshAt = SystemClock.elapsedRealtime()
+            refreshPlayers()
+            playerRefreshJob = null
+        }
+    }
+
+    private fun isPlayerEvent(event: WebSocketMessage.EventMessage): Boolean {
+        return event.event.lowercase().startsWith("player_")
+    }
+
     fun play() {
         _optimisticPlaybackState.value = PlaybackState.PLAYING
         clearOptimisticPlaybackState(PlaybackState.PLAYING, OPTIMISTIC_PLAYBACK_STATE_TIMEOUT_MS)
@@ -397,12 +446,20 @@ class PlaybackViewModel @Inject constructor(
     }
 
     fun previous() {
-        setOptimisticQueueMove(-1)
-        playbackServiceConnection.previous()
-            .onFailure {
-                _optimisticMediaItem.value = null
-                _events.tryEmit(PlaybackUiEvent.Error(it.message ?: "Failed to skip"))
-            }
+        val positionMs = (playbackServiceConnection.mediaController.value?.currentPosition
+            ?: playbackPosition.value).coerceAtLeast(0L)
+        val shouldSkipToPrevious = positionMs <= PREVIOUS_TRACK_THRESHOLD_MS && hasPreviousTrack()
+        if (shouldSkipToPrevious) {
+            setOptimisticQueueMove(-1)
+            playbackServiceConnection.previous()
+                .onFailure {
+                    _optimisticMediaItem.value = null
+                    _events.tryEmit(PlaybackUiEvent.Error(it.message ?: "Failed to skip"))
+                }
+        } else {
+            playbackServiceConnection.seek(0L)
+                .onFailure { _events.tryEmit(PlaybackUiEvent.Error(it.message ?: "Failed to seek")) }
+        }
     }
 
     fun seek(positionMs: Long) {
@@ -468,6 +525,14 @@ class PlaybackViewModel @Inject constructor(
         }
     }
 
+    fun resolveNowPlayingAlbum(onResolved: (AlbumReference?) -> Unit) {
+        val mediaItem = displayedMediaItem.value
+        viewModelScope.launch {
+            val albumReference = resolveAlbumFromMediaItem(mediaItem)
+            onResolved(albumReference)
+        }
+    }
+
     private suspend fun resolveArtistFromMediaItem(mediaItem: MediaItem?): Artist? {
         val rawArtistName = mediaItem?.mediaMetadata?.artist?.toString().orEmpty()
         val artistName = rawArtistName.substringBefore(',').trim()
@@ -477,6 +542,28 @@ class PlaybackViewModel @Inject constructor(
             ?.trim()
             ?.takeIf { it.isNotBlank() }
         return resolveArtistByName(artistName, providerId)
+    }
+
+    private suspend fun resolveAlbumFromMediaItem(mediaItem: MediaItem?): AlbumReference? {
+        val metadata = mediaItem?.mediaMetadata ?: return null
+        val extras = metadata.extras
+        val parentMediaId = extras?.getString(EXTRA_PARENT_MEDIA_ID)?.trim()
+        if (!parentMediaId.isNullOrBlank()) {
+            parseAlbumParentId(parentMediaId)?.let { return it }
+        }
+        val albumName = metadata.albumTitle?.toString().orEmpty().trim()
+        if (albumName.isBlank()) return null
+        val rawArtistName = metadata.artist?.toString().orEmpty()
+        val artistName = rawArtistName.substringBefore(',').trim()
+        val providerId = extras?.getString(EXTRA_PROVIDER_ID)
+            ?.trim()
+            ?.takeIf { it.isNotBlank() }
+        val providerDomains = extras?.getStringArray(EXTRA_PROVIDER_DOMAINS)
+            ?.map { it.trim() }
+            ?.filter { it.isNotBlank() }
+            ?.distinct()
+            .orEmpty()
+        return resolveAlbumByName(albumName, artistName, providerId, providerDomains)
     }
 
     private suspend fun resolveArtistByName(artistName: String, providerId: String?): Artist? =
@@ -512,6 +599,104 @@ class PlaybackViewModel @Inject constructor(
             findMatchingArtist(localArtists, normalizedTarget, OFFLINE_PROVIDER)
         }
 
+    private suspend fun resolveAlbumByName(
+        albumName: String,
+        artistName: String,
+        providerId: String?,
+        providerDomains: List<String>
+    ): AlbumReference? = withContext(Dispatchers.IO) {
+        val normalizedTarget = normalizeAlbumName(albumName)
+        if (normalizedTarget.isBlank()) {
+            return@withContext null
+        }
+        val preferredProviders = buildPreferredProviders(providerId, providerDomains)
+        if (providerId == OFFLINE_PROVIDER) {
+            val offlineMatch = resolveOfflineAlbum(albumName, artistName)
+            if (offlineMatch != null) return@withContext offlineMatch
+        }
+        val libraryResult = searchLibraryUseCase(
+            albumName,
+            ALBUM_LOOKUP_LIMIT,
+            libraryOnly = true
+        )
+        val libraryAlbums = if (libraryResult.isSuccess) {
+            libraryResult.getOrNull()?.albums.orEmpty()
+        } else {
+            emptyList()
+        }
+        val libraryMatch = findMatchingAlbum(
+            libraryAlbums,
+            normalizedTarget,
+            artistName,
+            preferredProviders
+        )
+        val needsExpandedSearch = libraryMatch == null ||
+            (preferredProviders.isNotEmpty() && libraryMatch.provider !in preferredProviders)
+        if (!needsExpandedSearch && libraryMatch != null) {
+            return@withContext AlbumReference(libraryMatch.itemId, libraryMatch.provider)
+        }
+        val expandedResult = searchLibraryUseCase(
+            albumName,
+            ALBUM_LOOKUP_LIMIT,
+            libraryOnly = false
+        )
+        val expandedAlbums = if (expandedResult.isSuccess) {
+            expandedResult.getOrNull()?.albums.orEmpty()
+        } else {
+            emptyList()
+        }
+        val combinedAlbums = if (expandedAlbums.isEmpty()) {
+            libraryAlbums
+        } else {
+            libraryAlbums + expandedAlbums
+        }
+        val expandedMatch = findMatchingAlbum(
+            combinedAlbums,
+            normalizedTarget,
+            artistName,
+            preferredProviders
+        )
+        if (expandedMatch != null) {
+            return@withContext AlbumReference(expandedMatch.itemId, expandedMatch.provider)
+        }
+        if (libraryMatch != null) {
+            return@withContext AlbumReference(libraryMatch.itemId, libraryMatch.provider)
+        }
+        if (providerId != OFFLINE_PROVIDER) {
+            val offlineMatch = resolveOfflineAlbum(albumName, artistName)
+            if (offlineMatch != null) return@withContext offlineMatch
+        }
+        return@withContext null
+    }
+
+    private suspend fun resolveOfflineAlbum(
+        albumName: String,
+        artistName: String
+    ): AlbumReference? {
+        val trimmedAlbum = albumName.trim()
+        val trimmedArtist = artistName.trim()
+        if (trimmedAlbum.isBlank()) return null
+        if (trimmedArtist.isNotBlank()) {
+            val directMatch = localMediaRepository
+                .getAlbumByNameAndArtist(trimmedAlbum, trimmedArtist)
+                .first()
+            if (directMatch != null) {
+                return AlbumReference(directMatch.itemId, directMatch.provider)
+            }
+        }
+        val localAlbums = localMediaRepository.searchAlbums(trimmedAlbum).first()
+        val normalizedAlbum = normalizeAlbumName(trimmedAlbum)
+        val normalizedArtist = normalizeArtistName(trimmedArtist)
+        val match = localAlbums.firstOrNull { album ->
+            normalizeAlbumName(album.name) == normalizedAlbum &&
+                (normalizedArtist.isBlank() ||
+                    album.artists.any { normalizeArtistName(it) == normalizedArtist })
+        } ?: localAlbums.firstOrNull { album ->
+            normalizeAlbumName(album.name) == normalizedAlbum
+        }
+        return match?.let { AlbumReference(it.itemId, it.provider) }
+    }
+
     private fun findMatchingArtist(
         artists: List<Artist>,
         normalizedTarget: String,
@@ -526,8 +711,60 @@ class PlaybackViewModel @Inject constructor(
         return matches.firstOrNull()
     }
 
+    private fun findMatchingAlbum(
+        albums: List<Album>,
+        normalizedTarget: String,
+        artistName: String,
+        preferredProviders: Set<String>
+    ): Album? {
+        if (albums.isEmpty()) return null
+        val normalizedArtist = normalizeArtistName(artistName)
+        val albumMatches = albums.filter { normalizeAlbumName(it.name) == normalizedTarget }
+        if (albumMatches.isEmpty()) return null
+        val artistMatches = if (normalizedArtist.isNotBlank()) {
+            albumMatches.filter { album ->
+                album.artists.any { normalizeArtistName(it) == normalizedArtist }
+            }.ifEmpty { albumMatches }
+        } else {
+            albumMatches
+        }
+        if (preferredProviders.isNotEmpty()) {
+            artistMatches.firstOrNull { it.provider in preferredProviders }?.let { return it }
+            albumMatches.firstOrNull { it.provider in preferredProviders }?.let { return it }
+        }
+        return artistMatches.firstOrNull() ?: albumMatches.firstOrNull()
+    }
+
     private fun normalizeArtistName(name: String): String {
         return name.trim().lowercase()
+    }
+
+    private fun normalizeAlbumName(name: String): String {
+        return name.trim().lowercase()
+    }
+
+    private fun buildPreferredProviders(
+        providerId: String?,
+        providerDomains: List<String>
+    ): Set<String> {
+        val preferred = LinkedHashSet<String>()
+        providerId?.trim()?.takeIf { it.isNotBlank() }?.let { preferred.add(it) }
+        for (domain in providerDomains) {
+            val trimmed = domain.trim()
+            if (trimmed.isNotBlank()) {
+                preferred.add(trimmed)
+            }
+        }
+        return preferred
+    }
+
+    private fun parseAlbumParentId(parentMediaId: String): AlbumReference? {
+        val parts = parentMediaId.split(":", limit = 3)
+        if (parts.size < 3 || parts[0] != MEDIA_ID_PREFIX_ALBUM) return null
+        val albumId = parts[1].trim()
+        val provider = parts[2].trim()
+        if (albumId.isBlank() || provider.isBlank()) return null
+        return AlbumReference(albumId, provider)
     }
 
     private fun buildOfflineArtist(name: String): Artist {
@@ -647,6 +884,18 @@ class PlaybackViewModel @Inject constructor(
         clearOptimisticMediaItem(targetItem.mediaId, OPTIMISTIC_QUEUE_MOVE_TIMEOUT_MS)
     }
 
+    private fun hasPreviousTrack(): Boolean {
+        val controller = playbackServiceConnection.mediaController.value
+        if (controller != null) {
+            return controller.previousMediaItemIndex != C.INDEX_UNSET
+        }
+        val items = queue.value
+        if (items.isEmpty()) return false
+        val currentItem = displayedMediaItem.value ?: return false
+        val currentIndex = items.indexOfFirst { it.mediaId == currentItem.mediaId }
+        return currentIndex > 0
+    }
+
     private fun clearOptimisticPlaybackState(expectedState: PlaybackState, timeoutMs: Long) {
         viewModelScope.launch {
             withTimeoutOrNull(timeoutMs) {
@@ -700,8 +949,12 @@ class PlaybackViewModel @Inject constructor(
 }
 
 private const val POSITION_TICK_MS = 1_000L
+private const val PREVIOUS_TRACK_THRESHOLD_MS = 3_000L
 private const val OPTIMISTIC_PLAYBACK_STATE_TIMEOUT_MS = 2_000L
 private const val OPTIMISTIC_REPEAT_TIMEOUT_MS = 3_000L
 private const val OPTIMISTIC_SHUFFLE_TIMEOUT_MS = 3_000L
 private const val OPTIMISTIC_QUEUE_MOVE_TIMEOUT_MS = 1_500L
+private const val PLAYER_REFRESH_THROTTLE_MS = 2_000L
 private const val ARTIST_LOOKUP_LIMIT = 50
+private const val ALBUM_LOOKUP_LIMIT = 50
+private const val MEDIA_ID_PREFIX_ALBUM = "album"

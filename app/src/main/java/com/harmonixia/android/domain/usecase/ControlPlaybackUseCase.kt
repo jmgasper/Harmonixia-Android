@@ -27,7 +27,10 @@ class ControlPlaybackUseCase(
                     playbackStateManager.notifyUserInitiatedPlayback()
                     repository.resumeQueue(queueId).getOrThrow()
                 }
-                PlaybackCommand.PAUSE -> repository.pauseQueue(queueId).getOrThrow()
+                PlaybackCommand.PAUSE -> {
+                    playbackStateManager.notifyUserInitiatedPause()
+                    repository.pauseQueue(queueId).getOrThrow()
+                }
                 PlaybackCommand.NEXT -> repository.nextTrack(queueId).getOrThrow()
                 PlaybackCommand.PREVIOUS -> repository.previousTrack(queueId).getOrThrow()
                 PlaybackCommand.SEEK -> {

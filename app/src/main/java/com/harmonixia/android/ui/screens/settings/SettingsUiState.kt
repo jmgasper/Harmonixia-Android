@@ -43,7 +43,8 @@ data class LocalMediaScanState(
 enum class SettingsTab {
     CONNECTION,
     EQUALIZER,
-    LOCAL_MEDIA
+    LOCAL_MEDIA,
+    ABOUT
 }
 
 sealed class SettingsUiState(

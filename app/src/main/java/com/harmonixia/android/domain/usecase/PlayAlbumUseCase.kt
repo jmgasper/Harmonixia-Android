@@ -47,8 +47,11 @@ class PlayAlbumUseCase(
             }
             val requestedShuffle = shuffleMode ?: queue.shuffle
             val shouldDisableShuffle = forceStartIndex && requestedShuffle
-            val resolvedStartItem = startItemUri?.takeIf { it.isNotBlank() }
-                ?: tracks?.getOrNull(safeIndex)?.uri?.takeIf { it.isNotBlank() }
+            val resolvedStartItem = when {
+                !startItemUri.isNullOrBlank() -> startItemUri
+                forceStartIndex -> tracks?.getOrNull(safeIndex)?.uri?.takeIf { it.isNotBlank() }
+                else -> null
+            }
             val resolvedAlbumUri = albumUri?.takeIf { it.isNotBlank() }
                 ?: repository.getCachedAlbum(albumId, provider)?.uri?.takeIf { it.isNotBlank() }
                 ?: tracks?.firstOrNull()?.albumUri?.takeIf { it.isNotBlank() }

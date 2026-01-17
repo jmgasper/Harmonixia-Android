@@ -104,6 +104,7 @@ import kotlinx.coroutines.launch
 fun SharedTransitionScope.NowPlayingScreen(
     onNavigateBack: () -> Unit,
     onNavigateToArtist: (String, String) -> Unit,
+    onNavigateToAlbum: (String, String) -> Unit,
     viewModel: PlaybackViewModel = hiltViewModel(),
     enableSharedArtworkTransition: Boolean = true
 ) {
@@ -181,7 +182,9 @@ fun SharedTransitionScope.NowPlayingScreen(
     val swipeThreshold = with(LocalDensity.current) { 100.dp.toPx() }
     val displayInfo = playbackInfo ?: emptyPlaybackInfo()
     val artistNotFoundMessage = stringResource(R.string.now_playing_artist_not_found)
+    val albumNotFoundMessage = stringResource(R.string.now_playing_album_not_found)
     val latestOnNavigateToArtist by rememberUpdatedState(onNavigateToArtist)
+    val latestOnNavigateToAlbum by rememberUpdatedState(onNavigateToAlbum)
     val onArtistClick = if (displayInfo.artist.isNotBlank()) {
         {
             viewModel.resolveNowPlayingArtist { artist ->
@@ -190,6 +193,21 @@ fun SharedTransitionScope.NowPlayingScreen(
                 } else {
                     coroutineScope.launch {
                         snackbarHostState.showSnackbar(artistNotFoundMessage)
+                    }
+                }
+            }
+        }
+    } else {
+        null
+    }
+    val onAlbumClick = if (displayInfo.album.isNotBlank()) {
+        {
+            viewModel.resolveNowPlayingAlbum { albumRef ->
+                if (albumRef != null) {
+                    latestOnNavigateToAlbum(albumRef.itemId, albumRef.provider)
+                } else {
+                    coroutineScope.launch {
+                        snackbarHostState.showSnackbar(albumNotFoundMessage)
                     }
                 }
             }
@@ -326,6 +344,7 @@ fun SharedTransitionScope.NowPlayingScreen(
                         artistStyle = artistStyle,
                         albumStyle = albumStyle,
                         onArtistClick = onArtistClick,
+                        onAlbumClick = onAlbumClick,
                         playbackInfo = displayInfo,
                         controlsEnabled = controlsEnabled,
                         isPlayPauseUpdating = isPlayPauseUpdating,
@@ -388,7 +407,8 @@ fun SharedTransitionScope.NowPlayingScreen(
                                 titleStyle = titleStyle,
                                 artistStyle = artistStyle,
                                 albumStyle = albumStyle,
-                                onArtistClick = onArtistClick
+                                onArtistClick = onArtistClick,
+                                onAlbumClick = onAlbumClick
                             )
                         }
                     }
@@ -446,6 +466,7 @@ fun SharedTransitionScope.NowPlayingScreen(
                         artistStyle = artistStyle,
                         albumStyle = albumStyle,
                         onArtistClick = onArtistClick,
+                        onAlbumClick = onAlbumClick,
                         playbackInfo = displayInfo,
                         controlsEnabled = controlsEnabled,
                         isPlayPauseUpdating = isPlayPauseUpdating,
@@ -617,6 +638,7 @@ private fun ControlsPanel(
     artistStyle: TextStyle,
     albumStyle: TextStyle,
     onArtistClick: (() -> Unit)?,
+    onAlbumClick: (() -> Unit)?,
     playbackInfo: PlaybackInfo,
     controlsEnabled: Boolean,
     isPlayPauseUpdating: Boolean,
@@ -643,7 +665,8 @@ private fun ControlsPanel(
             titleStyle = titleStyle,
             artistStyle = artistStyle,
             albumStyle = albumStyle,
-            onArtistClick = onArtistClick
+            onArtistClick = onArtistClick,
+            onAlbumClick = onAlbumClick
         )
         Spacer(modifier = Modifier.height(24.dp))
         PlaybackControlPanel(
@@ -673,6 +696,7 @@ private fun TrackInfoPanel(
     artistStyle: TextStyle,
     albumStyle: TextStyle,
     onArtistClick: (() -> Unit)? = null,
+    onAlbumClick: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
     horizontalAlignment: Alignment.Horizontal = Alignment.CenterHorizontally,
     textAlign: TextAlign = TextAlign.Center
@@ -724,13 +748,30 @@ private fun TrackInfoPanel(
                     )
                 }
                 if (identity.album.isNotBlank()) {
+                    val albumClick = onAlbumClick
+                    val albumModifier = if (albumClick != null) {
+                        Modifier.clickable(role = Role.Button, onClick = albumClick)
+                    } else {
+                        Modifier
+                    }
+                    val isAlbumClickable = albumClick != null
+                    val albumTextStyle = if (isAlbumClickable) {
+                        albumStyle.copy(textDecoration = TextDecoration.Underline)
+                    } else {
+                        albumStyle
+                    }
                     Text(
                         text = identity.album,
-                        style = albumStyle,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        style = albumTextStyle,
+                        color = if (isAlbumClickable) {
+                            MaterialTheme.colorScheme.primary
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        },
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
-                        textAlign = textAlign
+                        textAlign = textAlign,
+                        modifier = albumModifier
                     )
                 }
             }

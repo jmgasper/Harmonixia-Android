@@ -45,7 +45,6 @@ import kotlinx.coroutines.yield
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonPrimitive
-import kotlin.random.Random
 
 sealed class PlaylistDetailUiEvent {
     data class ShowMessage(val messageResId: Int) : PlaylistDetailUiEvent()
@@ -541,8 +540,7 @@ class PlaylistDetailViewModel @Inject constructor(
 
     fun shufflePlaylist() {
         if (tracks.isEmpty()) return
-        val randomIndex = Random.nextInt(tracks.size)
-        playPlaylist(startIndex = randomIndex, forceStartIndex = true, shuffleMode = true)
+        playPlaylist(startIndex = 0, forceStartIndex = false, shuffleMode = true)
     }
 
     fun playTrack(track: Track) {

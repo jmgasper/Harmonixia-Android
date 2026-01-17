@@ -2,6 +2,7 @@ package com.harmonixia.android.ui.screens.albums
 
 import android.app.Activity
 import android.content.res.Configuration
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -49,7 +50,9 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.Dp
@@ -79,6 +82,7 @@ import com.harmonixia.android.util.ImageQualityManager
 fun AlbumDetailScreen(
     onNavigateBack: () -> Unit,
     onNavigateToSettings: (SettingsTab?) -> Unit,
+    onNavigateToArtist: (String, String) -> Unit,
     viewModel: AlbumDetailViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -290,6 +294,21 @@ fun AlbumDetailScreen(
                     (state as? AlbumDetailUiState.Cached)?.isRefreshing == true || isInitialLoading
                 val hasMore = (state as? AlbumDetailUiState.Success)?.hasMore == true
                 val isLoadingMore = (state as? AlbumDetailUiState.Success)?.isLoadingMore == true
+                val primaryArtistName = resolvedAlbum?.artists
+                    ?.firstOrNull { it.trim().isNotBlank() }
+                    ?.trim()
+                    .orEmpty()
+                val onArtistClick = if (primaryArtistName.isNotBlank()) {
+                    {
+                        viewModel.resolveAlbumArtist(primaryArtistName) { artist ->
+                            if (artist != null) {
+                                onNavigateToArtist(artist.itemId, artist.provider)
+                            }
+                        }
+                    }
+                } else {
+                    null
+                }
                 val indexById = remember(tracks) {
                     tracks.withIndex().associate { indexed -> indexed.value.itemId to indexed.index }
                 }
@@ -319,6 +338,7 @@ fun AlbumDetailScreen(
                                 isOfflineMode = isOfflineMode,
                                 titleStyle = albumTitleStyle,
                                 artistStyle = artistNameStyle,
+                                onArtistClick = onArtistClick,
                                 rowSpacing = if (isExpanded) 32.dp else 24.dp,
                                 imageQualityManager = imageQualityManager
                             )
@@ -469,6 +489,7 @@ fun AlbumDetailScreen(
                                     album = resolvedAlbum,
                                     titleStyle = albumTitleStyle,
                                     artistStyle = artistNameStyle,
+                                    onArtistClick = onArtistClick,
                                     canPlay = tracks.isNotEmpty(),
                                     onPlayAlbum = { viewModel.playAlbumSequential() },
                                     onShuffleAlbum = { viewModel.shuffleAlbum() },
@@ -612,6 +633,7 @@ private fun AlbumDetails(
     album: Album?,
     titleStyle: TextStyle,
     artistStyle: TextStyle,
+    onArtistClick: (() -> Unit)?,
     canPlay: Boolean,
     onPlayAlbum: () -> Unit,
     onShuffleAlbum: () -> Unit,
@@ -648,11 +670,28 @@ private fun AlbumDetails(
             overflow = TextOverflow.Ellipsis
         )
         if (artistNames.isNotBlank()) {
+            val artistClick = onArtistClick
+            val artistModifier = if (artistClick != null) {
+                Modifier.clickable(role = Role.Button, onClick = artistClick)
+            } else {
+                Modifier
+            }
+            val isArtistClickable = artistClick != null
+            val artistTextStyle = if (isArtistClickable) {
+                artistStyle.copy(textDecoration = TextDecoration.Underline)
+            } else {
+                artistStyle
+            }
             Text(
                 text = artistNames,
-                style = artistStyle,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = TextAlign.Center
+                style = artistTextStyle,
+                color = if (isArtistClickable) {
+                    MaterialTheme.colorScheme.primary
+                } else {
+                    MaterialTheme.colorScheme.onSurfaceVariant
+                },
+                textAlign = TextAlign.Center,
+                modifier = artistModifier
             )
         }
         Column(
@@ -700,6 +739,7 @@ private fun AlbumHeader(
     isOfflineMode: Boolean,
     titleStyle: TextStyle,
     artistStyle: TextStyle,
+    onArtistClick: (() -> Unit)?,
     rowSpacing: Dp,
     imageQualityManager: ImageQualityManager,
     modifier: Modifier = Modifier
@@ -711,6 +751,23 @@ private fun AlbumHeader(
     } ?: stringResource(R.string.album_detail_title)
     val buttonRowModifier = if (useWideLayout) Modifier else Modifier.fillMaxWidth(0.8f)
     val canPlayTracks = album != null && canPlay
+    val artistClick = onArtistClick
+    val artistModifier = if (artistClick != null) {
+        Modifier.clickable(role = Role.Button, onClick = artistClick)
+    } else {
+        Modifier
+    }
+    val isArtistClickable = artistClick != null
+    val artistTextStyle = if (isArtistClickable) {
+        artistStyle.copy(textDecoration = TextDecoration.Underline)
+    } else {
+        artistStyle
+    }
+    val artistTextColor = if (isArtistClickable) {
+        MaterialTheme.colorScheme.primary
+    } else {
+        MaterialTheme.colorScheme.onSurfaceVariant
+    }
 
     if (useWideLayout) {
         Row(
@@ -739,8 +796,9 @@ private fun AlbumHeader(
                 if (artistNames.isNotBlank()) {
                     Text(
                         text = artistNames,
-                        style = artistStyle,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        style = artistTextStyle,
+                        color = artistTextColor,
+                        modifier = artistModifier
                     )
                 }
                 Column(verticalArrangement = Arrangement.spacedBy(spacing.small)) {
@@ -797,9 +855,10 @@ private fun AlbumHeader(
             if (artistNames.isNotBlank()) {
                 Text(
                     text = artistNames,
-                    style = artistStyle,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = TextAlign.Center
+                    style = artistTextStyle,
+                    color = artistTextColor,
+                    textAlign = TextAlign.Center,
+                    modifier = artistModifier
                 )
             }
             Column(

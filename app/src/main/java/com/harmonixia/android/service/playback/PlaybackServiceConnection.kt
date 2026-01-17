@@ -60,6 +60,7 @@ class PlaybackServiceConnection(
 
     private var positionJob: Job? = null
     private var pendingPlaybackJob: Job? = null
+    private var connectInProgress = false
 
     private val playerListener = object : Player.Listener {
         override fun onIsPlayingChanged(isPlaying: Boolean) {
@@ -106,7 +107,13 @@ class PlaybackServiceConnection(
     }
 
     fun connect() {
-        if (controllerState.value != null) return
+        val controller = controllerState.value
+        if (controller != null) {
+            if (controller.isConnected) return
+            disconnect()
+        }
+        if (connectInProgress) return
+        connectInProgress = true
         val sessionToken = SessionToken(context, ComponentName(context, PlaybackService::class.java))
         val future = MediaController.Builder(context, sessionToken).buildAsync()
         attachController(future)
@@ -158,6 +165,19 @@ class PlaybackServiceConnection(
 
     fun seek(positionMs: Long): Result<Unit> {
         val controller = controllerState.value ?: return Result.failure(IllegalStateException("Not connected"))
+        val queueId = if (playbackStateManager.isLocalPlaybackActive()) {
+            null
+        } else {
+            playbackStateManager.currentQueueId
+        }
+        if (queueId != null) {
+            playbackStateManager.suppressNextRemoteSeek()
+            val positionSeconds = (positionMs / 1000L).toInt()
+            scope.launch(Dispatchers.IO) {
+                repository.seekTo(queueId, positionSeconds)
+                    .onFailure { Logger.w(TAG, "Seek command failed", it) }
+            }
+        }
         controller.seekTo(positionMs)
         return Result.success(Unit)
     }
@@ -207,6 +227,8 @@ class PlaybackServiceConnection(
                     startPositionUpdates()
                 } catch (error: Exception) {
                     Logger.w(TAG, "Failed to connect to playback service", error)
+                } finally {
+                    connectInProgress = false
                 }
             },
             executor

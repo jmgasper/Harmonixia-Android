@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.ClickableText
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
@@ -28,6 +29,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.Dns
+import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Key
 import androidx.compose.material.icons.outlined.MusicNote
 import androidx.compose.material.icons.outlined.Person
@@ -76,10 +78,12 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -211,6 +215,11 @@ internal fun SettingsScreenContent(
             tab = SettingsTab.LOCAL_MEDIA,
             labelResId = R.string.settings_tab_local_media,
             icon = Icons.Outlined.MusicNote
+        ),
+        SettingsTabItem(
+            tab = SettingsTab.ABOUT,
+            labelResId = R.string.settings_tab_about,
+            icon = Icons.Outlined.Info
         )
     )
 
@@ -285,6 +294,7 @@ internal fun SettingsScreenContent(
                             onSelectFolder = onSelectFolder,
                             onScanLocalMedia = onScanLocalMedia
                         )
+                        SettingsTab.ABOUT -> AboutTabContent()
                     }
                 }
             }
@@ -882,6 +892,66 @@ private fun LocalMediaTabContent(
 }
 
 @Composable
+private fun AboutTabContent() {
+    val scrollState = rememberScrollState()
+    val uriHandler = LocalUriHandler.current
+    val links = listOf(
+        AboutLink(
+            label = stringResource(R.string.about_link_android_label),
+            url = stringResource(R.string.about_link_android_url)
+        ),
+        AboutLink(
+            label = stringResource(R.string.about_link_linux_label),
+            url = stringResource(R.string.about_link_linux_url)
+        ),
+        AboutLink(
+            label = stringResource(R.string.about_link_aaos_label),
+            url = stringResource(R.string.about_link_aaos_url)
+        )
+    )
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(scrollState)
+            .padding(24.dp)
+    ) {
+        Text(
+            text = stringResource(R.string.about_links_title),
+            style = MaterialTheme.typography.titleMedium
+        )
+        Spacer(modifier = Modifier.height(12.dp))
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceVariant
+            )
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                links.forEachIndexed { index, link ->
+                    Text(
+                        text = link.label,
+                        style = MaterialTheme.typography.titleSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    ClickableText(
+                        text = AnnotatedString(link.url),
+                        onClick = { uriHandler.openUri(link.url) },
+                        style = MaterialTheme.typography.bodySmall.copy(
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    )
+                    if (index != links.lastIndex) {
+                        Spacer(modifier = Modifier.height(12.dp))
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
 private fun LinearProgressRow() {
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -953,4 +1023,9 @@ private data class SettingsTabItem(
     val tab: SettingsTab,
     val labelResId: Int,
     val icon: ImageVector
+)
+
+private data class AboutLink(
+    val label: String,
+    val url: String
 )

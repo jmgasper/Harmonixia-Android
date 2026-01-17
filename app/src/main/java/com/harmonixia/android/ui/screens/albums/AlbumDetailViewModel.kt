@@ -6,6 +6,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.harmonixia.android.R
 import com.harmonixia.android.domain.model.Album
+import com.harmonixia.android.domain.model.Artist
 import com.harmonixia.android.domain.model.Playlist
 import com.harmonixia.android.domain.model.Track
 import com.harmonixia.android.domain.repository.LocalMediaRepository
@@ -14,6 +15,7 @@ import com.harmonixia.android.domain.repository.OFFLINE_PROVIDER
 import com.harmonixia.android.domain.usecase.ManagePlaylistTracksUseCase
 import com.harmonixia.android.domain.usecase.PlayAlbumUseCase
 import com.harmonixia.android.domain.usecase.PlayLocalTracksUseCase
+import com.harmonixia.android.domain.usecase.SearchLibraryUseCase
 import com.harmonixia.android.ui.navigation.Screen
 import com.harmonixia.android.util.ImageQualityManager
 import com.harmonixia.android.util.isLocal
@@ -41,7 +43,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.supervisorScope
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.yield
-import kotlin.random.Random
 
 sealed class AlbumDetailUiEvent {
     data class ShowMessage(val messageResId: Int) : AlbumDetailUiEvent()
@@ -54,6 +55,7 @@ class AlbumDetailViewModel @Inject constructor(
     private val localMediaRepository: LocalMediaRepository,
     private val playAlbumUseCase: PlayAlbumUseCase,
     private val playLocalTracksUseCase: PlayLocalTracksUseCase,
+    private val searchLibraryUseCase: SearchLibraryUseCase,
     private val managePlaylistTracksUseCase: ManagePlaylistTracksUseCase,
     private val networkConnectivityManager: NetworkConnectivityManager,
     private val prefetchScheduler: PrefetchScheduler,
@@ -507,8 +509,7 @@ class AlbumDetailViewModel @Inject constructor(
 
     fun shuffleAlbum() {
         if (tracks.isEmpty()) return
-        val randomIndex = Random.nextInt(tracks.size)
-        playAlbum(startIndex = randomIndex, forceStartIndex = true, shuffleMode = true)
+        playAlbum(startIndex = 0, forceStartIndex = false, shuffleMode = true)
     }
 
     fun playTrack(track: Track) {
@@ -518,6 +519,25 @@ class AlbumDetailViewModel @Inject constructor(
             playAlbum(index, forceStartIndex = true)
         } else {
             playAlbum(0, forceStartIndex = true)
+        }
+    }
+
+    fun resolveAlbumArtist(artistName: String, onResolved: (Artist?) -> Unit) {
+        val trimmedName = artistName.trim()
+        if (trimmedName.isBlank()) {
+            _events.tryEmit(
+                AlbumDetailUiEvent.ShowMessage(R.string.now_playing_artist_not_found)
+            )
+            return
+        }
+        viewModelScope.launch {
+            val resolvedArtist = resolveArtistByName(trimmedName, provider.takeIf { it.isNotBlank() })
+            if (resolvedArtist == null) {
+                _events.tryEmit(
+                    AlbumDetailUiEvent.ShowMessage(R.string.now_playing_artist_not_found)
+                )
+            }
+            onResolved(resolvedArtist)
         }
     }
 
@@ -738,6 +758,70 @@ class AlbumDetailViewModel @Inject constructor(
         }
     }
 
+    private suspend fun resolveArtistByName(
+        artistName: String,
+        providerId: String?
+    ): Artist? = withContext(Dispatchers.IO) {
+        val normalizedTarget = normalizeArtistName(artistName)
+        if (normalizedTarget.isBlank()) return@withContext null
+        if (isOfflineMode.value || providerId == OFFLINE_PROVIDER) {
+            return@withContext buildOfflineArtist(artistName)
+        }
+        val searchResult = searchLibraryUseCase(
+            artistName,
+            ARTIST_LOOKUP_LIMIT,
+            libraryOnly = true
+        )
+        if (searchResult.isSuccess) {
+            val artists = searchResult.getOrNull()?.artists.orEmpty()
+            val match = findMatchingArtist(artists, normalizedTarget, providerId)
+            if (match != null) return@withContext match
+            val expandedResult = searchLibraryUseCase(
+                artistName,
+                ARTIST_LOOKUP_LIMIT,
+                libraryOnly = false
+            )
+            if (expandedResult.isSuccess) {
+                val expandedArtists = expandedResult.getOrNull()?.artists.orEmpty()
+                val expandedMatch = findMatchingArtist(expandedArtists, normalizedTarget, providerId)
+                if (expandedMatch != null) return@withContext expandedMatch
+            }
+        }
+        val localArtists = localMediaRepository.searchArtists(artistName).first()
+        findMatchingArtist(localArtists, normalizedTarget, OFFLINE_PROVIDER)
+    }
+
+    private fun findMatchingArtist(
+        artists: List<Artist>,
+        normalizedTarget: String,
+        providerId: String?
+    ): Artist? {
+        if (artists.isEmpty()) return null
+        val matches = artists.filter { normalizeArtistName(it.name) == normalizedTarget }
+        if (matches.isEmpty()) return null
+        if (!providerId.isNullOrBlank()) {
+            matches.firstOrNull { it.provider == providerId }?.let { return it }
+        }
+        return matches.firstOrNull()
+    }
+
+    private fun normalizeArtistName(name: String): String {
+        return name.trim().lowercase()
+    }
+
+    private fun buildOfflineArtist(name: String): Artist {
+        val trimmed = name.trim()
+        val encoded = Uri.encode(trimmed)
+        return Artist(
+            itemId = encoded,
+            provider = OFFLINE_PROVIDER,
+            uri = "offline:artist:$encoded",
+            name = trimmed,
+            sortName = trimmed.lowercase(),
+            imageUrl = null
+        )
+    }
+
     private fun trackMatchKey(track: Track): String {
         return "${normalizeMatchKey(track.title)}::${normalizeMatchKey(track.artist)}::${normalizeMatchKey(track.album)}"
     }
@@ -807,5 +891,6 @@ class AlbumDetailViewModel @Inject constructor(
         private val TRACK_DETAILS_RETRY_DELAYS_MS = longArrayOf(1_000L, 3_000L)
         private const val MERGE_BATCH_SIZE = 100
         private const val FAVORITE_SEARCH_LIMIT = 50
+        private const val ARTIST_LOOKUP_LIMIT = 50
     }
 }

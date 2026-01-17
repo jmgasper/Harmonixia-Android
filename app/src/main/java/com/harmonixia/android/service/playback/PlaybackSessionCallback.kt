@@ -357,6 +357,7 @@ class PlaybackSessionCallback(
     }
 
     private fun handlePlay() {
+        Logger.i(TAG, "Play requested via MediaSession")
         playbackStateManager.notifyUserInitiatedPlayback()
         markPlaybackRequestedForMediaItem(player.currentMediaItem)
         player.play()
@@ -385,6 +386,7 @@ class PlaybackSessionCallback(
     }
 
     private fun handlePause() {
+        playbackStateManager.notifyUserInitiatedPause()
         player.pause()
         if (isLocalQueueActive()) return
         val queueId = playbackStateManager.currentQueueId ?: return
@@ -396,6 +398,7 @@ class PlaybackSessionCallback(
     }
 
     private fun handleStop() {
+        playbackStateManager.notifyUserInitiatedPause()
         player.stop()
         performanceMonitor.clearPlaybackRequests()
         if (isLocalQueueActive()) return
@@ -419,14 +422,33 @@ class PlaybackSessionCallback(
     }
 
     private fun handlePrevious() {
-        markPlaybackRequestedForIndex(player.previousMediaItemIndex)
+        val shouldSkipToPrevious = shouldSkipToPreviousTrack()
+        if (shouldSkipToPrevious) {
+            markPlaybackRequestedForIndex(player.previousMediaItemIndex)
+        }
         if (isLocalQueueActive()) return
         val queueId = playbackStateManager.currentQueueId ?: return
-        scope.launch {
-            Logger.d(TAG, "Requesting previous queueId=$queueId")
-            repository.previousTrack(queueId)
-                .onFailure { Logger.w(TAG, "Previous command failed", it) }
+        if (!shouldSkipToPrevious) {
+            playbackStateManager.suppressNextRemoteSeek()
         }
+        scope.launch {
+            if (shouldSkipToPrevious) {
+                Logger.d(TAG, "Requesting previous queueId=$queueId")
+                repository.previousTrack(queueId)
+                    .onFailure { Logger.w(TAG, "Previous command failed", it) }
+            } else {
+                Logger.d(TAG, "Requesting seek to start queueId=$queueId")
+                repository.seekTo(queueId, 0)
+                    .onFailure { Logger.w(TAG, "Seek command failed", it) }
+            }
+        }
+    }
+
+    private fun shouldSkipToPreviousTrack(): Boolean {
+        val hasPrevious = player.previousMediaItemIndex != C.INDEX_UNSET
+        if (!hasPrevious) return false
+        val positionMs = player.currentPosition.coerceAtLeast(0L)
+        return positionMs <= PREVIOUS_TRACK_THRESHOLD_MS
     }
 
     private fun handleShuffleModeChange(shuffleModeEnabled: Boolean) {
@@ -503,5 +525,6 @@ class PlaybackSessionCallback(
         private const val TAG = "PlaybackSessionCallback"
         private const val QUEUE_ID_WAIT_TIMEOUT_MS = 3000L
         private const val PLAYER_ID_WAIT_TIMEOUT_MS = 3000L
+        private const val PREVIOUS_TRACK_THRESHOLD_MS = 3000L
     }
 }

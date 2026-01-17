@@ -22,8 +22,9 @@ import com.harmonixia.android.util.EXTRA_PROVIDER_ID
 import com.harmonixia.android.util.EXTRA_STREAM_URI
 import com.harmonixia.android.util.EXTRA_TRACK_QUALITY
 import com.harmonixia.android.util.Logger
+import com.harmonixia.android.util.buildPlaybackExtras
 import com.harmonixia.android.util.matchesLocal
-import com.harmonixia.android.util.putProviderExtras
+import com.harmonixia.android.util.playbackDurationMs
 import java.io.File
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
@@ -103,24 +104,14 @@ class QueueManager(
 
     private fun buildMediaItemInternal(track: Track, localFile: File?): MediaItem {
         val isLocalFile = localFile != null
-        val durationMs = track.lengthSeconds
-            .takeIf { it > 0 }
-            ?.toLong()
-            ?.times(1000L)
+        val durationMs = track.playbackDurationMs()
         val metadataBuilder = MediaMetadata.Builder()
             .setTitle(track.title)
             .setArtist(track.artist)
             .setAlbumTitle(track.album)
             .setArtworkUri(track.imageUrl?.let { Uri.parse(it) })
             .setDurationMs(durationMs)
-        val extras = Bundle().apply {
-            if (!track.quality.isNullOrBlank()) {
-                putString(EXTRA_TRACK_QUALITY, track.quality)
-            }
-            putBoolean(EXTRA_IS_LOCAL_FILE, isLocalFile)
-            putString(EXTRA_STREAM_URI, track.uri)
-            putProviderExtras(track.provider, track.providerMappings)
-        }
+        val extras = track.buildPlaybackExtras(isLocalFile = isLocalFile)
         metadataBuilder.setExtras(extras)
         return MediaItem.Builder()
             .setUri(localFile?.let { Uri.fromFile(it) } ?: Uri.parse(track.uri))

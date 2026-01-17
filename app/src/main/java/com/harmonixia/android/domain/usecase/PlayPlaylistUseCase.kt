@@ -47,8 +47,11 @@ class PlayPlaylistUseCase(
             }
             val requestedShuffle = shuffleMode ?: queue.shuffle
             val shouldDisableShuffle = forceStartIndex && requestedShuffle
-            val resolvedStartItem = startItemUri?.takeIf { it.isNotBlank() }
-                ?: tracks?.getOrNull(safeIndex)?.uri?.takeIf { it.isNotBlank() }
+            val resolvedStartItem = when {
+                !startItemUri.isNullOrBlank() -> startItemUri
+                forceStartIndex -> tracks?.getOrNull(safeIndex)?.uri?.takeIf { it.isNotBlank() }
+                else -> null
+            }
             val resolvedPlaylistUri = playlistUri?.takeIf { it.isNotBlank() }
                 ?: repository.getCachedPlaylist(playlistId, provider)?.uri?.takeIf { it.isNotBlank() }
             val playbackResult = withContext(Dispatchers.IO) {

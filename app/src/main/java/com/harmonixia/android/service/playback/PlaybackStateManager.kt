@@ -40,6 +40,8 @@ class PlaybackStateManager(
     private var startupAutoPausePending = false
     private var suppressAutoPlay = false
     private var userInitiatedPlayback = false
+    private var userPaused = false
+    private var lastUserPlaybackRequestAtMs = 0L
     private var lastQueue: Queue? = null
     private val syncSeekLock = Any()
     private var pendingSyncSeeks = 0
@@ -49,6 +51,7 @@ class PlaybackStateManager(
     private val pendingStartLock = Any()
     private var pendingStartMediaId: String? = null
     private var pendingStartUntilMs: Long = 0L
+    private var autoPlaySuppressionLogKey: String? = null
 
     private val _playbackState = MutableStateFlow(PlaybackState.IDLE)
     val playbackState: StateFlow<PlaybackState> = _playbackState.asStateFlow()
@@ -82,6 +85,14 @@ class PlaybackStateManager(
         userInitiatedPlayback = true
         startupAutoPausePending = false
         suppressAutoPlay = false
+        userPaused = false
+        lastUserPlaybackRequestAtMs = SystemClock.elapsedRealtime()
+    }
+
+    fun notifyUserInitiatedPause() {
+        userPaused = true
+        clearAutoPlaySuppressionLog()
+        Logger.i(TAG, "User pause requested; suppressing auto-resume until explicit play")
     }
 
     fun seedQueue(tracks: List<Track>, startIndex: Int) {
@@ -205,6 +216,8 @@ class PlaybackStateManager(
         startupAutoPausePending = false
         suppressAutoPlay = false
         userInitiatedPlayback = false
+        userPaused = false
+        lastUserPlaybackRequestAtMs = 0L
         clearPendingStart()
         synchronized(syncSeekLock) {
             pendingSyncSeeks = 0
@@ -213,6 +226,7 @@ class PlaybackStateManager(
         synchronized(playerSelectionLock) {
             isPlayerExplicitlySelected = false
         }
+        clearAutoPlaySuppressionLog()
     }
 
     private suspend fun resolvePlayerId(): String? {
@@ -317,13 +331,16 @@ class PlaybackStateManager(
                 requestStartupPause(queue.queueId)
             }
         }
-        if (suppressAutoPlay && queue.state == PlaybackState.PLAYING) {
+        val suppressionReason = resolveAutoPlaySuppressionReason(queue.state)
+        if (suppressionReason != null) {
+            logAutoPlaySuppressed(suppressionReason, queue.queueId)
             syncPlayerState(queue, allowPlay = false)
             return
         }
         if (suppressAutoPlay && queue.state != PlaybackState.PLAYING) {
             suppressAutoPlay = false
         }
+        clearAutoPlaySuppressionLog()
         syncPlayerState(queue, allowPlay = true)
     }
 
@@ -362,6 +379,11 @@ class PlaybackStateManager(
             pendingSyncSeeks -= 1
             return true
         }
+    }
+
+    fun suppressNextRemoteSeek() {
+        // Avoid echoing seeks back to the server when we've already dispatched one.
+        markSyncSeek()
     }
 
     private fun resolveTrackFromQueue(mediaId: String?): Track? {
@@ -448,7 +470,16 @@ class PlaybackStateManager(
         when (state) {
             PlaybackState.PLAYING -> {
                 if (allowPlay) {
-                    if (!player.isPlaying) player.play()
+                    if (!player.isPlaying) {
+                        if (!isUserPlaybackRequestRecent()) {
+                            Logger.i(
+                                TAG,
+                                "Auto-resume via queue sync queueId=${_queueId.value.orEmpty()} " +
+                                    "mediaId=${player.currentMediaItem?.mediaId.orEmpty()}"
+                            )
+                        }
+                        player.play()
+                    }
                 } else if (player.isPlaying) {
                     player.pause()
                 }
@@ -481,6 +512,35 @@ class PlaybackStateManager(
         }
     }
 
+    private fun resolveAutoPlaySuppressionReason(state: PlaybackState): String? {
+        if (state != PlaybackState.PLAYING) return null
+        return when {
+            userPaused -> AUTO_PLAY_SUPPRESSION_USER_PAUSE
+            suppressAutoPlay -> AUTO_PLAY_SUPPRESSION_STARTUP
+            else -> null
+        }
+    }
+
+    private fun logAutoPlaySuppressed(reason: String, queueId: String?) {
+        val key = "$reason:${queueId.orEmpty()}"
+        if (autoPlaySuppressionLogKey == key) return
+        autoPlaySuppressionLogKey = key
+        Logger.i(
+            TAG,
+            "Auto-play suppressed reason=$reason queueId=${queueId.orEmpty()}"
+        )
+    }
+
+    private fun clearAutoPlaySuppressionLog() {
+        autoPlaySuppressionLogKey = null
+    }
+
+    private fun isUserPlaybackRequestRecent(): Boolean {
+        val last = lastUserPlaybackRequestAtMs
+        if (last == 0L) return false
+        return SystemClock.elapsedRealtime() - last < USER_PLAY_REQUEST_SUPPRESSION_MS
+    }
+
     private data class PlaybackSnapshot(
         val mediaId: String?,
         val isPlaying: Boolean,
@@ -495,5 +555,8 @@ class PlaybackStateManager(
         private const val MAX_PENDING_SYNC_SEEKS = 3
         private const val SYNC_SEEK_SUPPRESSION_WINDOW_MS = 1500L
         private const val PENDING_START_RETENTION_MS = 3000L
+        private const val USER_PLAY_REQUEST_SUPPRESSION_MS = 5000L
+        private const val AUTO_PLAY_SUPPRESSION_USER_PAUSE = "user_pause"
+        private const val AUTO_PLAY_SUPPRESSION_STARTUP = "startup_auto_pause"
     }
 }
