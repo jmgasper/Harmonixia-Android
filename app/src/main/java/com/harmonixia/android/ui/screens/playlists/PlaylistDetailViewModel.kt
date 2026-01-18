@@ -7,6 +7,8 @@ import androidx.lifecycle.viewModelScope
 import com.harmonixia.android.R
 import com.harmonixia.android.data.remote.WebSocketMessage
 import com.harmonixia.android.domain.model.Playlist
+import com.harmonixia.android.domain.model.PlaybackContext
+import com.harmonixia.android.domain.model.PlaybackSource
 import com.harmonixia.android.domain.model.Track
 import com.harmonixia.android.domain.repository.LocalMediaRepository
 import com.harmonixia.android.domain.repository.MusicAssistantRepository
@@ -17,6 +19,7 @@ import com.harmonixia.android.domain.usecase.PlayLocalTracksUseCase
 import com.harmonixia.android.domain.usecase.PlayPlaylistUseCase
 import com.harmonixia.android.domain.usecase.RenamePlaylistUseCase
 import com.harmonixia.android.ui.navigation.Screen
+import com.harmonixia.android.service.playback.PlaybackStateManager
 import com.harmonixia.android.util.ImageQualityManager
 import com.harmonixia.android.util.isLocal
 import com.harmonixia.android.util.NetworkConnectivityManager
@@ -62,6 +65,7 @@ class PlaylistDetailViewModel @Inject constructor(
     private val managePlaylistTracksUseCase: ManagePlaylistTracksUseCase,
     private val deletePlaylistUseCase: DeletePlaylistUseCase,
     private val renamePlaylistUseCase: RenamePlaylistUseCase,
+    private val playbackStateManager: PlaybackStateManager,
     private val networkConnectivityManager: NetworkConnectivityManager,
     private val performanceMonitor: PerformanceMonitor,
     @ApplicationContext private val context: Context,
@@ -504,6 +508,11 @@ class PlaylistDetailViewModel @Inject constructor(
         }
     }
 
+    private fun resolvePlaylistTitle(): String? {
+        val title = _playlist.value?.name?.trim()
+        return title?.takeIf { it.isNotBlank() }
+    }
+
     fun playPlaylist(
         startIndex: Int = 0,
         forceStartIndex: Boolean = false,
@@ -511,6 +520,9 @@ class PlaylistDetailViewModel @Inject constructor(
     ) {
         if (playlistId.isBlank() || provider.isBlank()) return
         viewModelScope.launch {
+            playbackStateManager.setPlaybackContext(
+                PlaybackContext(source = PlaybackSource.PLAYLIST, title = resolvePlaylistTitle())
+            )
             if (isOfflineMode.value) {
                 val localTracks = tracks.filter { it.isLocal }
                 if (localTracks.isNotEmpty()) {

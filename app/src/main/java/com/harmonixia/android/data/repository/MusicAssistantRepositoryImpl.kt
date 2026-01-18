@@ -791,10 +791,10 @@ class MusicAssistantRepositoryImpl @Inject constructor(
 
     override suspend fun fetchFavorites(limit: Int, offset: Int): Result<List<Track>> {
         return fetchPaged(
-            command = ApiCommand.MUSIC_FAVORITES_LIBRARY_ITEMS,
+            command = ApiCommand.MUSIC_GET_LIBRARY_TRACKS,
             limit = limit,
             offset = offset,
-            extraParams = mapOf("media_type" to "track")
+            extraParams = mapOf("favorite" to true)
         ) { parseTrack(it) }
     }
 

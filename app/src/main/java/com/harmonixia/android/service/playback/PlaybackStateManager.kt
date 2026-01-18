@@ -5,6 +5,7 @@ import androidx.media3.common.C
 import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
 import com.harmonixia.android.domain.model.PlaybackState
+import com.harmonixia.android.domain.model.PlaybackContext
 import com.harmonixia.android.domain.model.Queue
 import com.harmonixia.android.domain.model.RepeatMode
 import com.harmonixia.android.domain.model.Track
@@ -68,6 +69,9 @@ class PlaybackStateManager(
     private val _shuffle = MutableStateFlow(false)
     val shuffle: StateFlow<Boolean> = _shuffle.asStateFlow()
 
+    private val _playbackContext = MutableStateFlow<PlaybackContext?>(null)
+    val playbackContext: StateFlow<PlaybackContext?> = _playbackContext.asStateFlow()
+
     val currentPlayerId: String? get() = _playerId.value
     val currentQueueId: String? get() = _queueId.value
 
@@ -93,6 +97,10 @@ class PlaybackStateManager(
         userPaused = true
         clearAutoPlaySuppressionLog()
         Logger.i(TAG, "User pause requested; suppressing auto-resume until explicit play")
+    }
+
+    fun setPlaybackContext(context: PlaybackContext?) {
+        _playbackContext.value = context
     }
 
     fun seedQueue(tracks: List<Track>, startIndex: Int) {

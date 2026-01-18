@@ -256,7 +256,8 @@ fun ArtistDetailScreen(
             ArtistDetailUiState.Empty -> {
                 ArtistDetailContent(
                     artist = artist,
-                    albums = emptyList(),
+                    libraryAlbums = emptyList(),
+                    allAlbums = emptyList(),
                     isOfflineMode = isOfflineMode,
                     columns = columns,
                     gridPadding = gridPadding,
@@ -280,7 +281,8 @@ fun ArtistDetailScreen(
             is ArtistDetailUiState.Success -> {
                 ArtistDetailContent(
                     artist = state.artist,
-                    albums = state.albums,
+                    libraryAlbums = state.libraryAlbums,
+                    allAlbums = state.allAlbums,
                     isOfflineMode = isOfflineMode,
                     columns = columns,
                     gridPadding = gridPadding,
@@ -339,7 +341,8 @@ fun ArtistDetailScreen(
 @Composable
 private fun ArtistDetailContent(
     artist: Artist?,
-    albums: List<Album>,
+    libraryAlbums: List<Album>,
+    allAlbums: List<Album>,
     isOfflineMode: Boolean,
     columns: Int,
     gridPadding: PaddingValues,
@@ -357,6 +360,11 @@ private fun ArtistDetailContent(
     val gridSpacing = 8.dp
     val safeColumns = columns.coerceAtLeast(1)
     val minCardHeight = artworkSize + 70.dp
+    val hasLibraryAlbums = libraryAlbums.isNotEmpty()
+    val hasAllAlbums = allAlbums.isNotEmpty()
+    val hasAnyAlbums = hasLibraryAlbums || hasAllAlbums
+    val librarySectionTitle = stringResource(R.string.artist_detail_section_my_library)
+    val allSectionTitle = stringResource(R.string.artist_detail_section_all)
     LazyVerticalGrid(
         columns = GridCells.Fixed(safeColumns),
         contentPadding = gridPadding,
@@ -372,7 +380,7 @@ private fun ArtistDetailContent(
                 imageQualityManager = imageQualityManager
             )
         }
-        if (albums.isEmpty()) {
+        if (!hasAnyAlbums) {
             item(span = { GridItemSpan(maxLineSpan) }) {
                 ArtistAlbumsEmptyState(
                     isOfflineMode = isOfflineMode,
@@ -383,26 +391,78 @@ private fun ArtistDetailContent(
                 )
             }
         } else {
-            item(span = { GridItemSpan(maxLineSpan) }) {
-                Text(
-                    text = stringResource(R.string.artist_detail_album_count, albums.size),
-                    style = sectionHeaderStyle,
-                    modifier = Modifier.fillMaxWidth()
-                )
+            if (hasLibraryAlbums) {
+                item(span = { GridItemSpan(maxLineSpan) }) {
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(spacing.small)
+                    ) {
+                        Text(
+                            text = librarySectionTitle,
+                            style = sectionHeaderStyle
+                        )
+                        Text(
+                            text = stringResource(
+                                R.string.artist_detail_album_count,
+                                libraryAlbums.size
+                            ),
+                            style = metaStyle
+                        )
+                    }
+                }
+                items(
+                    items = libraryAlbums,
+                    key = { album -> "library:${album.provider}:${album.itemId}" }
+                ) { album ->
+                    AlbumCard(
+                        album = album,
+                        onClick = { onAlbumClick(album) },
+                        onLongClick = onAlbumLongClick?.let { callback -> { callback(album) } },
+                        artworkSize = artworkSize,
+                        isOfflineMode = isOfflineMode,
+                        imageQualityManager = imageQualityManager,
+                        modifier = Modifier.heightIn(min = minCardHeight)
+                    )
+                }
             }
-            items(
-                items = albums,
-                key = { album -> "${album.provider}:${album.itemId}" }
-            ) { album ->
-                AlbumCard(
-                    album = album,
-                    onClick = { onAlbumClick(album) },
-                    onLongClick = onAlbumLongClick?.let { callback -> { callback(album) } },
-                    artworkSize = artworkSize,
-                    isOfflineMode = isOfflineMode,
-                    imageQualityManager = imageQualityManager,
-                    modifier = Modifier.heightIn(min = minCardHeight)
-                )
+            if (hasLibraryAlbums && hasAllAlbums) {
+                item(span = { GridItemSpan(maxLineSpan) }) {
+                    Spacer(modifier = Modifier.height(spacing.large))
+                }
+            }
+            if (hasAllAlbums) {
+                item(span = { GridItemSpan(maxLineSpan) }) {
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(spacing.small)
+                    ) {
+                        Text(
+                            text = allSectionTitle,
+                            style = sectionHeaderStyle
+                        )
+                        Text(
+                            text = stringResource(
+                                R.string.artist_detail_album_count,
+                                allAlbums.size
+                            ),
+                            style = metaStyle
+                        )
+                    }
+                }
+                items(
+                    items = allAlbums,
+                    key = { album -> "all:${album.provider}:${album.itemId}" }
+                ) { album ->
+                    AlbumCard(
+                        album = album,
+                        onClick = { onAlbumClick(album) },
+                        onLongClick = onAlbumLongClick?.let { callback -> { callback(album) } },
+                        artworkSize = artworkSize,
+                        isOfflineMode = isOfflineMode,
+                        imageQualityManager = imageQualityManager,
+                        modifier = Modifier.heightIn(min = minCardHeight)
+                    )
+                }
             }
         }
     }

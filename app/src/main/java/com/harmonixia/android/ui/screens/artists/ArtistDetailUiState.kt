@@ -8,7 +8,8 @@ sealed interface ArtistDetailUiState {
 
     data class Success(
         val artist: Artist,
-        val albums: List<Album>
+        val libraryAlbums: List<Album>,
+        val allAlbums: List<Album>
     ) : ArtistDetailUiState
 
     data class Error(

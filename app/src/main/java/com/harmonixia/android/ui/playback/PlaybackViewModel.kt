@@ -12,6 +12,7 @@ import com.harmonixia.android.data.remote.WebSocketMessage
 import com.harmonixia.android.data.local.SettingsDataStore
 import com.harmonixia.android.domain.model.Album
 import com.harmonixia.android.domain.model.PlaybackState
+import com.harmonixia.android.domain.model.PlaybackContext
 import com.harmonixia.android.domain.model.Player
 import com.harmonixia.android.domain.model.ProviderBadge
 import com.harmonixia.android.domain.model.RepeatMode
@@ -173,6 +174,7 @@ class PlaybackViewModel @Inject constructor(
     val isPlayPauseUpdating: StateFlow<Boolean> = playbackServiceConnection.pendingPlaybackState
         .map { it != null }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
+    val playbackContext: StateFlow<PlaybackContext?> = playbackStateManager.playbackContext
     private val playbackPositionTicks = playbackState
         .map { it == PlaybackState.PLAYING }
         .distinctUntilChanged()

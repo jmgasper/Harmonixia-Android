@@ -7,8 +7,11 @@ import com.harmonixia.android.domain.repository.LocalMediaRepository
 import com.harmonixia.android.domain.repository.MusicAssistantRepository
 import com.harmonixia.android.domain.usecase.GetConnectionStateUseCase
 import com.harmonixia.android.domain.usecase.PlayTrackUseCase
+import com.harmonixia.android.domain.model.PlaybackContext
+import com.harmonixia.android.domain.model.PlaybackSource
 import com.harmonixia.android.domain.model.Album
 import com.harmonixia.android.domain.model.Track
+import com.harmonixia.android.service.playback.PlaybackStateManager
 import com.harmonixia.android.util.ImageQualityManager
 import com.harmonixia.android.util.Logger
 import com.harmonixia.android.util.NetworkConnectivityManager
@@ -38,6 +41,7 @@ class HomeViewModel @Inject constructor(
     private val networkConnectivityManager: NetworkConnectivityManager,
     private val prefetchScheduler: PrefetchScheduler,
     private val playTrackUseCase: PlayTrackUseCase,
+    private val playbackStateManager: PlaybackStateManager,
     val imageQualityManager: ImageQualityManager
 ) : ViewModel() {
     val connectionState: StateFlow<ConnectionState> = getConnectionStateUseCase()
@@ -112,6 +116,9 @@ class HomeViewModel @Inject constructor(
     fun playTrack(track: Track) {
         viewModelScope.launch {
             if (isOfflineMode.value) return@launch
+            playbackStateManager.setPlaybackContext(
+                PlaybackContext(source = PlaybackSource.HOME)
+            )
             playTrackUseCase(track)
         }
     }

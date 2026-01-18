@@ -7,6 +7,8 @@ import androidx.lifecycle.viewModelScope
 import com.harmonixia.android.R
 import com.harmonixia.android.domain.model.Album
 import com.harmonixia.android.domain.model.Artist
+import com.harmonixia.android.domain.model.PlaybackContext
+import com.harmonixia.android.domain.model.PlaybackSource
 import com.harmonixia.android.domain.model.Playlist
 import com.harmonixia.android.domain.model.Track
 import com.harmonixia.android.domain.repository.LocalMediaRepository
@@ -17,6 +19,7 @@ import com.harmonixia.android.domain.usecase.PlayAlbumUseCase
 import com.harmonixia.android.domain.usecase.PlayLocalTracksUseCase
 import com.harmonixia.android.domain.usecase.SearchLibraryUseCase
 import com.harmonixia.android.ui.navigation.Screen
+import com.harmonixia.android.service.playback.PlaybackStateManager
 import com.harmonixia.android.util.ImageQualityManager
 import com.harmonixia.android.util.isLocal
 import com.harmonixia.android.util.PerformanceMonitor
@@ -57,6 +60,7 @@ class AlbumDetailViewModel @Inject constructor(
     private val playLocalTracksUseCase: PlayLocalTracksUseCase,
     private val searchLibraryUseCase: SearchLibraryUseCase,
     private val managePlaylistTracksUseCase: ManagePlaylistTracksUseCase,
+    private val playbackStateManager: PlaybackStateManager,
     private val networkConnectivityManager: NetworkConnectivityManager,
     private val prefetchScheduler: PrefetchScheduler,
     private val performanceMonitor: PerformanceMonitor,
@@ -473,6 +477,13 @@ class AlbumDetailViewModel @Inject constructor(
         merged
     }
 
+    private fun resolveAlbumTitle(): String? {
+        val albumTitle = _album.value?.name?.trim()
+        if (!albumTitle.isNullOrBlank()) return albumTitle
+        val trackAlbum = tracks.firstOrNull()?.album?.trim()
+        return trackAlbum?.takeIf { it.isNotBlank() }
+    }
+
     fun playAlbum(
         startIndex: Int = 0,
         forceStartIndex: Boolean = false,
@@ -480,6 +491,9 @@ class AlbumDetailViewModel @Inject constructor(
     ) {
         if (albumId.isBlank() || provider.isBlank()) return
         viewModelScope.launch {
+            playbackStateManager.setPlaybackContext(
+                PlaybackContext(source = PlaybackSource.ALBUM, title = resolveAlbumTitle())
+            )
             if (isOfflineMode.value || provider == OFFLINE_PROVIDER) {
                 val localTracks = tracks.filter { it.isLocal }
                 if (localTracks.isNotEmpty()) {

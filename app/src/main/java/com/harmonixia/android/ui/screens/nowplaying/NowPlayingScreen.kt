@@ -78,6 +78,7 @@ import coil3.request.ImageRequest
 import coil3.request.bitmapConfig
 import com.harmonixia.android.R
 import com.harmonixia.android.domain.model.Player
+import com.harmonixia.android.domain.model.PlaybackSource
 import com.harmonixia.android.domain.model.RepeatMode
 import com.harmonixia.android.ui.components.PlaybackControls
 import com.harmonixia.android.ui.components.PlayerSelectionDialog
@@ -114,6 +115,7 @@ fun SharedTransitionScope.NowPlayingScreen(
     val isRepeatModeUpdating by viewModel.isRepeatModeUpdating.collectAsStateWithLifecycle()
     val isShuffleUpdating by viewModel.isShuffleUpdating.collectAsStateWithLifecycle()
     val isPlayPauseUpdating by viewModel.isPlayPauseUpdating.collectAsStateWithLifecycle()
+    val playbackContext by viewModel.playbackContext.collectAsStateWithLifecycle()
     val imageQualityManager = viewModel.imageQualityManager
     val availablePlayers by viewModel.availablePlayers.collectAsStateWithLifecycle()
     val selectedPlayer by viewModel.selectedPlayer.collectAsStateWithLifecycle()
@@ -181,6 +183,21 @@ fun SharedTransitionScope.NowPlayingScreen(
     val dragOffsetX = remember { Animatable(0f) }
     val swipeThreshold = with(LocalDensity.current) { 100.dp.toPx() }
     val displayInfo = playbackInfo ?: emptyPlaybackInfo()
+    val defaultTitle = stringResource(R.string.now_playing_title)
+    val homeTitle = stringResource(R.string.nav_home)
+    val headerTitle = when {
+        isIdle -> defaultTitle
+        playbackContext?.source == PlaybackSource.HOME -> homeTitle
+        playbackContext?.source == PlaybackSource.ALBUM -> {
+            playbackContext?.title?.takeIf { it.isNotBlank() }
+                ?: displayInfo.album.takeIf { it.isNotBlank() }
+                ?: defaultTitle
+        }
+        playbackContext?.source == PlaybackSource.PLAYLIST -> {
+            playbackContext?.title?.takeIf { it.isNotBlank() } ?: defaultTitle
+        }
+        else -> defaultTitle
+    }
     val artistNotFoundMessage = stringResource(R.string.now_playing_artist_not_found)
     val albumNotFoundMessage = stringResource(R.string.now_playing_album_not_found)
     val latestOnNavigateToArtist by rememberUpdatedState(onNavigateToArtist)
@@ -242,7 +259,13 @@ fun SharedTransitionScope.NowPlayingScreen(
         containerColor = scaffoldContainerColor,
         topBar = {
             TopAppBar(
-                title = { Text(text = stringResource(R.string.now_playing_title)) },
+                title = {
+                    Text(
+                        text = headerTitle,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                },
                 colors = topAppBarColors,
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {

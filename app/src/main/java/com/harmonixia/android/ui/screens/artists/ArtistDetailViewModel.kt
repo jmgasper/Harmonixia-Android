@@ -6,12 +6,15 @@ import androidx.lifecycle.viewModelScope
 import com.harmonixia.android.R
 import com.harmonixia.android.domain.model.Album
 import com.harmonixia.android.domain.model.Artist
+import com.harmonixia.android.domain.model.PlaybackContext
+import com.harmonixia.android.domain.model.PlaybackSource
 import com.harmonixia.android.domain.model.Playlist
 import com.harmonixia.android.domain.repository.OFFLINE_PROVIDER
 import com.harmonixia.android.domain.repository.OfflineLibraryRepository
 import com.harmonixia.android.domain.repository.MusicAssistantRepository
 import com.harmonixia.android.domain.usecase.PlayAlbumUseCase
 import com.harmonixia.android.ui.navigation.Screen
+import com.harmonixia.android.service.playback.PlaybackStateManager
 import com.harmonixia.android.util.ImageQualityManager
 import com.harmonixia.android.util.NetworkConnectivityManager
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -41,6 +44,7 @@ class ArtistDetailViewModel @Inject constructor(
     private val repository: MusicAssistantRepository,
     private val offlineLibraryRepository: OfflineLibraryRepository,
     private val playAlbumUseCase: PlayAlbumUseCase,
+    private val playbackStateManager: PlaybackStateManager,
     private val networkConnectivityManager: NetworkConnectivityManager,
     savedStateHandle: SavedStateHandle,
     val imageQualityManager: ImageQualityManager
@@ -107,16 +111,24 @@ class ArtistDetailViewModel @Inject constructor(
                 _uiState.value = if (albums.isEmpty()) {
                     ArtistDetailUiState.Empty
                 } else {
-                    ArtistDetailUiState.Success(offlineArtist, albums)
+                    ArtistDetailUiState.Success(offlineArtist, albums, emptyList())
                 }
                 return@launch
             }
             supervisorScope {
                 val artistDeferred = async { repository.getArtist(artistId, provider) }
-                val albumsDeferred = async { repository.getArtistAlbums(artistId, provider) }
+                val libraryAlbumsDeferred = async {
+                    repository.getArtistAlbums(artistId, provider, inLibraryOnly = true)
+                }
+                val allAlbumsDeferred = async {
+                    repository.getArtistAlbums(artistId, provider, inLibraryOnly = false)
+                }
                 val artistsResult = artistDeferred.await()
-                val albumsResult = albumsDeferred.await()
-                val error = artistsResult.exceptionOrNull() ?: albumsResult.exceptionOrNull()
+                val libraryAlbumsResult = libraryAlbumsDeferred.await()
+                val allAlbumsResult = allAlbumsDeferred.await()
+                val error = artistsResult.exceptionOrNull()
+                    ?: libraryAlbumsResult.exceptionOrNull()
+                    ?: allAlbumsResult.exceptionOrNull()
                 if (error != null) {
                     _uiState.value = ArtistDetailUiState.Error(error.message ?: "Unknown error")
                     return@supervisorScope
@@ -127,11 +139,12 @@ class ArtistDetailViewModel @Inject constructor(
                     _uiState.value = ArtistDetailUiState.Error("Artist not found.")
                     return@supervisorScope
                 }
-                val albums = albumsResult.getOrDefault(emptyList())
-                _uiState.value = if (albums.isEmpty()) {
+                val libraryAlbums = libraryAlbumsResult.getOrDefault(emptyList())
+                val allAlbums = allAlbumsResult.getOrDefault(emptyList())
+                _uiState.value = if (libraryAlbums.isEmpty() && allAlbums.isEmpty()) {
                     ArtistDetailUiState.Empty
                 } else {
-                    ArtistDetailUiState.Success(selectedArtist, albums)
+                    ArtistDetailUiState.Success(selectedArtist, libraryAlbums, allAlbums)
                 }
             }
         }
@@ -139,6 +152,10 @@ class ArtistDetailViewModel @Inject constructor(
 
     fun playAlbum(album: Album) {
         viewModelScope.launch {
+            val albumTitle = album.name.trim().takeIf { it.isNotBlank() }
+            playbackStateManager.setPlaybackContext(
+                PlaybackContext(source = PlaybackSource.ALBUM, title = albumTitle)
+            )
             playAlbumUseCase(
                 albumId = album.itemId,
                 provider = album.provider,

@@ -185,6 +185,8 @@
     <string name="artist_detail_loading_albums">Loading albums...</string>
     <string name="artist_detail_no_albums">No albums found for this artist</string>
     <string name="artist_detail_album_count">%1$d albums</string>
+    <string name="artist_detail_section_my_library">My Library</string>
+    <string name="artist_detail_section_all">All</string>
     <string name="library_track_count">%1$d tracks</string>
     <string name="artist_detail_placeholder">Select an artist to view details</string>
     <string name="content_desc_artist_image">Artist image</string>
