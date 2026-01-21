@@ -1,7 +1,7 @@
 # Harmonixia (Android)
 
 Harmonixia is a Jetpack Compose Android client for Music Assistant, focused on fast library browsing,
-playback control, and EQ presets.  Primarily built with ChatGPT Codex.
+playback control, and EQ presets.  Primarily built with Codex.
 
 ## Screenshots
 
