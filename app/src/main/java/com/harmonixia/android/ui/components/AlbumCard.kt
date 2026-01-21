@@ -44,6 +44,7 @@ fun AlbumCard(
     artworkSize: Dp = 150.dp,
     isOfflineMode: Boolean,
     imageQualityManager: ImageQualityManager,
+    secondaryText: String? = null,
     modifier: Modifier = Modifier
 ) {
     val placeholder = ColorPainter(MaterialTheme.colorScheme.surfaceVariant)
@@ -66,6 +67,7 @@ fun AlbumCard(
         bitmapConfig = bitmapConfig,
         isOfflineMode = isOfflineMode
     )
+    val supportingText = secondaryText ?: album.artists.joinToString(", ")
 
     Card(
         modifier = interactionModifier.fillMaxWidth(),
@@ -99,7 +101,7 @@ fun AlbumCard(
                 modifier = Modifier.fillMaxWidth()
             )
             Text(
-                text = album.artists.joinToString(", "),
+                text = supportingText,
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,

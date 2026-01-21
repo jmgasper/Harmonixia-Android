@@ -421,6 +421,7 @@ private fun ArtistDetailContent(
                         artworkSize = artworkSize,
                         isOfflineMode = isOfflineMode,
                         imageQualityManager = imageQualityManager,
+                        secondaryText = album.year?.takeIf { it > 0 }?.toString().orEmpty(),
                         modifier = Modifier.heightIn(min = minCardHeight)
                     )
                 }
@@ -460,6 +461,7 @@ private fun ArtistDetailContent(
                         artworkSize = artworkSize,
                         isOfflineMode = isOfflineMode,
                         imageQualityManager = imageQualityManager,
+                        secondaryText = album.year?.takeIf { it > 0 }?.toString().orEmpty(),
                         modifier = Modifier.heightIn(min = minCardHeight)
                     )
                 }

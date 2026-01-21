@@ -56,6 +56,12 @@ class SettingsDataStore @Inject constructor(
         }
     }
 
+    suspend fun clearSendspinClientId() {
+        dataStore.edit { preferences ->
+            preferences[SENDSPIN_CLIENT_ID_KEY] = ""
+        }
+    }
+
     suspend fun saveLocalMediaFolderUri(uri: String) {
         dataStore.edit { preferences ->
             preferences[LOCAL_MEDIA_FOLDER_URI_KEY] = uri

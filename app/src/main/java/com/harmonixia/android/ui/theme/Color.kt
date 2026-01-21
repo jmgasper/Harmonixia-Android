@@ -13,11 +13,6 @@ val Purple40 = Color(0xFF6650a4)
 val PurpleGrey40 = Color(0xFF625b71)
 val Pink40 = Color(0xFF7D5260)
 
-private val ExternalPlaybackGreenLight = Color(0xFFDFF5D8)
-private val ExternalPlaybackOnGreenLight = Color(0xFF1B5E20)
-private val ExternalPlaybackGreenDark = Color(0xFF1B5E20)
-private val ExternalPlaybackOnGreenDark = Color(0xFFE8F5E9)
-
 private val LosslessQualityGreenLight = Color(0xFFDFF5D8)
 private val LosslessQualityOnGreenLight = Color(0xFF1B5E20)
 private val LosslessQualityGreenDark = Color(0xFF1B5E20)
@@ -30,11 +25,11 @@ private val CompressedQualityOnOrangeDark = Color(0xFFFFEAD6)
 
 val ExternalPlaybackGreen: Color
     @Composable
-    get() = if (isDarkTheme()) ExternalPlaybackGreenDark else ExternalPlaybackGreenLight
+    get() = MaterialTheme.colorScheme.primaryContainer
 
 val ExternalPlaybackOnGreen: Color
     @Composable
-    get() = if (isDarkTheme()) ExternalPlaybackOnGreenDark else ExternalPlaybackOnGreenLight
+    get() = MaterialTheme.colorScheme.onPrimaryContainer
 
 val LosslessQualityGreen: Color
     @Composable

@@ -55,6 +55,7 @@
     <string name="action_test_connection">Test Connection</string>
     <string name="action_save">Save</string>
     <string name="action_save_reconnect">Save &amp; Reconnect</string>
+    <string name="action_reconnect">Reconnect</string>
     <string name="action_back">Back</string>
     <string name="player_selection_title">Select Player</string>
     <string name="player_selection_this_device">This Device</string>

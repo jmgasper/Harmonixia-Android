@@ -71,6 +71,9 @@ class SendspinPlaybackManager(
     private var authFailureToken: String? = null
     private var streamActive = false
     private var lastServerMessageAtMs = 0L
+    private var handshakeFailureCount = 0
+    private var handshakeFailureRecorded = false
+    private var lastClientIdResetAtMs = 0L
 
     private var volume: Float = 1f
     private var muted: Boolean = false
@@ -95,6 +98,9 @@ class SendspinPlaybackManager(
             ) { url, token, id -> Triple(url.trim(), token.trim(), id.trim()) }
                 .distinctUntilChanged()
                 .collect { (url, token, id) ->
+                    val previousServerUrl = serverUrl
+                    val previousAuthToken = authToken
+                    val previousClientId = clientId
                     serverUrl = url
                     authToken = token
                     if (authFailureToken != null && authFailureToken != authToken) {
@@ -106,6 +112,12 @@ class SendspinPlaybackManager(
                         clientId = newId
                     } else {
                         clientId = id
+                    }
+                    if (clientId != previousClientId ||
+                        serverUrl != previousServerUrl ||
+                        authToken != previousAuthToken
+                    ) {
+                        resetHandshakeFailures()
                     }
                     if (serverUrl.isBlank()) {
                         closeWebSocket("Sendspin disabled")
@@ -153,6 +165,7 @@ class SendspinPlaybackManager(
         if (authFailureToken != null && authFailureToken == authToken) return
         connecting = true
         handshakeComplete = false
+        handshakeFailureRecorded = false
         val wsUrl = buildSendspinUrl(serverUrl, authToken.isNotBlank())
         val request = Request.Builder().url(wsUrl).build()
         webSocket = okHttpClient.newWebSocket(request, webSocketListener)
@@ -165,6 +178,7 @@ class SendspinPlaybackManager(
             delay(HANDSHAKE_TIMEOUT_MS)
             if (!handshakeComplete && !manualStop) {
                 Logger.w(TAG, "Sendspin handshake timed out")
+                recordHandshakeFailure("timeout")
                 closeWebSocket("Handshake timeout")
             }
         }
@@ -223,13 +237,48 @@ class SendspinPlaybackManager(
     }
 
     private fun handleDisconnect() {
+        val handshakeWasComplete = handshakeComplete
         closeWebSocket("Disconnected")
+        if (!handshakeWasComplete) {
+            recordHandshakeFailure("disconnect")
+        }
         if (manualStop) return
         reconnectJob?.cancel()
         reconnectJob = scope.launch {
             delay(reconnectDelayMs)
             reconnectDelayMs = (reconnectDelayMs * 2).coerceAtMost(MAX_RECONNECT_DELAY_MS)
             connect()
+        }
+    }
+
+    @Synchronized
+    private fun resetHandshakeFailures() {
+        handshakeFailureCount = 0
+        handshakeFailureRecorded = false
+    }
+
+    @Synchronized
+    private fun recordHandshakeFailure(reason: String) {
+        if (manualStop || serverUrl.isBlank()) return
+        if (handshakeFailureRecorded) return
+        handshakeFailureRecorded = true
+        handshakeFailureCount += 1
+        Logger.w(TAG, "Sendspin handshake failed ($reason); count=$handshakeFailureCount")
+        maybeResetClientId()
+    }
+
+    private fun maybeResetClientId() {
+        if (authFailureToken != null && authFailureToken == authToken) return
+        if (handshakeFailureCount < HANDSHAKE_FAILURE_RESET_THRESHOLD) return
+        val now = SystemClock.elapsedRealtime()
+        if (now - lastClientIdResetAtMs < CLIENT_ID_RESET_COOLDOWN_MS) return
+        lastClientIdResetAtMs = now
+        handshakeFailureCount = 0
+        handshakeFailureRecorded = false
+        clientId = ""
+        Logger.w(TAG, "Resetting Sendspin client id after repeated handshake failures")
+        scope.launch {
+            settingsDataStore.clearSendspinClientId()
         }
     }
 
@@ -272,6 +321,7 @@ class SendspinPlaybackManager(
     private fun handleServerHello() {
         Logger.i(TAG, "Sendspin handshake complete")
         handshakeComplete = true
+        resetHandshakeFailures()
         sendPlayerState()
         sendTimeSync()
         startLoops()
@@ -581,6 +631,8 @@ class SendspinPlaybackManager(
         private const val AUDIO_CHUNK_MESSAGE_TYPE = 4
         private const val BINARY_HEADER_SIZE = 9
         private const val HANDSHAKE_TIMEOUT_MS = 10_000L
+        private const val HANDSHAKE_FAILURE_RESET_THRESHOLD = 3
+        private const val CLIENT_ID_RESET_COOLDOWN_MS = 5 * 60_000L
         private const val STATE_INTERVAL_MS = 10_000L
         private const val STALE_CONNECTION_MS = 60_000L
         private const val INITIAL_RECONNECT_DELAY_MS = 1_000L

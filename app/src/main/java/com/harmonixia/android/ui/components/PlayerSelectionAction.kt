@@ -43,6 +43,9 @@ fun PlayerSelectionAction(
             onPlayerMuteChange = { player, muted ->
                 playbackViewModel.setPlayerMute(player, muted)
             },
+            onReconnect = {
+                playbackViewModel.requestLocalPlayerReconnect()
+            },
             onDismiss = { showPlayerDialog = false }
         )
     }

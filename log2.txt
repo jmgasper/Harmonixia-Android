@@ -1,0 +1,6 @@
+Playback state: READY at 1768713087874
+Playback isPlaying=true mediaId=18521 at 1768713087875
+Reporting track start queueId=ma_android_270c9498f3 mediaId=18521 position=2 at 1768713087875
+Prepared request id=698 command=music/mark_played params={media_item={item_id=18521, provider=library, name=Hello My Old Heart, provider_mappings=[{item_id=180636248, provider_domain=tidal, provider_instance=tidal--zA4HvHyZ, available=true}, {item_id=The Oh Hellos/The Oh Hellos EP/1. Hello My Old Heart.flac, provider_domain=filesystem_smb, provider_instance=filesystem_smb--nwxpMRwX, available=true}], media_type=track, uri=library://track/18521, duration=256}, seconds_played=2, is_playing=true, queue_id=ma_android_270c9498f3}
+Sending request id=698 command=music/mark_played
+-> {"message_id":"698","command":"music/mark_played","args":{"media_item":{"item_id":"18521","provider":"library","name":"Hello My Old Heart","provider_mappings":[{"item_id":"180636248","provider_domain":"tidal","provider_instance":"tidal--zA4HvHyZ","available":true},{"item_id":"The Oh Hellos/The Oh Hellos EP/1. Hello My Old Heart.flac","provider_domain":"filesystem_smb","provider_instance":"filesystem_smb--nwxpMRwX","available":true}],"media_type":"track","uri":"library://track/18521","duration":256},"seconds_played":2,"is_playing":true,"queue_id":"ma_android_270c9498f3"}}

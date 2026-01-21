@@ -60,7 +60,6 @@ import com.harmonixia.android.R
 import com.harmonixia.android.domain.model.Album
 import com.harmonixia.android.domain.model.Artist
 import com.harmonixia.android.domain.model.Playlist
-import com.harmonixia.android.domain.model.Track
 import com.harmonixia.android.ui.components.ErrorCard
 import com.harmonixia.android.ui.components.OfflineModeBanner
 import com.harmonixia.android.ui.navigation.MainScaffoldActions
@@ -73,7 +72,6 @@ fun SearchScreen(
     onAlbumClick: (Album) -> Unit,
     onArtistClick: (Artist) -> Unit,
     onPlaylistClick: (Playlist) -> Unit,
-    onTrackClick: (Track) -> Unit,
     viewModel: SearchViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -81,6 +79,7 @@ fun SearchScreen(
     val libraryOnly by viewModel.libraryOnly.collectAsStateWithLifecycle()
     val isOfflineMode by viewModel.isOfflineMode.collectAsStateWithLifecycle()
     val imageQualityManager = viewModel.imageQualityManager
+    val onTrackClick = viewModel::playTrack
 
     val windowSizeClass = calculateWindowSizeClass(activity = LocalContext.current as Activity)
     val horizontalPadding by remember(windowSizeClass) {

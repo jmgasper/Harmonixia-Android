@@ -10,6 +10,7 @@ import androidx.media3.common.MediaItem
 import androidx.media3.common.util.UnstableApi
 import com.harmonixia.android.data.remote.WebSocketMessage
 import com.harmonixia.android.data.local.SettingsDataStore
+import com.harmonixia.android.data.remote.ConnectionState
 import com.harmonixia.android.domain.model.Album
 import com.harmonixia.android.domain.model.PlaybackState
 import com.harmonixia.android.domain.model.PlaybackContext
@@ -21,6 +22,7 @@ import com.harmonixia.android.domain.repository.LocalMediaRepository
 import com.harmonixia.android.domain.repository.MusicAssistantRepository
 import com.harmonixia.android.domain.repository.OFFLINE_PROVIDER
 import com.harmonixia.android.domain.usecase.GetPlayersUseCase
+import com.harmonixia.android.domain.usecase.GetConnectionStateUseCase
 import com.harmonixia.android.domain.usecase.ResolveProviderBadgeUseCase
 import com.harmonixia.android.domain.usecase.SearchLibraryUseCase
 import com.harmonixia.android.domain.usecase.SetPlayerMuteUseCase
@@ -52,6 +54,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
@@ -77,7 +80,8 @@ class PlaybackViewModel @Inject constructor(
     private val localMediaRepository: LocalMediaRepository,
     private val playbackStateManager: PlaybackStateManager,
     private val repository: MusicAssistantRepository,
-    settingsDataStore: SettingsDataStore,
+    private val settingsDataStore: SettingsDataStore,
+    private val getConnectionStateUseCase: GetConnectionStateUseCase,
     val imageQualityManager: ImageQualityManager
 ) : ViewModel() {
     private val _optimisticPlaybackState = MutableStateFlow<PlaybackState?>(null)
@@ -163,6 +167,7 @@ class PlaybackViewModel @Inject constructor(
     val localPlayerId: StateFlow<String?> = settingsDataStore.getSendspinClientId()
         .map { it.trim().ifBlank { null } }
         .stateIn(viewModelScope, SharingStarted.Eagerly, null)
+    private val connectionState: StateFlow<ConnectionState> = getConnectionStateUseCase()
     private val _availablePlayers = MutableStateFlow<List<Player>>(emptyList())
     val availablePlayers: StateFlow<List<Player>> = _availablePlayers.asStateFlow()
     private val _selectedPlayer = MutableStateFlow<Player?>(null)
@@ -283,6 +288,9 @@ class PlaybackViewModel @Inject constructor(
 
     private var playerRefreshJob: Job? = null
     private var lastPlayerRefreshAt = 0L
+    private var localUnavailableJob: Job? = null
+    private var localAvailabilityProbeJob: Job? = null
+    private var lastLocalIdResetAtMs = 0L
 
     private val _events = MutableSharedFlow<PlaybackUiEvent>(extraBufferCapacity = 1)
     val events: SharedFlow<PlaybackUiEvent> = _events.asSharedFlow()
@@ -298,6 +306,19 @@ class PlaybackViewModel @Inject constructor(
             }
         }
         viewModelScope.launch {
+            connectionState
+                .map { it is ConnectionState.Connected }
+                .distinctUntilChanged()
+                .collect { connected ->
+                    if (connected) {
+                        refreshPlayers()
+                    } else {
+                        clearLocalAvailabilityProbe()
+                        clearLocalUnavailableJob()
+                    }
+                }
+        }
+        viewModelScope.launch {
             var lastMissingPlayerId: String? = null
             playbackStateManager.playerIdFlow.collect { playerId ->
                 if (playerId == null) return@collect
@@ -310,6 +331,21 @@ class PlaybackViewModel @Inject constructor(
                     lastMissingPlayerId = playerId
                     refreshPlayers()
                 }
+            }
+        }
+        viewModelScope.launch {
+            localPlayerId
+                .collect { id ->
+                    if (!id.isNullOrBlank()) {
+                        refreshPlayers()
+                    }
+                }
+        }
+        viewModelScope.launch {
+            combine(availablePlayers, localPlayerId) { players, localId ->
+                players to localId
+            }.collect { (players, localId) ->
+                handleLocalPlayerAvailability(players, localId)
             }
         }
     }
@@ -345,6 +381,14 @@ class PlaybackViewModel @Inject constructor(
     fun selectPlayer(player: Player) {
         _selectedPlayer.value = player
         playbackStateManager.setSelectedPlayer(player.playerId)
+    }
+
+    fun requestLocalPlayerReconnect() {
+        clearLocalAvailabilityProbe()
+        clearLocalUnavailableJob()
+        lastLocalIdResetAtMs = SystemClock.elapsedRealtime()
+        resetSendspinClientId()
+        refreshPlayers()
     }
 
     private fun selectLocalPlayer(players: List<Player>, localPlayerId: String?) {
@@ -393,6 +437,93 @@ class PlaybackViewModel @Inject constructor(
             deviceModel = model.ifBlank { null }
         )
         return listOf(placeholder) + players
+    }
+
+    private fun handleLocalPlayerAvailability(players: List<Player>, localPlayerIdValue: String?) {
+        val resolvedId = localPlayerIdValue?.takeIf { it.isNotBlank() } ?: run {
+            clearLocalAvailabilityProbe()
+            clearLocalUnavailableJob()
+            return
+        }
+        if (connectionState.value !is ConnectionState.Connected) {
+            clearLocalAvailabilityProbe()
+            clearLocalUnavailableJob()
+            return
+        }
+        val localPlayer = players.firstOrNull { it.playerId == resolvedId } ?: run {
+            clearLocalAvailabilityProbe()
+            clearLocalUnavailableJob()
+            return
+        }
+        if (localPlayer.available) {
+            clearLocalAvailabilityProbe()
+            clearLocalUnavailableJob()
+            return
+        }
+        scheduleLocalAvailabilityProbe(resolvedId)
+        if (localUnavailableJob?.isActive == true) return
+        val now = SystemClock.elapsedRealtime()
+        val cooldownRemaining = (LOCAL_ID_RESET_COOLDOWN_MS - (now - lastLocalIdResetAtMs))
+            .coerceAtLeast(0L)
+        val delayMs = maxOf(LOCAL_UNAVAILABLE_RESET_DELAY_MS, cooldownRemaining)
+        val job = viewModelScope.launch {
+            delay(delayMs)
+            val currentId = localPlayerId.value
+            val stillSameId = currentId == resolvedId
+            val stillUnavailable = stillSameId &&
+                availablePlayers.value.firstOrNull { it.playerId == resolvedId }?.available == false
+            val nowAfterDelay = SystemClock.elapsedRealtime()
+            if (stillUnavailable && nowAfterDelay - lastLocalIdResetAtMs >= LOCAL_ID_RESET_COOLDOWN_MS) {
+                lastLocalIdResetAtMs = nowAfterDelay
+                resetSendspinClientId()
+            }
+        }
+        localUnavailableJob = job
+        job.invokeOnCompletion {
+            if (localUnavailableJob == job) {
+                localUnavailableJob = null
+            }
+        }
+    }
+
+    private fun scheduleLocalAvailabilityProbe(resolvedId: String) {
+        if (localAvailabilityProbeJob?.isActive == true) return
+        val job = viewModelScope.launch {
+            var attempts = 0
+            while (isActive && attempts < LOCAL_UNAVAILABLE_RECHECK_MAX_ATTEMPTS) {
+                delay(LOCAL_UNAVAILABLE_RECHECK_DELAY_MS)
+                val currentId = localPlayerId.value
+                if (currentId != resolvedId) return@launch
+                if (connectionState.value !is ConnectionState.Connected) return@launch
+                val stillUnavailable =
+                    availablePlayers.value.firstOrNull { it.playerId == resolvedId }?.available == false
+                if (!stillUnavailable) return@launch
+                attempts += 1
+                refreshPlayers()
+            }
+        }
+        localAvailabilityProbeJob = job
+        job.invokeOnCompletion {
+            if (localAvailabilityProbeJob == job) {
+                localAvailabilityProbeJob = null
+            }
+        }
+    }
+
+    private fun clearLocalAvailabilityProbe() {
+        localAvailabilityProbeJob?.cancel()
+        localAvailabilityProbeJob = null
+    }
+
+    private fun clearLocalUnavailableJob() {
+        localUnavailableJob?.cancel()
+        localUnavailableJob = null
+    }
+
+    private fun resetSendspinClientId() {
+        viewModelScope.launch(Dispatchers.IO) {
+            settingsDataStore.clearSendspinClientId()
+        }
     }
 
     private fun schedulePlayerRefresh() {
@@ -957,6 +1088,10 @@ private const val OPTIMISTIC_REPEAT_TIMEOUT_MS = 3_000L
 private const val OPTIMISTIC_SHUFFLE_TIMEOUT_MS = 3_000L
 private const val OPTIMISTIC_QUEUE_MOVE_TIMEOUT_MS = 1_500L
 private const val PLAYER_REFRESH_THROTTLE_MS = 2_000L
+private const val LOCAL_UNAVAILABLE_RECHECK_DELAY_MS = 5_000L
+private const val LOCAL_UNAVAILABLE_RECHECK_MAX_ATTEMPTS = 3
+private const val LOCAL_UNAVAILABLE_RESET_DELAY_MS = 20_000L
+private const val LOCAL_ID_RESET_COOLDOWN_MS = 5 * 60_000L
 private const val ARTIST_LOOKUP_LIMIT = 50
 private const val ALBUM_LOOKUP_LIMIT = 50
 private const val MEDIA_ID_PREFIX_ALBUM = "album"

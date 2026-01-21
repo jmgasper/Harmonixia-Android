@@ -8,5 +8,6 @@ data class PlaybackContext(
 enum class PlaybackSource {
     ALBUM,
     PLAYLIST,
-    HOME
+    HOME,
+    SEARCH
 }

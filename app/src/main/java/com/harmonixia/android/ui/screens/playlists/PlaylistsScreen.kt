@@ -100,7 +100,7 @@ fun PlaylistsScreen(
         Playlist(
             itemId = "favorites",
             provider = "harmonixia",
-            uri = "harmonixia://favorites",
+            uri = "",
             name = "Favorites",
             owner = null,
             isEditable = false,

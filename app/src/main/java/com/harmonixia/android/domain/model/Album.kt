@@ -17,6 +17,7 @@ data class Album(
     val imageUrl: String? = null,
     @SerialName("album_type")
     val albumType: AlbumType = AlbumType.UNKNOWN,
+    val year: Int? = null,
     @SerialName("provider_mappings")
     val providerMappings: List<ProviderMapping> = emptyList(),
     @SerialName("added_at")

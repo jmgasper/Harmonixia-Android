@@ -185,9 +185,11 @@ fun SharedTransitionScope.NowPlayingScreen(
     val displayInfo = playbackInfo ?: emptyPlaybackInfo()
     val defaultTitle = stringResource(R.string.now_playing_title)
     val homeTitle = stringResource(R.string.nav_home)
+    val searchTitle = stringResource(R.string.nav_search)
     val headerTitle = when {
         isIdle -> defaultTitle
         playbackContext?.source == PlaybackSource.HOME -> homeTitle
+        playbackContext?.source == PlaybackSource.SEARCH -> searchTitle
         playbackContext?.source == PlaybackSource.ALBUM -> {
             playbackContext?.title?.takeIf { it.isNotBlank() }
                 ?: displayInfo.album.takeIf { it.isNotBlank() }
@@ -537,6 +539,9 @@ fun SharedTransitionScope.NowPlayingScreen(
             },
             onPlayerMuteChange = { player, muted ->
                 viewModel.setPlayerMute(player, muted)
+            },
+            onReconnect = {
+                viewModel.requestLocalPlayerReconnect()
             },
             onDismiss = { showPlayerSelectionDialog = false }
         )

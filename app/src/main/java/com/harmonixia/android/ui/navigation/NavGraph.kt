@@ -192,8 +192,7 @@ fun NavGraph(
                                         playlist.provider
                                     )
                                 )
-                            },
-                            onTrackClick = { }
+                            }
                         )
                     }
                     composable(Screen.NowPlaying.route) {

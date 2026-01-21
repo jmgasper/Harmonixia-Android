@@ -7,14 +7,21 @@ import androidx.lifecycle.viewModelScope
 import coil3.ImageLoader
 import coil3.request.ImageRequest
 import com.harmonixia.android.data.remote.ConnectionState
+import com.harmonixia.android.domain.model.PlaybackContext
+import com.harmonixia.android.domain.model.PlaybackSource
 import com.harmonixia.android.domain.model.SearchResults
+import com.harmonixia.android.domain.model.Track
 import com.harmonixia.android.domain.repository.LocalMediaRepository
 import com.harmonixia.android.domain.repository.OfflineLibraryRepository
 import com.harmonixia.android.domain.usecase.GetConnectionStateUseCase
+import com.harmonixia.android.domain.usecase.PlayLocalTracksUseCase
+import com.harmonixia.android.domain.usecase.PlayTrackUseCase
 import com.harmonixia.android.domain.usecase.SearchLibraryUseCase
+import com.harmonixia.android.service.playback.PlaybackStateManager
 import com.harmonixia.android.util.ImageQualityManager
-import com.harmonixia.android.util.mergeWithLocal
 import com.harmonixia.android.util.NetworkConnectivityManager
+import com.harmonixia.android.util.isLocal
+import com.harmonixia.android.util.mergeWithLocal
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
@@ -34,6 +41,9 @@ class SearchViewModel @Inject constructor(
     private val searchLibraryUseCase: SearchLibraryUseCase,
     private val offlineLibraryRepository: OfflineLibraryRepository,
     private val localMediaRepository: LocalMediaRepository,
+    private val playTrackUseCase: PlayTrackUseCase,
+    private val playLocalTracksUseCase: PlayLocalTracksUseCase,
+    private val playbackStateManager: PlaybackStateManager,
     getConnectionStateUseCase: GetConnectionStateUseCase,
     private val savedStateHandle: SavedStateHandle,
     @ApplicationContext private val context: Context,
@@ -140,6 +150,23 @@ class SearchViewModel @Inject constructor(
     fun showMoreTracks() {
         updateLimits { current ->
             current.copy(trackLimit = current.trackLimit + SHOW_MORE_INCREMENT)
+        }
+    }
+
+    fun playTrack(track: Track) {
+        viewModelScope.launch {
+            if (track.isLocal) {
+                playbackStateManager.setPlaybackContext(
+                    PlaybackContext(source = PlaybackSource.SEARCH)
+                )
+                playLocalTracksUseCase(listOf(track), 0)
+                return@launch
+            }
+            if (isOfflineMode.value) return@launch
+            playbackStateManager.setPlaybackContext(
+                PlaybackContext(source = PlaybackSource.SEARCH)
+            )
+            playTrackUseCase(track)
         }
     }
 

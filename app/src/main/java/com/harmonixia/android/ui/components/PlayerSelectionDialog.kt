@@ -26,6 +26,7 @@ import androidx.compose.material.icons.outlined.VolumeOff
 import androidx.compose.material.icons.outlined.VolumeUp
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
@@ -66,6 +67,7 @@ fun PlayerSelectionDialog(
     onPlayerSelected: (Player) -> Unit,
     onPlayerVolumeChange: (Player, Int) -> Unit,
     onPlayerMuteChange: (Player, Boolean) -> Unit,
+    onReconnect: () -> Unit,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -233,6 +235,22 @@ fun PlayerSelectionDialog(
                                 )
                             }
                         }
+                    }
+                }
+
+                val localPlayer = remember(players, localPlayerId) {
+                    players.firstOrNull { PlayerSelection.isLocalPlayer(it, localPlayerId) }
+                }
+                val showReconnect = localPlayer?.available == false
+                if (showReconnect) {
+                    Spacer(modifier = Modifier.height(spacing.medium))
+                    Button(
+                        onClick = onReconnect,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = spacing.extraLarge)
+                    ) {
+                        Text(text = stringResource(R.string.action_reconnect))
                     }
                 }
 

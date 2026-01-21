@@ -1292,11 +1292,24 @@ class MusicAssistantRepositoryImpl @Inject constructor(
             artists = artists,
             imageUrl = extractImageUrl(jsonObject),
             albumType = parseAlbumType(jsonObject.stringOrNull("album_type")),
+            year = parseAlbumYear(jsonObject),
             providerMappings = parseProviderMappings(jsonObject["provider_mappings"]),
             addedAt = jsonObject.stringOrNull("timestamp_added", "added_at"),
             lastPlayed = jsonObject.stringOrNull("last_played"),
             trackCount = jsonObject.intOrZero("track_count", "track_total", "total_tracks")
         )
+    }
+
+    private fun parseAlbumYear(jsonObject: JsonObject): Int? {
+        val year = jsonObject.intOrNull("year", "original_year", "release_year")
+            ?: parseYearFromDate(jsonObject.stringOrNull("release_date"))
+        return year?.takeIf { it > 0 }
+    }
+
+    private fun parseYearFromDate(value: String?): Int? {
+        val trimmed = value?.trim().orEmpty()
+        if (trimmed.length < 4) return null
+        return trimmed.substring(0, 4).toIntOrNull()
     }
 
     private fun parseArtist(jsonObject: JsonObject): Artist {
@@ -1711,6 +1724,17 @@ class MusicAssistantRepositoryImpl @Inject constructor(
             if (doubleValue != null) return doubleValue.toInt()
         }
         return 0
+    }
+
+    private fun JsonObject.intOrNull(vararg keys: String): Int? {
+        for (key in keys) {
+            val primitive = this[key]?.jsonPrimitive ?: continue
+            val intValue = primitive.intOrNull
+            if (intValue != null) return intValue
+            val doubleValue = primitive.contentOrNull?.toDoubleOrNull()
+            if (doubleValue != null) return doubleValue.toInt()
+        }
+        return null
     }
 
     private fun JsonObject.doubleOrZero(vararg keys: String): Double {

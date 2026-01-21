@@ -99,6 +99,7 @@ class ArtistDetailViewModel @Inject constructor(
                 val albums = offlineLibraryRepository
                     .getDownloadedAlbumsByArtist(resolvedName)
                     .first()
+                val sortedAlbums = sortAlbumsByYear(albums)
                 val offlineArtist = Artist(
                     itemId = Uri.encode(resolvedName),
                     provider = OFFLINE_PROVIDER,
@@ -108,10 +109,10 @@ class ArtistDetailViewModel @Inject constructor(
                     imageUrl = _artist.value?.imageUrl
                 )
                 _artist.value = offlineArtist
-                _uiState.value = if (albums.isEmpty()) {
+                _uiState.value = if (sortedAlbums.isEmpty()) {
                     ArtistDetailUiState.Empty
                 } else {
-                    ArtistDetailUiState.Success(offlineArtist, albums, emptyList())
+                    ArtistDetailUiState.Success(offlineArtist, sortedAlbums, emptyList())
                 }
                 return@launch
             }
@@ -139,8 +140,8 @@ class ArtistDetailViewModel @Inject constructor(
                     _uiState.value = ArtistDetailUiState.Error("Artist not found.")
                     return@supervisorScope
                 }
-                val libraryAlbums = libraryAlbumsResult.getOrDefault(emptyList())
-                val allAlbums = allAlbumsResult.getOrDefault(emptyList())
+                val libraryAlbums = sortAlbumsByYear(libraryAlbumsResult.getOrDefault(emptyList()))
+                val allAlbums = sortAlbumsByYear(allAlbumsResult.getOrDefault(emptyList()))
                 _uiState.value = if (libraryAlbums.isEmpty() && allAlbums.isEmpty()) {
                     ArtistDetailUiState.Empty
                 } else {
@@ -239,3 +240,20 @@ class ArtistDetailViewModel @Inject constructor(
         private const val PLAYLIST_LIST_LIMIT = 200
     }
 }
+
+private fun sortAlbumsByYear(albums: List<Album>): List<Album> {
+    if (albums.size < 2) return albums
+    return albums.sortedWith(AlbumYearDescendingComparator)
+}
+
+private fun albumYearSortKey(album: Album): Int {
+    val year = album.year ?: 0
+    return if (year > 0) year else Int.MIN_VALUE
+}
+
+private fun albumNameSortKey(album: Album): String {
+    return album.name.trim().lowercase()
+}
+
+private val AlbumYearDescendingComparator = compareByDescending<Album> { albumYearSortKey(it) }
+    .thenBy { albumNameSortKey(it) }
