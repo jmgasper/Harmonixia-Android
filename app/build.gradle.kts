@@ -1,7 +1,10 @@
+import com.android.build.api.artifact.ArtifactTransformationRequest
 import com.android.build.api.artifact.SingleArtifact
 import org.gradle.api.DefaultTask
 import org.gradle.api.file.DirectoryProperty
+import org.gradle.api.provider.Property
 import org.gradle.api.tasks.InputDirectory
+import org.gradle.api.tasks.Internal
 import org.gradle.api.tasks.OutputDirectory
 import org.gradle.api.tasks.TaskAction
 import org.gradle.api.tasks.bundling.AbstractArchiveTask
@@ -14,46 +17,41 @@ abstract class RenameApkTask : DefaultTask() {
     @get:OutputDirectory
     abstract val outputApkDir: DirectoryProperty
 
+    @get:Internal
+    abstract val transformationRequest: Property<ArtifactTransformationRequest<RenameApkTask>>
+
     @TaskAction
     fun run() {
         val inputDir = inputApkDir.get().asFile
         val outputDir = outputApkDir.get().asFile
         outputDir.mkdirs()
-        val metadataFile = inputDir.resolve(APK_METADATA_FILE)
-        val (originalApkName, updatedMetadata) = if (metadataFile.exists()) {
-            val text = metadataFile.readText()
-            val matches = OUTPUT_FILE_REGEX.findAll(text).toList()
-            if (matches.size == 1) {
-                val original = matches.first().groupValues[1]
-                original to OUTPUT_FILE_REGEX.replace(text, "\"outputFile\": \"$TARGET_APK_NAME\"")
-            } else {
-                null to null
-            }
-        } else {
-            null to null
-        }
+        val renameToFixedName = hasSingleOutput(inputDir)
 
-        inputDir.walkTopDown().forEach { file ->
-            if (!file.isFile) return@forEach
-            val relative = file.relativeTo(inputDir)
-            val renamedRelative = if (originalApkName != null && file.name == originalApkName) {
-                val parent = relative.parentFile
-                if (parent != null) {
-                    parent.resolve(TARGET_APK_NAME)
+        transformationRequest.get().submit(this) { builtArtifact ->
+            val inputFile = File(builtArtifact.outputFile)
+            val outputFile = if (renameToFixedName) {
+                File(outputDir, TARGET_APK_NAME)
+            } else {
+                val relative = runCatching { inputFile.relativeTo(inputDir) }.getOrNull()
+                if (relative != null) {
+                    outputDir.resolve(relative.path)
                 } else {
-                    File(TARGET_APK_NAME)
+                    File(outputDir, inputFile.name)
                 }
-            } else {
-                relative
             }
-            val targetFile = outputDir.resolve(renamedRelative.path)
-            targetFile.parentFile?.mkdirs()
-            if (file == metadataFile && updatedMetadata != null) {
-                targetFile.writeText(updatedMetadata)
-            } else {
-                file.copyTo(targetFile, overwrite = true)
-            }
+            outputFile.parentFile?.mkdirs()
+            inputFile.copyTo(outputFile, overwrite = true)
+            outputFile
         }
+    }
+
+    private fun hasSingleOutput(inputDir: File): Boolean {
+        val metadataFile = inputDir.resolve(APK_METADATA_FILE)
+        if (!metadataFile.exists()) {
+            return false
+        }
+        val matches = OUTPUT_FILE_REGEX.findAll(metadataFile.readText()).toList()
+        return matches.size == 1
     }
 
     private companion object {
@@ -161,12 +159,14 @@ kapt {
 androidComponents {
     onVariants(selector().withBuildType("release")) { variant ->
         val taskName = "rename${variant.name.replaceFirstChar { it.uppercaseChar() }}Apk"
-        val renameTask = tasks.register<RenameApkTask>(taskName) {
-            outputApkDir.set(layout.buildDirectory.dir("outputs/apk/${variant.name}"))
-        }
-        variant.artifacts.use(renameTask)
+        val renameTask = tasks.register<RenameApkTask>(taskName)
+        val transformRequest = variant.artifacts.use(renameTask)
             .wiredWithDirectories(RenameApkTask::inputApkDir, RenameApkTask::outputApkDir)
             .toTransformMany(SingleArtifact.APK)
+        renameTask.configure {
+            outputApkDir.set(layout.buildDirectory.dir("outputs/apk/${variant.name}"))
+            transformationRequest.set(transformRequest)
+        }
     }
 }
 
