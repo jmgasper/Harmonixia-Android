@@ -34,6 +34,9 @@ interface LocalTrackDao {
     @Query("SELECT * FROM local_tracks WHERE filePath = :filePath")
     fun getTrackByFilePath(filePath: String): Flow<LocalTrackEntity?>
 
+    @Query("SELECT COUNT(*) FROM local_tracks")
+    fun getTrackCount(): Flow<Int>
+
     @Query("SELECT COUNT(*) FROM local_tracks WHERE filePath = :filePath")
     fun getTrackCountByFilePath(filePath: String): Flow<Int>
 

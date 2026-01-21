@@ -1,7 +1,10 @@
 package com.harmonixia.android.ui.screens.settings
 
 import android.app.Activity
+import android.content.Context
 import android.content.Intent
+import android.net.Uri
+import android.provider.DocumentsContract
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -89,6 +92,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
+import androidx.documentfile.provider.DocumentFile
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.harmonixia.android.R
@@ -114,6 +118,7 @@ fun SettingsScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val selectedTab by viewModel.selectedTab.collectAsStateWithLifecycle()
     val localMediaFolderUri by viewModel.localMediaFolderUri.collectAsStateWithLifecycle()
+    val localMediaTrackCount by viewModel.localMediaTrackCount.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     val context = LocalContext.current
     val activity = context as? ComponentActivity
@@ -150,6 +155,7 @@ fun SettingsScreen(
         onTabSelected = viewModel::selectTab,
         snackbarHostState = snackbarHostState,
         localMediaFolderUri = localMediaFolderUri,
+        localMediaTrackCount = localMediaTrackCount,
         localMediaScanState = uiState.localMediaScanState,
         onNavigateBack = onNavigateBack,
         onNavigateToPerformanceSettings = onNavigateToPerformanceSettings,
@@ -178,6 +184,7 @@ internal fun SettingsScreenContent(
     onTabSelected: (SettingsTab) -> Unit,
     snackbarHostState: SnackbarHostState,
     localMediaFolderUri: String,
+    localMediaTrackCount: Int,
     localMediaScanState: LocalMediaScanState,
     onNavigateBack: () -> Unit,
     onNavigateToPerformanceSettings: () -> Unit,
@@ -290,6 +297,7 @@ internal fun SettingsScreenContent(
                         }
                         SettingsTab.LOCAL_MEDIA -> LocalMediaTabContent(
                             localMediaFolderUri = localMediaFolderUri,
+                            localMediaTrackCount = localMediaTrackCount,
                             localMediaScanState = localMediaScanState,
                             onSelectFolder = onSelectFolder,
                             onScanLocalMedia = onScanLocalMedia
@@ -781,12 +789,16 @@ private fun EqualizerTabContent(
 @Composable
 private fun LocalMediaTabContent(
     localMediaFolderUri: String,
+    localMediaTrackCount: Int,
     localMediaScanState: LocalMediaScanState,
     onSelectFolder: () -> Unit,
     onScanLocalMedia: () -> Unit
 ) {
     val scrollState = rememberScrollState()
     val context = LocalContext.current
+    val displayFolderName = remember(localMediaFolderUri, context) {
+        resolveLocalMediaFolderName(localMediaFolderUri, context)
+    }
 
     Column(
         modifier = Modifier
@@ -806,7 +818,7 @@ private fun LocalMediaTabContent(
         )
         Spacer(modifier = Modifier.height(8.dp))
         OutlinedTextField(
-            value = localMediaFolderUri.ifBlank {
+            value = displayFolderName.ifBlank {
                 stringResource(R.string.local_media_no_folder_selected)
             },
             onValueChange = {},
@@ -818,6 +830,14 @@ private fun LocalMediaTabContent(
                 .semantics {
                     contentDescription = context.getString(R.string.content_desc_local_media_folder)
                 }
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Text(
+            text = stringResource(R.string.local_media_available_files, localMediaTrackCount),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
         )
 
         Spacer(modifier = Modifier.height(12.dp))
@@ -889,6 +909,26 @@ private fun LocalMediaTabContent(
             }
         }
     }
+}
+
+private fun resolveLocalMediaFolderName(
+    folderUri: String,
+    context: Context
+): String {
+    if (folderUri.isBlank()) {
+        return ""
+    }
+    val uri = runCatching { Uri.parse(folderUri) }.getOrNull() ?: return folderUri
+    val documentName = DocumentFile.fromTreeUri(context, uri)?.name
+    if (!documentName.isNullOrBlank()) {
+        return documentName
+    }
+    val treeId = runCatching { DocumentsContract.getTreeDocumentId(uri) }.getOrNull()
+    val rawName = treeId ?: uri.lastPathSegment ?: folderUri
+    val decoded = Uri.decode(rawName)
+    val afterColon = decoded.substringAfterLast(':', decoded)
+    val leafName = afterColon.substringAfterLast('/', afterColon)
+    return leafName.ifBlank { decoded.ifBlank { folderUri } }
 }
 
 @Composable

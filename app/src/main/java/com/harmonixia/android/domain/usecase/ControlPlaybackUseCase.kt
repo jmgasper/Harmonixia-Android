@@ -25,6 +25,7 @@ class ControlPlaybackUseCase(
             when (command) {
                 PlaybackCommand.PLAY -> {
                     playbackStateManager.notifyUserInitiatedPlayback()
+                    playbackStateManager.reconnectLocalPlayerIfUnavailable()
                     repository.resumeQueue(queueId).getOrThrow()
                 }
                 PlaybackCommand.PAUSE -> {

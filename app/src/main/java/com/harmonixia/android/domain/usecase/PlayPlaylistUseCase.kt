@@ -23,6 +23,7 @@ class PlayPlaylistUseCase(
     ): Result<String> {
         return runCatching {
             playbackStateManager.notifyUserInitiatedPlayback()
+            playbackStateManager.reconnectLocalPlayerIfUnavailable()
             val tracks = tracksOverride?.takeIf { it.isNotEmpty() }
             val playerId = playbackStateManager.currentPlayerId
                 ?: throw IllegalStateException("No player selected")

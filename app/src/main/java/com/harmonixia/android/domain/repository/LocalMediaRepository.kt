@@ -28,5 +28,7 @@ interface LocalMediaRepository {
 
     fun getTrackByFilePath(filePath: String): Flow<Track?>
 
+    fun getTrackCount(): Flow<Int>
+
     suspend fun clearAllLocalMedia()
 }

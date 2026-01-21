@@ -33,6 +33,7 @@
     <string name="section_local_media">Local Media</string>
     <string name="local_media_folder_label">Music Folder</string>
     <string name="local_media_no_folder_selected">No folder selected</string>
+    <string name="local_media_available_files">Local files available: %1$d</string>
     <string name="local_media_select_folder">Select Folder</string>
     <string name="local_media_refresh">Scan Folder</string>
     <string name="local_media_scanning">Scanning: %1$d / %2$d files</string>

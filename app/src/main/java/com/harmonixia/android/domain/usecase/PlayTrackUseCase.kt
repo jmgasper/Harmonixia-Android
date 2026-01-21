@@ -14,6 +14,7 @@ class PlayTrackUseCase(
     suspend operator fun invoke(track: Track): Result<String> {
         return runCatching {
             playbackStateManager.notifyUserInitiatedPlayback()
+            playbackStateManager.reconnectLocalPlayerIfUnavailable()
             val playerId = playbackStateManager.currentPlayerId
                 ?: throw IllegalStateException("No player selected")
             val queue = repository.getActiveQueue(playerId, includeItems = false).getOrThrow()

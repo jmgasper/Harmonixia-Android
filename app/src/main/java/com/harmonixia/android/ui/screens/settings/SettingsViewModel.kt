@@ -13,6 +13,7 @@ import com.harmonixia.android.data.remote.ConnectionState
 import com.harmonixia.android.domain.model.AuthMethod
 import com.harmonixia.android.domain.model.EqSettings
 import com.harmonixia.android.domain.repository.EqPresetRepository
+import com.harmonixia.android.domain.repository.LocalMediaRepository
 import com.harmonixia.android.domain.usecase.ConnectToServerUseCase
 import com.harmonixia.android.domain.usecase.DisconnectFromServerUseCase
 import com.harmonixia.android.domain.usecase.GetConnectionStateUseCase
@@ -47,6 +48,7 @@ class SettingsViewModel @Inject constructor(
     private val settingsDataStore: SettingsDataStore,
     private val eqDataStore: EqDataStore,
     private val eqPresetRepository: EqPresetRepository,
+    private val localMediaRepository: LocalMediaRepository,
     private val localMediaScanner: LocalMediaScanner,
     @ApplicationContext private val context: Context,
     private val savedStateHandle: SavedStateHandle
@@ -84,6 +86,9 @@ class SettingsViewModel @Inject constructor(
 
     private val _localMediaFolderUri = MutableStateFlow("")
     val localMediaFolderUri: StateFlow<String> = _localMediaFolderUri.asStateFlow()
+
+    private val _localMediaTrackCount = MutableStateFlow(0)
+    val localMediaTrackCount: StateFlow<Int> = _localMediaTrackCount.asStateFlow()
 
     private val _events = MutableSharedFlow<SettingsUiEvent>(extraBufferCapacity = 1)
     val events = _events.asSharedFlow()
@@ -148,6 +153,12 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch {
             settingsDataStore.getLocalMediaFolderUri().collect { uri ->
                 _localMediaFolderUri.value = uri
+            }
+        }
+
+        viewModelScope.launch {
+            localMediaRepository.getTrackCount().collect { count ->
+                _localMediaTrackCount.value = count
             }
         }
 

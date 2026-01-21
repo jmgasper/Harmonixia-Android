@@ -192,6 +192,7 @@ class PlaybackSessionCallback(
                 Logger.d(TAG, "Skipping remote add for local queue")
                 return@launch
             }
+            playbackStateManager.reconnectLocalPlayerIfUnavailable()
             val queueId = playbackStateManager.currentQueueId ?: awaitQueueId()
             if (queueId.isNullOrBlank()) {
                 Logger.w(TAG, "No active queue available for add request")
@@ -252,6 +253,7 @@ class PlaybackSessionCallback(
                     Logger.d(TAG, "Skipping remote queue replace for local items")
                     return@launch
                 }
+                playbackStateManager.reconnectLocalPlayerIfUnavailable()
                 val queueId = playbackStateManager.currentQueueId ?: awaitQueueId()
                 if (queueId.isNullOrBlank()) {
                     Logger.w(TAG, "No active queue available for play request")
@@ -363,6 +365,7 @@ class PlaybackSessionCallback(
         player.play()
         if (isLocalQueueActive()) return
         scope.launch {
+            playbackStateManager.reconnectLocalPlayerIfUnavailable()
             val queueId = playbackStateManager.currentQueueId ?: awaitQueueId()
             if (queueId.isNullOrBlank()) {
                 Logger.w(TAG, "No active queue available for resume")

@@ -4,6 +4,7 @@ import android.os.SystemClock
 import androidx.media3.common.C
 import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
+import com.harmonixia.android.data.local.SettingsDataStore
 import com.harmonixia.android.domain.model.PlaybackState
 import com.harmonixia.android.domain.model.PlaybackContext
 import com.harmonixia.android.domain.model.Queue
@@ -23,6 +24,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -30,6 +32,7 @@ import kotlinx.coroutines.withContext
 class PlaybackStateManager(
     private val repository: MusicAssistantRepository,
     private val queueManager: QueueManager,
+    private val settingsDataStore: SettingsDataStore,
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
     private val mainDispatcher: CoroutineDispatcher = Dispatchers.Main.immediate
 ) {
@@ -53,6 +56,8 @@ class PlaybackStateManager(
     private var pendingStartMediaId: String? = null
     private var pendingStartUntilMs: Long = 0L
     private var autoPlaySuppressionLogKey: String? = null
+    private val localReconnectLock = Any()
+    @Volatile private var lastLocalReconnectAtMs = 0L
 
     private val _playbackState = MutableStateFlow(PlaybackState.IDLE)
     val playbackState: StateFlow<PlaybackState> = _playbackState.asStateFlow()
@@ -91,6 +96,41 @@ class PlaybackStateManager(
         suppressAutoPlay = false
         userPaused = false
         lastUserPlaybackRequestAtMs = SystemClock.elapsedRealtime()
+    }
+
+    fun recordLocalPlayerReconnect() {
+        val now = SystemClock.elapsedRealtime()
+        synchronized(localReconnectLock) {
+            lastLocalReconnectAtMs = now
+        }
+    }
+
+    suspend fun reconnectLocalPlayerIfUnavailable(): Boolean = withContext(ioDispatcher) {
+        val currentPlayerId = currentPlayerId?.takeIf { it.isNotBlank() } ?: return@withContext false
+        val localPlayerId = settingsDataStore.getSendspinClientId().first().trim()
+        val players = repository.fetchPlayers().getOrNull().orEmpty()
+        val currentPlayer = players.firstOrNull { it.playerId == currentPlayerId }
+        val isLocal = if (currentPlayer != null) {
+            PlayerSelection.isLocalPlayer(currentPlayer, localPlayerId.takeIf { it.isNotBlank() })
+        } else {
+            localPlayerId.isNotBlank() && localPlayerId == currentPlayerId
+        }
+        if (!isLocal) return@withContext false
+        val isUnavailable = currentPlayer?.available != true
+        if (!isUnavailable) return@withContext false
+        val now = SystemClock.elapsedRealtime()
+        val shouldReset = synchronized(localReconnectLock) {
+            if (now - lastLocalReconnectAtMs < LOCAL_ID_RESET_COOLDOWN_MS) {
+                false
+            } else {
+                lastLocalReconnectAtMs = now
+                true
+            }
+        }
+        if (!shouldReset) return@withContext false
+        Logger.i(TAG, "Local Sendspin player unavailable; resetting client id for reconnect")
+        settingsDataStore.clearSendspinClientId()
+        true
     }
 
     fun notifyUserInitiatedPause() {
@@ -557,6 +597,7 @@ class PlaybackStateManager(
 
     companion object {
         private const val TAG = "PlaybackStateManager"
+        private const val LOCAL_ID_RESET_COOLDOWN_MS = 5 * 60_000L
         private const val POLL_INTERVAL_MS = 2000L
         private const val POSITION_TOLERANCE_MS = 2000L
         private const val PROGRESS_REPORT_INTERVAL_MS = 10000L

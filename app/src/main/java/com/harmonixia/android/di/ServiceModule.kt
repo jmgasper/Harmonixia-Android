@@ -58,9 +58,16 @@ object ServiceModule {
     @Singleton
     fun providePlaybackStateManager(
         repository: MusicAssistantRepository,
-        queueManager: QueueManager
+        queueManager: QueueManager,
+        settingsDataStore: SettingsDataStore
     ): PlaybackStateManager =
-        PlaybackStateManager(repository, queueManager, Dispatchers.IO, Dispatchers.Main.immediate)
+        PlaybackStateManager(
+            repository,
+            queueManager,
+            settingsDataStore,
+            Dispatchers.IO,
+            Dispatchers.Main.immediate
+        )
 
     @Provides
     @Singleton

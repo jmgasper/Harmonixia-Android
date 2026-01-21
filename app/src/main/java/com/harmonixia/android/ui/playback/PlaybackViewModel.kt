@@ -521,6 +521,7 @@ class PlaybackViewModel @Inject constructor(
     }
 
     private fun resetSendspinClientId() {
+        playbackStateManager.recordLocalPlayerReconnect()
         viewModelScope.launch(Dispatchers.IO) {
             settingsDataStore.clearSendspinClientId()
         }

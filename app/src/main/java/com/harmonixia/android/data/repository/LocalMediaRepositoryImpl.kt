@@ -92,6 +92,10 @@ class LocalMediaRepositoryImpl @Inject constructor(
         return localTrackDao.getTrackByFilePath(trimmed).map { track -> track?.toTrack() }
     }
 
+    override fun getTrackCount(): Flow<Int> {
+        return localTrackDao.getTrackCount()
+    }
+
     override suspend fun clearAllLocalMedia() {
         localTrackDao.deleteAllTracks()
         localAlbumDao.deleteAllAlbums()
