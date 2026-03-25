@@ -165,11 +165,7 @@ class PlaybackServiceConnection(
 
     fun seek(positionMs: Long): Result<Unit> {
         val controller = controllerState.value ?: return Result.failure(IllegalStateException("Not connected"))
-        val queueId = if (playbackStateManager.isLocalPlaybackActive()) {
-            null
-        } else {
-            playbackStateManager.currentQueueId
-        }
+        val queueId = playbackStateManager.currentQueueId
         if (queueId != null) {
             playbackStateManager.suppressNextRemoteSeek()
             val positionSeconds = (positionMs / 1000L).toInt()
@@ -183,12 +179,6 @@ class PlaybackServiceConnection(
     }
 
     suspend fun setRepeatMode(repeatMode: RepeatMode): Result<Unit> {
-        if (playbackStateManager.isLocalPlaybackActive()) {
-            val controller = controllerState.value
-                ?: return Result.failure(IllegalStateException("Not connected"))
-            controller.repeatMode = repeatMode.toPlayerRepeatMode()
-            return Result.success(Unit)
-        }
         val queueId = playbackStateManager.currentQueueId
             ?: return Result.failure(IllegalStateException("Queue ID unavailable"))
         return withContext(Dispatchers.IO) {
@@ -197,12 +187,6 @@ class PlaybackServiceConnection(
     }
 
     suspend fun setShuffleMode(shuffle: Boolean): Result<Unit> {
-        if (playbackStateManager.isLocalPlaybackActive()) {
-            val controller = controllerState.value
-                ?: return Result.failure(IllegalStateException("Not connected"))
-            controller.shuffleModeEnabled = shuffle
-            return Result.success(Unit)
-        }
         val queueId = playbackStateManager.currentQueueId
             ?: return Result.failure(IllegalStateException("Queue ID unavailable"))
         return withContext(Dispatchers.IO) {
@@ -259,14 +243,6 @@ class PlaybackServiceConnection(
             Player.REPEAT_MODE_ONE -> RepeatMode.ONE
             Player.REPEAT_MODE_ALL -> RepeatMode.ALL
             else -> RepeatMode.OFF
-        }
-    }
-
-    private fun RepeatMode.toPlayerRepeatMode(): Int {
-        return when (this) {
-            RepeatMode.OFF -> Player.REPEAT_MODE_OFF
-            RepeatMode.ONE -> Player.REPEAT_MODE_ONE
-            RepeatMode.ALL -> Player.REPEAT_MODE_ALL
         }
     }
 

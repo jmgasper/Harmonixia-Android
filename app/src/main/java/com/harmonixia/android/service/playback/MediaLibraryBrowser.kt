@@ -6,6 +6,8 @@ import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
 import androidx.media3.common.util.UnstableApi
+import androidx.media3.session.MediaConstants
+import com.harmonixia.android.data.paging.fetchAllPages
 import com.harmonixia.android.domain.model.Album
 import com.harmonixia.android.domain.model.Artist
 import com.harmonixia.android.domain.model.Playlist
@@ -18,10 +20,19 @@ import com.harmonixia.android.domain.repository.OfflineLibraryRepository
 import com.harmonixia.android.util.mergeWithLocal
 import com.harmonixia.android.util.replaceWithLocalMatches
 import com.harmonixia.android.util.NetworkConnectivityManager
+import com.harmonixia.android.util.Logger
+import java.text.Collator
 import com.harmonixia.android.util.buildPlaybackExtras
 import com.harmonixia.android.util.playbackDurationMs
 import java.io.File
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.supervisorScope
 
 @UnstableApi
 class MediaLibraryBrowser(
@@ -30,6 +41,14 @@ class MediaLibraryBrowser(
     private val offlineLibraryRepository: OfflineLibraryRepository,
     private val networkConnectivityManager: NetworkConnectivityManager
 ) {
+    private val prefetchScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val prefetchLock = Any()
+    @Volatile
+    private var libraryPrefetchJob: Job? = null
+    @Volatile
+    private var fullAlbums: List<Album>? = null
+    @Volatile
+    private var fullArtists: List<Artist>? = null
     private val artistNameCache = object : LinkedHashMap<String, String>(
         ARTIST_NAME_CACHE_SIZE,
         0.75f,
@@ -61,21 +80,74 @@ class MediaLibraryBrowser(
     }
 
     suspend fun getLibraryRoot(extras: Bundle?): MediaItem {
+        ensureFullLibraryPrefetch()
         return buildRootItem()
     }
 
-    suspend fun getChildren(parentId: String, page: Int, pageSize: Int): List<MediaItem> {
+    suspend fun getChildren(
+        parentId: String,
+        page: Int,
+        pageSize: Int,
+        useAutoBuckets: Boolean
+    ): List<MediaItem> {
         return when (parentId) {
-            MEDIA_ID_ROOT -> buildRootCategories()
-            MEDIA_ID_ALBUMS -> buildAlbumsList(page, pageSize)
-            MEDIA_ID_ARTISTS -> buildArtistsList(page, pageSize)
+            MEDIA_ID_ROOT -> buildRootCategories(useAutoBuckets)
+            MEDIA_ID_HOME -> buildHomeCategories()
+            MEDIA_ID_HOME_RECENTLY_PLAYED -> buildHomeRecentlyPlayed(page, pageSize)
+            MEDIA_ID_HOME_FAVORITES -> buildHomeFavorites(page, pageSize)
+            MEDIA_ID_HOME_NEW_ALBUMS -> buildHomeNewAlbums(page, pageSize)
+            MEDIA_ID_HOME_PLAYLISTS -> buildPlaylistsList(page, pageSize)
+            MEDIA_ID_ALBUMS -> if (useAutoBuckets) {
+                buildLetterCategoryItems(
+                    MEDIA_ID_PREFIX_ALBUMS_LETTER,
+                    childBrowsableContentStyle = MediaConstants.EXTRAS_VALUE_CONTENT_STYLE_GRID_ITEM
+                )
+            } else {
+                buildAlbumsList(page, pageSize)
+            }
+            MEDIA_ID_ARTISTS -> if (useAutoBuckets) {
+                buildLetterCategoryItems(MEDIA_ID_PREFIX_ARTISTS_LETTER)
+            } else {
+                buildArtistsList(page, pageSize)
+            }
             MEDIA_ID_PLAYLISTS -> buildPlaylistsList(page, pageSize)
-            MEDIA_ID_LOCAL_MEDIA -> buildLocalContent()
-            MEDIA_ID_LOCAL_ALBUMS -> buildLocalAlbumsList(page, pageSize)
-            MEDIA_ID_LOCAL_ARTISTS -> buildLocalArtistsList(page, pageSize)
+            MEDIA_ID_LOCAL_MEDIA -> buildLocalContent(useAutoBuckets)
+            MEDIA_ID_LOCAL_ALBUMS -> if (useAutoBuckets) {
+                buildLetterCategoryItems(
+                    MEDIA_ID_PREFIX_LOCAL_ALBUMS_LETTER,
+                    childBrowsableContentStyle = MediaConstants.EXTRAS_VALUE_CONTENT_STYLE_GRID_ITEM
+                )
+            } else {
+                buildLocalAlbumsList(page, pageSize)
+            }
+            MEDIA_ID_LOCAL_ARTISTS -> if (useAutoBuckets) {
+                buildLetterCategoryItems(MEDIA_ID_PREFIX_LOCAL_ARTISTS_LETTER)
+            } else {
+                buildLocalArtistsList(page, pageSize)
+            }
             MEDIA_ID_LOCAL_TRACKS -> buildLocalTracksList(page, pageSize)
             else -> {
                 when {
+                    parentId.startsWith("$MEDIA_ID_PREFIX_ARTISTS_LETTER:") -> {
+                        val bucket = parseLetterBucket(MEDIA_ID_PREFIX_ARTISTS_LETTER, parentId)
+                            ?: return emptyList()
+                        buildArtistsByBucket(bucket, useLocal = false)
+                    }
+                    parentId.startsWith("$MEDIA_ID_PREFIX_ALBUMS_LETTER:") -> {
+                        val bucket = parseLetterBucket(MEDIA_ID_PREFIX_ALBUMS_LETTER, parentId)
+                            ?: return emptyList()
+                        buildAlbumsByBucket(bucket, useLocal = false)
+                    }
+                    parentId.startsWith("$MEDIA_ID_PREFIX_LOCAL_ARTISTS_LETTER:") -> {
+                        val bucket = parseLetterBucket(MEDIA_ID_PREFIX_LOCAL_ARTISTS_LETTER, parentId)
+                            ?: return emptyList()
+                        buildArtistsByBucket(bucket, useLocal = true)
+                    }
+                    parentId.startsWith("$MEDIA_ID_PREFIX_LOCAL_ALBUMS_LETTER:") -> {
+                        val bucket = parseLetterBucket(MEDIA_ID_PREFIX_LOCAL_ALBUMS_LETTER, parentId)
+                            ?: return emptyList()
+                        buildAlbumsByBucket(bucket, useLocal = true)
+                    }
                     parentId.startsWith("$MEDIA_ID_PREFIX_ALBUM:") -> {
                         val (albumId, provider) =
                             parseQualifiedId(MEDIA_ID_PREFIX_ALBUM, parentId) ?: return emptyList()
@@ -106,7 +178,11 @@ class MediaLibraryBrowser(
         return if (isOfflineMode()) {
             offlineLibraryRepository.searchDownloadedContent(trimmed).first()
         } else {
-            val serverResults = repository.searchLibrary(trimmed, SEARCH_LIMIT)
+            val serverResults = repository.searchLibrary(
+                trimmed,
+                SEARCH_LIMIT,
+                libraryOnly = false
+            )
                 .getOrDefault(SearchResults())
             cachePlaylists(serverResults.playlists)
             val localTracks = localMediaRepository.searchTracks(trimmed).first()
@@ -152,6 +228,9 @@ class MediaLibraryBrowser(
 
     suspend fun getParentTrackItems(parentMediaId: String): List<MediaItem> {
         return when {
+            parentMediaId == MEDIA_ID_HOME_FAVORITES -> {
+                buildHomeFavoritesTrackItems()
+            }
             parentMediaId.startsWith("$MEDIA_ID_PREFIX_ALBUM:") -> {
                 val (albumId, provider) =
                     parseQualifiedId(MEDIA_ID_PREFIX_ALBUM, parentMediaId) ?: return emptyList()
@@ -178,32 +257,122 @@ class MediaLibraryBrowser(
             .build()
     }
 
-    private fun buildRootCategories(): List<MediaItem> {
+    private fun buildRootCategories(useAutoBuckets: Boolean): List<MediaItem> {
+        val letterGridStyle = if (useAutoBuckets) {
+            MediaConstants.EXTRAS_VALUE_CONTENT_STYLE_CATEGORY_GRID_ITEM
+        } else {
+            null
+        }
+        val albumsStyle = if (useAutoBuckets) {
+            MediaConstants.EXTRAS_VALUE_CONTENT_STYLE_CATEGORY_GRID_ITEM
+        } else {
+            MediaConstants.EXTRAS_VALUE_CONTENT_STYLE_LIST_ITEM
+        }
         return if (isOfflineMode()) {
             listOf(buildCategoryItem(MEDIA_ID_LOCAL_MEDIA, TITLE_LOCAL_MEDIA))
         } else {
             listOf(
-                buildCategoryItem(MEDIA_ID_ALBUMS, TITLE_ALBUMS),
-                buildCategoryItem(MEDIA_ID_ARTISTS, TITLE_ARTISTS),
-                buildCategoryItem(MEDIA_ID_PLAYLISTS, TITLE_PLAYLISTS),
-                buildCategoryItem(MEDIA_ID_LOCAL_MEDIA, TITLE_LOCAL_MEDIA)
+                buildCategoryItem(
+                    MEDIA_ID_HOME,
+                    TITLE_HOME,
+                    mediaType = MediaMetadata.MEDIA_TYPE_FOLDER_MIXED,
+                    folderType = MediaMetadata.FOLDER_TYPE_MIXED
+                ),
+                buildCategoryItem(
+                    MEDIA_ID_ALBUMS,
+                    TITLE_ALBUMS,
+                    mediaType = MediaMetadata.MEDIA_TYPE_FOLDER_ALBUMS,
+                    folderType = MediaMetadata.FOLDER_TYPE_ALBUMS,
+                    browsableContentStyle = albumsStyle
+                ),
+                buildCategoryItem(
+                    MEDIA_ID_ARTISTS,
+                    TITLE_ARTISTS,
+                    mediaType = MediaMetadata.MEDIA_TYPE_FOLDER_ARTISTS,
+                    folderType = MediaMetadata.FOLDER_TYPE_ARTISTS,
+                    browsableContentStyle = letterGridStyle
+                ),
+                buildCategoryItem(
+                    MEDIA_ID_PLAYLISTS,
+                    TITLE_PLAYLISTS,
+                    mediaType = MediaMetadata.MEDIA_TYPE_FOLDER_PLAYLISTS,
+                    folderType = MediaMetadata.FOLDER_TYPE_PLAYLISTS,
+                    browsableContentStyle = MediaConstants.EXTRAS_VALUE_CONTENT_STYLE_GRID_ITEM
+                ),
+                buildCategoryItem(
+                    MEDIA_ID_LOCAL_MEDIA,
+                    TITLE_LOCAL_MEDIA,
+                    mediaType = MediaMetadata.MEDIA_TYPE_FOLDER_MIXED,
+                    folderType = MediaMetadata.FOLDER_TYPE_MIXED
+                )
             )
         }
+    }
+
+    private fun buildHomeCategories(): List<MediaItem> {
+        return listOf(
+            buildCategoryItem(
+                MEDIA_ID_HOME_RECENTLY_PLAYED,
+                TITLE_HOME_RECENTLY_PLAYED,
+                mediaType = MediaMetadata.MEDIA_TYPE_FOLDER_ALBUMS,
+                folderType = MediaMetadata.FOLDER_TYPE_ALBUMS,
+                browsableContentStyle = MediaConstants.EXTRAS_VALUE_CONTENT_STYLE_GRID_ITEM
+            ),
+            buildCategoryItem(
+                MEDIA_ID_HOME_FAVORITES,
+                TITLE_HOME_FAVORITES,
+                mediaType = MediaMetadata.MEDIA_TYPE_MIXED,
+                folderType = MediaMetadata.FOLDER_TYPE_TITLES
+            ),
+            buildCategoryItem(
+                MEDIA_ID_HOME_NEW_ALBUMS,
+                TITLE_HOME_NEW_ALBUMS,
+                mediaType = MediaMetadata.MEDIA_TYPE_FOLDER_ALBUMS,
+                folderType = MediaMetadata.FOLDER_TYPE_ALBUMS,
+                browsableContentStyle = MediaConstants.EXTRAS_VALUE_CONTENT_STYLE_GRID_ITEM
+            ),
+            buildCategoryItem(
+                MEDIA_ID_HOME_PLAYLISTS,
+                TITLE_PLAYLISTS,
+                mediaType = MediaMetadata.MEDIA_TYPE_FOLDER_PLAYLISTS,
+                folderType = MediaMetadata.FOLDER_TYPE_PLAYLISTS,
+                browsableContentStyle = MediaConstants.EXTRAS_VALUE_CONTENT_STYLE_GRID_ITEM
+            )
+        )
     }
 
     private fun buildCategoryItem(
         mediaId: String,
         title: String,
         subtitle: String? = null,
-        artworkUrl: String? = null
+        artworkUrl: String? = null,
+        mediaType: Int? = null,
+        folderType: Int? = null,
+        browsableContentStyle: Int? = null,
+        playableContentStyle: Int? = null
     ): MediaItem {
-        val metadata = MediaMetadata.Builder()
+        val resolvedArtworkUrl = resolveAutoArtworkUrl(artworkUrl)
+        val metadataBuilder = MediaMetadata.Builder()
             .setTitle(title)
             .setSubtitle(subtitle)
-            .setArtworkUri(artworkUrl?.let { Uri.parse(it) })
+            .setArtworkUri(resolvedArtworkUrl?.let { Uri.parse(it) })
             .setIsBrowsable(true)
             .setIsPlayable(false)
-            .build()
+        if (mediaType != null) {
+            metadataBuilder.setMediaType(mediaType)
+        }
+        @Suppress("DEPRECATION")
+        if (folderType != null) {
+            metadataBuilder.setFolderType(folderType)
+        }
+        val styleExtras = buildContentStyleExtras(
+            browsableContentStyle = browsableContentStyle,
+            playableContentStyle = playableContentStyle
+        )
+        if (styleExtras != null) {
+            metadataBuilder.setExtras(styleExtras)
+        }
+        val metadata = metadataBuilder.build()
         return MediaItem.Builder()
             .setMediaId(mediaId)
             .setMediaMetadata(metadata)
@@ -211,28 +380,59 @@ class MediaLibraryBrowser(
     }
 
     private suspend fun buildAlbumsList(page: Int, pageSize: Int): List<MediaItem> {
-        val albums = if (isOfflineMode()) {
+        val offline = isOfflineMode()
+        val albums = if (offline) {
             localMediaRepository.getAllAlbums().first()
         } else {
-            val (offset, limit) = resolvePaging(page, pageSize)
-            val serverAlbums = repository.fetchAlbums(limit, offset).getOrDefault(emptyList())
+            val fullList = loadFullAlbums()
             val localAlbums = localMediaRepository.getAllAlbums().first()
-            serverAlbums.mergeWithLocal(localAlbums)
+            fullList.mergeWithLocal(localAlbums)
         }
-        val paged = if (isOfflineMode()) applyPaging(albums, page, pageSize) else albums
-        return paged.map { it.toBrowsableMediaItem() }
+        val sortedAlbums = albums.sortedWith(AlbumAlphabeticalComparator)
+        logAlphabetDistribution("albums", sortedAlbums.map { it.name })
+        val includeArtwork = shouldIncludeArtwork(sortedAlbums.size)
+        val compactMetadata = shouldUseCompactMetadata(sortedAlbums.size)
+        if (!includeArtwork) {
+            Logger.d(TAG, "Auto browse albums omitting artwork count=${sortedAlbums.size}")
+        }
+        if (compactMetadata) {
+            Logger.d(TAG, "Auto browse albums using compact metadata count=${sortedAlbums.size}")
+        }
+        val paged = if (offline) applyPaging(sortedAlbums, page, pageSize) else sortedAlbums
+        return paged.map {
+            it.toBrowsableMediaItem(
+                includeArtwork = includeArtwork,
+                includeSubtitle = !compactMetadata,
+                includeDisplayTitle = !compactMetadata
+            )
+        }
     }
 
     private suspend fun buildArtistsList(page: Int, pageSize: Int): List<MediaItem> {
         return if (isOfflineMode()) {
             buildOfflineArtistsList(page, pageSize)
         } else {
-            val (offset, limit) = resolvePaging(page, pageSize)
-            val artists = repository.fetchArtists(limit, offset).getOrDefault(emptyList())
+            val fullList = loadFullArtists()
             val localArtists = localMediaRepository.getAllArtists().first()
-            val mergedArtists = artists.mergeWithLocal(localArtists)
+            val mergedArtists = fullList.mergeWithLocal(localArtists)
+                .sortedWith(ArtistAlphabeticalComparator)
             mergedArtists.forEach { cacheArtistName(it) }
-            mergedArtists.map { it.toBrowsableMediaItem() }
+            logAlphabetDistribution("artists", mergedArtists.map { it.name })
+            val includeArtwork = shouldIncludeArtwork(mergedArtists.size)
+            if (!includeArtwork) {
+                Logger.d(TAG, "Auto browse artists omitting artwork count=${mergedArtists.size}")
+            }
+            val compactMetadata = shouldUseCompactMetadata(mergedArtists.size)
+            if (compactMetadata) {
+                Logger.d(TAG, "Auto browse artists using compact metadata count=${mergedArtists.size}")
+            }
+            mergedArtists.map {
+                it.toBrowsableMediaItem(
+                    includeArtwork = includeArtwork,
+                    includeSubtitle = !compactMetadata,
+                    includeDisplayTitle = !compactMetadata
+                )
+            }
         }
     }
 
@@ -248,25 +448,154 @@ class MediaLibraryBrowser(
         return paged.map { it.toBrowsableMediaItem() }
     }
 
-    private fun buildLocalContent(): List<MediaItem> {
+    private fun buildLocalContent(useAutoBuckets: Boolean): List<MediaItem> {
+        val letterGridStyle = if (useAutoBuckets) {
+            MediaConstants.EXTRAS_VALUE_CONTENT_STYLE_CATEGORY_GRID_ITEM
+        } else {
+            null
+        }
+        val albumsStyle = if (useAutoBuckets) {
+            MediaConstants.EXTRAS_VALUE_CONTENT_STYLE_CATEGORY_GRID_ITEM
+        } else {
+            MediaConstants.EXTRAS_VALUE_CONTENT_STYLE_LIST_ITEM
+        }
         return listOf(
-            buildCategoryItem(MEDIA_ID_LOCAL_ALBUMS, TITLE_LOCAL_ALBUMS),
-            buildCategoryItem(MEDIA_ID_LOCAL_ARTISTS, TITLE_LOCAL_ARTISTS),
-            buildCategoryItem(MEDIA_ID_LOCAL_TRACKS, TITLE_LOCAL_TRACKS)
+            buildCategoryItem(
+                MEDIA_ID_LOCAL_ALBUMS,
+                TITLE_LOCAL_ALBUMS,
+                mediaType = MediaMetadata.MEDIA_TYPE_FOLDER_ALBUMS,
+                folderType = MediaMetadata.FOLDER_TYPE_ALBUMS,
+                browsableContentStyle = albumsStyle
+            ),
+            buildCategoryItem(
+                MEDIA_ID_LOCAL_ARTISTS,
+                TITLE_LOCAL_ARTISTS,
+                mediaType = MediaMetadata.MEDIA_TYPE_FOLDER_ARTISTS,
+                folderType = MediaMetadata.FOLDER_TYPE_ARTISTS,
+                browsableContentStyle = letterGridStyle
+            ),
+            buildCategoryItem(
+                MEDIA_ID_LOCAL_TRACKS,
+                TITLE_LOCAL_TRACKS,
+                mediaType = MediaMetadata.MEDIA_TYPE_MIXED,
+                folderType = MediaMetadata.FOLDER_TYPE_TITLES
+            )
         )
+    }
+
+    private fun buildLetterCategoryItems(
+        prefix: String,
+        childBrowsableContentStyle: Int? = null
+    ): List<MediaItem> {
+        val items = mutableListOf<MediaItem>()
+        val letters = listOf("123") + ('A'..'Z').map { it.toString() } + "#"
+        for (letter in letters) {
+            items.add(
+                buildCategoryItem(
+                    mediaId = "$prefix:$letter",
+                    title = letter,
+                    browsableContentStyle = childBrowsableContentStyle
+                )
+            )
+        }
+        return items
+    }
+
+    private fun parseLetterBucket(prefix: String, mediaId: String): String? {
+        val token = mediaId.substringAfter("$prefix:", "")
+        if (token.isBlank()) return null
+        return token.uppercase()
+    }
+
+    private fun bucketForName(name: String): String {
+        val trimmed = name.trim()
+        val first = trimmed.firstOrNull() ?: return "#"
+        return when {
+            first.isDigit() -> "123"
+            first.isLetter() -> first.uppercaseChar().toString()
+            else -> "#"
+        }
+    }
+
+    private suspend fun buildHomeRecentlyPlayed(page: Int, pageSize: Int): List<MediaItem> {
+        if (isOfflineMode()) return emptyList()
+        val limit = resolveHomeLimit(page, pageSize)
+        val albums = repository.fetchRecentlyPlayed(limit).getOrDefault(emptyList())
+        val paged = applyPaging(albums, page, pageSize)
+        return paged.map { it.toBrowsableMediaItem() }
+    }
+
+    private suspend fun buildHomeFavorites(page: Int, pageSize: Int): List<MediaItem> {
+        if (isOfflineMode()) return emptyList()
+        val (offset, limit) = resolvePaging(page, pageSize)
+        val favorites = repository.fetchFavorites(limit, offset).getOrDefault(emptyList())
+        val items = mutableListOf<MediaItem>()
+        for (track in favorites) {
+            items.add(track.toPlayableMediaItem(MEDIA_ID_HOME_FAVORITES))
+        }
+        return items
+    }
+
+    private suspend fun buildHomeFavoritesTrackItems(): List<MediaItem> {
+        if (isOfflineMode()) return emptyList()
+        val favorites = repository.fetchFavorites(FAVORITES_QUEUE_LIMIT, 0)
+            .getOrDefault(emptyList())
+        val items = mutableListOf<MediaItem>()
+        for (track in favorites) {
+            items.add(track.toPlayableMediaItem(MEDIA_ID_HOME_FAVORITES))
+        }
+        return items
+    }
+
+    private suspend fun buildHomeNewAlbums(page: Int, pageSize: Int): List<MediaItem> {
+        if (isOfflineMode()) return emptyList()
+        val limit = resolveHomeLimit(page, pageSize)
+        val albums = repository.fetchRecentlyAdded(limit).getOrDefault(emptyList())
+        val paged = applyPaging(albums, page, pageSize)
+        return paged.map { it.toBrowsableMediaItem() }
     }
 
     private suspend fun buildLocalAlbumsList(page: Int, pageSize: Int): List<MediaItem> {
         val albums = localMediaRepository.getAllAlbums().first()
-        return applyPaging(albums, page, pageSize).map { it.toBrowsableMediaItem() }
+            .sortedWith(AlbumAlphabeticalComparator)
+        val includeArtwork = shouldIncludeArtwork(albums.size)
+        if (!includeArtwork) {
+            Logger.d(TAG, "Auto browse local albums omitting artwork count=${albums.size}")
+        }
+        val compactMetadata = shouldUseCompactMetadata(albums.size)
+        if (compactMetadata) {
+            Logger.d(TAG, "Auto browse local albums using compact metadata count=${albums.size}")
+        }
+        return applyPaging(albums, page, pageSize).map {
+            it.toBrowsableMediaItem(
+                includeArtwork = includeArtwork,
+                includeSubtitle = !compactMetadata,
+                includeDisplayTitle = !compactMetadata
+            )
+        }
     }
 
     private suspend fun buildLocalArtistsList(page: Int, pageSize: Int): List<MediaItem> {
         val albums = localMediaRepository.getAllAlbums().first()
         val tracks = localMediaRepository.getAllTracks().first()
         val artists = buildOfflineArtists(albums, tracks)
+            .sortedWith(ArtistAlphabeticalComparator)
         artists.forEach { cacheArtistName(it) }
-        return applyPaging(artists, page, pageSize).map { it.toBrowsableMediaItem() }
+        val includeArtwork = shouldIncludeArtwork(artists.size)
+        if (!includeArtwork) {
+            Logger.d(TAG, "Auto browse local artists omitting artwork count=${artists.size}")
+        }
+        val compactMetadata = shouldUseCompactMetadata(artists.size)
+        if (compactMetadata) {
+            Logger.d(TAG, "Auto browse local artists using compact metadata count=${artists.size}")
+        }
+        return applyPaging(artists, page, pageSize).map {
+            it.toBrowsableMediaItem(
+                includeArtwork = includeArtwork,
+                includeSubtitle = !compactMetadata,
+                includeDisplayTitle = !compactMetadata
+            )
+        }
     }
 
     private suspend fun buildLocalTracksList(page: Int, pageSize: Int): List<MediaItem> {
@@ -277,6 +606,51 @@ class MediaLibraryBrowser(
             items.add(track.toPlayableMediaItem())
         }
         return items
+    }
+
+    private suspend fun buildArtistsByBucket(bucket: String, useLocal: Boolean): List<MediaItem> {
+        val resolvedBucket = bucket.uppercase()
+        val artists = if (useLocal || isOfflineMode()) {
+            val albums = localMediaRepository.getAllAlbums().first()
+            val tracks = localMediaRepository.getAllTracks().first()
+            buildOfflineArtists(albums, tracks).sortedWith(ArtistAlphabeticalComparator)
+        } else {
+            val fullList = loadFullArtists()
+            val localArtists = localMediaRepository.getAllArtists().first()
+            fullList.mergeWithLocal(localArtists).sortedWith(ArtistAlphabeticalComparator)
+        }
+        val filtered = artists.filter { bucketForName(it.name) == resolvedBucket }
+        val includeArtwork = shouldIncludeArtwork(filtered.size)
+        val compactMetadata = shouldUseCompactMetadata(filtered.size)
+        return filtered.map {
+            it.toBrowsableMediaItem(
+                includeArtwork = includeArtwork,
+                includeSubtitle = !compactMetadata,
+                includeDisplayTitle = !compactMetadata
+            )
+        }
+    }
+
+    private suspend fun buildAlbumsByBucket(bucket: String, useLocal: Boolean): List<MediaItem> {
+        val resolvedBucket = bucket.uppercase()
+        val albums = if (useLocal || isOfflineMode()) {
+            localMediaRepository.getAllAlbums().first()
+                .sortedWith(AlbumAlphabeticalComparator)
+        } else {
+            val fullList = loadFullAlbums()
+            val localAlbums = localMediaRepository.getAllAlbums().first()
+            fullList.mergeWithLocal(localAlbums).sortedWith(AlbumAlphabeticalComparator)
+        }
+        val filtered = albums.filter { bucketForName(it.name) == resolvedBucket }
+        val includeArtwork = shouldIncludeArtwork(filtered.size)
+        val compactMetadata = shouldUseCompactMetadata(filtered.size)
+        return filtered.map {
+            it.toBrowsableMediaItem(
+                includeArtwork = includeArtwork,
+                includeSubtitle = !compactMetadata,
+                includeDisplayTitle = !compactMetadata
+            )
+        }
     }
 
     private suspend fun buildAlbumTracks(
@@ -336,7 +710,7 @@ class MediaLibraryBrowser(
         val albums = if (isOfflineMode()) {
             localMediaRepository.getAlbumsByArtist(resolvedName).first()
         } else {
-            val allAlbums = fetchAllAlbums()
+            val allAlbums = loadFullAlbums()
             val localAlbums = localMediaRepository.getAllAlbums().first()
             val mergedAlbums = allAlbums.mergeWithLocal(localAlbums)
             filterAlbumsForArtist(mergedAlbums, resolvedName)
@@ -345,6 +719,79 @@ class MediaLibraryBrowser(
     }
 
     private fun isOfflineMode(): Boolean = networkConnectivityManager.isOfflineMode()
+
+    private fun ensureFullLibraryPrefetch() {
+        if (isOfflineMode()) return
+        val albumsLoaded = fullAlbums != null
+        val artistsLoaded = fullArtists != null
+        if (albumsLoaded && artistsLoaded) return
+        synchronized(prefetchLock) {
+            if (libraryPrefetchJob?.isActive == true) return
+            val shouldLoadAlbums = fullAlbums == null
+            val shouldLoadArtists = fullArtists == null
+            if (!shouldLoadAlbums && !shouldLoadArtists) return
+            libraryPrefetchJob = prefetchScope.launch {
+                supervisorScope {
+                    val albumsDeferred = if (shouldLoadAlbums) {
+                        async {
+                            fetchAllPages(
+                                pageSize = ALBUM_PAGE_LIMIT,
+                                fetchPage = { offset, limit -> repository.fetchAlbums(limit, offset) }
+                            )
+                        }
+                    } else {
+                        null
+                    }
+                    val artistsDeferred = if (shouldLoadArtists) {
+                        async {
+                            fetchAllPages(
+                                pageSize = ARTIST_PAGE_LIMIT,
+                                fetchPage = { offset, limit -> repository.fetchArtists(limit, offset) }
+                            )
+                        }
+                    } else {
+                        null
+                    }
+
+                    val albumsResult = albumsDeferred?.let { runCatching { it.await() } }
+                    val artistsResult = artistsDeferred?.let { runCatching { it.await() } }
+
+                    albumsResult?.onSuccess { fullAlbums = it }
+                    artistsResult?.onSuccess {
+                        fullArtists = it
+                        it.forEach { artist -> cacheArtistName(artist) }
+                    }
+                }
+            }
+        }
+    }
+
+    private suspend fun awaitFullLibraryPrefetch() {
+        if (isOfflineMode()) return
+        ensureFullLibraryPrefetch()
+        libraryPrefetchJob?.join()
+    }
+
+    private suspend fun loadFullAlbums(): List<Album> {
+        if (isOfflineMode()) return emptyList()
+        awaitFullLibraryPrefetch()
+        val cached = fullAlbums
+        if (cached != null) return cached
+        val fetched = fetchAllAlbums()
+        fullAlbums = fetched
+        return fetched
+    }
+
+    private suspend fun loadFullArtists(): List<Artist> {
+        if (isOfflineMode()) return emptyList()
+        awaitFullLibraryPrefetch()
+        val cached = fullArtists
+        if (cached != null) return cached
+        val fetched = fetchAllArtists()
+        fullArtists = fetched
+        fetched.forEach { cacheArtistName(it) }
+        return fetched
+    }
 
     private fun cacheArtistName(artist: Artist) {
         val key = artistCacheKey(artist.itemId, artist.provider)
@@ -382,6 +829,16 @@ class MediaLibraryBrowser(
         val key = artistCacheKey(artistId, provider)
         val cached = synchronized(artistNameCache) { artistNameCache[key] }
         if (!cached.isNullOrBlank()) return cached
+        val prefetchedArtists = fullArtists
+        if (prefetchedArtists != null) {
+            val match = prefetchedArtists.firstOrNull {
+                it.itemId == artistId && it.provider == provider
+            }
+            if (match != null) {
+                cacheArtistName(match)
+                return match.name
+            }
+        }
         if (provider == OFFLINE_PROVIDER) {
             return Uri.decode(artistId)
         }
@@ -422,6 +879,19 @@ class MediaLibraryBrowser(
         return albums
     }
 
+    private suspend fun fetchAllArtists(): List<Artist> {
+        val artists = mutableListOf<Artist>()
+        var offset = 0
+        while (true) {
+            val page = repository.fetchArtists(ARTIST_PAGE_LIMIT, offset).getOrDefault(emptyList())
+            if (page.isEmpty()) break
+            artists.addAll(page)
+            if (page.size < ARTIST_PAGE_LIMIT) break
+            offset += ARTIST_PAGE_LIMIT
+        }
+        return artists
+    }
+
     private fun filterAlbumsForArtist(albums: List<Album>, artistName: String): List<Album> {
         val normalized = normalizeName(artistName)
         if (normalized.isBlank()) return emptyList()
@@ -440,16 +910,128 @@ class MediaLibraryBrowser(
         }
     }
 
+    private fun shouldIncludeArtwork(count: Int): Boolean {
+        return count <= AUTO_ARTWORK_LIMIT
+    }
+
+    private fun shouldUseCompactMetadata(count: Int): Boolean {
+        return count > AUTO_COMPACT_METADATA_LIMIT
+    }
+
     private fun normalizeName(name: String?): String {
         return name?.trim()?.lowercase().orEmpty()
+    }
+
+    private fun resolveAutoArtworkUrl(rawUrl: String?): String? {
+        val trimmed = rawUrl?.trim().orEmpty()
+        if (trimmed.isBlank()) return null
+        val uri = runCatching { Uri.parse(trimmed) }.getOrNull() ?: return trimmed
+        val encodedPath = uri.encodedPath ?: return trimmed
+        if (!encodedPath.endsWith("/imageproxy")) return trimmed
+        val pathParam = uri.getQueryParameter("path")?.trim().orEmpty()
+        if (pathParam.isBlank()) return trimmed
+        if (pathParam.startsWith("http://") || pathParam.startsWith("https://")) {
+            return pathParam
+        }
+        val provider = uri.getQueryParameter("provider").orEmpty()
+        if (provider == "builtin") {
+            val base = trimmed.substringBefore("/imageproxy")
+            val normalizedPath = pathParam.trimStart('/')
+            if (normalizedPath.isNotBlank()) {
+                return "$base/$normalizedPath"
+            }
+        }
+        return trimmed
+    }
+
+    private fun buildContentStyleExtras(
+        browsableContentStyle: Int?,
+        playableContentStyle: Int?
+    ): Bundle? {
+        if (browsableContentStyle == null && playableContentStyle == null) return null
+        return Bundle().apply {
+            browsableContentStyle?.let {
+                putInt(MediaConstants.EXTRAS_KEY_CONTENT_STYLE_BROWSABLE, it)
+            }
+            playableContentStyle?.let {
+                putInt(MediaConstants.EXTRAS_KEY_CONTENT_STYLE_PLAYABLE, it)
+            }
+        }
+    }
+
+    private fun logAlphabetDistribution(label: String, names: List<String>) {
+        if (names.isEmpty()) return
+        val counts = IntArray(26)
+        val firstIndexes = IntArray(26) { -1 }
+        var other = 0
+        for ((index, name) in names.withIndex()) {
+            val trimmed = name.trim()
+            if (trimmed.isEmpty()) continue
+            val first = trimmed.first().uppercaseChar()
+            if (first in 'A'..'Z') {
+                val bucket = first - 'A'
+                counts[bucket] += 1
+                if (firstIndexes[bucket] == -1) {
+                    firstIndexes[bucket] = index
+                }
+            } else {
+                other += 1
+            }
+        }
+        val missing = buildString {
+            for (index in counts.indices) {
+                if (counts[index] == 0) append(('A'.code + index).toChar())
+            }
+        }
+        val firstIndexSummary = buildString {
+            for (index in firstIndexes.indices) {
+                if (index > 0) append(",")
+                val char = ('A'.code + index).toChar()
+                append(char)
+                append("=")
+                append(firstIndexes[index])
+            }
+        }
+        Logger.d(
+            TAG,
+            "Auto alpha $label total=${names.size} other=$other missing=$missing firstIndex=$firstIndexSummary"
+        )
+    }
+
+    private fun artistSortKey(artist: Artist): String {
+        return artist.name.trim()
+    }
+
+    private fun albumSortKey(album: Album): String {
+        return album.name.trim()
+    }
+
+    private fun compareTitles(first: String, second: String): Int {
+        val collator = titleCollator.get()
+        return collator.compare(first, second)
     }
 
     private suspend fun buildOfflineArtistsList(page: Int, pageSize: Int): List<MediaItem> {
         val albums = localMediaRepository.getAllAlbums().first()
         val tracks = localMediaRepository.getAllTracks().first()
         val artists = buildOfflineArtists(albums, tracks)
+            .sortedWith(ArtistAlphabeticalComparator)
         artists.forEach { cacheArtistName(it) }
-        return applyPaging(artists, page, pageSize).map { it.toBrowsableMediaItem() }
+        val includeArtwork = shouldIncludeArtwork(artists.size)
+        if (!includeArtwork) {
+            Logger.d(TAG, "Auto browse offline artists omitting artwork count=${artists.size}")
+        }
+        val compactMetadata = shouldUseCompactMetadata(artists.size)
+        if (compactMetadata) {
+            Logger.d(TAG, "Auto browse offline artists using compact metadata count=${artists.size}")
+        }
+        return applyPaging(artists, page, pageSize).map {
+            it.toBrowsableMediaItem(
+                includeArtwork = includeArtwork,
+                includeSubtitle = !compactMetadata,
+                includeDisplayTitle = !compactMetadata
+            )
+        }
     }
 
     private fun buildOfflineArtists(albums: List<Album>, tracks: List<Track>): List<Artist> {
@@ -472,7 +1054,6 @@ class MediaLibraryBrowser(
         }
         return artistsByName.values
             .map { (name, imageUrl) -> createOfflineArtist(name, imageUrl) }
-            .sortedBy { it.name.lowercase() }
     }
 
     private fun createOfflineArtist(name: String, imageUrl: String?): Artist {
@@ -498,15 +1079,15 @@ class MediaLibraryBrowser(
         val isLocalFile = localFile != null
         val durationMs = playbackDurationMs()
         val extras = buildPlaybackExtras(isLocalFile = isLocalFile, parentMediaId = parentMediaId)
+        val resolvedArtworkUrl = resolveAutoArtworkUrl(imageUrl)
         val metadata = MediaMetadata.Builder()
             .setTitle(title)
             .setArtist(artist)
             .setAlbumTitle(album)
-            .setArtworkUri(imageUrl?.let { Uri.parse(it) })
+            .setArtworkUri(resolvedArtworkUrl?.let { Uri.parse(it) })
             .setDurationMs(durationMs)
             .setIsBrowsable(false)
             .setIsPlayable(true)
-            .setExtras(extras)
             .build()
         return MediaItem.Builder()
             .setMediaId("$MEDIA_ID_PREFIX_TRACK:$itemId:$provider")
@@ -516,12 +1097,24 @@ class MediaLibraryBrowser(
             .also { cacheMediaItem(it) }
     }
 
-    private fun Album.toBrowsableMediaItem(): MediaItem {
+    private fun Album.toBrowsableMediaItem(
+        includeArtwork: Boolean = true,
+        includeSubtitle: Boolean = true,
+        includeDisplayTitle: Boolean = true
+    ): MediaItem {
         val artistsLabel = artists.joinToString(", ")
-        val metadata = MediaMetadata.Builder()
+        val resolvedArtworkUrl = if (includeArtwork) resolveAutoArtworkUrl(imageUrl) else null
+        val metadataBuilder = MediaMetadata.Builder()
             .setTitle(name)
-            .setArtist(artistsLabel)
-            .setArtworkUri(imageUrl?.let { Uri.parse(it) })
+        if (includeDisplayTitle) {
+            metadataBuilder.setDisplayTitle(name)
+        }
+        if (includeSubtitle) {
+            metadataBuilder.setArtist(artistsLabel)
+        }
+        val metadata = metadataBuilder
+            .setArtworkUri(resolvedArtworkUrl?.let { Uri.parse(it) })
+            .setMediaType(MediaMetadata.MEDIA_TYPE_ALBUM)
             .setIsBrowsable(true)
             .setIsPlayable(false)
             .build()
@@ -531,11 +1124,23 @@ class MediaLibraryBrowser(
             .build()
     }
 
-    private fun Artist.toBrowsableMediaItem(): MediaItem {
-        val metadata = MediaMetadata.Builder()
+    private fun Artist.toBrowsableMediaItem(
+        includeArtwork: Boolean = true,
+        includeSubtitle: Boolean = true,
+        includeDisplayTitle: Boolean = true
+    ): MediaItem {
+        val resolvedArtworkUrl = if (includeArtwork) resolveAutoArtworkUrl(imageUrl) else null
+        val metadataBuilder = MediaMetadata.Builder()
             .setTitle(name)
-            .setArtist(name)
-            .setArtworkUri(imageUrl?.let { Uri.parse(it) })
+        if (includeDisplayTitle) {
+            metadataBuilder.setDisplayTitle(name)
+        }
+        if (includeSubtitle) {
+            metadataBuilder.setArtist(name)
+        }
+        val metadata = metadataBuilder
+            .setArtworkUri(resolvedArtworkUrl?.let { Uri.parse(it) })
+            .setMediaType(MediaMetadata.MEDIA_TYPE_ARTIST)
             .setIsBrowsable(true)
             .setIsPlayable(false)
             .build()
@@ -546,10 +1151,13 @@ class MediaLibraryBrowser(
     }
 
     private fun Playlist.toBrowsableMediaItem(): MediaItem {
+        val resolvedArtworkUrl = resolveAutoArtworkUrl(imageUrl)
         val metadata = MediaMetadata.Builder()
             .setTitle(name)
+            .setDisplayTitle(name)
             .setArtist(owner)
-            .setArtworkUri(imageUrl?.let { Uri.parse(it) })
+            .setArtworkUri(resolvedArtworkUrl?.let { Uri.parse(it) })
+            .setMediaType(MediaMetadata.MEDIA_TYPE_PLAYLIST)
             .setIsBrowsable(true)
             .setIsPlayable(false)
             .build()
@@ -640,6 +1248,13 @@ class MediaLibraryBrowser(
         return offset to safeSize
     }
 
+    private fun resolveHomeLimit(page: Int, pageSize: Int): Int {
+        val safePage = if (page == C.INDEX_UNSET || page < 0) 0 else page
+        val safeSize = if (pageSize == C.INDEX_UNSET || pageSize <= 0) DEFAULT_PAGE_SIZE else pageSize
+        val limit = (safePage.toLong() + 1L) * safeSize.toLong()
+        return limit.coerceAtMost(HOME_SECTION_LIMIT.toLong()).toInt()
+    }
+
     private fun cacheMediaItem(mediaItem: MediaItem) {
         val mediaId = mediaItem.mediaId
         if (mediaId.isBlank()) return
@@ -656,8 +1271,47 @@ class MediaLibraryBrowser(
         return "$MEDIA_ID_PREFIX_PLAYLIST:$playlistId:$provider"
     }
 
+    private val titleCollator = ThreadLocal.withInitial {
+        Collator.getInstance().apply {
+            strength = Collator.PRIMARY
+            decomposition = Collator.CANONICAL_DECOMPOSITION
+        }
+    }
+
+    private val ArtistAlphabeticalComparator = Comparator<Artist> { left, right ->
+        val primary = compareTitles(artistSortKey(left), artistSortKey(right))
+        if (primary != 0) {
+            primary
+        } else {
+            "${left.provider}:${left.itemId}".compareTo("${right.provider}:${right.itemId}")
+        }
+    }
+
+    private val AlbumAlphabeticalComparator = Comparator<Album> { left, right ->
+        val primary = compareTitles(albumSortKey(left), albumSortKey(right))
+        if (primary != 0) {
+            primary
+        } else {
+            val artistCompare = compareTitles(
+                left.artists.firstOrNull().orEmpty().trim(),
+                right.artists.firstOrNull().orEmpty().trim()
+            )
+            if (artistCompare != 0) {
+                artistCompare
+            } else {
+                "${left.provider}:${left.itemId}".compareTo("${right.provider}:${right.itemId}")
+            }
+        }
+    }
+
     private companion object {
+        private const val TAG = "MediaLibraryBrowser"
         private const val MEDIA_ID_ROOT = "root"
+        private const val MEDIA_ID_HOME = "home"
+        private const val MEDIA_ID_HOME_RECENTLY_PLAYED = "home_recently_played"
+        private const val MEDIA_ID_HOME_FAVORITES = "home_favorites"
+        private const val MEDIA_ID_HOME_NEW_ALBUMS = "home_new_albums"
+        private const val MEDIA_ID_HOME_PLAYLISTS = "home_playlists"
         private const val MEDIA_ID_ALBUMS = "albums"
         private const val MEDIA_ID_ARTISTS = "artists"
         private const val MEDIA_ID_PLAYLISTS = "playlists"
@@ -670,8 +1324,16 @@ class MediaLibraryBrowser(
         private const val MEDIA_ID_PREFIX_ARTIST = "artist"
         private const val MEDIA_ID_PREFIX_PLAYLIST = "playlist"
         private const val MEDIA_ID_PREFIX_TRACK = "track"
+        private const val MEDIA_ID_PREFIX_ARTISTS_LETTER = "artists_letter"
+        private const val MEDIA_ID_PREFIX_ALBUMS_LETTER = "albums_letter"
+        private const val MEDIA_ID_PREFIX_LOCAL_ARTISTS_LETTER = "local_artists_letter"
+        private const val MEDIA_ID_PREFIX_LOCAL_ALBUMS_LETTER = "local_albums_letter"
 
         private const val ROOT_TITLE = "Harmonixia"
+        private const val TITLE_HOME = "Home"
+        private const val TITLE_HOME_RECENTLY_PLAYED = "Recently Played"
+        private const val TITLE_HOME_FAVORITES = "Favourites"
+        private const val TITLE_HOME_NEW_ALBUMS = "New Albums"
         private const val TITLE_ALBUMS = "Albums"
         private const val TITLE_ARTISTS = "Artists"
         private const val TITLE_PLAYLISTS = "Playlists"
@@ -684,6 +1346,10 @@ class MediaLibraryBrowser(
         private const val SEARCH_LIMIT = 200
         private const val ALBUM_PAGE_LIMIT = 200
         private const val ARTIST_PAGE_LIMIT = 200
+        private const val HOME_SECTION_LIMIT = 200
+        private const val FAVORITES_QUEUE_LIMIT = 1000
+        private const val AUTO_ARTWORK_LIMIT = 1000
+        private const val AUTO_COMPACT_METADATA_LIMIT = 1000
         private const val MEDIA_ITEM_CACHE_SIZE = 500
         private const val ARTIST_NAME_CACHE_SIZE = 500
         private const val PLAYLIST_URI_CACHE_SIZE = 500

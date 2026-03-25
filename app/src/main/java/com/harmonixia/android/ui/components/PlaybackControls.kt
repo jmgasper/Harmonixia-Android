@@ -16,11 +16,12 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.LocalContentColor
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
@@ -47,8 +48,8 @@ fun PlaybackControls(
     modifier: Modifier = Modifier
 ) {
     val haptic = LocalHapticFeedback.current
-    val inactiveTint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-    val activeTint = MaterialTheme.colorScheme.onSurface
+    val inactiveTint = Color.White.copy(alpha = 0.62f)
+    val activeTint = Color.White
     val repeatTint = if (repeatMode == RepeatMode.OFF) inactiveTint else activeTint
     val shuffleTint = if (shuffle) activeTint else inactiveTint
     val controlButtonSize = 48.dp
@@ -82,7 +83,7 @@ fun PlaybackControls(
                 CircularProgressIndicator(
                     modifier = Modifier.size(spinnerSize),
                     strokeWidth = 2.dp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = Color.White.copy(alpha = 0.72f)
                 )
             } else {
                 IconButton(
@@ -119,7 +120,13 @@ fun PlaybackControls(
                 onPlayPause()
             },
             enabled = enabled && !isPlayPauseUpdating,
-            modifier = Modifier.size(64.dp)
+            modifier = Modifier.size(72.dp),
+            colors = IconButtonDefaults.filledTonalIconButtonColors(
+                containerColor = Color.White.copy(alpha = 0.95f),
+                contentColor = Color(0xFF111318),
+                disabledContainerColor = Color.White.copy(alpha = 0.4f),
+                disabledContentColor = Color.White.copy(alpha = 0.65f)
+            )
         ) {
             if (isPlayPauseUpdating) {
                 CircularProgressIndicator(
@@ -164,7 +171,7 @@ fun PlaybackControls(
                 CircularProgressIndicator(
                     modifier = Modifier.size(spinnerSize),
                     strokeWidth = 2.dp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = Color.White.copy(alpha = 0.72f)
                 )
             } else {
                 IconButton(

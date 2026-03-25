@@ -24,10 +24,11 @@ class PlayTrackUseCase(
             if (uri.isBlank()) {
                 throw IllegalArgumentException("Track URI is required")
             }
-            playbackStateManager.seedQueue(listOf(track), 0)
+            playbackStateManager.clearPendingStart()
             withContext(Dispatchers.IO) {
                 repository.playMedia(queueId, listOf(uri), QueueOption.REPLACE)
             }.getOrThrow()
+            playbackStateManager.refreshQueueFast()
             playerId
         }
     }

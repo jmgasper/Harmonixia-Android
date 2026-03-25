@@ -12,6 +12,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.spring
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Arrangement
@@ -56,16 +57,20 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.painter.ColorPainter
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.TextStyle
@@ -91,8 +96,6 @@ import com.harmonixia.android.ui.playback.PlaybackInfo
 import com.harmonixia.android.ui.playback.PlaybackViewModel
 import com.harmonixia.android.ui.theme.CompressedQualityOnOrange
 import com.harmonixia.android.ui.theme.CompressedQualityOrange
-import com.harmonixia.android.ui.theme.ExternalPlaybackGreen
-import com.harmonixia.android.ui.theme.ExternalPlaybackOnGreen
 import com.harmonixia.android.ui.theme.LosslessQualityGreen
 import com.harmonixia.android.ui.theme.LosslessQualityOnGreen
 import com.harmonixia.android.util.ImageQualityManager
@@ -179,7 +182,7 @@ fun SharedTransitionScope.NowPlayingScreen(
         MaterialTheme.typography.bodyMedium
     }
     val sharedArtworkState = rememberSharedContentState(key = SHARED_ARTWORK_KEY)
-    val placeholderPainter = ColorPainter(MaterialTheme.colorScheme.surfaceVariant)
+    val placeholderPainter = ColorPainter(Color.Black.copy(alpha = 0.25f))
     val dragOffsetX = remember { Animatable(0f) }
     val swipeThreshold = with(LocalDensity.current) { 100.dp.toPx() }
     val displayInfo = playbackInfo ?: emptyPlaybackInfo()
@@ -234,21 +237,13 @@ fun SharedTransitionScope.NowPlayingScreen(
     } else {
         null
     }
-    val scaffoldContainerColor = if (isExternalPlayback) {
-        ExternalPlaybackGreen
-    } else {
-        MaterialTheme.colorScheme.background
-    }
-    val topAppBarColors = if (isExternalPlayback) {
-        TopAppBarDefaults.topAppBarColors(
-            containerColor = ExternalPlaybackGreen,
-            titleContentColor = ExternalPlaybackOnGreen,
-            navigationIconContentColor = ExternalPlaybackOnGreen,
-            actionIconContentColor = ExternalPlaybackOnGreen
-        )
-    } else {
-        TopAppBarDefaults.topAppBarColors()
-    }
+    val topAppBarColors = TopAppBarDefaults.topAppBarColors(
+        containerColor = Color.Transparent,
+        scrolledContainerColor = Color.Transparent,
+        titleContentColor = Color.White,
+        navigationIconContentColor = Color.White,
+        actionIconContentColor = Color.White
+    )
     val trackIdentity = TrackIdentity(
         title = displayInfo.title,
         artist = displayInfo.artist,
@@ -258,7 +253,7 @@ fun SharedTransitionScope.NowPlayingScreen(
     )
 
     Scaffold(
-        containerColor = scaffoldContainerColor,
+        containerColor = Color.Black,
         topBar = {
             TopAppBar(
                 title = {
@@ -308,219 +303,238 @@ fun SharedTransitionScope.NowPlayingScreen(
         },
         snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { paddingValues ->
-        val contentModifier = Modifier
-            .fillMaxSize()
-            .padding(paddingValues)
-            .padding(horizontal = horizontalPadding, vertical = 16.dp)
-
-        BoxWithConstraints(modifier = contentModifier) {
-            val useSideBySide = isExpanded ||
-                windowSizeClass.widthSizeClass == WindowWidthSizeClass.Medium ||
-                maxWidth > maxHeight
-            val maxArtworkHeight = when {
-                isExpanded -> maxHeight * 0.85f
-                useSideBySide -> maxHeight * 0.75f
-                else -> maxHeight * 0.4f
-            }
-            val maxArtworkWidth = when {
-                isExpanded -> maxWidth * 0.5f
-                useSideBySide -> maxWidth * 0.45f
-                else -> maxWidth * 0.9f
-            }
-            val artworkSize = minOf(baseArtworkSize, maxArtworkHeight, maxArtworkWidth)
-
-            if (isExpanded) {
-                Row(
-                    modifier = Modifier.fillMaxSize(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(32.dp)
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+        ) {
+            BlurredArtworkBackground(
+                artworkUrl = trackIdentity.artworkUrl,
+                imageQualityManager = imageQualityManager,
+                modifier = Modifier.fillMaxSize()
+            )
+            Surface(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = horizontalPadding, vertical = 16.dp),
+                color = Color.Black.copy(alpha = 0.38f),
+                contentColor = Color.White,
+                shape = RoundedCornerShape(28.dp)
+            ) {
+                BoxWithConstraints(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 18.dp, vertical = 20.dp)
                 ) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(16.dp)
-                    ) {
-                        PlayerProviderRow(
-                            player = selectedPlayer,
-                            localPlayerId = localPlayerId,
-                            providerName = displayInfo.providerName,
-                            providerIconSvg = displayInfo.providerIconSvg,
-                            providerIconUrl = displayInfo.providerIconUrl
-                        )
-                        ArtworkPanel(
-                            trackIdentity = trackIdentity,
-                            artworkSize = artworkSize,
-                            isLoading = isLoading,
-                            hasNext = displayInfo.hasNext,
-                            hasPrevious = displayInfo.hasPrevious,
-                            onNext = { viewModel.next() },
-                            onPrevious = { viewModel.previous() },
-                            haptic = haptic,
-                            dragOffsetX = dragOffsetX,
-                            swipeThreshold = swipeThreshold,
-                            enableSharedArtworkTransition = enableSharedArtworkTransition,
-                            sharedArtworkState = sharedArtworkState,
-                            placeholderPainter = placeholderPainter,
-                            imageQualityManager = imageQualityManager
-                        )
+                    val useSideBySide = isExpanded ||
+                        windowSizeClass.widthSizeClass == WindowWidthSizeClass.Medium ||
+                        maxWidth > maxHeight
+                    val maxArtworkHeight = when {
+                        isExpanded -> maxHeight * 0.85f
+                        useSideBySide -> maxHeight * 0.75f
+                        else -> maxHeight * 0.4f
                     }
-                    ControlsPanel(
-                        trackIdentity = trackIdentity,
-                        titleStyle = titleStyle,
-                        artistStyle = artistStyle,
-                        albumStyle = albumStyle,
-                        onArtistClick = onArtistClick,
-                        onAlbumClick = onAlbumClick,
-                        playbackInfo = displayInfo,
-                        controlsEnabled = controlsEnabled,
-                        isPlayPauseUpdating = isPlayPauseUpdating,
-                        onSeek = { viewModel.seek(it) },
-                        onPlayPause = { viewModel.togglePlayPause() },
-                        onNext = { viewModel.next() },
-                        onPrevious = { viewModel.previous() },
-                        repeatMode = repeatMode,
-                        shuffle = shuffle,
-                        isRepeatModeUpdating = isRepeatModeUpdating,
-                        isShuffleUpdating = isShuffleUpdating,
-                        onRepeatToggle = { viewModel.toggleRepeatMode() },
-                        onShuffleToggle = { viewModel.toggleShuffle() },
-                        modifier = Modifier
-                            .weight(1f)
-                            .fillMaxHeight()
-                    )
-                }
-            } else if (useSideBySide) {
-                Column(
-                    modifier = Modifier.fillMaxSize(),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(24.dp, Alignment.CenterVertically)
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(24.dp)
-                    ) {
-                        ArtworkPanel(
-                            trackIdentity = trackIdentity,
-                            artworkSize = artworkSize,
-                            isLoading = isLoading,
-                            hasNext = displayInfo.hasNext,
-                            hasPrevious = displayInfo.hasPrevious,
-                            onNext = { viewModel.next() },
-                            onPrevious = { viewModel.previous() },
-                            haptic = haptic,
-                            dragOffsetX = dragOffsetX,
-                            swipeThreshold = swipeThreshold,
-                            enableSharedArtworkTransition = enableSharedArtworkTransition,
-                            sharedArtworkState = sharedArtworkState,
-                            placeholderPainter = placeholderPainter,
-                            imageQualityManager = imageQualityManager
-                        )
-                        Column(
-                            modifier = Modifier.weight(1f),
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(16.dp)
+                    val maxArtworkWidth = when {
+                        isExpanded -> maxWidth * 0.5f
+                        useSideBySide -> maxWidth * 0.45f
+                        else -> maxWidth * 0.9f
+                    }
+                    val artworkSize = minOf(baseArtworkSize, maxArtworkHeight, maxArtworkWidth)
+
+                    if (isExpanded) {
+                        Row(
+                            modifier = Modifier.fillMaxSize(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(32.dp)
                         ) {
-                            PlayerProviderRow(
-                                player = selectedPlayer,
-                                localPlayerId = localPlayerId,
-                                providerName = displayInfo.providerName,
-                                providerIconSvg = displayInfo.providerIconSvg,
-                                providerIconUrl = displayInfo.providerIconUrl
-                            )
-                            TrackInfoPanel(
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(16.dp)
+                            ) {
+                                PlayerProviderRow(
+                                    player = selectedPlayer,
+                                    localPlayerId = localPlayerId,
+                                    providerName = displayInfo.providerName,
+                                    providerIconSvg = displayInfo.providerIconSvg,
+                                    providerIconUrl = displayInfo.providerIconUrl
+                                )
+                                ArtworkPanel(
+                                    trackIdentity = trackIdentity,
+                                    artworkSize = artworkSize,
+                                    isLoading = isLoading,
+                                    hasNext = displayInfo.hasNext,
+                                    hasPrevious = displayInfo.hasPrevious,
+                                    onNext = { viewModel.next() },
+                                    onPrevious = { viewModel.previous() },
+                                    haptic = haptic,
+                                    dragOffsetX = dragOffsetX,
+                                    swipeThreshold = swipeThreshold,
+                                    enableSharedArtworkTransition = enableSharedArtworkTransition,
+                                    sharedArtworkState = sharedArtworkState,
+                                    placeholderPainter = placeholderPainter,
+                                    imageQualityManager = imageQualityManager
+                                )
+                            }
+                            ControlsPanel(
                                 trackIdentity = trackIdentity,
                                 titleStyle = titleStyle,
                                 artistStyle = artistStyle,
                                 albumStyle = albumStyle,
                                 onArtistClick = onArtistClick,
-                                onAlbumClick = onAlbumClick
+                                onAlbumClick = onAlbumClick,
+                                playbackInfo = displayInfo,
+                                controlsEnabled = controlsEnabled,
+                                isPlayPauseUpdating = isPlayPauseUpdating,
+                                onSeek = { viewModel.seek(it) },
+                                onPlayPause = { viewModel.togglePlayPause() },
+                                onNext = { viewModel.next() },
+                                onPrevious = { viewModel.previous() },
+                                repeatMode = repeatMode,
+                                shuffle = shuffle,
+                                isRepeatModeUpdating = isRepeatModeUpdating,
+                                isShuffleUpdating = isShuffleUpdating,
+                                onRepeatToggle = { viewModel.toggleRepeatMode() },
+                                onShuffleToggle = { viewModel.toggleShuffle() },
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .fillMaxHeight()
+                            )
+                        }
+                    } else if (useSideBySide) {
+                        Column(
+                            modifier = Modifier.fillMaxSize(),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(24.dp, Alignment.CenterVertically)
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(24.dp)
+                            ) {
+                                ArtworkPanel(
+                                    trackIdentity = trackIdentity,
+                                    artworkSize = artworkSize,
+                                    isLoading = isLoading,
+                                    hasNext = displayInfo.hasNext,
+                                    hasPrevious = displayInfo.hasPrevious,
+                                    onNext = { viewModel.next() },
+                                    onPrevious = { viewModel.previous() },
+                                    haptic = haptic,
+                                    dragOffsetX = dragOffsetX,
+                                    swipeThreshold = swipeThreshold,
+                                    enableSharedArtworkTransition = enableSharedArtworkTransition,
+                                    sharedArtworkState = sharedArtworkState,
+                                    placeholderPainter = placeholderPainter,
+                                    imageQualityManager = imageQualityManager
+                                )
+                                Column(
+                                    modifier = Modifier.weight(1f),
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                                ) {
+                                    PlayerProviderRow(
+                                        player = selectedPlayer,
+                                        localPlayerId = localPlayerId,
+                                        providerName = displayInfo.providerName,
+                                        providerIconSvg = displayInfo.providerIconSvg,
+                                        providerIconUrl = displayInfo.providerIconUrl
+                                    )
+                                    TrackInfoPanel(
+                                        trackIdentity = trackIdentity,
+                                        titleStyle = titleStyle,
+                                        artistStyle = artistStyle,
+                                        albumStyle = albumStyle,
+                                        onArtistClick = onArtistClick,
+                                        onAlbumClick = onAlbumClick
+                                    )
+                                }
+                            }
+                            PlaybackControlPanel(
+                                trackIdentity = trackIdentity,
+                                playbackInfo = displayInfo,
+                                controlsEnabled = controlsEnabled,
+                                isPlayPauseUpdating = isPlayPauseUpdating,
+                                onSeek = { viewModel.seek(it) },
+                                onPlayPause = { viewModel.togglePlayPause() },
+                                onNext = { viewModel.next() },
+                                onPrevious = { viewModel.previous() },
+                                repeatMode = repeatMode,
+                                shuffle = shuffle,
+                                isRepeatModeUpdating = isRepeatModeUpdating,
+                                isShuffleUpdating = isShuffleUpdating,
+                                onRepeatToggle = { viewModel.toggleRepeatMode() },
+                                onShuffleToggle = { viewModel.toggleShuffle() },
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        }
+                    } else {
+                        Column(
+                            modifier = Modifier.fillMaxSize(),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            ArtworkPanel(
+                                trackIdentity = trackIdentity,
+                                artworkSize = artworkSize,
+                                isLoading = isLoading,
+                                hasNext = displayInfo.hasNext,
+                                hasPrevious = displayInfo.hasPrevious,
+                                onNext = { viewModel.next() },
+                                onPrevious = { viewModel.previous() },
+                                haptic = haptic,
+                                dragOffsetX = dragOffsetX,
+                                swipeThreshold = swipeThreshold,
+                                enableSharedArtworkTransition = enableSharedArtworkTransition,
+                                sharedArtworkState = sharedArtworkState,
+                                placeholderPainter = placeholderPainter,
+                                imageQualityManager = imageQualityManager
+                            )
+                            PlayerProviderRow(
+                                player = selectedPlayer,
+                                localPlayerId = localPlayerId,
+                                providerName = displayInfo.providerName,
+                                providerIconSvg = displayInfo.providerIconSvg,
+                                providerIconUrl = displayInfo.providerIconUrl,
+                                modifier = Modifier.padding(top = 16.dp)
+                            )
+                            Spacer(modifier = Modifier.height(24.dp))
+                            ControlsPanel(
+                                trackIdentity = trackIdentity,
+                                titleStyle = titleStyle,
+                                artistStyle = artistStyle,
+                                albumStyle = albumStyle,
+                                onArtistClick = onArtistClick,
+                                onAlbumClick = onAlbumClick,
+                                playbackInfo = displayInfo,
+                                controlsEnabled = controlsEnabled,
+                                isPlayPauseUpdating = isPlayPauseUpdating,
+                                onSeek = { viewModel.seek(it) },
+                                onPlayPause = { viewModel.togglePlayPause() },
+                                onNext = { viewModel.next() },
+                                onPrevious = { viewModel.previous() },
+                                repeatMode = repeatMode,
+                                shuffle = shuffle,
+                                isRepeatModeUpdating = isRepeatModeUpdating,
+                                isShuffleUpdating = isShuffleUpdating,
+                                onRepeatToggle = { viewModel.toggleRepeatMode() },
+                                onShuffleToggle = { viewModel.toggleShuffle() },
+                                modifier = Modifier.weight(1f)
                             )
                         }
                     }
-                    PlaybackControlPanel(
-                        trackIdentity = trackIdentity,
-                        playbackInfo = displayInfo,
-                        controlsEnabled = controlsEnabled,
-                        isPlayPauseUpdating = isPlayPauseUpdating,
-                        onSeek = { viewModel.seek(it) },
-                        onPlayPause = { viewModel.togglePlayPause() },
-                        onNext = { viewModel.next() },
-                        onPrevious = { viewModel.previous() },
-                        repeatMode = repeatMode,
-                        shuffle = shuffle,
-                        isRepeatModeUpdating = isRepeatModeUpdating,
-                        isShuffleUpdating = isShuffleUpdating,
-                        onRepeatToggle = { viewModel.toggleRepeatMode() },
-                        onShuffleToggle = { viewModel.toggleShuffle() },
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
-            } else {
-                Column(
-                    modifier = Modifier.fillMaxSize(),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    ArtworkPanel(
-                        trackIdentity = trackIdentity,
-                        artworkSize = artworkSize,
-                        isLoading = isLoading,
-                        hasNext = displayInfo.hasNext,
-                        hasPrevious = displayInfo.hasPrevious,
-                        onNext = { viewModel.next() },
-                        onPrevious = { viewModel.previous() },
-                        haptic = haptic,
-                        dragOffsetX = dragOffsetX,
-                        swipeThreshold = swipeThreshold,
-                        enableSharedArtworkTransition = enableSharedArtworkTransition,
-                        sharedArtworkState = sharedArtworkState,
-                        placeholderPainter = placeholderPainter,
-                        imageQualityManager = imageQualityManager
-                    )
-                    PlayerProviderRow(
-                        player = selectedPlayer,
-                        localPlayerId = localPlayerId,
-                        providerName = displayInfo.providerName,
-                        providerIconSvg = displayInfo.providerIconSvg,
-                        providerIconUrl = displayInfo.providerIconUrl,
-                        modifier = Modifier.padding(top = 16.dp)
-                    )
-                    Spacer(modifier = Modifier.height(24.dp))
-                    ControlsPanel(
-                        trackIdentity = trackIdentity,
-                        titleStyle = titleStyle,
-                        artistStyle = artistStyle,
-                        albumStyle = albumStyle,
-                        onArtistClick = onArtistClick,
-                        onAlbumClick = onAlbumClick,
-                        playbackInfo = displayInfo,
-                        controlsEnabled = controlsEnabled,
-                        isPlayPauseUpdating = isPlayPauseUpdating,
-                        onSeek = { viewModel.seek(it) },
-                        onPlayPause = { viewModel.togglePlayPause() },
-                        onNext = { viewModel.next() },
-                        onPrevious = { viewModel.previous() },
-                        repeatMode = repeatMode,
-                        shuffle = shuffle,
-                        isRepeatModeUpdating = isRepeatModeUpdating,
-                        isShuffleUpdating = isShuffleUpdating,
-                        onRepeatToggle = { viewModel.toggleRepeatMode() },
-                        onShuffleToggle = { viewModel.toggleShuffle() },
-                        modifier = Modifier.weight(1f)
-                    )
-                }
-            }
 
-            if (isIdle) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = stringResource(R.string.now_playing_empty),
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        textAlign = TextAlign.Center
-                    )
+                    if (isIdle) {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = stringResource(R.string.now_playing_empty),
+                                style = MaterialTheme.typography.titleMedium,
+                                color = Color.White.copy(alpha = 0.72f),
+                                textAlign = TextAlign.Center
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -558,6 +572,61 @@ fun SharedTransitionScope.NowPlayingScreen(
 
     LaunchedEffect(trackIdentity) {
         dragOffsetX.animateTo(0f, spring())
+    }
+}
+
+@Composable
+private fun BlurredArtworkBackground(
+    artworkUrl: String?,
+    imageQualityManager: ImageQualityManager,
+    modifier: Modifier = Modifier
+) {
+    val context = LocalContext.current
+    val backgroundRequest = remember(artworkUrl, context) {
+        ImageRequest.Builder(context)
+            .data(artworkUrl)
+            .size(480)
+            .bitmapConfig(imageQualityManager.getOptimalBitmapConfig())
+            .build()
+    }
+    Box(
+        modifier = modifier.background(
+            Brush.verticalGradient(
+                colors = listOf(
+                    Color(0xFF202338),
+                    Color(0xFF0F1324),
+                    Color(0xFF080A14)
+                )
+            )
+        )
+    ) {
+        if (!artworkUrl.isNullOrBlank()) {
+            AsyncImage(
+                model = backgroundRequest,
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .graphicsLayer {
+                        scaleX = 1.25f
+                        scaleY = 1.25f
+                    }
+                    .blur(110.dp)
+            )
+        }
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(
+                            Color.Black.copy(alpha = 0.4f),
+                            Color.Black.copy(alpha = 0.62f),
+                            Color.Black.copy(alpha = 0.84f)
+                        )
+                    )
+                )
+        )
     }
 }
 
@@ -743,6 +812,7 @@ private fun TrackInfoPanel(
                     Text(
                         text = identity.title,
                         style = titleStyle,
+                        color = Color.White,
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
                         textAlign = textAlign
@@ -756,18 +826,13 @@ private fun TrackInfoPanel(
                         Modifier
                     }
                     val isArtistClickable = artistClick != null
-                    val artistTextStyle = if (isArtistClickable) {
-                        artistStyle.copy(textDecoration = TextDecoration.Underline)
-                    } else {
-                        artistStyle
-                    }
                     Text(
                         text = identity.artist,
-                        style = artistTextStyle,
+                        style = artistStyle,
                         color = if (isArtistClickable) {
-                            MaterialTheme.colorScheme.primary
+                            Color.White
                         } else {
-                            MaterialTheme.colorScheme.onSurfaceVariant
+                            Color.White.copy(alpha = 0.82f)
                         },
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
@@ -783,18 +848,13 @@ private fun TrackInfoPanel(
                         Modifier
                     }
                     val isAlbumClickable = albumClick != null
-                    val albumTextStyle = if (isAlbumClickable) {
-                        albumStyle.copy(textDecoration = TextDecoration.Underline)
-                    } else {
-                        albumStyle
-                    }
                     Text(
                         text = identity.album,
-                        style = albumTextStyle,
+                        style = albumStyle,
                         color = if (isAlbumClickable) {
-                            MaterialTheme.colorScheme.primary
+                            Color.White.copy(alpha = 0.92f)
                         } else {
-                            MaterialTheme.colorScheme.onSurfaceVariant
+                            Color.White.copy(alpha = 0.72f)
                         },
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
@@ -863,8 +923,8 @@ private fun ProviderBadgeRow(
     val iconSize = 14.dp
     val sizePx = with(LocalDensity.current) { iconSize.roundToPx() }
     Surface(
-        color = MaterialTheme.colorScheme.secondaryContainer,
-        contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+        color = Color.White.copy(alpha = 0.16f),
+        contentColor = Color.White,
         shape = MaterialTheme.shapes.small,
         modifier = modifier
     ) {
@@ -890,7 +950,7 @@ private fun ProviderBadgeRow(
                 Text(
                     text = label,
                     style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSecondaryContainer,
+                    color = Color.White,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     textAlign = textAlign
@@ -925,9 +985,6 @@ private fun PlaybackControlPanel(
         showLosslessDetail = false
     )
     val qualityCategory = trackQualityCategory(trackIdentity.quality)
-    val qualityBadgeContent: (@Composable () -> Unit)? = qualityLabel?.let { label ->
-        { NowPlayingQualityBadge(text = label, category = qualityCategory) }
-    }
     Column(
         modifier = modifier,
         horizontalAlignment = Alignment.CenterHorizontally
@@ -937,7 +994,6 @@ private fun PlaybackControlPanel(
             duration = playbackInfo.duration,
             onSeek = onSeek,
             enabled = controlsEnabled,
-            centerContent = qualityBadgeContent,
             modifier = Modifier.fillMaxWidth()
         )
         Spacer(modifier = Modifier.height(24.dp))
@@ -957,6 +1013,19 @@ private fun PlaybackControlPanel(
             onPrevious = onPrevious,
             enabled = controlsEnabled
         )
+        if (qualityLabel != null) {
+            Spacer(modifier = Modifier.height(20.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Spacer(modifier = Modifier.weight(1f))
+                NowPlayingQualityBadge(
+                    text = qualityLabel,
+                    category = qualityCategory
+                )
+            }
+        }
     }
 }
 
@@ -967,22 +1036,22 @@ private fun NowPlayingQualityBadge(
     modifier: Modifier = Modifier
 ) {
     val (containerColor, contentColor) = when (category) {
-        TrackQualityCategory.LOSSLESS -> LosslessQualityGreen to LosslessQualityOnGreen
-        TrackQualityCategory.LOSSY -> CompressedQualityOrange to CompressedQualityOnOrange
-        else -> MaterialTheme.colorScheme.secondaryContainer to MaterialTheme.colorScheme.onSecondaryContainer
+        TrackQualityCategory.LOSSLESS -> LosslessQualityGreen.copy(alpha = 0.9f) to LosslessQualityOnGreen
+        TrackQualityCategory.LOSSY -> CompressedQualityOrange.copy(alpha = 0.9f) to CompressedQualityOnOrange
+        else -> Color.White.copy(alpha = 0.2f) to Color.White
     }
     Surface(
         color = containerColor,
         contentColor = contentColor,
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(10.dp),
         modifier = modifier
     ) {
         Text(
             text = text,
-            style = MaterialTheme.typography.labelSmall,
+            style = MaterialTheme.typography.labelMedium,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
         )
     }
 }
@@ -1028,8 +1097,8 @@ private fun PlayerNamePill(
         selected.name
     }
     Surface(
-        color = MaterialTheme.colorScheme.secondaryContainer,
-        contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+        color = Color.White.copy(alpha = 0.16f),
+        contentColor = Color.White,
         shape = MaterialTheme.shapes.small,
         modifier = modifier
     ) {

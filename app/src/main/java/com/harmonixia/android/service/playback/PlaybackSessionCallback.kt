@@ -1,5 +1,10 @@
 package com.harmonixia.android.service.playback
 
+import android.content.Context
+import android.graphics.Bitmap
+import android.net.Uri
+import android.os.Parcel
+import android.util.LruCache
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
@@ -10,6 +15,14 @@ import androidx.media3.session.MediaLibraryService.LibraryParams
 import androidx.media3.session.MediaLibraryService.MediaLibrarySession
 import androidx.media3.session.MediaSession
 import androidx.media3.session.SessionResult
+import coil3.ImageLoader
+import coil3.request.ImageRequest
+import coil3.request.SuccessResult
+import coil3.request.allowConversionToBitmap
+import coil3.request.allowHardware
+import coil3.request.bitmapConfig
+import coil3.size.Scale
+import coil3.toBitmap
 import com.google.common.collect.ImmutableList
 import com.google.common.util.concurrent.Futures
 import com.google.common.util.concurrent.ListenableFuture
@@ -21,10 +34,17 @@ import com.harmonixia.android.util.EXTRA_PARENT_MEDIA_ID
 import com.harmonixia.android.util.EXTRA_STREAM_URI
 import com.harmonixia.android.util.Logger
 import com.harmonixia.android.util.PerformanceMonitor
+import java.io.ByteArrayOutputStream
+import java.util.concurrent.atomic.AtomicInteger
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 
@@ -33,11 +53,18 @@ class PlaybackSessionCallback(
     private val player: Player,
     private val repository: MusicAssistantRepository,
     private val playbackStateManager: PlaybackStateManager,
-    private val queueManager: QueueManager,
     private val mediaLibraryBrowser: MediaLibraryBrowser,
     private val performanceMonitor: PerformanceMonitor,
-    private val scope: CoroutineScope
+    private val scope: CoroutineScope,
+    private val context: Context,
+    private val imageLoader: ImageLoader
 ) : MediaLibrarySession.Callback {
+
+    private val autoArtworkCache = object : LruCache<String, ByteArray>(AUTO_ARTWORK_CACHE_BYTES) {
+        override fun sizeOf(key: String, value: ByteArray): Int = value.size
+    }
+    private val autoArtworkSemaphore = Semaphore(AUTO_ARTWORK_PARALLELISM)
+    private val autoArtworkFailureLogBudget = AtomicInteger(AUTO_ARTWORK_LOG_FAILURES)
 
     private val playerListener = object : Player.Listener {
         override fun onPositionDiscontinuity(
@@ -48,7 +75,6 @@ class PlaybackSessionCallback(
             if (reason != Player.DISCONTINUITY_REASON_SEEK) return
             if (oldPosition.mediaItemIndex != newPosition.mediaItemIndex) return
             if (playbackStateManager.consumeSyncSeekSuppression()) return
-            if (queueManager.isLocalQueueActive()) return
             val queueId = playbackStateManager.currentQueueId ?: return
             val positionSeconds = (player.currentPosition / 1000L).toInt()
             val timestamp = System.currentTimeMillis()
@@ -126,13 +152,43 @@ class PlaybackSessionCallback(
     ): ListenableFuture<LibraryResult<ImmutableList<MediaItem>>> {
         val future = SettableFuture.create<LibraryResult<ImmutableList<MediaItem>>>()
         scope.launch(Dispatchers.IO) {
+            val startTimestamp = System.currentTimeMillis()
+            val useBuckets = shouldUseAutoBrowseBuckets(browser)
             val children = runCatching {
-                mediaLibraryBrowser.getChildren(parentId, page, pageSize)
+                mediaLibraryBrowser.getChildren(parentId, page, pageSize, useBuckets)
             }.getOrElse {
                 Logger.w(TAG, "Failed to load children for $parentId", it)
                 emptyList()
             }
-            future.set(LibraryResult.ofItemList(ImmutableList.copyOf(children), params))
+            val embedArtwork = shouldEmbedArtwork(browser)
+            val resolvedChildren = if (embedArtwork) {
+                attachArtworkData(children)
+            } else {
+                children
+            }
+            if (resolvedChildren.size > LARGE_BROWSE_COUNT) {
+                runCatching {
+                    val parcel = Parcel.obtain()
+                    val bundles = ArrayList<android.os.Bundle>(resolvedChildren.size)
+                    for (item in resolvedChildren) {
+                        bundles.add(item.toBundle())
+                    }
+                    parcel.writeTypedList(bundles)
+                    val size = parcel.dataSize()
+                    parcel.recycle()
+                    Logger.d(
+                        TAG,
+                        "Auto browse children parentId=$parentId bundleBytes=$size items=${resolvedChildren.size}"
+                    )
+                }.onFailure {
+                    Logger.w(TAG, "Failed to measure browse parcel size for $parentId", it)
+                }
+            }
+            Logger.d(
+                TAG,
+                "Auto browse children parentId=$parentId page=$page pageSize=$pageSize count=${resolvedChildren.size} controller=${browser.packageName} embedArtwork=$embedArtwork buckets=$useBuckets durationMs=${System.currentTimeMillis() - startTimestamp}"
+            )
+            future.set(LibraryResult.ofItemList(ImmutableList.copyOf(resolvedChildren), params))
         }
         return future
     }
@@ -173,7 +229,12 @@ class PlaybackSessionCallback(
                 Logger.w(TAG, "Failed to load search results for $query", it)
                 emptyList()
             }
-            future.set(LibraryResult.ofItemList(ImmutableList.copyOf(items), params))
+            val resolvedItems = if (shouldEmbedArtwork(browser)) {
+                attachArtworkData(items)
+            } else {
+                items
+            }
+            future.set(LibraryResult.ofItemList(ImmutableList.copyOf(resolvedItems), params))
         }
         return future
     }
@@ -184,14 +245,9 @@ class PlaybackSessionCallback(
         mediaItems: List<MediaItem>
     ): ListenableFuture<List<MediaItem>> {
         val resolvedItems = resolveMediaItems(mediaItems)
-        val isLocalQueue = queueManager.areMediaItemsLocal(resolvedItems)
         playbackStateManager.notifyUserInitiatedPlayback()
         markPlaybackRequestedForMediaItem(resolvedItems.firstOrNull())
         scope.launch(Dispatchers.IO) {
-            if (isLocalQueue) {
-                Logger.d(TAG, "Skipping remote add for local queue")
-                return@launch
-            }
             playbackStateManager.reconnectLocalPlayerIfUnavailable()
             val queueId = playbackStateManager.currentQueueId ?: awaitQueueId()
             if (queueId.isNullOrBlank()) {
@@ -209,9 +265,9 @@ class PlaybackSessionCallback(
             )
             repository.playMedia(queueId, uris, QueueOption.ADD)
                 .onFailure { Logger.w(TAG, "Add to queue failed", it) }
+            playbackStateManager.refreshQueueFast()
         }
-        queueManager.addMediaItems(resolvedItems)
-        return Futures.immediateFuture(resolvedItems)
+        return Futures.immediateFuture(emptyList())
     }
 
     override fun onSetMediaItems(
@@ -240,7 +296,6 @@ class PlaybackSessionCallback(
                     resolvedItems to safeIndex
                 }
             }
-            val isLocalQueue = queueManager.areMediaItemsLocal(queueItems)
             playbackStateManager.notifyUserInitiatedPlayback()
             markPlaybackRequestedForStartItem(queueItems, queueStartIndex)
             if (queueStartIndex > 0) {
@@ -249,10 +304,6 @@ class PlaybackSessionCallback(
                 playbackStateManager.clearPendingStart()
             }
             scope.launch(Dispatchers.IO) {
-                if (isLocalQueue) {
-                    Logger.d(TAG, "Skipping remote queue replace for local items")
-                    return@launch
-                }
                 playbackStateManager.reconnectLocalPlayerIfUnavailable()
                 val queueId = playbackStateManager.currentQueueId ?: awaitQueueId()
                 if (queueId.isNullOrBlank()) {
@@ -269,6 +320,7 @@ class PlaybackSessionCallback(
                         option = QueueOption.REPLACE,
                         startItem = resolvedStartItemUri
                     ).onFailure { Logger.w(TAG, "Replace queue failed", it) }
+                    playbackStateManager.refreshQueueFast()
                     return@launch
                 }
                 val uris = queueItems.mapNotNull { it.streamUri() }
@@ -286,9 +338,20 @@ class PlaybackSessionCallback(
                     repository.playIndex(queueId, queueStartIndex)
                         .onFailure { Logger.w(TAG, "Failed to set start index", it) }
                 }
+                playbackStateManager.refreshQueueFast()
             }
-            queueManager.replaceQueue(queueItems, queueStartIndex, startPositionMs)
-            future.set(MediaSession.MediaItemsWithStartPosition(queueItems, queueStartIndex, startPositionMs))
+            val currentItems = currentPlayerItems()
+            val returnIndex = player.currentMediaItemIndex
+                .takeIf { it in currentItems.indices }
+                ?: 0
+            val returnPosition = if (currentItems.isEmpty()) 0L else player.currentPosition
+            future.set(
+                MediaSession.MediaItemsWithStartPosition(
+                    currentItems,
+                    returnIndex,
+                    returnPosition
+                )
+            )
         }
         return future
     }
@@ -363,7 +426,6 @@ class PlaybackSessionCallback(
         playbackStateManager.notifyUserInitiatedPlayback()
         markPlaybackRequestedForMediaItem(player.currentMediaItem)
         player.play()
-        if (isLocalQueueActive()) return
         scope.launch {
             playbackStateManager.reconnectLocalPlayerIfUnavailable()
             val queueId = playbackStateManager.currentQueueId ?: awaitQueueId()
@@ -391,7 +453,6 @@ class PlaybackSessionCallback(
     private fun handlePause() {
         playbackStateManager.notifyUserInitiatedPause()
         player.pause()
-        if (isLocalQueueActive()) return
         val queueId = playbackStateManager.currentQueueId ?: return
         scope.launch {
             Logger.d(TAG, "Requesting pause queueId=$queueId")
@@ -404,7 +465,6 @@ class PlaybackSessionCallback(
         playbackStateManager.notifyUserInitiatedPause()
         player.stop()
         performanceMonitor.clearPlaybackRequests()
-        if (isLocalQueueActive()) return
         val queueId = playbackStateManager.currentQueueId ?: return
         scope.launch {
             Logger.d(TAG, "Requesting stop (pause) queueId=$queueId")
@@ -415,7 +475,6 @@ class PlaybackSessionCallback(
 
     private fun handleNext() {
         markPlaybackRequestedForIndex(player.nextMediaItemIndex)
-        if (isLocalQueueActive()) return
         val queueId = playbackStateManager.currentQueueId ?: return
         scope.launch {
             Logger.d(TAG, "Requesting next queueId=$queueId")
@@ -429,7 +488,6 @@ class PlaybackSessionCallback(
         if (shouldSkipToPrevious) {
             markPlaybackRequestedForIndex(player.previousMediaItemIndex)
         }
-        if (isLocalQueueActive()) return
         val queueId = playbackStateManager.currentQueueId ?: return
         if (!shouldSkipToPrevious) {
             playbackStateManager.suppressNextRemoteSeek()
@@ -455,7 +513,6 @@ class PlaybackSessionCallback(
     }
 
     private fun handleShuffleModeChange(shuffleModeEnabled: Boolean) {
-        if (isLocalQueueActive()) return
         if (shuffleModeEnabled == playbackStateManager.shuffle.value) return
         scope.launch(Dispatchers.IO) {
             val queueId = playbackStateManager.currentQueueId ?: awaitQueueId()
@@ -470,7 +527,6 @@ class PlaybackSessionCallback(
     }
 
     private fun handleRepeatModeChange(@Player.RepeatMode repeatMode: Int) {
-        if (isLocalQueueActive()) return
         val targetMode = repeatMode.toDomainRepeatMode()
         if (targetMode == playbackStateManager.repeatMode.value) return
         scope.launch(Dispatchers.IO) {
@@ -520,14 +576,136 @@ class PlaybackSessionCallback(
         return message.contains("No playable item", ignoreCase = true)
     }
 
-    private fun isLocalQueueActive(): Boolean {
-        return queueManager.isLocalQueueActive()
+    private fun currentPlayerItems(): List<MediaItem> {
+        val count = player.mediaItemCount
+        if (count <= 0) return emptyList()
+        return (0 until count).map { index -> player.getMediaItemAt(index) }
+    }
+
+    private fun shouldEmbedArtwork(controller: MediaSession.ControllerInfo): Boolean {
+        val packageName = controller.packageName.orEmpty()
+        if (packageName.isBlank()) return false
+        if (packageName in AUTO_CONTROLLER_PACKAGES) return true
+        if (packageName.startsWith("com.google.android.apps.auto.")) return true
+        if (packageName.startsWith("com.android.car.")) return true
+        return false
+    }
+
+    private fun shouldUseAutoBrowseBuckets(controller: MediaSession.ControllerInfo): Boolean {
+        val packageName = controller.packageName.orEmpty()
+        if (packageName.isBlank()) return false
+        if (packageName in AUTO_CONTROLLER_PACKAGES) return true
+        if (packageName.startsWith("com.google.android.apps.auto.")) return true
+        if (packageName.startsWith("com.android.car.")) return true
+        return false
+    }
+
+    private suspend fun attachArtworkData(items: List<MediaItem>): List<MediaItem> = coroutineScope {
+        if (items.isEmpty()) return@coroutineScope items
+        val limit = AUTO_ARTWORK_MAX_ITEMS
+        val (candidates, remainder) = if (items.size > limit) {
+            items.take(limit) to items.drop(limit)
+        } else {
+            items to emptyList()
+        }
+        val processed = candidates.map { item ->
+            async(Dispatchers.IO) {
+                autoArtworkSemaphore.withPermit {
+                    ensureArtworkData(item)
+                }
+            }
+        }.awaitAll()
+        if (remainder.isEmpty()) processed else processed + remainder
+    }
+
+    private suspend fun ensureArtworkData(item: MediaItem): MediaItem {
+        val metadata = item.mediaMetadata
+        if (metadata.artworkData != null) return item
+        val artworkUri = metadata.artworkUri ?: return item
+        val cacheKey = artworkUri.toString()
+        val cached = synchronized(autoArtworkCache) { autoArtworkCache.get(cacheKey) }
+        val artworkData = cached ?: loadArtworkBytes(artworkUri)?.also { bytes ->
+            synchronized(autoArtworkCache) { autoArtworkCache.put(cacheKey, bytes) }
+        } ?: return item
+        val updatedMetadata = metadata.buildUpon()
+            .setArtworkData(artworkData, MediaMetadata.PICTURE_TYPE_FRONT_COVER)
+            .build()
+        return item.buildUpon()
+            .setMediaMetadata(updatedMetadata)
+            .build()
+    }
+
+    private suspend fun loadArtworkBytes(uri: Uri): ByteArray? {
+        return runCatching {
+            val request = ImageRequest.Builder(context)
+                .data(uri)
+                .size(AUTO_ARTWORK_SIZE_PX)
+                .scale(Scale.FIT)
+                .allowHardware(false)
+                .allowConversionToBitmap(true)
+                .bitmapConfig(Bitmap.Config.ARGB_8888)
+                .build()
+            val result = imageLoader.execute(request)
+            val success = result as? SuccessResult ?: run {
+                if (autoArtworkFailureLogBudget.getAndDecrement() > 0) {
+                    Logger.w(TAG, "Auto artwork load failed uri=$uri result=$result")
+                }
+                return@runCatching null
+            }
+            val bitmap = success.image.toBitmap()
+            val scaled = scaleDown(bitmap, AUTO_ARTWORK_SIZE_PX)
+            val encoded = encodeBitmap(scaled)
+            if (scaled != bitmap) {
+                scaled.recycle()
+            }
+            encoded
+        }.getOrNull()
+    }
+
+    private fun scaleDown(bitmap: Bitmap, maxSize: Int): Bitmap {
+        val maxDim = maxOf(bitmap.width, bitmap.height)
+        if (maxDim <= maxSize) return bitmap
+        val scale = maxSize / maxDim.toFloat()
+        val width = (bitmap.width * scale).toInt().coerceAtLeast(1)
+        val height = (bitmap.height * scale).toInt().coerceAtLeast(1)
+        return Bitmap.createScaledBitmap(bitmap, width, height, true)
+    }
+
+    private fun encodeBitmap(bitmap: Bitmap): ByteArray? {
+        val output = ByteArrayOutputStream()
+        var quality = AUTO_ARTWORK_JPEG_QUALITY
+        if (!bitmap.compress(Bitmap.CompressFormat.JPEG, quality, output)) return null
+        var bytes = output.toByteArray()
+        while (bytes.size > AUTO_ARTWORK_MAX_BYTES && quality > AUTO_ARTWORK_MIN_QUALITY) {
+            quality -= AUTO_ARTWORK_QUALITY_STEP
+            output.reset()
+            if (!bitmap.compress(Bitmap.CompressFormat.JPEG, quality, output)) break
+            bytes = output.toByteArray()
+        }
+        return bytes.takeIf { it.isNotEmpty() }
     }
 
     companion object {
         private const val TAG = "PlaybackSessionCallback"
+        private const val LARGE_BROWSE_COUNT = 500
         private const val QUEUE_ID_WAIT_TIMEOUT_MS = 3000L
         private const val PLAYER_ID_WAIT_TIMEOUT_MS = 3000L
         private const val PREVIOUS_TRACK_THRESHOLD_MS = 3000L
+        private const val AUTO_ARTWORK_SIZE_PX = 256
+        private const val AUTO_ARTWORK_MAX_BYTES = 64 * 1024
+        private const val AUTO_ARTWORK_JPEG_QUALITY = 75
+        private const val AUTO_ARTWORK_MIN_QUALITY = 45
+        private const val AUTO_ARTWORK_QUALITY_STEP = 10
+        private const val AUTO_ARTWORK_CACHE_BYTES = 8 * 1024 * 1024
+        private const val AUTO_ARTWORK_PARALLELISM = 3
+        private const val AUTO_ARTWORK_LOG_FAILURES = 8
+        private const val AUTO_ARTWORK_MAX_ITEMS = 40
+        private val AUTO_CONTROLLER_PACKAGES = setOf(
+            "com.google.android.projection.gearhead",
+            "com.google.android.apps.auto.media",
+            "com.google.android.apps.auto.media.player",
+            "com.android.car.media",
+            "com.android.car.carlauncher"
+        )
     }
 }

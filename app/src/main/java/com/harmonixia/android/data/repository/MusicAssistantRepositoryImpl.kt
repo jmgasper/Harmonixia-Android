@@ -51,7 +51,6 @@ import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.intOrNull
 import kotlinx.serialization.json.jsonPrimitive
-import kotlinx.serialization.json.decodeFromJsonElement
 import kotlinx.serialization.json.put
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -1254,11 +1253,10 @@ class MusicAssistantRepositoryImpl @Inject constructor(
     private fun parsePlaylistObject(result: JsonElement): Playlist {
         return when (result) {
             is JsonObject -> {
-                val decoded = runCatching { json.decodeFromJsonElement<Playlist>(result) }
-                    .getOrElse { parsePlaylist(result) }
-                val imageUrl = extractImageUrl(result) ?: decoded.imageUrl
+                val parsed = parsePlaylist(result)
+                val imageUrl = extractImageUrl(result) ?: parsed.imageUrl
                 val trackCount = result.intOrZero("track_count", "track_total", "total_tracks")
-                decoded.copy(imageUrl = imageUrl, trackCount = trackCount)
+                parsed.copy(imageUrl = imageUrl, trackCount = trackCount)
             }
             else -> {
                 Logger.w(TAG, "Unexpected playlist response: $result")
@@ -1332,6 +1330,7 @@ class MusicAssistantRepositoryImpl @Inject constructor(
             owner = jsonObject.stringOrNull("owner"),
             isEditable = jsonObject.booleanOrFalse("is_editable"),
             imageUrl = extractImageUrl(jsonObject),
+            addedAt = jsonObject.stringOrNull("timestamp_added", "added_at", "created", "created_at"),
             trackCount = jsonObject.intOrZero("track_count", "track_total", "total_tracks")
         )
     }
@@ -1663,7 +1662,9 @@ class MusicAssistantRepositoryImpl @Inject constructor(
 
     private fun imageArrayToUrl(images: JsonArray): String? {
         val objects = images.mapNotNull { it as? JsonObject }
-        val preferred = objects.firstOrNull { it.stringOrNull("type") == "thumb" }
+        val preferred = objects.firstOrNull { it.stringOrNull("type") == "thumb" && isUsableImage(it) }
+            ?: objects.firstOrNull { isUsableImage(it) }
+            ?: objects.firstOrNull { it.stringOrNull("type") == "thumb" }
             ?: objects.firstOrNull()
         return preferred?.let { imageObjectToUrl(it) }
     }
@@ -1680,6 +1681,25 @@ class MusicAssistantRepositoryImpl @Inject constructor(
         val encodedPath = runCatching { URLEncoder.encode(path, "UTF-8") }.getOrElse { path }
         val providerParam = provider?.ifBlank { "builtin" } ?: "builtin"
         return "$base/imageproxy?path=$encodedPath&provider=$providerParam"
+    }
+
+    private fun isUsableImage(image: JsonObject): Boolean {
+        val path = image.stringOrNull("path")?.trim().orEmpty()
+        if (path.isBlank()) return false
+        if (path.startsWith("http://") || path.startsWith("https://")) return true
+        val lower = path.lowercase(Locale.getDefault())
+        if (lower.endsWith(".jpg") ||
+            lower.endsWith(".jpeg") ||
+            lower.endsWith(".png") ||
+            lower.endsWith(".webp") ||
+            lower.endsWith(".gif") ||
+            lower.endsWith(".bmp") ||
+            lower.endsWith(".svg")
+        ) {
+            return true
+        }
+        val remotelyAccessible = image["remotely_accessible"]?.jsonPrimitive?.booleanOrNull
+        return remotelyAccessible == true
     }
 
     private fun RepeatMode.toApiValue(): String {

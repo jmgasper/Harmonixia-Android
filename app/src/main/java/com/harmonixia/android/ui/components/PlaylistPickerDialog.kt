@@ -33,6 +33,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.harmonixia.android.R
 import com.harmonixia.android.domain.model.Playlist
+import java.time.Instant
+import java.time.LocalDateTime
+import java.time.OffsetDateTime
+import java.time.ZoneOffset
 
 @Composable
 fun PlaylistPickerDialog(
@@ -45,7 +49,7 @@ fun PlaylistPickerDialog(
     var query by remember { mutableStateOf("") }
     val filtered = remember(playlists, query) {
         val trimmed = query.trim()
-        if (trimmed.isBlank()) {
+        val candidates = if (trimmed.isBlank()) {
             playlists
         } else {
             playlists.filter { playlist ->
@@ -53,6 +57,7 @@ fun PlaylistPickerDialog(
                     playlist.owner?.contains(trimmed, ignoreCase = true) == true
             }
         }
+        candidates.sortedWith(NewestPlaylistComparator)
     }
 
     AlertDialog(
@@ -142,4 +147,25 @@ fun PlaylistPickerDialog(
         },
         modifier = modifier
     )
+}
+
+private val NewestPlaylistComparator = Comparator<Playlist> { left, right ->
+    val leftCreatedAt = parsePlaylistCreatedAtMillis(left.addedAt)
+    val rightCreatedAt = parsePlaylistCreatedAtMillis(right.addedAt)
+    when {
+        leftCreatedAt != rightCreatedAt -> rightCreatedAt.compareTo(leftCreatedAt)
+        else -> left.name.trim().lowercase().compareTo(right.name.trim().lowercase())
+    }
+}
+
+private fun parsePlaylistCreatedAtMillis(value: String?): Long {
+    val trimmed = value?.trim().orEmpty()
+    if (trimmed.isBlank()) return Long.MIN_VALUE
+    trimmed.toLongOrNull()?.let { numeric ->
+        return if (numeric > 9_999_999_999L) numeric else numeric * 1000L
+    }
+    return runCatching { Instant.parse(trimmed).toEpochMilli() }
+        .recoverCatching { OffsetDateTime.parse(trimmed).toInstant().toEpochMilli() }
+        .recoverCatching { LocalDateTime.parse(trimmed).toInstant(ZoneOffset.UTC).toEpochMilli() }
+        .getOrDefault(Long.MIN_VALUE)
 }

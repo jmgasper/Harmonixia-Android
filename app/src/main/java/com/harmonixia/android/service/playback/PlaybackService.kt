@@ -16,6 +16,7 @@ import androidx.media3.session.MediaSession
 import com.harmonixia.android.domain.model.RepeatMode
 import com.harmonixia.android.domain.model.Track
 import com.harmonixia.android.domain.repository.MusicAssistantRepository
+import coil3.ImageLoader
 import com.harmonixia.android.util.Logger
 import com.harmonixia.android.util.PerformanceMonitor
 import dagger.hilt.android.AndroidEntryPoint
@@ -39,6 +40,7 @@ class PlaybackService : MediaLibraryService() {
     @Inject lateinit var sendspinPlaybackManager: SendspinPlaybackManager
     @Inject lateinit var performanceMonitor: PerformanceMonitor
     @Inject lateinit var mediaLibraryBrowser: MediaLibraryBrowser
+    @Inject lateinit var imageLoader: ImageLoader
 
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
 
@@ -157,10 +159,11 @@ class PlaybackService : MediaLibraryService() {
             player = player,
             repository = repository,
             playbackStateManager = playbackStateManager,
-            queueManager = queueManager,
             mediaLibraryBrowser = mediaLibraryBrowser,
             performanceMonitor = performanceMonitor,
-            scope = serviceScope
+            scope = serviceScope,
+            context = this,
+            imageLoader = imageLoader
         )
 
         mediaSession = MediaLibrarySession.Builder(this, player, sessionCallback)

@@ -1,7 +1,6 @@
 package com.harmonixia.android.service.playback
 
 import android.os.SystemClock
-import androidx.media3.common.C
 import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
 import com.harmonixia.android.data.local.SettingsDataStore
@@ -13,7 +12,6 @@ import com.harmonixia.android.domain.model.Track
 import com.harmonixia.android.domain.repository.MusicAssistantRepository
 import com.harmonixia.android.util.Logger
 import com.harmonixia.android.util.PlayerSelection
-import com.harmonixia.android.util.toPlaybackMediaItem
 import kotlin.math.abs
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
@@ -80,8 +78,6 @@ class PlaybackStateManager(
     val currentPlayerId: String? get() = _playerId.value
     val currentQueueId: String? get() = _queueId.value
 
-    fun isLocalPlaybackActive(): Boolean = queueManager.isLocalQueueActive()
-
     fun hasExplicitPlayerSelection(): Boolean {
         return synchronized(playerSelectionLock) { isPlayerExplicitlySelected }
     }
@@ -141,22 +137,6 @@ class PlaybackStateManager(
 
     fun setPlaybackContext(context: PlaybackContext?) {
         _playbackContext.value = context
-    }
-
-    fun seedQueue(tracks: List<Track>, startIndex: Int) {
-        if (tracks.isEmpty()) return
-        val safeIndex = startIndex.coerceIn(0, tracks.lastIndex)
-        if (safeIndex > 0) {
-            registerPendingStart(tracks[safeIndex].itemId)
-        } else {
-            clearPendingStart()
-        }
-        val mediaItems = tracks.map { it.toPlaybackMediaItem() }
-        scope.launch {
-            withContext(mainDispatcher) {
-                queueManager.replaceQueue(mediaItems, safeIndex, C.TIME_UNSET)
-            }
-        }
     }
 
     fun registerPendingStart(mediaId: String?) {
@@ -359,7 +339,6 @@ class PlaybackStateManager(
     }
 
     private suspend fun handleQueue(queue: Queue?) {
-        if (queueManager.isLocalQueueActive()) return
         if (queue == null) {
             _queueId.value = null
             _playbackState.value = PlaybackState.IDLE

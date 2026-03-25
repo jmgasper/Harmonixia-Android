@@ -28,6 +28,7 @@ fun Track.buildPlaybackExtras(
         if (!parentMediaId.isNullOrBlank()) {
             putString(EXTRA_PARENT_MEDIA_ID, parentMediaId)
         }
+        applyContentFormatIcons(quality)
     }
 }
 

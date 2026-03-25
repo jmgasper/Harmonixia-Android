@@ -56,8 +56,9 @@ object UseCaseModule {
     @Provides
     @Singleton
     fun providePlayLocalTracksUseCase(
-        playbackServiceConnection: PlaybackServiceConnection
-    ): PlayLocalTracksUseCase = PlayLocalTracksUseCase(playbackServiceConnection)
+        repository: MusicAssistantRepository,
+        playbackStateManager: PlaybackStateManager
+    ): PlayLocalTracksUseCase = PlayLocalTracksUseCase(repository, playbackStateManager)
 
     @Provides
     @Singleton

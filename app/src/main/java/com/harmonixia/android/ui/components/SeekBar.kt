@@ -76,9 +76,9 @@ fun SeekBar(
     }
     val seekLabel = stringResource(R.string.label_seek)
     val interactionSource = remember { MutableInteractionSource() }
-    val inactiveTrackColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.35f)
-    val activeTrackColor = MaterialTheme.colorScheme.primary
-    val timeColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f)
+    val inactiveTrackColor = Color.White.copy(alpha = 0.3f)
+    val activeTrackColor = Color.White
+    val timeColor = Color.White.copy(alpha = 0.86f)
     val sliderColors = SliderDefaults.colors(
         thumbColor = activeTrackColor,
         activeTrackColor = activeTrackColor,

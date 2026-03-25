@@ -1,16 +1,15 @@
 package com.harmonixia.android.domain.usecase
 
-import androidx.media3.common.util.UnstableApi
+import com.harmonixia.android.domain.model.QueueOption
 import com.harmonixia.android.domain.model.Track
-import com.harmonixia.android.service.playback.PlaybackServiceConnection
-import com.harmonixia.android.util.toPlaybackMediaItem
-import kotlinx.coroutines.flow.filterNotNull
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.withTimeoutOrNull
+import com.harmonixia.android.domain.repository.MusicAssistantRepository
+import com.harmonixia.android.service.playback.PlaybackStateManager
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
-@OptIn(UnstableApi::class)
 class PlayLocalTracksUseCase(
-    private val playbackServiceConnection: PlaybackServiceConnection
+    private val repository: MusicAssistantRepository,
+    private val playbackStateManager: PlaybackStateManager
 ) {
     suspend operator fun invoke(
         tracks: List<Track>,
@@ -20,24 +19,39 @@ class PlayLocalTracksUseCase(
         if (tracks.isEmpty()) {
             return Result.failure(IllegalArgumentException("No tracks to play"))
         }
-        playbackServiceConnection.connect()
-        val controller = withTimeoutOrNull(CONTROLLER_TIMEOUT_MS) {
-            playbackServiceConnection.mediaController
-                .filterNotNull()
-                .first()
-        } ?: return Result.failure(IllegalStateException("Playback service unavailable"))
-        val mediaItems = tracks.map { it.toPlaybackMediaItem() }
-        val safeIndex = startIndex.coerceIn(0, mediaItems.lastIndex)
-        controller.setMediaItems(mediaItems, safeIndex, 0L)
-        if (shuffleMode != null) {
-            controller.shuffleModeEnabled = shuffleMode
+        playbackStateManager.notifyUserInitiatedPlayback()
+        playbackStateManager.reconnectLocalPlayerIfUnavailable()
+        val playerId = playbackStateManager.currentPlayerId
+            ?: return Result.failure(IllegalStateException("No player selected"))
+        val queue = repository.getActiveQueue(playerId, includeItems = false).getOrThrow()
+            ?: return Result.failure(IllegalStateException("No active queue"))
+        val queueId = queue.queueId
+        val uris = tracks.map { it.uri.trim() }
+        if (uris.any { it.isBlank() }) {
+            return Result.failure(IllegalArgumentException("Track URI is required"))
         }
-        controller.prepare()
-        controller.play()
+        val safeIndex = startIndex.coerceIn(0, tracks.lastIndex)
+        if (safeIndex > 0) {
+            playbackStateManager.registerPendingStart(tracks[safeIndex].itemId)
+        } else {
+            playbackStateManager.clearPendingStart()
+        }
+        val playResult = withContext(Dispatchers.IO) {
+            val playResult = repository.playMedia(queueId, uris, QueueOption.REPLACE)
+            if (playResult.isFailure) return@withContext playResult
+            if (safeIndex > 0) {
+                val indexResult = repository.playIndex(queueId, safeIndex)
+                if (indexResult.isFailure) return@withContext indexResult
+            }
+            if (shuffleMode != null && queue.shuffle != shuffleMode) {
+                repository.setShuffleMode(queueId, shuffleMode)
+            }
+            Result.success(Unit)
+        }
+        if (playResult.isFailure) {
+            return playResult
+        }
+        playbackStateManager.refreshQueueFast()
         return Result.success(Unit)
-    }
-
-    private companion object {
-        private const val CONTROLLER_TIMEOUT_MS = 3_000L
     }
 }

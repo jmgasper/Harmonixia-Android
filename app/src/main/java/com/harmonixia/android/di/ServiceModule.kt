@@ -36,9 +36,8 @@ object ServiceModule {
     @Provides
     @Singleton
     fun provideQueueManager(
-        repository: MusicAssistantRepository,
         localMediaRepository: LocalMediaRepository
-    ): QueueManager = QueueManager(repository, localMediaRepository)
+    ): QueueManager = QueueManager(localMediaRepository)
 
     @Provides
     @Singleton

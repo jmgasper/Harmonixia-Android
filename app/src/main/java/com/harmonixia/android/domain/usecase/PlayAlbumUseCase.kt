@@ -44,7 +44,11 @@ class PlayAlbumUseCase(
                 else -> startIndex.coerceAtLeast(0)
             }
             if (!tracks.isNullOrEmpty()) {
-                playbackStateManager.seedQueue(tracks, safeIndex)
+                if (safeIndex > 0) {
+                    playbackStateManager.registerPendingStart(tracks[safeIndex].itemId)
+                } else {
+                    playbackStateManager.clearPendingStart()
+                }
             }
             val requestedShuffle = shuffleMode ?: queue.shuffle
             val shouldDisableShuffle = forceStartIndex && requestedShuffle
@@ -88,7 +92,11 @@ class PlayAlbumUseCase(
                     }
                     val fallbackIndex = startIndex.coerceIn(0, fallbackTracks.lastIndex)
                     if (tracks == null) {
-                        playbackStateManager.seedQueue(fallbackTracks, fallbackIndex)
+                        if (fallbackIndex > 0) {
+                            playbackStateManager.registerPendingStart(fallbackTracks[fallbackIndex].itemId)
+                        } else {
+                            playbackStateManager.clearPendingStart()
+                        }
                     }
                     val uris = fallbackTracks.map { it.uri }
                     val playResult = repository.playMedia(queueId, uris, QueueOption.REPLACE)
@@ -113,6 +121,7 @@ class PlayAlbumUseCase(
                 }
             }
             playbackResult.getOrThrow()
+            playbackStateManager.refreshQueueFast()
             playerId
         }
     }

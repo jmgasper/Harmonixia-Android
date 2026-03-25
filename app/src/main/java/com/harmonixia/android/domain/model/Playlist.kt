@@ -17,6 +17,8 @@ data class Playlist(
     val isEditable: Boolean = false,
     @SerialName("image_url")
     val imageUrl: String? = null,
+    @SerialName("added_at")
+    val addedAt: String? = null,
     @SerialName("track_count")
     val trackCount: Int = 0
 )

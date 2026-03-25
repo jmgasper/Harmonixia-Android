@@ -6,3 +6,7 @@ const val EXTRA_STREAM_URI = "com.harmonixia.android.extra.STREAM_URI"
 const val EXTRA_PARENT_MEDIA_ID = "com.harmonixia.android.extra.PARENT_MEDIA_ID"
 const val EXTRA_PROVIDER_ID = "com.harmonixia.android.extra.PROVIDER_ID"
 const val EXTRA_PROVIDER_DOMAINS = "com.harmonixia.android.extra.PROVIDER_DOMAINS"
+const val EXTRA_CONTENT_FORMAT_TINTABLE_LARGE_ICON_URI =
+    "androidx.car.app.mediaextensions.KEY_CONTENT_FORMAT_TINTABLE_LARGE_ICON_URI"
+const val EXTRA_CONTENT_FORMAT_TINTABLE_SMALL_ICON_URI =
+    "androidx.car.app.mediaextensions.KEY_CONTENT_FORMAT_TINTABLE_SMALL_ICON_URI"
