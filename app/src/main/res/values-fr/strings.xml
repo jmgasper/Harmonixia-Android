@@ -71,10 +71,7 @@
     <string name="error_invalid_url">Format d\'URL invalide</string>
     <string name="error_username_required">Le nom d\'utilisateur est requis</string>
     <string name="error_password_required">Le mot de passe est requis</string>
-    <string name="error_invalid_credentials">Nom d\'utilisateur ou mot de passe invalide</string>
-    <string name="error_login_failed">Échec de la connexion. Veuillez réessayer.</string>
     <string name="error_connection_timeout">Délai de connexion dépassé</string>
-    <string name="label_current_server_url">URL actuelle du serveur</string>
     <string name="label_current_access_token">Jeton d\'accès actuel</string>
     <string name="section_connection_settings">Paramètres de connexion</string>
     <string name="section_authentication">Authentification</string>

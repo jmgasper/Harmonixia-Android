@@ -74,10 +74,7 @@
     <string name="error_invalid_url">Invalid URL format</string>
     <string name="error_username_required">Username is required</string>
     <string name="error_password_required">Password is required</string>
-    <string name="error_invalid_credentials">Invalid username or password</string>
-    <string name="error_login_failed">Login failed. Please try again.</string>
     <string name="error_connection_timeout">Connection timeout</string>
-    <string name="label_current_server_url">Current Server URL</string>
     <string name="label_current_access_token">Current Access Token</string>
     <string name="section_connection_settings">Connection Settings</string>
     <string name="section_authentication">Authentication</string>

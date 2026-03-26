@@ -71,10 +71,7 @@
     <string name="error_invalid_url">Formato URL non valido</string>
     <string name="error_username_required">Il nome utente è obbligatorio</string>
     <string name="error_password_required">La password è obbligatoria</string>
-    <string name="error_invalid_credentials">Nome utente o password non validi</string>
-    <string name="error_login_failed">Accesso non riuscito. Riprova.</string>
     <string name="error_connection_timeout">Timeout di connessione</string>
-    <string name="label_current_server_url">URL del server attuale</string>
     <string name="label_current_access_token">Token di accesso attuale</string>
     <string name="section_connection_settings">Impostazioni connessione</string>
     <string name="section_authentication">Autenticazione</string>

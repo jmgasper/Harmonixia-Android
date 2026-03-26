@@ -71,10 +71,7 @@
     <string name="error_invalid_url">Ugyldig URL-format</string>
     <string name="error_username_required">Brukernavn er påkrevd</string>
     <string name="error_password_required">Passord er påkrevd</string>
-    <string name="error_invalid_credentials">Ugyldig brukernavn eller passord</string>
-    <string name="error_login_failed">Innlogging mislyktes. Prøv igjen.</string>
     <string name="error_connection_timeout">Tilkoblingstidsavbrudd</string>
-    <string name="label_current_server_url">Nåværende server-URL</string>
     <string name="label_current_access_token">Nåværende tilgangstoken</string>
     <string name="section_connection_settings">Tilkoblingsinnstillinger</string>
     <string name="section_authentication">Autentisering</string>

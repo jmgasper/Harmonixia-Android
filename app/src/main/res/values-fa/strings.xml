@@ -71,10 +71,7 @@
     <string name="error_invalid_url">قالب URL نامعتبر است</string>
     <string name="error_username_required">نام کاربری الزامی است</string>
     <string name="error_password_required">رمز عبور الزامی است</string>
-    <string name="error_invalid_credentials">نام کاربری یا رمز عبور نامعتبر است</string>
-    <string name="error_login_failed">ورود ناموفق بود. لطفا دوباره تلاش کنید.</string>
     <string name="error_connection_timeout">مهلت اتصال به پایان رسید</string>
-    <string name="label_current_server_url">URL فعلی سرور</string>
     <string name="label_current_access_token">توکن دسترسی فعلی</string>
     <string name="section_connection_settings">تنظیمات اتصال</string>
     <string name="section_authentication">احراز هویت</string>

@@ -71,10 +71,7 @@
     <string name="error_invalid_url">Ungültiges URL-Format</string>
     <string name="error_username_required">Benutzername ist erforderlich</string>
     <string name="error_password_required">Passwort ist erforderlich</string>
-    <string name="error_invalid_credentials">Ungültiger Benutzername oder Passwort</string>
-    <string name="error_login_failed">Anmeldung fehlgeschlagen. Bitte erneut versuchen.</string>
     <string name="error_connection_timeout">Verbindungszeitüberschreitung</string>
-    <string name="label_current_server_url">Aktuelle Server-URL</string>
     <string name="label_current_access_token">Aktuelles Zugriffstoken</string>
     <string name="section_connection_settings">Verbindungseinstellungen</string>
     <string name="section_authentication">Authentifizierung</string>

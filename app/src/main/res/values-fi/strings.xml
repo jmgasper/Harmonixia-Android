@@ -71,10 +71,7 @@
     <string name="error_invalid_url">Virheellinen URL-muoto</string>
     <string name="error_username_required">Käyttäjänimi on pakollinen</string>
     <string name="error_password_required">Salasana on pakollinen</string>
-    <string name="error_invalid_credentials">Virheellinen käyttäjänimi tai salasana</string>
-    <string name="error_login_failed">Kirjautuminen epäonnistui. Yritä uudelleen.</string>
     <string name="error_connection_timeout">Yhteyden aikakatkaisu</string>
-    <string name="label_current_server_url">Nykyinen palvelimen URL</string>
     <string name="label_current_access_token">Nykyinen käyttötoken</string>
     <string name="section_connection_settings">Yhteysasetukset</string>
     <string name="section_authentication">Todennus</string>

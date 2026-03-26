@@ -71,10 +71,7 @@
     <string name="error_invalid_url">URL 格式无效</string>
     <string name="error_username_required">需要用户名</string>
     <string name="error_password_required">需要密码</string>
-    <string name="error_invalid_credentials">用户名或密码无效</string>
-    <string name="error_login_failed">登录失败。请重试。</string>
     <string name="error_connection_timeout">连接超时</string>
-    <string name="label_current_server_url">当前服务器 URL</string>
     <string name="label_current_access_token">当前访问令牌</string>
     <string name="section_connection_settings">连接设置</string>
     <string name="section_authentication">身份验证</string>

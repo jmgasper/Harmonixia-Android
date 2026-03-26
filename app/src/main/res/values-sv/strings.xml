@@ -71,10 +71,7 @@
     <string name="error_invalid_url">Ogiltigt URL-format</string>
     <string name="error_username_required">Användarnamn krävs</string>
     <string name="error_password_required">Lösenord krävs</string>
-    <string name="error_invalid_credentials">Ogiltigt användarnamn eller lösenord</string>
-    <string name="error_login_failed">Inloggning misslyckades. Försök igen.</string>
     <string name="error_connection_timeout">Anslutningen tog för lång tid</string>
-    <string name="label_current_server_url">Aktuell server-URL</string>
     <string name="label_current_access_token">Aktuell åtkomsttoken</string>
     <string name="section_connection_settings">Anslutningsinställningar</string>
     <string name="section_authentication">Autentisering</string>

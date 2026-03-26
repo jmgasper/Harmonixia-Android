@@ -71,10 +71,7 @@
     <string name="error_invalid_url">অবৈধ URL ফরম্যাট</string>
     <string name="error_username_required">ইউজারনেম প্রয়োজন</string>
     <string name="error_password_required">পাসওয়ার্ড প্রয়োজন</string>
-    <string name="error_invalid_credentials">অবৈধ ইউজারনেম বা পাসওয়ার্ড</string>
-    <string name="error_login_failed">লগইন ব্যর্থ। আবার চেষ্টা করুন।</string>
     <string name="error_connection_timeout">সংযোগের সময়সীমা শেষ</string>
-    <string name="label_current_server_url">বর্তমান সার্ভার URL</string>
     <string name="label_current_access_token">বর্তমান অ্যাক্সেস টোকেন</string>
     <string name="section_connection_settings">সংযোগ সেটিংস</string>
     <string name="section_authentication">প্রমাণীকরণ</string>
