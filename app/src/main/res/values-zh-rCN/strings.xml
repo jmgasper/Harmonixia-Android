@@ -343,4 +343,8 @@
     <string name="android_auto_downloaded_playlists">已下载播放列表</string>
     <string name="android_auto_downloaded_tracks">已下载曲目</string>
     <string name="android_auto_offline_mode">离线模式</string>
+    <string name="local_media_available_files">Local files available: %1$d</string>
+    <string name="action_reconnect">Reconnect</string>
+    <string name="artist_detail_section_my_library">My Library</string>
+    <string name="artist_detail_section_all">All</string>
 </resources>

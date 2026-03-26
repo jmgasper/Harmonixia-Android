@@ -343,4 +343,8 @@
     <string name="android_auto_downloaded_playlists">Ladatut soittolistat</string>
     <string name="android_auto_downloaded_tracks">Ladatut kappaleet</string>
     <string name="android_auto_offline_mode">Offline-tila</string>
+    <string name="local_media_available_files">Local files available: %1$d</string>
+    <string name="action_reconnect">Reconnect</string>
+    <string name="artist_detail_section_my_library">My Library</string>
+    <string name="artist_detail_section_all">All</string>
 </resources>

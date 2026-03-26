@@ -343,4 +343,8 @@
     <string name="android_auto_downloaded_playlists">डाउनलोड की गई प्लेलिस्ट</string>
     <string name="android_auto_downloaded_tracks">डाउनलोड किए गए ट्रैक</string>
     <string name="android_auto_offline_mode">ऑफ़लाइन मोड</string>
+    <string name="local_media_available_files">Local files available: %1$d</string>
+    <string name="action_reconnect">Reconnect</string>
+    <string name="artist_detail_section_my_library">My Library</string>
+    <string name="artist_detail_section_all">All</string>
 </resources>
