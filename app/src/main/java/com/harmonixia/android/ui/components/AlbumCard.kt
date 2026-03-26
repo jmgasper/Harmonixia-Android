@@ -40,12 +40,12 @@ import com.harmonixia.android.util.ImageQualityManager
 fun AlbumCard(
     album: Album,
     onClick: () -> Unit,
-    onLongClick: (() -> Unit)? = null,
-    artworkSize: Dp = 150.dp,
     isOfflineMode: Boolean,
     imageQualityManager: ImageQualityManager,
+    modifier: Modifier = Modifier,
+    onLongClick: (() -> Unit)? = null,
+    artworkSize: Dp = 150.dp,
     secondaryText: String? = null,
-    modifier: Modifier = Modifier
 ) {
     val placeholder = ColorPainter(MaterialTheme.colorScheme.surfaceVariant)
     val interactionModifier = if (onLongClick != null) {
