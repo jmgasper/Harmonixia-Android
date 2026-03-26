@@ -949,11 +949,11 @@ private fun TracksHeader(
 private fun PlaylistArtwork(
     playlist: Playlist?,
     displaySize: Dp,
-    requestSize: Dp = displaySize,
     cornerRadius: Dp,
-    useOptimizedDisplaySize: Boolean = requestSize == displaySize,
     imageQualityManager: ImageQualityManager,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    requestSize: Dp = displaySize,
+    useOptimizedDisplaySize: Boolean = requestSize == displaySize
 ) {
     val placeholder = ColorPainter(MaterialTheme.colorScheme.surfaceVariant)
     val context = LocalContext.current
