@@ -594,12 +594,12 @@ fun AlbumDetailScreen(
 private fun AlbumArtwork(
     album: Album?,
     displaySize: Dp,
-    requestSize: Dp = displaySize,
     cornerRadius: Dp,
-    useOptimizedDisplaySize: Boolean = requestSize == displaySize,
     isOfflineMode: Boolean,
     imageQualityManager: ImageQualityManager,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    requestSize: Dp = displaySize,
+    useOptimizedDisplaySize: Boolean = requestSize == displaySize
 ) {
     val placeholder = ColorPainter(MaterialTheme.colorScheme.surfaceVariant)
     val context = LocalContext.current
