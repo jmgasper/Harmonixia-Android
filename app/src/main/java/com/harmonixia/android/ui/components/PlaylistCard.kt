@@ -57,11 +57,11 @@ fun PlaylistCard(
     playlist: Playlist,
     onClick: () -> Unit,
     isGrid: Boolean,
+    imageQualityManager: ImageQualityManager,
+    modifier: Modifier = Modifier,
     gridArtworkSize: Dp = 150.dp,
     onLongClick: (() -> Unit)? = null,
-    placeholderIcon: ImageVector = Icons.AutoMirrored.Outlined.QueueMusic,
-    imageQualityManager: ImageQualityManager,
-    modifier: Modifier = Modifier
+    placeholderIcon: ImageVector = Icons.AutoMirrored.Outlined.QueueMusic
 ) {
     val interactionModifier = if (onLongClick != null) {
         modifier.combinedClickable(
