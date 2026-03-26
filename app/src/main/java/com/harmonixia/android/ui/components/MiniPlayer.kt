@@ -38,7 +38,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -99,7 +99,7 @@ fun SharedTransitionScope.MiniPlayer(
     val controlSpacing = if (isExpandedLayout) 16.dp else 12.dp
     val sharedArtworkState = rememberSharedContentState(key = SHARED_ARTWORK_KEY)
     val placeholderPainter = ColorPainter(MaterialTheme.colorScheme.surfaceVariant)
-    var dragOffset by remember { mutableStateOf(0f) }
+    var dragOffset by remember { mutableFloatStateOf(0f) }
     val offsetAnimation = remember { Animatable(0f) }
     val title = playbackInfo.title
     val artist = playbackInfo.artist
