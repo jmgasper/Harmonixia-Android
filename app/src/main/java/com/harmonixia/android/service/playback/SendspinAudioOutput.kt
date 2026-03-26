@@ -3,6 +3,7 @@ package com.harmonixia.android.service.playback
 import android.media.AudioAttributes
 import android.media.AudioFormat
 import android.media.AudioTrack
+import android.os.Build
 import com.harmonixia.android.util.Logger
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
@@ -158,8 +159,20 @@ class SendspinAudioOutput(
     private fun buildAudioTrack(format: SendspinPcmFormat): AudioTrack? {
         val encoding = when (format.bitDepth) {
             16 -> AudioFormat.ENCODING_PCM_16BIT
-            24 -> AudioFormat.ENCODING_PCM_24BIT_PACKED
-            32 -> AudioFormat.ENCODING_PCM_32BIT
+            24 -> {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                    AudioFormat.ENCODING_PCM_24BIT_PACKED
+                } else {
+                    return null
+                }
+            }
+            32 -> {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                    AudioFormat.ENCODING_PCM_32BIT
+                } else {
+                    return null
+                }
+            }
             else -> return null
         }
         val channelMask = when (format.channels) {
