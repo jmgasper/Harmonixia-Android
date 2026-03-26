@@ -111,14 +111,11 @@
     <string name="search_show_more">Visa mer</string>
     <string name="search_loading">Söker...</string>
     <string name="search_empty_query">Ange en sökterm för att hitta musik</string>
-    <string name="search_no_connection">Anslut till servern för att söka</string>
     <string name="offline_mode_active">Offline-läge - visar endast nedladdat innehåll</string>
     <string name="offline_search_active">Offline - söker i nedladdat innehåll</string>
     <string name="offline_feature_unavailable">Funktionen är inte tillgänglig i offline-läge</string>
-    <string name="playlist_offline_unavailable">Den här spellistan kräver en onlineanslutning</string>
     <string name="playlists_offline_unavailable">Spellistor kräver en onlineanslutning</string>
     <string name="no_downloaded_content">Inget nedladdat innehåll tillgängligt</string>
-    <string name="playing_from_download">Spelar från nedladdning</string>
     <string name="content_desc_clear_search">Rensa sökning</string>
     <string name="content_desc_nav_home">Gå till Hem</string>
     <string name="content_desc_nav_albums">Gå till Album</string>

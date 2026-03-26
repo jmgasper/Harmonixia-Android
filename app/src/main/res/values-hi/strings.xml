@@ -111,14 +111,11 @@
     <string name="search_show_more">और दिखाएँ</string>
     <string name="search_loading">खोजा जा रहा है...</string>
     <string name="search_empty_query">संगीत खोजने के लिए खोज शब्द दर्ज करें</string>
-    <string name="search_no_connection">खोजने के लिए सर्वर से कनेक्ट करें</string>
     <string name="offline_mode_active">ऑफ़लाइन मोड - केवल डाउनलोड की गई सामग्री दिखाई जाएगी</string>
     <string name="offline_search_active">ऑफ़लाइन - डाउनलोड की गई सामग्री खोजी जा रही है</string>
     <string name="offline_feature_unavailable">यह सुविधा ऑफ़लाइन मोड में उपलब्ध नहीं है</string>
-    <string name="playlist_offline_unavailable">इस प्लेलिस्ट के लिए ऑनलाइन कनेक्शन आवश्यक है</string>
     <string name="playlists_offline_unavailable">प्लेलिस्ट के लिए ऑनलाइन कनेक्शन आवश्यक है</string>
     <string name="no_downloaded_content">कोई डाउनलोड की गई सामग्री उपलब्ध नहीं है</string>
-    <string name="playing_from_download">डाउनलोड से चल रहा है</string>
     <string name="content_desc_clear_search">खोज साफ़ करें</string>
     <string name="content_desc_nav_home">होम पर जाएँ</string>
     <string name="content_desc_nav_albums">एल्बम पर जाएँ</string>

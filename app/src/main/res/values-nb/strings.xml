@@ -111,14 +111,11 @@
     <string name="search_show_more">Vis mer</string>
     <string name="search_loading">Søker...</string>
     <string name="search_empty_query">Skriv inn et søkeord for å finne musikk</string>
-    <string name="search_no_connection">Koble til serveren for å søke</string>
     <string name="offline_mode_active">Offline-modus - viser bare nedlastet innhold</string>
     <string name="offline_search_active">Offline - søker i nedlastet innhold</string>
     <string name="offline_feature_unavailable">Denne funksjonen er ikke tilgjengelig i offline-modus</string>
-    <string name="playlist_offline_unavailable">Denne spillelisten krever en online-tilkobling</string>
     <string name="playlists_offline_unavailable">Spillelister krever en online-tilkobling</string>
     <string name="no_downloaded_content">Ingen nedlastet innhold tilgjengelig</string>
-    <string name="playing_from_download">Spiller fra nedlasting</string>
     <string name="content_desc_clear_search">Tøm søk</string>
     <string name="content_desc_nav_home">Gå til Hjem</string>
     <string name="content_desc_nav_albums">Gå til Album</string>

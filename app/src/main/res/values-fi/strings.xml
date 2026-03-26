@@ -111,14 +111,11 @@
     <string name="search_show_more">Näytä lisää</string>
     <string name="search_loading">Haetaan...</string>
     <string name="search_empty_query">Syötä hakutermi löytääksesi musiikkia</string>
-    <string name="search_no_connection">Yhdistä palvelimeen hakua varten</string>
     <string name="offline_mode_active">Offline-tila - näytetään vain ladattu sisältö</string>
     <string name="offline_search_active">Offline - haetaan ladattua sisältöä</string>
     <string name="offline_feature_unavailable">Tämä ominaisuus ei ole käytettävissä offline-tilassa</string>
-    <string name="playlist_offline_unavailable">Tämä soittolista vaatii verkkoyhteyden</string>
     <string name="playlists_offline_unavailable">Soittolistat vaativat verkkoyhteyden</string>
     <string name="no_downloaded_content">Ladattua sisältöä ei ole saatavilla</string>
-    <string name="playing_from_download">Toistetaan ladatusta</string>
     <string name="content_desc_clear_search">Tyhjennä haku</string>
     <string name="content_desc_nav_home">Siirry Kotiin</string>
     <string name="content_desc_nav_albums">Siirry Albumeihin</string>

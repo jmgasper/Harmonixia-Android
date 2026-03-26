@@ -114,14 +114,11 @@
     <string name="search_show_more">Show More</string>
     <string name="search_loading">Searching...</string>
     <string name="search_empty_query">Enter a search term to find music</string>
-    <string name="search_no_connection">Connect to server to search</string>
     <string name="offline_mode_active">Offline Mode - Showing downloaded content only</string>
     <string name="offline_search_active">Offline - Searching downloaded content</string>
     <string name="offline_feature_unavailable">This feature is unavailable in offline mode</string>
-    <string name="playlist_offline_unavailable">This playlist requires an online connection</string>
     <string name="playlists_offline_unavailable">Playlists require an online connection</string>
     <string name="no_downloaded_content">No downloaded content available</string>
-    <string name="playing_from_download">Playing from download</string>
     <string name="content_desc_clear_search">Clear search</string>
     <string name="content_desc_nav_home">Navigate to Home</string>
     <string name="content_desc_nav_albums">Navigate to Albums</string>
