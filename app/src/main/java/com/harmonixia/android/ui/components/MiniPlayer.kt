@@ -209,7 +209,7 @@ fun SharedTransitionScope.MiniPlayer(
                     )
                 } else {
                     LinearProgressIndicator(
-                        progress = progress,
+                        progress = { progress },
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(MiniPlayerDefaults.ProgressHeight)
