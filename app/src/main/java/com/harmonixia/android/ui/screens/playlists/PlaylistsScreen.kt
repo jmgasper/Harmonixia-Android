@@ -58,6 +58,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
@@ -142,6 +144,8 @@ fun PlaylistsScreen(
 
     val windowSizeClass = calculateWindowSizeClass(activity = LocalContext.current as Activity)
     val configuration = LocalConfiguration.current
+    val windowInfo = LocalWindowInfo.current
+    val density = LocalDensity.current
     val spacing = rememberAdaptiveSpacing()
     val isGrid by remember(viewMode, windowSizeClass) {
         derivedStateOf {
@@ -154,15 +158,17 @@ fun PlaylistsScreen(
         }
     }
     val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
-    val columns by remember(windowSizeClass, configuration) {
+    val containerWidthDp = with(density) { windowInfo.containerSize.width.toDp() }
+    val columns by remember(windowSizeClass, isLandscape, containerWidthDp) {
         derivedStateOf {
+            val containerWidth = containerWidthDp.value.toInt()
             when (windowSizeClass.widthSizeClass) {
                 WindowWidthSizeClass.Medium -> if (isLandscape) 3 else 2
                 WindowWidthSizeClass.Expanded -> {
                     if (isLandscape) {
-                        (configuration.screenWidthDp / 160).coerceIn(2, 8)
+                        (containerWidth / 160).coerceIn(2, 8)
                     } else {
-                        (configuration.screenWidthDp / 180).coerceIn(2, 6)
+                        (containerWidth / 180).coerceIn(2, 6)
                     }
                 }
                 else -> 2
