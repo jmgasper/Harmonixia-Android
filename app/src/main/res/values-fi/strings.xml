@@ -34,8 +34,6 @@
     <string name="local_media_scanning">Skannataan: %1$d / %2$d tiedostoa</string>
     <string name="local_media_scan_complete">Skannaus valmis: %1$d kappaletta, %2$d albumia, %3$d artistia</string>
     <string name="local_media_scan_error">Skannaus epäonnistui: %1$s</string>
-    <string name="local_media_scan_idle">Valmis skannaamaan</string>
-    <string name="local_media_permission_required">Tallennuslupa vaaditaan</string>
     <string name="content_desc_local_media_folder">Paikallisen mediakansion polku</string>
     <string name="label_server_url">Palvelimen URL</string>
     <string name="label_access_token">Käyttötoken</string>
@@ -49,7 +47,6 @@
     <string name="placeholder_password">Syötä salasana</string>
     <string name="action_connect">Yhdistä</string>
     <string name="action_test_connection">Testaa yhteys</string>
-    <string name="action_save">Tallenna</string>
     <string name="action_save_reconnect">Tallenna ja yhdistä uudelleen</string>
     <string name="action_back">Takaisin</string>
     <string name="player_selection_title">Valitse soitin</string>

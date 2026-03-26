@@ -34,8 +34,6 @@
     <string name="local_media_scanning">Skannar: %1$d / %2$d filer</string>
     <string name="local_media_scan_complete">Skanning klar: %1$d spår, %2$d album, %3$d artister</string>
     <string name="local_media_scan_error">Skanning misslyckades: %1$s</string>
-    <string name="local_media_scan_idle">Redo att skanna</string>
-    <string name="local_media_permission_required">Lagringsbehörighet krävs</string>
     <string name="content_desc_local_media_folder">Sökväg till lokal mediamapp</string>
     <string name="label_server_url">Server-URL</string>
     <string name="label_access_token">Åtkomsttoken</string>
@@ -49,7 +47,6 @@
     <string name="placeholder_password">Ange lösenord</string>
     <string name="action_connect">Anslut</string>
     <string name="action_test_connection">Testa anslutning</string>
-    <string name="action_save">Spara</string>
     <string name="action_save_reconnect">Spara och återanslut</string>
     <string name="action_back">Tillbaka</string>
     <string name="player_selection_title">Välj spelare</string>

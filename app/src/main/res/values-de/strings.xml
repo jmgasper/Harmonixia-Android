@@ -34,8 +34,6 @@
     <string name="local_media_scanning">Scanne: %1$d / %2$d Dateien</string>
     <string name="local_media_scan_complete">Scan abgeschlossen: %1$d Titel, %2$d Alben, %3$d Künstler</string>
     <string name="local_media_scan_error">Scan fehlgeschlagen: %1$s</string>
-    <string name="local_media_scan_idle">Bereit zum Scannen</string>
-    <string name="local_media_permission_required">Speicherberechtigung erforderlich</string>
     <string name="content_desc_local_media_folder">Pfad zum lokalen Medienordner</string>
     <string name="label_server_url">Server-URL</string>
     <string name="label_access_token">Zugriffstoken</string>
@@ -49,7 +47,6 @@
     <string name="placeholder_password">Passwort eingeben</string>
     <string name="action_connect">Verbinden</string>
     <string name="action_test_connection">Verbindung testen</string>
-    <string name="action_save">Speichern</string>
     <string name="action_save_reconnect">Speichern und neu verbinden</string>
     <string name="action_back">Zurück</string>
     <string name="player_selection_title">Player auswählen</string>

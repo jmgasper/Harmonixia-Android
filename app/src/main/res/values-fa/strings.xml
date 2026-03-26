@@ -34,8 +34,6 @@
     <string name="local_media_scanning">در حال اسکن: %1$d / %2$d فایل</string>
     <string name="local_media_scan_complete">اسکن کامل شد: %1$d آهنگ، %2$d آلبوم، %3$d هنرمند</string>
     <string name="local_media_scan_error">اسکن ناموفق: %1$s</string>
-    <string name="local_media_scan_idle">آماده اسکن</string>
-    <string name="local_media_permission_required">مجوز ذخیره‌سازی لازم است</string>
     <string name="content_desc_local_media_folder">مسیر پوشه رسانه محلی</string>
     <string name="label_server_url">URL سرور</string>
     <string name="label_access_token">توکن دسترسی</string>
@@ -49,7 +47,6 @@
     <string name="placeholder_password">رمز عبور را وارد کنید</string>
     <string name="action_connect">اتصال</string>
     <string name="action_test_connection">آزمون اتصال</string>
-    <string name="action_save">ذخیره</string>
     <string name="action_save_reconnect">ذخیره و اتصال مجدد</string>
     <string name="action_back">بازگشت</string>
     <string name="player_selection_title">انتخاب پخش‌کننده</string>

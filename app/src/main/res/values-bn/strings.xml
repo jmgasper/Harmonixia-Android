@@ -34,8 +34,6 @@
     <string name="local_media_scanning">স্ক্যান হচ্ছে: %1$d / %2$d ফাইল</string>
     <string name="local_media_scan_complete">স্ক্যান সম্পন্ন: %1$d ট্র্যাক, %2$d অ্যালবাম, %3$d শিল্পী</string>
     <string name="local_media_scan_error">স্ক্যান ব্যর্থ: %1$s</string>
-    <string name="local_media_scan_idle">স্ক্যানের জন্য প্রস্তুত</string>
-    <string name="local_media_permission_required">স্টোরেজ অনুমতি প্রয়োজন</string>
     <string name="content_desc_local_media_folder">লোকাল মিডিয়া ফোল্ডারের পথ</string>
     <string name="label_server_url">সার্ভার URL</string>
     <string name="label_access_token">অ্যাক্সেস টোকেন</string>
@@ -49,7 +47,6 @@
     <string name="placeholder_password">পাসওয়ার্ড লিখুন</string>
     <string name="action_connect">সংযোগ করুন</string>
     <string name="action_test_connection">সংযোগ পরীক্ষা করুন</string>
-    <string name="action_save">সেভ করুন</string>
     <string name="action_save_reconnect">সেভ করে পুনরায় সংযোগ করুন</string>
     <string name="action_back">ফিরে যান</string>
     <string name="player_selection_title">প্লেয়ার নির্বাচন করুন</string>
