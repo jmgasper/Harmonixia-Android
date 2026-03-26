@@ -38,8 +38,8 @@ import com.harmonixia.android.R
 fun VolumeControl(
     volume: Float,
     onVolumeChange: (Float) -> Unit,
-    enabled: Boolean = true,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true
 ) {
     var isExpanded by remember { mutableStateOf(true) }
     val haptic = LocalHapticFeedback.current
