@@ -63,13 +63,13 @@ import kotlin.math.roundToInt
 fun PlayerSelectionDialog(
     players: List<Player>,
     selectedPlayer: Player?,
-    localPlayerId: String? = null,
     onPlayerSelected: (Player) -> Unit,
     onPlayerVolumeChange: (Player, Int) -> Unit,
     onPlayerMuteChange: (Player, Boolean) -> Unit,
     onReconnect: () -> Unit,
     onDismiss: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    localPlayerId: String? = null
 ) {
     val spacing = rememberAdaptiveSpacing()
     val volumePlayer = remember(players, selectedPlayer) {
