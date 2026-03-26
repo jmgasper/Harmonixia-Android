@@ -663,6 +663,7 @@ private fun PlaylistDetailContent(
     rowSpacing: Dp,
     listState: LazyListState,
     isRefreshing: Boolean,
+    modifier: Modifier = Modifier,
     isInitialLoading: Boolean = false,
     hasMore: Boolean,
     isLoadingMore: Boolean,
@@ -674,8 +675,7 @@ private fun PlaylistDetailContent(
     onAddToFavorites: (Track) -> Unit,
     onRemoveFromFavorites: (Track) -> Unit,
     onRemoveFromPlaylist: (Track, Int) -> Unit,
-    imageQualityManager: ImageQualityManager,
-    modifier: Modifier = Modifier
+    imageQualityManager: ImageQualityManager
 ) {
     val spacing = rememberAdaptiveSpacing()
     val allowTwoColumnLayout = isVeryWide && !isReordering
