@@ -102,7 +102,7 @@ fun TrackList(
     var contextMenuTrackId by remember { mutableStateOf<String?>(null) }
     var contextMenuIndex by remember { mutableIntStateOf(-1) }
     val resolvedListState = listState ?: rememberLazyListState()
-    var lastLoadTriggerIndex by remember { mutableStateOf(-1) }
+    var lastLoadTriggerIndex by remember { mutableIntStateOf(-1) }
     val reorderEnabled = isReordering && onReorder != null
     var draggingItemKey by remember { mutableStateOf<Any?>(null) }
     var draggingOffsetY by remember { mutableStateOf(0f) }
