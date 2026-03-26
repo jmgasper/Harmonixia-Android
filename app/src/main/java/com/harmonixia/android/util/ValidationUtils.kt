@@ -64,9 +64,14 @@ object ValidationUtils {
     fun normalizeUrl(input: String): String {
         var normalized = input.trim().trimEnd('/')
         normalized = when {
-            normalized.startsWith("http://") || normalized.startsWith("https://") -> normalized
-            normalized.startsWith("ws://") -> "http://${normalized.removePrefix("ws://")}"
-            normalized.startsWith("wss://") -> "https://${normalized.removePrefix("wss://")}"
+            normalized.regionMatches(0, "http://", 0, 7, ignoreCase = true) ->
+                "http://${normalized.substring(7)}"
+            normalized.regionMatches(0, "https://", 0, 8, ignoreCase = true) ->
+                "https://${normalized.substring(8)}"
+            normalized.regionMatches(0, "ws://", 0, 5, ignoreCase = true) ->
+                "http://${normalized.substring(5)}"
+            normalized.regionMatches(0, "wss://", 0, 6, ignoreCase = true) ->
+                "https://${normalized.substring(6)}"
             else -> "http://$normalized"
         }
         return normalized.trimEnd('/')

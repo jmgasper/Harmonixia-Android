@@ -64,6 +64,26 @@ class ConnectToServerUseCaseTest {
     }
 
     @Test
+    fun invoke_normalizesUppercaseScheme() = runBlocking {
+        coEvery { repository.connect(any(), any()) } returns Result.success(Unit)
+        coEvery { settingsDataStore.saveServerUrl(any()) } just runs
+        coEvery { settingsDataStore.saveAuthToken(any()) } just runs
+        coEvery { settingsDataStore.saveAuthMethod(any()) } just runs
+        coEvery { settingsDataStore.saveUsername(any()) } just runs
+        coEvery { settingsDataStore.savePassword(any()) } just runs
+
+        val result = useCase(
+            serverUrl = "HTTPS://example.com/",
+            authToken = "token-123",
+            authMethod = AuthMethod.TOKEN
+        )
+
+        assertTrue(result.isSuccess)
+        coVerify { repository.connect("https://example.com", "token-123") }
+        coVerify { settingsDataStore.saveServerUrl("https://example.com") }
+    }
+
+    @Test
     fun invoke_emptyUrl_returnsFailure() = runBlocking {
         val result = useCase(
             serverUrl = "",

@@ -3,6 +3,7 @@ package com.harmonixia.android.domain.usecase
 import com.harmonixia.android.data.local.SettingsDataStore
 import com.harmonixia.android.domain.model.AuthMethod
 import com.harmonixia.android.domain.repository.MusicAssistantRepository
+import com.harmonixia.android.util.ValidationUtils
 import javax.inject.Inject
 
 class ConnectToServerUseCase @Inject constructor(
@@ -28,7 +29,7 @@ class ConnectToServerUseCase @Inject constructor(
                 return Result.failure(IllegalArgumentException("Password cannot be empty"))
             }
         }
-        val normalizedUrl = normalizeUrl(serverUrl)
+        val normalizedUrl = ValidationUtils.normalizeUrl(serverUrl)
         val tokenResult = when (authMethod) {
             AuthMethod.USERNAME_PASSWORD -> repository.loginWithCredentials(
                 normalizedUrl,
@@ -65,16 +66,5 @@ class ConnectToServerUseCase @Inject constructor(
             },
             onFailure = { Result.failure(it) }
         )
-    }
-
-    private fun normalizeUrl(input: String): String {
-        var normalized = input.trim().trimEnd('/')
-        normalized = when {
-            normalized.startsWith("http://") || normalized.startsWith("https://") -> normalized
-            normalized.startsWith("ws://") -> "http://${normalized.removePrefix("ws://")}"
-            normalized.startsWith("wss://") -> "https://${normalized.removePrefix("wss://")}"
-            else -> "http://$normalized"
-        }
-        return normalized.trimEnd('/')
     }
 }
