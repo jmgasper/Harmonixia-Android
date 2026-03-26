@@ -3,7 +3,6 @@ package com.harmonixia.android.service.playback
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.Context
-import android.os.Build
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.session.DefaultMediaNotificationProvider
 import androidx.media3.session.MediaNotification
@@ -19,7 +18,6 @@ class PlaybackNotificationManager(
             .build()
 
     fun ensureNotificationChannel() {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
         val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         val existing = manager.getNotificationChannel(NOTIFICATION_CHANNEL_ID)
         if (existing != null) return
