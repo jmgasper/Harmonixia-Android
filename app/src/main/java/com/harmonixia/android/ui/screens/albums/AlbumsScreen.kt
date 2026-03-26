@@ -24,11 +24,11 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.ViewList
 import androidx.compose.material.icons.outlined.FilterList
 import androidx.compose.material.icons.outlined.GridView
 import androidx.compose.material.icons.outlined.MusicNote
 import androidx.compose.material.icons.outlined.Settings
-import androidx.compose.material.icons.outlined.ViewList
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -317,7 +317,7 @@ fun AlbumsScreen(
                             imageVector = if (isListView) {
                                 Icons.Outlined.GridView
                             } else {
-                                Icons.Outlined.ViewList
+                                Icons.AutoMirrored.Outlined.ViewList
                             },
                             contentDescription = stringResource(
                                 if (isListView) {

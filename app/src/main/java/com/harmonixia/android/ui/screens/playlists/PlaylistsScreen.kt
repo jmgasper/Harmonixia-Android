@@ -21,12 +21,12 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.ViewList
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.GridView
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.Settings
-import androidx.compose.material.icons.outlined.ViewList
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -246,7 +246,7 @@ fun PlaylistsScreen(
                     ) {
                         Icon(
                             imageVector = if (isGrid) {
-                                Icons.Outlined.ViewList
+                                Icons.AutoMirrored.Outlined.ViewList
                             } else {
                                 Icons.Outlined.GridView
                             },
