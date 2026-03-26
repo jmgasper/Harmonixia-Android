@@ -35,6 +35,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -99,7 +100,7 @@ fun TrackList(
     onReorder: ((Int, Int) -> Unit)? = null
 ) {
     var contextMenuTrackId by remember { mutableStateOf<String?>(null) }
-    var contextMenuIndex by remember { mutableStateOf(-1) }
+    var contextMenuIndex by remember { mutableIntStateOf(-1) }
     val resolvedListState = listState ?: rememberLazyListState()
     var lastLoadTriggerIndex by remember { mutableStateOf(-1) }
     val reorderEnabled = isReordering && onReorder != null
