@@ -72,10 +72,7 @@
     <string name="error_username_required">نام کاربری الزامی است</string>
     <string name="error_password_required">رمز عبور الزامی است</string>
     <string name="error_connection_timeout">مهلت اتصال به پایان رسید</string>
-    <string name="label_current_access_token">توکن دسترسی فعلی</string>
-    <string name="section_connection_settings">تنظیمات اتصال</string>
     <string name="section_authentication">احراز هویت</string>
-    <string name="section_connection_status">وضعیت اتصال</string>
     <string name="label_optional_access_token">اختیاری</string>
     <string name="message_welcome">Harmonixia به سرور Music Assistant شما متصل می‌شود تا پخش را مدیریت کند.</string>
     <string name="message_clear_settings_confirm">تنظیمات ذخیره‌شده سرور پاک شود؟</string>

@@ -72,10 +72,7 @@
     <string name="error_username_required">O nome de utilizador é obrigatório</string>
     <string name="error_password_required">A palavra-passe é obrigatória</string>
     <string name="error_connection_timeout">Tempo limite de ligação</string>
-    <string name="label_current_access_token">Token de acesso atual</string>
-    <string name="section_connection_settings">Definições de ligação</string>
     <string name="section_authentication">Autenticação</string>
-    <string name="section_connection_status">Estado da ligação</string>
     <string name="label_optional_access_token">Opcional</string>
     <string name="message_welcome">O Harmonixia liga-se ao seu servidor Music Assistant para gerir a reprodução.</string>
     <string name="message_clear_settings_confirm">Limpar definições do servidor guardadas?</string>

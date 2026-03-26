@@ -72,10 +72,7 @@
     <string name="error_username_required">Användarnamn krävs</string>
     <string name="error_password_required">Lösenord krävs</string>
     <string name="error_connection_timeout">Anslutningen tog för lång tid</string>
-    <string name="label_current_access_token">Aktuell åtkomsttoken</string>
-    <string name="section_connection_settings">Anslutningsinställningar</string>
     <string name="section_authentication">Autentisering</string>
-    <string name="section_connection_status">Anslutningsstatus</string>
     <string name="label_optional_access_token">Valfritt</string>
     <string name="message_welcome">Harmonixia ansluter till din Music Assistant-server för att hantera uppspelning.</string>
     <string name="message_clear_settings_confirm">Rensa sparade serverinställningar?</string>

@@ -72,10 +72,7 @@
     <string name="error_username_required">Brukernavn er påkrevd</string>
     <string name="error_password_required">Passord er påkrevd</string>
     <string name="error_connection_timeout">Tilkoblingstidsavbrudd</string>
-    <string name="label_current_access_token">Nåværende tilgangstoken</string>
-    <string name="section_connection_settings">Tilkoblingsinnstillinger</string>
     <string name="section_authentication">Autentisering</string>
-    <string name="section_connection_status">Tilkoblingsstatus</string>
     <string name="label_optional_access_token">Valgfritt</string>
     <string name="message_welcome">Harmonixia kobler til Music Assistant-serveren din for å håndtere avspilling.</string>
     <string name="message_clear_settings_confirm">Tømme lagrede serverinnstillinger?</string>

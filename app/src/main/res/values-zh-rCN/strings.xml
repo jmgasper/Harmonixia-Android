@@ -72,10 +72,7 @@
     <string name="error_username_required">需要用户名</string>
     <string name="error_password_required">需要密码</string>
     <string name="error_connection_timeout">连接超时</string>
-    <string name="label_current_access_token">当前访问令牌</string>
-    <string name="section_connection_settings">连接设置</string>
     <string name="section_authentication">身份验证</string>
-    <string name="section_connection_status">连接状态</string>
     <string name="label_optional_access_token">可选</string>
     <string name="message_welcome">Harmonixia 连接到你的 Music Assistant 服务器以管理播放。</string>
     <string name="message_clear_settings_confirm">清除已保存的服务器设置？</string>

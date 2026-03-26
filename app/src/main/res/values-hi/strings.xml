@@ -72,10 +72,7 @@
     <string name="error_username_required">उपयोगकर्ता नाम आवश्यक है</string>
     <string name="error_password_required">पासवर्ड आवश्यक है</string>
     <string name="error_connection_timeout">कनेक्शन टाइमआउट</string>
-    <string name="label_current_access_token">वर्तमान एक्सेस टोकन</string>
-    <string name="section_connection_settings">कनेक्शन सेटिंग्स</string>
     <string name="section_authentication">प्रमाणीकरण</string>
-    <string name="section_connection_status">कनेक्शन स्थिति</string>
     <string name="label_optional_access_token">वैकल्पिक</string>
     <string name="message_welcome">Harmonixia आपके Music Assistant सर्वर से कनेक्ट होकर प्लेबैक प्रबंधित करता है.</string>
     <string name="message_clear_settings_confirm">सहेजी गई सर्वर सेटिंग्स साफ़ करें?</string>

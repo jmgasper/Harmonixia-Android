@@ -75,10 +75,7 @@
     <string name="error_username_required">Username is required</string>
     <string name="error_password_required">Password is required</string>
     <string name="error_connection_timeout">Connection timeout</string>
-    <string name="label_current_access_token">Current Access Token</string>
-    <string name="section_connection_settings">Connection Settings</string>
     <string name="section_authentication">Authentication</string>
-    <string name="section_connection_status">Connection Status</string>
     <string name="label_optional_access_token">Optional</string>
     <string name="message_welcome">Harmonixia connects to your Music Assistant server to manage playback.</string>
     <string name="message_clear_settings_confirm">Clear saved server settings?</string>
