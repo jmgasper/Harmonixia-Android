@@ -106,15 +106,25 @@ class PlaybackSessionCallback(
         controller: MediaSession.ControllerInfo,
         @Player.Command playerCommand: Int
     ): Int {
-        when (playerCommand) {
+        return when (playerCommand) {
             Player.COMMAND_PLAY_PAUSE -> {
                 if (player.isPlaying) handlePause() else handlePlay()
+                SessionResult.RESULT_SUCCESS
             }
-            Player.COMMAND_STOP -> handleStop()
-            Player.COMMAND_SEEK_TO_NEXT -> handleNext()
-            Player.COMMAND_SEEK_TO_PREVIOUS -> handlePrevious()
+            Player.COMMAND_STOP -> {
+                handleStop()
+                SessionResult.RESULT_SUCCESS
+            }
+            Player.COMMAND_SEEK_TO_NEXT -> {
+                handleNext()
+                SessionResult.RESULT_SUCCESS
+            }
+            Player.COMMAND_SEEK_TO_PREVIOUS -> {
+                handlePrevious()
+                SessionResult.RESULT_SUCCESS
+            }
+            else -> SessionResult.RESULT_ERROR_NOT_SUPPORTED
         }
-        return SessionResult.RESULT_SUCCESS
     }
 
     override fun onGetLibraryRoot(
