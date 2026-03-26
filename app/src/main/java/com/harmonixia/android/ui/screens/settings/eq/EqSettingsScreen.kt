@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.text.ClickableText
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.Search
@@ -36,10 +35,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.LinkAnnotation
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.withLink
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -283,7 +283,6 @@ internal fun EqSettingsScreenContent(
 
 @Composable
 private fun AttributionCard() {
-    val uriHandler = LocalUriHandler.current
     val opraUrl = "https://github.com/opra-project/OPRA"
     val ladspaUrl = "https://github.com/pulseaudio-equalizer-ladspa/equalizer"
 
@@ -315,9 +314,12 @@ private fun AttributionCard() {
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            ClickableText(
-                text = AnnotatedString(opraUrl),
-                onClick = { uriHandler.openUri(opraUrl) },
+            Text(
+                text = buildAnnotatedString {
+                    withLink(LinkAnnotation.Url(opraUrl)) {
+                        append(opraUrl)
+                    }
+                },
                 style = MaterialTheme.typography.bodySmall.copy(
                     color = MaterialTheme.colorScheme.primary
                 )
@@ -333,9 +335,12 @@ private fun AttributionCard() {
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            ClickableText(
-                text = AnnotatedString(ladspaUrl),
-                onClick = { uriHandler.openUri(ladspaUrl) },
+            Text(
+                text = buildAnnotatedString {
+                    withLink(LinkAnnotation.Url(ladspaUrl)) {
+                        append(ladspaUrl)
+                    }
+                },
                 style = MaterialTheme.typography.bodySmall.copy(
                     color = MaterialTheme.colorScheme.primary
                 )
