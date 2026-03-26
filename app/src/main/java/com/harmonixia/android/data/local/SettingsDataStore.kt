@@ -1,10 +1,13 @@
 package com.harmonixia.android.data.local
 
 import android.content.Context
+import android.content.SharedPreferences
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.security.crypto.EncryptedSharedPreferences
+import androidx.security.crypto.MasterKey
 import com.harmonixia.android.domain.model.AuthMethod
 import com.harmonixia.android.util.LibraryViewMode
 import com.harmonixia.android.util.Logger
@@ -12,12 +15,20 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+
+private const val ENCRYPTED_SETTINGS_FILE_NAME = "secure_settings"
+private const val ENCRYPTED_PASSWORD_KEY = "encrypted_password"
 
 class SettingsDataStore @Inject constructor(
     @ApplicationContext context: Context,
-    private val dataStore: DataStore<Preferences>
+    private val dataStore: DataStore<Preferences>,
+    private val passwordStorage: PasswordStorage =
+        EncryptedSharedPreferencesPasswordStorage(context.applicationContext)
 ) {
     private val applicationLabel = context.applicationContext.packageName
+    private val passwordMigrationMutex = Mutex()
 
     suspend fun saveServerUrl(url: String) {
         dataStore.edit { preferences ->
@@ -44,9 +55,13 @@ class SettingsDataStore @Inject constructor(
     }
 
     suspend fun savePassword(password: String) {
-        // TODO: Store passwords with EncryptedSharedPreferences.
+        if (password.isEmpty()) {
+            passwordStorage.clearPassword()
+        } else {
+            passwordStorage.writePassword(password)
+        }
         dataStore.edit { preferences ->
-            preferences[PASSWORD_KEY] = password
+            preferences.remove(PASSWORD_KEY)
         }
     }
 
@@ -117,7 +132,18 @@ class SettingsDataStore @Inject constructor(
 
     fun getPassword(): Flow<String> {
         return dataStore.data.map { preferences ->
-            preferences[PASSWORD_KEY] ?: ""
+            val encryptedPassword = passwordStorage.readPassword().orEmpty()
+            if (encryptedPassword.isNotEmpty()) {
+                return@map encryptedPassword
+            }
+
+            val legacyPassword = preferences[PASSWORD_KEY].orEmpty()
+            if (legacyPassword.isEmpty()) {
+                return@map ""
+            }
+
+            migrateLegacyPassword(legacyPassword)
+            passwordStorage.readPassword().orEmpty().ifEmpty { legacyPassword }
         }
     }
 
@@ -140,6 +166,7 @@ class SettingsDataStore @Inject constructor(
     }
 
     suspend fun clearSettings() {
+        passwordStorage.clearPassword()
         dataStore.edit { preferences ->
             preferences.clear()
         }
@@ -163,5 +190,56 @@ class SettingsDataStore @Inject constructor(
         if (value.isNullOrBlank()) return LibraryViewMode.AUTO
         return runCatching { LibraryViewMode.valueOf(value.trim().uppercase()) }
             .getOrElse { LibraryViewMode.AUTO }
+    }
+
+    private suspend fun migrateLegacyPassword(legacyPassword: String) {
+        passwordMigrationMutex.withLock {
+            if (!passwordStorage.readPassword().isNullOrEmpty()) {
+                return
+            }
+
+            passwordStorage.writePassword(legacyPassword)
+            dataStore.edit { preferences ->
+                preferences.remove(PASSWORD_KEY)
+            }
+            Logger.i(TAG, "Migrated legacy password to encrypted storage for $applicationLabel")
+        }
+    }
+}
+
+interface PasswordStorage {
+    fun readPassword(): String?
+    fun writePassword(password: String)
+    fun clearPassword()
+}
+
+private class EncryptedSharedPreferencesPasswordStorage(
+    context: Context
+) : PasswordStorage {
+    private val sharedPreferences: SharedPreferences by lazy {
+        val masterKey = MasterKey.Builder(context)
+            .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
+            .build()
+        EncryptedSharedPreferences.create(
+            context,
+            ENCRYPTED_SETTINGS_FILE_NAME,
+            masterKey,
+            EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+            EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+        )
+    }
+
+    override fun readPassword(): String? = sharedPreferences.getString(ENCRYPTED_PASSWORD_KEY, null)
+
+    override fun writePassword(password: String) {
+        sharedPreferences.edit()
+            .putString(ENCRYPTED_PASSWORD_KEY, password)
+            .apply()
+    }
+
+    override fun clearPassword() {
+        sharedPreferences.edit()
+            .remove(ENCRYPTED_PASSWORD_KEY)
+            .apply()
     }
 }
