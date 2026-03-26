@@ -792,9 +792,9 @@ private fun TrackInfoPanel(
     titleStyle: TextStyle,
     artistStyle: TextStyle,
     albumStyle: TextStyle,
+    modifier: Modifier = Modifier,
     onArtistClick: (() -> Unit)? = null,
     onAlbumClick: (() -> Unit)? = null,
-    modifier: Modifier = Modifier,
     horizontalAlignment: Alignment.Horizontal = Alignment.CenterHorizontally,
     textAlign: TextAlign = TextAlign.Center
 ) {
