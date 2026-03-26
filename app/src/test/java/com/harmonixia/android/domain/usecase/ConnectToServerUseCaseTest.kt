@@ -84,6 +84,60 @@ class ConnectToServerUseCaseTest {
     }
 
     @Test
+    fun invoke_urlWithUserInfo_returnsFailure() = runBlocking {
+        val result = useCase(
+            serverUrl = "https://user:pass@example.com",
+            authToken = "token-123",
+            authMethod = AuthMethod.TOKEN
+        )
+
+        assertTrue(result.isFailure)
+        assertEquals(
+            "Server URL is invalid",
+            result.exceptionOrNull()?.message
+        )
+        coVerify(exactly = 0) { repository.connect(any(), any()) }
+        coVerify(exactly = 0) { repository.loginWithCredentials(any(), any(), any()) }
+    }
+
+    @Test
+    fun invoke_urlWithOutOfRangePort_returnsFailure() = runBlocking {
+        val result = useCase(
+            serverUrl = "https://example.com:65536",
+            authToken = "token-123",
+            authMethod = AuthMethod.TOKEN
+        )
+
+        assertTrue(result.isFailure)
+        assertEquals(
+            "Server URL is invalid",
+            result.exceptionOrNull()?.message
+        )
+        coVerify(exactly = 0) { repository.connect(any(), any()) }
+        coVerify(exactly = 0) { repository.loginWithCredentials(any(), any(), any()) }
+    }
+
+    @Test
+    fun invoke_ipv6LiteralUrl_success_savesSettings() = runBlocking {
+        coEvery { repository.connect(any(), any()) } returns Result.success(Unit)
+        coEvery { settingsDataStore.saveServerUrl(any()) } just runs
+        coEvery { settingsDataStore.saveAuthToken(any()) } just runs
+        coEvery { settingsDataStore.saveAuthMethod(any()) } just runs
+        coEvery { settingsDataStore.saveUsername(any()) } just runs
+        coEvery { settingsDataStore.savePassword(any()) } just runs
+
+        val result = useCase(
+            serverUrl = "https://[2001:db8::1]:8095/",
+            authToken = "token-123",
+            authMethod = AuthMethod.TOKEN
+        )
+
+        assertTrue(result.isSuccess)
+        coVerify { repository.connect("https://[2001:db8::1]:8095", "token-123") }
+        coVerify { settingsDataStore.saveServerUrl("https://[2001:db8::1]:8095") }
+    }
+
+    @Test
     fun invoke_emptyUrl_returnsFailure() = runBlocking {
         val result = useCase(
             serverUrl = "",

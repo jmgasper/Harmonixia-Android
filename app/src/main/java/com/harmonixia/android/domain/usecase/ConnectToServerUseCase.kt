@@ -21,6 +21,10 @@ class ConnectToServerUseCase @Inject constructor(
         if (serverUrl.isBlank()) {
             return Result.failure(IllegalArgumentException("Server URL cannot be empty"))
         }
+        val normalizedUrl = ValidationUtils.normalizeUrl(serverUrl)
+        if (!ValidationUtils.isValidUrl(normalizedUrl)) {
+            return Result.failure(IllegalArgumentException("Server URL is invalid"))
+        }
         if (authMethod == AuthMethod.USERNAME_PASSWORD) {
             if (username.isBlank()) {
                 return Result.failure(IllegalArgumentException("Username cannot be empty"))
@@ -29,7 +33,6 @@ class ConnectToServerUseCase @Inject constructor(
                 return Result.failure(IllegalArgumentException("Password cannot be empty"))
             }
         }
-        val normalizedUrl = ValidationUtils.normalizeUrl(serverUrl)
         val tokenResult = when (authMethod) {
             AuthMethod.USERNAME_PASSWORD -> repository.loginWithCredentials(
                 normalizedUrl,
