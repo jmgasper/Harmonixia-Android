@@ -122,7 +122,6 @@
     <string name="content_desc_nav_artists">Siirry Artisteihin</string>
     <string name="content_desc_nav_playlists">Siirry Soittolistoihin</string>
     <string name="content_desc_nav_search">Siirry Hakuun</string>
-    <string name="home_placeholder">Kotinäkymä tulossa pian</string>
     <string name="home_recently_played">Äskettäin toistettu</string>
     <string name="home_recently_added">Äskettäin lisätyt albumit</string>
     <string name="home_empty_recently_played">Toista albumi nähdäksesi sen täällä.</string>
@@ -154,9 +153,7 @@
     <string name="artists_loading">Ladataan artisteja...</string>
     <string name="artists_empty">Artisteja ei löytynyt</string>
     <string name="artists_error">Artistien lataus epäonnistui</string>
-    <string name="artists_count">Artistit (%1$d)</string>
     <string name="album_detail_title">Albumin tiedot</string>
-    <string name="album_detail_play">Toista albumi</string>
     <string name="album_detail_download">Lataa albumi</string>
     <string name="album_detail_remove_download">Poista lataus</string>
     <string name="album_download_confirm_remove_title">Poistetaanko albumin lataus?</string>

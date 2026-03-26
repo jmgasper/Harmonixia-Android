@@ -122,7 +122,6 @@
     <string name="content_desc_nav_artists">Zu Künstlern navigieren</string>
     <string name="content_desc_nav_playlists">Zu Playlists navigieren</string>
     <string name="content_desc_nav_search">Zu Suche navigieren</string>
-    <string name="home_placeholder">Startbildschirm kommt bald</string>
     <string name="home_recently_played">Zuletzt gespielt</string>
     <string name="home_recently_added">Kürzlich hinzugefügte Alben</string>
     <string name="home_empty_recently_played">Spielen Sie ein Album, um es hier zu sehen.</string>
@@ -154,9 +153,7 @@
     <string name="artists_loading">Künstler werden geladen...</string>
     <string name="artists_empty">Keine Künstler gefunden</string>
     <string name="artists_error">Künstler konnten nicht geladen werden</string>
-    <string name="artists_count">Künstler (%1$d)</string>
     <string name="album_detail_title">Albumdetails</string>
-    <string name="album_detail_play">Album abspielen</string>
     <string name="album_detail_download">Album herunterladen</string>
     <string name="album_detail_remove_download">Download entfernen</string>
     <string name="album_download_confirm_remove_title">Album-Download entfernen?</string>

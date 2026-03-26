@@ -122,7 +122,6 @@
     <string name="content_desc_nav_artists">শিল্পীতে যান</string>
     <string name="content_desc_nav_playlists">প্লেলিস্টে যান</string>
     <string name="content_desc_nav_search">অনুসন্ধানে যান</string>
-    <string name="home_placeholder">হোম স্ক্রিন শিগগিরই আসছে</string>
     <string name="home_recently_played">সাম্প্রতিক প্লে করা</string>
     <string name="home_recently_added">সাম্প্রতিক যোগ করা অ্যালবাম</string>
     <string name="home_empty_recently_played">এখানে দেখতে একটি অ্যালবাম প্লে করুন।</string>
@@ -154,9 +153,7 @@
     <string name="artists_loading">শিল্পী লোড হচ্ছে...</string>
     <string name="artists_empty">কোনো শিল্পী পাওয়া যায়নি</string>
     <string name="artists_error">শিল্পী লোড করা যায়নি</string>
-    <string name="artists_count">শিল্পী (%1$d)</string>
     <string name="album_detail_title">অ্যালবাম বিস্তারিত</string>
-    <string name="album_detail_play">অ্যালবাম প্লে করুন</string>
     <string name="album_detail_download">অ্যালবাম ডাউনলোড করুন</string>
     <string name="album_detail_remove_download">ডাউনলোড সরান</string>
     <string name="album_download_confirm_remove_title">অ্যালবাম ডাউনলোড সরাবেন?</string>

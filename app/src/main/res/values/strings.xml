@@ -125,7 +125,6 @@
     <string name="content_desc_nav_artists">Navigate to Artists</string>
     <string name="content_desc_nav_playlists">Navigate to Playlists</string>
     <string name="content_desc_nav_search">Navigate to Search</string>
-    <string name="home_placeholder">Home screen coming soon</string>
     <string name="home_recently_played">Recently Played</string>
     <string name="home_recently_added">Recently Added Albums</string>
     <string name="home_empty_recently_played">Play an album to see it here.</string>
@@ -157,9 +156,7 @@
     <string name="artists_loading">Loading artists...</string>
     <string name="artists_empty">No artists found</string>
     <string name="artists_error">Failed to load artists</string>
-    <string name="artists_count">Artists (%1$d)</string>
     <string name="album_detail_title">Album Details</string>
-    <string name="album_detail_play">Play Album</string>
     <string name="album_detail_download">Download Album</string>
     <string name="album_detail_remove_download">Remove Download</string>
     <string name="album_download_confirm_remove_title">Remove album download?</string>

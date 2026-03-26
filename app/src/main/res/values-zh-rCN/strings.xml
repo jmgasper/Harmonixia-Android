@@ -122,7 +122,6 @@
     <string name="content_desc_nav_artists">前往艺术家</string>
     <string name="content_desc_nav_playlists">前往播放列表</string>
     <string name="content_desc_nav_search">前往搜索</string>
-    <string name="home_placeholder">主页即将推出</string>
     <string name="home_recently_played">最近播放</string>
     <string name="home_recently_added">最近添加的专辑</string>
     <string name="home_empty_recently_played">播放一张专辑即可在此看到它。</string>
@@ -154,9 +153,7 @@
     <string name="artists_loading">正在加载艺术家...</string>
     <string name="artists_empty">未找到艺术家</string>
     <string name="artists_error">加载艺术家失败</string>
-    <string name="artists_count">艺术家（%1$d）</string>
     <string name="album_detail_title">专辑详情</string>
-    <string name="album_detail_play">播放专辑</string>
     <string name="album_detail_download">下载专辑</string>
     <string name="album_detail_remove_download">移除下载</string>
     <string name="album_download_confirm_remove_title">移除专辑下载？</string>

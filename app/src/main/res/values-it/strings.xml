@@ -122,7 +122,6 @@
     <string name="content_desc_nav_artists">Vai a Artisti</string>
     <string name="content_desc_nav_playlists">Vai a Playlist</string>
     <string name="content_desc_nav_search">Vai a Cerca</string>
-    <string name="home_placeholder">Schermata Home in arrivo</string>
     <string name="home_recently_played">Riprodotti di recente</string>
     <string name="home_recently_added">Album aggiunti di recente</string>
     <string name="home_empty_recently_played">Riproduci un album per vederlo qui.</string>
@@ -154,9 +153,7 @@
     <string name="artists_loading">Caricamento artisti...</string>
     <string name="artists_empty">Nessun artista trovato</string>
     <string name="artists_error">Impossibile caricare gli artisti</string>
-    <string name="artists_count">Artisti (%1$d)</string>
     <string name="album_detail_title">Dettagli album</string>
-    <string name="album_detail_play">Riproduci album</string>
     <string name="album_detail_download">Scarica album</string>
     <string name="album_detail_remove_download">Rimuovi download</string>
     <string name="album_download_confirm_remove_title">Rimuovere il download dell\'album?</string>

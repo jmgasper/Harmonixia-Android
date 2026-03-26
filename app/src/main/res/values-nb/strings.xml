@@ -122,7 +122,6 @@
     <string name="content_desc_nav_artists">Gå til Artister</string>
     <string name="content_desc_nav_playlists">Gå til Spillelister</string>
     <string name="content_desc_nav_search">Gå til Søk</string>
-    <string name="home_placeholder">Hjemskjerm kommer snart</string>
     <string name="home_recently_played">Nylig spilt</string>
     <string name="home_recently_added">Nylig lagt til album</string>
     <string name="home_empty_recently_played">Spill et album for å se det her.</string>
@@ -154,9 +153,7 @@
     <string name="artists_loading">Laster artister...</string>
     <string name="artists_empty">Ingen artister funnet</string>
     <string name="artists_error">Kunne ikke laste artister</string>
-    <string name="artists_count">Artister (%1$d)</string>
     <string name="album_detail_title">Albumdetaljer</string>
-    <string name="album_detail_play">Spill album</string>
     <string name="album_detail_download">Last ned album</string>
     <string name="album_detail_remove_download">Fjern nedlasting</string>
     <string name="album_download_confirm_remove_title">Fjern album-nedlasting?</string>

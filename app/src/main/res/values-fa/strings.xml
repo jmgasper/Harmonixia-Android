@@ -122,7 +122,6 @@
     <string name="content_desc_nav_artists">رفتن به هنرمندان</string>
     <string name="content_desc_nav_playlists">رفتن به فهرست‌های پخش</string>
     <string name="content_desc_nav_search">رفتن به جستجو</string>
-    <string name="home_placeholder">صفحه خانه به‌زودی می‌آید</string>
     <string name="home_recently_played">اخیراً پخش‌شده</string>
     <string name="home_recently_added">آلبوم‌های اخیراً اضافه‌شده</string>
     <string name="home_empty_recently_played">برای دیدن آن اینجا، یک آلبوم پخش کنید.</string>
@@ -154,9 +153,7 @@
     <string name="artists_loading">در حال بارگذاری هنرمندان...</string>
     <string name="artists_empty">هیچ هنرمندی یافت نشد</string>
     <string name="artists_error">بارگذاری هنرمندان ناموفق بود</string>
-    <string name="artists_count">هنرمندان (%1$d)</string>
     <string name="album_detail_title">جزئیات آلبوم</string>
-    <string name="album_detail_play">پخش آلبوم</string>
     <string name="album_detail_download">دانلود آلبوم</string>
     <string name="album_detail_remove_download">حذف دانلود</string>
     <string name="album_download_confirm_remove_title">دانلود آلبوم حذف شود؟</string>
