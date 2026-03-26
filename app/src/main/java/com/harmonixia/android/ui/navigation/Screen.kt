@@ -16,11 +16,6 @@ sealed class Screen(val route: String) {
             }
         }
     }
-    @Deprecated(
-        "EQ settings are now inline in the main Settings screen. " +
-            "Use Screen.Settings.createRoute(SettingsTab.EQUALIZER) instead"
-    )
-    data object SettingsEqualizer : Screen("settings/equalizer")
     data object PerformanceSettings : Screen("settings/performance")
     data object Home : Screen("home")
     data object NowPlaying : Screen("now_playing")

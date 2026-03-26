@@ -97,7 +97,6 @@ fun NavGraph(
                 initialTab = initialTab
             )
         }
-        // SettingsEqualizer route deprecated; EQ settings are inline on Settings.
         composable(Screen.PerformanceSettings.route) {
             NavigationPerformanceLogger(screenName = "PerformanceSettings")
             PerformanceSettingsScreen(
