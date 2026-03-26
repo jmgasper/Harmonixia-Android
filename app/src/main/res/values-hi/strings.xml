@@ -199,9 +199,6 @@
     <string name="playlists_create_success">प्लेलिस्ट बनाई गई</string>
     <string name="playlists_create_error">प्लेलिस्ट नहीं बनाई जा सकी</string>
     <string name="playlist_detail_title">प्लेलिस्ट विवरण</string>
-    <string name="playlist_detail_remove_download">डाउनलोड हटाएँ</string>
-    <string name="playlist_download_confirm_remove_title">प्लेलिस्ट डाउनलोड हटाएँ?</string>
-    <string name="playlist_download_confirm_remove_message">यह इस प्लेलिस्ट के सभी डाउनलोड किए गए ट्रैक डिवाइस से हटा देगा।</string>
     <string name="playlist_detail_tracks">ट्रैक</string>
     <string name="playlist_detail_loading_tracks">ट्रैक लोड हो रहे हैं...</string>
     <string name="playlist_detail_no_tracks">इस प्लेलिस्ट में कोई ट्रैक नहीं है</string>

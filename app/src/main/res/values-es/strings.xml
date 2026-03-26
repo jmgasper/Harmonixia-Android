@@ -199,9 +199,6 @@
     <string name="playlists_create_success">Lista de reproducción creada</string>
     <string name="playlists_create_error">No se pudo crear la lista de reproducción</string>
     <string name="playlist_detail_title">Detalles de la lista</string>
-    <string name="playlist_detail_remove_download">Eliminar descarga</string>
-    <string name="playlist_download_confirm_remove_title">¿Eliminar descarga de la lista?</string>
-    <string name="playlist_download_confirm_remove_message">Esto eliminará todas las pistas descargadas de esta lista del dispositivo.</string>
     <string name="playlist_detail_tracks">Pistas</string>
     <string name="playlist_detail_loading_tracks">Cargando pistas...</string>
     <string name="playlist_detail_no_tracks">No hay pistas en esta lista</string>

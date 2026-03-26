@@ -199,9 +199,6 @@
     <string name="playlists_create_success">فهرست پخش ایجاد شد</string>
     <string name="playlists_create_error">امکان ایجاد فهرست پخش نیست</string>
     <string name="playlist_detail_title">جزئیات فهرست پخش</string>
-    <string name="playlist_detail_remove_download">حذف دانلود</string>
-    <string name="playlist_download_confirm_remove_title">دانلود فهرست پخش حذف شود؟</string>
-    <string name="playlist_download_confirm_remove_message">این کار همه قطعه‌های دانلودشده این فهرست پخش را از دستگاه حذف می‌کند.</string>
     <string name="playlist_detail_tracks">قطعه‌ها</string>
     <string name="playlist_detail_loading_tracks">در حال بارگذاری قطعه‌ها...</string>
     <string name="playlist_detail_no_tracks">هیچ قطعه‌ای در این فهرست پخش نیست</string>

@@ -199,9 +199,6 @@
     <string name="playlists_create_success">প্লেলিস্ট তৈরি হয়েছে</string>
     <string name="playlists_create_error">প্লেলিস্ট তৈরি করা যায়নি</string>
     <string name="playlist_detail_title">প্লেলিস্ট বিস্তারিত</string>
-    <string name="playlist_detail_remove_download">ডাউনলোড সরান</string>
-    <string name="playlist_download_confirm_remove_title">প্লেলিস্ট ডাউনলোড সরাবেন?</string>
-    <string name="playlist_download_confirm_remove_message">এটি এই প্লেলিস্টের সব ডাউনলোড করা ট্র্যাক ডিভাইস থেকে মুছে দেবে।</string>
     <string name="playlist_detail_tracks">ট্র্যাক</string>
     <string name="playlist_detail_loading_tracks">ট্র্যাক লোড হচ্ছে...</string>
     <string name="playlist_detail_no_tracks">এই প্লেলিস্টে কোনো ট্র্যাক নেই</string>

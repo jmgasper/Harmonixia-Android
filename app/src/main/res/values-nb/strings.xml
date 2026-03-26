@@ -199,9 +199,6 @@
     <string name="playlists_create_success">Spilleliste opprettet</string>
     <string name="playlists_create_error">Kunne ikke opprette spilleliste</string>
     <string name="playlist_detail_title">Spillelistedetaljer</string>
-    <string name="playlist_detail_remove_download">Fjern nedlasting</string>
-    <string name="playlist_download_confirm_remove_title">Fjern spilleliste-nedlasting?</string>
-    <string name="playlist_download_confirm_remove_message">Dette vil slette alle nedlastede spor for denne spillelisten fra enheten.</string>
     <string name="playlist_detail_tracks">Spor</string>
     <string name="playlist_detail_loading_tracks">Laster spor...</string>
     <string name="playlist_detail_no_tracks">Ingen spor i denne spillelisten</string>

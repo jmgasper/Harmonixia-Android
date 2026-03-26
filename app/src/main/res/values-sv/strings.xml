@@ -199,9 +199,6 @@
     <string name="playlists_create_success">Spellista skapad</string>
     <string name="playlists_create_error">Kunde inte skapa spellista</string>
     <string name="playlist_detail_title">Spellistdetaljer</string>
-    <string name="playlist_detail_remove_download">Ta bort nedladdning</string>
-    <string name="playlist_download_confirm_remove_title">Ta bort spellistans nedladdning?</string>
-    <string name="playlist_download_confirm_remove_message">Detta tar bort alla nedladdade spår för denna spellista från enheten.</string>
     <string name="playlist_detail_tracks">Spår</string>
     <string name="playlist_detail_loading_tracks">Laddar spår...</string>
     <string name="playlist_detail_no_tracks">Inga spår i denna spellista</string>

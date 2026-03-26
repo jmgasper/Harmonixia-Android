@@ -199,9 +199,6 @@
     <string name="playlists_create_success">Soittolista luotu</string>
     <string name="playlists_create_error">Soittolistaa ei voitu luoda</string>
     <string name="playlist_detail_title">Soittolistan tiedot</string>
-    <string name="playlist_detail_remove_download">Poista lataus</string>
-    <string name="playlist_download_confirm_remove_title">Poistetaanko soittolistan lataus?</string>
-    <string name="playlist_download_confirm_remove_message">Tämä poistaa kaikki tämän soittolistan ladatut kappaleet laitteesta.</string>
     <string name="playlist_detail_tracks">Kappaleet</string>
     <string name="playlist_detail_loading_tracks">Ladataan kappaleita...</string>
     <string name="playlist_detail_no_tracks">Tässä soittolistassa ei ole kappaleita</string>

@@ -199,9 +199,6 @@
     <string name="playlists_create_success">Playlist erstellt</string>
     <string name="playlists_create_error">Playlist konnte nicht erstellt werden</string>
     <string name="playlist_detail_title">Playlist-Details</string>
-    <string name="playlist_detail_remove_download">Download entfernen</string>
-    <string name="playlist_download_confirm_remove_title">Playlist-Download entfernen?</string>
-    <string name="playlist_download_confirm_remove_message">Dadurch werden alle heruntergeladenen Titel dieser Playlist vom Gerät gelöscht.</string>
     <string name="playlist_detail_tracks">Titel</string>
     <string name="playlist_detail_loading_tracks">Titel werden geladen...</string>
     <string name="playlist_detail_no_tracks">Keine Titel in dieser Playlist</string>

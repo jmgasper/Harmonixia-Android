@@ -199,9 +199,6 @@
     <string name="playlists_create_success">播放列表已创建</string>
     <string name="playlists_create_error">无法创建播放列表</string>
     <string name="playlist_detail_title">播放列表详情</string>
-    <string name="playlist_detail_remove_download">移除下载</string>
-    <string name="playlist_download_confirm_remove_title">移除播放列表下载？</string>
-    <string name="playlist_download_confirm_remove_message">这将从你的设备中删除该播放列表的所有已下载曲目。</string>
     <string name="playlist_detail_tracks">曲目</string>
     <string name="playlist_detail_loading_tracks">正在加载曲目...</string>
     <string name="playlist_detail_no_tracks">该播放列表中没有曲目</string>

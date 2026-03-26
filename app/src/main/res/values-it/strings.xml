@@ -199,9 +199,6 @@
     <string name="playlists_create_success">Playlist creata</string>
     <string name="playlists_create_error">Impossibile creare la playlist</string>
     <string name="playlist_detail_title">Dettagli playlist</string>
-    <string name="playlist_detail_remove_download">Rimuovi download</string>
-    <string name="playlist_download_confirm_remove_title">Rimuovere il download della playlist?</string>
-    <string name="playlist_download_confirm_remove_message">Questo eliminerà tutti i brani scaricati di questa playlist dal dispositivo.</string>
     <string name="playlist_detail_tracks">Brani</string>
     <string name="playlist_detail_loading_tracks">Caricamento brani...</string>
     <string name="playlist_detail_no_tracks">Nessun brano in questa playlist</string>
