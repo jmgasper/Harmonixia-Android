@@ -52,6 +52,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -115,19 +116,22 @@ fun ArtistDetailScreen(
 
     val windowSizeClass = calculateWindowSizeClass(activity = LocalContext.current as Activity)
     val configuration = LocalConfiguration.current
+    val windowInfo = LocalWindowInfo.current
+    val density = LocalDensity.current
     val spacing = rememberAdaptiveSpacing()
     val isExpanded = windowSizeClass.widthSizeClass == WindowWidthSizeClass.Expanded
     val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
-    val columns by remember(windowSizeClass, configuration, isLandscape) {
+    val containerWidthDp = with(density) { windowInfo.containerSize.width.toDp() }
+    val columns by remember(windowSizeClass, isLandscape, containerWidthDp) {
         derivedStateOf {
             when (windowSizeClass.widthSizeClass) {
                 WindowWidthSizeClass.Compact -> if (isLandscape) 3 else 2
                 WindowWidthSizeClass.Medium -> if (isLandscape) 4 else 3
                 WindowWidthSizeClass.Expanded -> {
                     if (isLandscape) {
-                        (configuration.screenWidthDp / 160).coerceIn(4, 8)
+                        (containerWidthDp.value / 160f).toInt().coerceIn(4, 8)
                     } else {
-                        (configuration.screenWidthDp / 180).coerceIn(4, 6)
+                        (containerWidthDp.value / 180f).toInt().coerceIn(4, 6)
                     }
                 }
                 else -> if (isLandscape) 3 else 2
