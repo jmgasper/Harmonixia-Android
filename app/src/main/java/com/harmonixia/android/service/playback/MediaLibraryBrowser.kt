@@ -277,35 +277,30 @@ class MediaLibraryBrowser(
                 buildCategoryItem(
                     MEDIA_ID_HOME,
                     TITLE_HOME,
-                    mediaType = MediaMetadata.MEDIA_TYPE_FOLDER_MIXED,
-                    folderType = MediaMetadata.FOLDER_TYPE_MIXED
+                    mediaType = MediaMetadata.MEDIA_TYPE_FOLDER_MIXED
                 ),
                 buildCategoryItem(
                     MEDIA_ID_ALBUMS,
                     TITLE_ALBUMS,
                     mediaType = MediaMetadata.MEDIA_TYPE_FOLDER_ALBUMS,
-                    folderType = MediaMetadata.FOLDER_TYPE_ALBUMS,
                     browsableContentStyle = albumsStyle
                 ),
                 buildCategoryItem(
                     MEDIA_ID_ARTISTS,
                     TITLE_ARTISTS,
                     mediaType = MediaMetadata.MEDIA_TYPE_FOLDER_ARTISTS,
-                    folderType = MediaMetadata.FOLDER_TYPE_ARTISTS,
                     browsableContentStyle = letterGridStyle
                 ),
                 buildCategoryItem(
                     MEDIA_ID_PLAYLISTS,
                     TITLE_PLAYLISTS,
                     mediaType = MediaMetadata.MEDIA_TYPE_FOLDER_PLAYLISTS,
-                    folderType = MediaMetadata.FOLDER_TYPE_PLAYLISTS,
                     browsableContentStyle = MediaConstants.EXTRAS_VALUE_CONTENT_STYLE_GRID_ITEM
                 ),
                 buildCategoryItem(
                     MEDIA_ID_LOCAL_MEDIA,
                     TITLE_LOCAL_MEDIA,
-                    mediaType = MediaMetadata.MEDIA_TYPE_FOLDER_MIXED,
-                    folderType = MediaMetadata.FOLDER_TYPE_MIXED
+                    mediaType = MediaMetadata.MEDIA_TYPE_FOLDER_MIXED
                 )
             )
         }
@@ -317,27 +312,23 @@ class MediaLibraryBrowser(
                 MEDIA_ID_HOME_RECENTLY_PLAYED,
                 TITLE_HOME_RECENTLY_PLAYED,
                 mediaType = MediaMetadata.MEDIA_TYPE_FOLDER_ALBUMS,
-                folderType = MediaMetadata.FOLDER_TYPE_ALBUMS,
                 browsableContentStyle = MediaConstants.EXTRAS_VALUE_CONTENT_STYLE_GRID_ITEM
             ),
             buildCategoryItem(
                 MEDIA_ID_HOME_FAVORITES,
                 TITLE_HOME_FAVORITES,
-                mediaType = MediaMetadata.MEDIA_TYPE_MIXED,
-                folderType = MediaMetadata.FOLDER_TYPE_TITLES
+                mediaType = MediaMetadata.MEDIA_TYPE_MIXED
             ),
             buildCategoryItem(
                 MEDIA_ID_HOME_NEW_ALBUMS,
                 TITLE_HOME_NEW_ALBUMS,
                 mediaType = MediaMetadata.MEDIA_TYPE_FOLDER_ALBUMS,
-                folderType = MediaMetadata.FOLDER_TYPE_ALBUMS,
                 browsableContentStyle = MediaConstants.EXTRAS_VALUE_CONTENT_STYLE_GRID_ITEM
             ),
             buildCategoryItem(
                 MEDIA_ID_HOME_PLAYLISTS,
                 TITLE_PLAYLISTS,
                 mediaType = MediaMetadata.MEDIA_TYPE_FOLDER_PLAYLISTS,
-                folderType = MediaMetadata.FOLDER_TYPE_PLAYLISTS,
                 browsableContentStyle = MediaConstants.EXTRAS_VALUE_CONTENT_STYLE_GRID_ITEM
             )
         )
@@ -349,7 +340,6 @@ class MediaLibraryBrowser(
         subtitle: String? = null,
         artworkUrl: String? = null,
         mediaType: Int? = null,
-        folderType: Int? = null,
         browsableContentStyle: Int? = null,
         playableContentStyle: Int? = null
     ): MediaItem {
@@ -362,10 +352,6 @@ class MediaLibraryBrowser(
             .setIsPlayable(false)
         if (mediaType != null) {
             metadataBuilder.setMediaType(mediaType)
-        }
-        @Suppress("DEPRECATION")
-        if (folderType != null) {
-            metadataBuilder.setFolderType(folderType)
         }
         val styleExtras = buildContentStyleExtras(
             browsableContentStyle = browsableContentStyle,
@@ -466,21 +452,18 @@ class MediaLibraryBrowser(
                 MEDIA_ID_LOCAL_ALBUMS,
                 TITLE_LOCAL_ALBUMS,
                 mediaType = MediaMetadata.MEDIA_TYPE_FOLDER_ALBUMS,
-                folderType = MediaMetadata.FOLDER_TYPE_ALBUMS,
                 browsableContentStyle = albumsStyle
             ),
             buildCategoryItem(
                 MEDIA_ID_LOCAL_ARTISTS,
                 TITLE_LOCAL_ARTISTS,
                 mediaType = MediaMetadata.MEDIA_TYPE_FOLDER_ARTISTS,
-                folderType = MediaMetadata.FOLDER_TYPE_ARTISTS,
                 browsableContentStyle = letterGridStyle
             ),
             buildCategoryItem(
                 MEDIA_ID_LOCAL_TRACKS,
                 TITLE_LOCAL_TRACKS,
-                mediaType = MediaMetadata.MEDIA_TYPE_MIXED,
-                folderType = MediaMetadata.FOLDER_TYPE_TITLES
+                mediaType = MediaMetadata.MEDIA_TYPE_MIXED
             )
         )
     }
