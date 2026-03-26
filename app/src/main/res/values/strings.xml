@@ -186,7 +186,6 @@
     <string name="performance_settings_album_fresh_latency">Album time to fresh: %1$s</string>
     <string name="performance_settings_playlist_track_loads">Playlist track load (&lt;=50 / 51-150 / 151+): %1$s / %2$s / %3$s</string>
     <string name="performance_settings_album_track_loads">Album track load (&lt;=50 / 51-150 / 151+): %1$s / %2$s / %3$s</string>
-    <string name="performance_settings_cache_hit_rate_unavailable">Image cache hit rate: N/A</string>
     <string name="performance_settings_memory_cache">Memory cache: %1$s / %2$s</string>
     <string name="performance_settings_disk_cache">Disk cache: %1$s / %2$s</string>
     <string name="performance_settings_clear_image_cache">Clear Image Cache</string>
@@ -205,8 +204,6 @@
     <string name="playlists_create_success">Playlist created</string>
     <string name="playlists_create_error">Unable to create playlist</string>
     <string name="playlist_detail_title">Playlist Details</string>
-    <string name="playlist_detail_play">Play Playlist</string>
-    <string name="playlist_detail_download">Download Playlist</string>
     <string name="playlist_detail_remove_download">Remove Download</string>
     <string name="playlist_download_confirm_remove_title">Remove playlist download?</string>
     <string name="playlist_download_confirm_remove_message">This will delete all downloaded tracks for this playlist from your device.</string>

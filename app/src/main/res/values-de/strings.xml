@@ -181,7 +181,6 @@
     <string name="performance_settings_album_fresh_latency">Zeit bis Album frisch geladen: %1$s</string>
     <string name="performance_settings_playlist_track_loads">Playlist-Titelladung (&lt;=50 / 51-150 / 151+): %1$s / %2$s / %3$s</string>
     <string name="performance_settings_album_track_loads">Album-Titelladung (&lt;=50 / 51-150 / 151+): %1$s / %2$s / %3$s</string>
-    <string name="performance_settings_cache_hit_rate_unavailable">Bild-Cache-Trefferrate: N/A</string>
     <string name="performance_settings_memory_cache">Speicher-Cache: %1$s / %2$s</string>
     <string name="performance_settings_disk_cache">Datenträger-Cache: %1$s / %2$s</string>
     <string name="performance_settings_clear_image_cache">Bild-Cache leeren</string>
@@ -200,8 +199,6 @@
     <string name="playlists_create_success">Playlist erstellt</string>
     <string name="playlists_create_error">Playlist konnte nicht erstellt werden</string>
     <string name="playlist_detail_title">Playlist-Details</string>
-    <string name="playlist_detail_play">Playlist abspielen</string>
-    <string name="playlist_detail_download">Playlist herunterladen</string>
     <string name="playlist_detail_remove_download">Download entfernen</string>
     <string name="playlist_download_confirm_remove_title">Playlist-Download entfernen?</string>
     <string name="playlist_download_confirm_remove_message">Dadurch werden alle heruntergeladenen Titel dieser Playlist vom Gerät gelöscht.</string>

@@ -181,7 +181,6 @@
     <string name="performance_settings_album_fresh_latency">Tid til ny lasting for album: %1$s</string>
     <string name="performance_settings_playlist_track_loads">Spillelistespor-lasting (&lt;=50 / 51-150 / 151+): %1$s / %2$s / %3$s</string>
     <string name="performance_settings_album_track_loads">Albumspor-lasting (&lt;=50 / 51-150 / 151+): %1$s / %2$s / %3$s</string>
-    <string name="performance_settings_cache_hit_rate_unavailable">Bildes cache-treffrate: N/A</string>
     <string name="performance_settings_memory_cache">Minnecache: %1$s / %2$s</string>
     <string name="performance_settings_disk_cache">Diskcache: %1$s / %2$s</string>
     <string name="performance_settings_clear_image_cache">Tøm bildebuffer</string>
@@ -200,8 +199,6 @@
     <string name="playlists_create_success">Spilleliste opprettet</string>
     <string name="playlists_create_error">Kunne ikke opprette spilleliste</string>
     <string name="playlist_detail_title">Spillelistedetaljer</string>
-    <string name="playlist_detail_play">Spill spilleliste</string>
-    <string name="playlist_detail_download">Last ned spilleliste</string>
     <string name="playlist_detail_remove_download">Fjern nedlasting</string>
     <string name="playlist_download_confirm_remove_title">Fjern spilleliste-nedlasting?</string>
     <string name="playlist_download_confirm_remove_message">Dette vil slette alle nedlastede spor for denne spillelisten fra enheten.</string>

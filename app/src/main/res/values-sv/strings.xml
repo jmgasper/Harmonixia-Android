@@ -181,7 +181,6 @@
     <string name="performance_settings_album_fresh_latency">Tid till ny laddning för album: %1$s</string>
     <string name="performance_settings_playlist_track_loads">Spårladdning för spellista (&lt;=50 / 51-150 / 151+): %1$s / %2$s / %3$s</string>
     <string name="performance_settings_album_track_loads">Spårladdning för album (&lt;=50 / 51-150 / 151+): %1$s / %2$s / %3$s</string>
-    <string name="performance_settings_cache_hit_rate_unavailable">Bildcacheträff: N/A</string>
     <string name="performance_settings_memory_cache">Minnescache: %1$s / %2$s</string>
     <string name="performance_settings_disk_cache">Diskcache: %1$s / %2$s</string>
     <string name="performance_settings_clear_image_cache">Rensa bildcache</string>
@@ -200,8 +199,6 @@
     <string name="playlists_create_success">Spellista skapad</string>
     <string name="playlists_create_error">Kunde inte skapa spellista</string>
     <string name="playlist_detail_title">Spellistdetaljer</string>
-    <string name="playlist_detail_play">Spela spellista</string>
-    <string name="playlist_detail_download">Ladda ner spellista</string>
     <string name="playlist_detail_remove_download">Ta bort nedladdning</string>
     <string name="playlist_download_confirm_remove_title">Ta bort spellistans nedladdning?</string>
     <string name="playlist_download_confirm_remove_message">Detta tar bort alla nedladdade spår för denna spellista från enheten.</string>

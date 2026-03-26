@@ -181,7 +181,6 @@
     <string name="performance_settings_album_fresh_latency">एल्बम फ्रेश लोड समय: %1$s</string>
     <string name="performance_settings_playlist_track_loads">प्लेलिस्ट ट्रैक लोड (&lt;=50 / 51-150 / 151+): %1$s / %2$s / %3$s</string>
     <string name="performance_settings_album_track_loads">एल्बम ट्रैक लोड (&lt;=50 / 51-150 / 151+): %1$s / %2$s / %3$s</string>
-    <string name="performance_settings_cache_hit_rate_unavailable">इमेज कैश हिट रेट: N/A</string>
     <string name="performance_settings_memory_cache">मेमोरी कैश: %1$s / %2$s</string>
     <string name="performance_settings_disk_cache">डिस्क कैश: %1$s / %2$s</string>
     <string name="performance_settings_clear_image_cache">इमेज कैश साफ़ करें</string>
@@ -200,8 +199,6 @@
     <string name="playlists_create_success">प्लेलिस्ट बनाई गई</string>
     <string name="playlists_create_error">प्लेलिस्ट नहीं बनाई जा सकी</string>
     <string name="playlist_detail_title">प्लेलिस्ट विवरण</string>
-    <string name="playlist_detail_play">प्लेलिस्ट चलाएँ</string>
-    <string name="playlist_detail_download">प्लेलिस्ट डाउनलोड करें</string>
     <string name="playlist_detail_remove_download">डाउनलोड हटाएँ</string>
     <string name="playlist_download_confirm_remove_title">प्लेलिस्ट डाउनलोड हटाएँ?</string>
     <string name="playlist_download_confirm_remove_message">यह इस प्लेलिस्ट के सभी डाउनलोड किए गए ट्रैक डिवाइस से हटा देगा।</string>

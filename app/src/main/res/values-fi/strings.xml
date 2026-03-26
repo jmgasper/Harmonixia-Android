@@ -181,7 +181,6 @@
     <string name="performance_settings_album_fresh_latency">Albumin uusi latausaika: %1$s</string>
     <string name="performance_settings_playlist_track_loads">Soittolistan kappalelataus (&lt;=50 / 51-150 / 151+): %1$s / %2$s / %3$s</string>
     <string name="performance_settings_album_track_loads">Albumin kappalelataus (&lt;=50 / 51-150 / 151+): %1$s / %2$s / %3$s</string>
-    <string name="performance_settings_cache_hit_rate_unavailable">Kuvavälimuistin osumatarkkuus: N/A</string>
     <string name="performance_settings_memory_cache">Muistivälimuisti: %1$s / %2$s</string>
     <string name="performance_settings_disk_cache">Levyvälimuisti: %1$s / %2$s</string>
     <string name="performance_settings_clear_image_cache">Tyhjennä kuvavälimuisti</string>
@@ -200,8 +199,6 @@
     <string name="playlists_create_success">Soittolista luotu</string>
     <string name="playlists_create_error">Soittolistaa ei voitu luoda</string>
     <string name="playlist_detail_title">Soittolistan tiedot</string>
-    <string name="playlist_detail_play">Toista soittolista</string>
-    <string name="playlist_detail_download">Lataa soittolista</string>
     <string name="playlist_detail_remove_download">Poista lataus</string>
     <string name="playlist_download_confirm_remove_title">Poistetaanko soittolistan lataus?</string>
     <string name="playlist_download_confirm_remove_message">Tämä poistaa kaikki tämän soittolistan ladatut kappaleet laitteesta.</string>

@@ -181,7 +181,6 @@
     <string name="performance_settings_album_fresh_latency">Temps de chargement frais des albums : %1$s</string>
     <string name="performance_settings_playlist_track_loads">Chargement de pistes des playlists (&lt;=50 / 51-150 / 151+) : %1$s / %2$s / %3$s</string>
     <string name="performance_settings_album_track_loads">Chargement de pistes des albums (&lt;=50 / 51-150 / 151+) : %1$s / %2$s / %3$s</string>
-    <string name="performance_settings_cache_hit_rate_unavailable">Taux de cache des images : N/A</string>
     <string name="performance_settings_memory_cache">Cache mémoire : %1$s / %2$s</string>
     <string name="performance_settings_disk_cache">Cache disque : %1$s / %2$s</string>
     <string name="performance_settings_clear_image_cache">Vider le cache d\'images</string>
@@ -200,8 +199,6 @@
     <string name="playlists_create_success">Liste créée</string>
     <string name="playlists_create_error">Impossible de créer la liste</string>
     <string name="playlist_detail_title">Détails de la liste</string>
-    <string name="playlist_detail_play">Lire la liste</string>
-    <string name="playlist_detail_download">Télécharger la liste</string>
     <string name="playlist_detail_remove_download">Supprimer le téléchargement</string>
     <string name="playlist_download_confirm_remove_title">Supprimer le téléchargement de la liste ?</string>
     <string name="playlist_download_confirm_remove_message">Cela supprimera toutes les pistes téléchargées de cette liste de votre appareil.</string>

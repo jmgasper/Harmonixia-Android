@@ -181,7 +181,6 @@
     <string name="performance_settings_album_fresh_latency">অ্যালবাম নতুন লোড সময়: %1$s</string>
     <string name="performance_settings_playlist_track_loads">প্লেলিস্ট ট্র্যাক লোড (&lt;=50 / 51-150 / 151+): %1$s / %2$s / %3$s</string>
     <string name="performance_settings_album_track_loads">অ্যালবাম ট্র্যাক লোড (&lt;=50 / 51-150 / 151+): %1$s / %2$s / %3$s</string>
-    <string name="performance_settings_cache_hit_rate_unavailable">ইমেজ ক্যাশ হিট রেট: N/A</string>
     <string name="performance_settings_memory_cache">মেমরি ক্যাশ: %1$s / %2$s</string>
     <string name="performance_settings_disk_cache">ডিস্ক ক্যাশ: %1$s / %2$s</string>
     <string name="performance_settings_clear_image_cache">ইমেজ ক্যাশ পরিষ্কার করুন</string>
@@ -200,8 +199,6 @@
     <string name="playlists_create_success">প্লেলিস্ট তৈরি হয়েছে</string>
     <string name="playlists_create_error">প্লেলিস্ট তৈরি করা যায়নি</string>
     <string name="playlist_detail_title">প্লেলিস্ট বিস্তারিত</string>
-    <string name="playlist_detail_play">প্লেলিস্ট প্লে করুন</string>
-    <string name="playlist_detail_download">প্লেলিস্ট ডাউনলোড করুন</string>
     <string name="playlist_detail_remove_download">ডাউনলোড সরান</string>
     <string name="playlist_download_confirm_remove_title">প্লেলিস্ট ডাউনলোড সরাবেন?</string>
     <string name="playlist_download_confirm_remove_message">এটি এই প্লেলিস্টের সব ডাউনলোড করা ট্র্যাক ডিভাইস থেকে মুছে দেবে।</string>

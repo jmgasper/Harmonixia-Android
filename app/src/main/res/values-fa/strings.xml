@@ -181,7 +181,6 @@
     <string name="performance_settings_album_fresh_latency">زمان بارگذاری تازه آلبوم: %1$s</string>
     <string name="performance_settings_playlist_track_loads">بارگذاری قطعه‌های فهرست پخش (&lt;=50 / 51-150 / 151+): %1$s / %2$s / %3$s</string>
     <string name="performance_settings_album_track_loads">بارگذاری قطعه‌های آلبوم (&lt;=50 / 51-150 / 151+): %1$s / %2$s / %3$s</string>
-    <string name="performance_settings_cache_hit_rate_unavailable">نرخ برخورد کش تصویر: N/A</string>
     <string name="performance_settings_memory_cache">کش حافظه: %1$s / %2$s</string>
     <string name="performance_settings_disk_cache">کش دیسک: %1$s / %2$s</string>
     <string name="performance_settings_clear_image_cache">پاک کردن کش تصویر</string>
@@ -200,8 +199,6 @@
     <string name="playlists_create_success">فهرست پخش ایجاد شد</string>
     <string name="playlists_create_error">امکان ایجاد فهرست پخش نیست</string>
     <string name="playlist_detail_title">جزئیات فهرست پخش</string>
-    <string name="playlist_detail_play">پخش فهرست پخش</string>
-    <string name="playlist_detail_download">دانلود فهرست پخش</string>
     <string name="playlist_detail_remove_download">حذف دانلود</string>
     <string name="playlist_download_confirm_remove_title">دانلود فهرست پخش حذف شود؟</string>
     <string name="playlist_download_confirm_remove_message">این کار همه قطعه‌های دانلودشده این فهرست پخش را از دستگاه حذف می‌کند.</string>

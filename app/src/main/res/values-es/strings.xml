@@ -181,7 +181,6 @@
     <string name="performance_settings_album_fresh_latency">Tiempo a carga nueva de álbumes: %1$s</string>
     <string name="performance_settings_playlist_track_loads">Carga de pistas de lista (&lt;=50 / 51-150 / 151+): %1$s / %2$s / %3$s</string>
     <string name="performance_settings_album_track_loads">Carga de pistas de álbum (&lt;=50 / 51-150 / 151+): %1$s / %2$s / %3$s</string>
-    <string name="performance_settings_cache_hit_rate_unavailable">Tasa de aciertos de caché de imágenes: N/A</string>
     <string name="performance_settings_memory_cache">Caché de memoria: %1$s / %2$s</string>
     <string name="performance_settings_disk_cache">Caché de disco: %1$s / %2$s</string>
     <string name="performance_settings_clear_image_cache">Borrar caché de imágenes</string>
@@ -200,8 +199,6 @@
     <string name="playlists_create_success">Lista de reproducción creada</string>
     <string name="playlists_create_error">No se pudo crear la lista de reproducción</string>
     <string name="playlist_detail_title">Detalles de la lista</string>
-    <string name="playlist_detail_play">Reproducir lista</string>
-    <string name="playlist_detail_download">Descargar lista</string>
     <string name="playlist_detail_remove_download">Eliminar descarga</string>
     <string name="playlist_download_confirm_remove_title">¿Eliminar descarga de la lista?</string>
     <string name="playlist_download_confirm_remove_message">Esto eliminará todas las pistas descargadas de esta lista del dispositivo.</string>

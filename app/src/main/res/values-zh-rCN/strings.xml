@@ -181,7 +181,6 @@
     <string name="performance_settings_album_fresh_latency">专辑新鲜加载耗时：%1$s</string>
     <string name="performance_settings_playlist_track_loads">播放列表曲目加载 (&lt;=50 / 51-150 / 151+)：%1$s / %2$s / %3$s</string>
     <string name="performance_settings_album_track_loads">专辑曲目加载 (&lt;=50 / 51-150 / 151+)：%1$s / %2$s / %3$s</string>
-    <string name="performance_settings_cache_hit_rate_unavailable">图片缓存命中率：N/A</string>
     <string name="performance_settings_memory_cache">内存缓存：%1$s / %2$s</string>
     <string name="performance_settings_disk_cache">磁盘缓存：%1$s / %2$s</string>
     <string name="performance_settings_clear_image_cache">清除图片缓存</string>
@@ -200,8 +199,6 @@
     <string name="playlists_create_success">播放列表已创建</string>
     <string name="playlists_create_error">无法创建播放列表</string>
     <string name="playlist_detail_title">播放列表详情</string>
-    <string name="playlist_detail_play">播放播放列表</string>
-    <string name="playlist_detail_download">下载播放列表</string>
     <string name="playlist_detail_remove_download">移除下载</string>
     <string name="playlist_download_confirm_remove_title">移除播放列表下载？</string>
     <string name="playlist_download_confirm_remove_message">这将从你的设备中删除该播放列表的所有已下载曲目。</string>
