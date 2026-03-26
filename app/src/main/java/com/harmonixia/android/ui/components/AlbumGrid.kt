@@ -124,14 +124,14 @@ fun AlbumGrid(
 fun AlbumGridStatic(
     albums: List<Album>,
     onAlbumClick: (Album) -> Unit,
-    onAlbumLongClick: ((Album) -> Unit)? = null,
-    gridState: LazyGridState = rememberLazyGridState(),
     columns: Int,
     artworkSize: Dp,
     contentPadding: PaddingValues,
     isOfflineMode: Boolean,
     imageQualityManager: ImageQualityManager,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onAlbumLongClick: ((Album) -> Unit)? = null,
+    gridState: LazyGridState = rememberLazyGridState()
 ) {
     val safeColumns = columns.coerceAtLeast(1)
     val minCardHeight = artworkSize + 70.dp
