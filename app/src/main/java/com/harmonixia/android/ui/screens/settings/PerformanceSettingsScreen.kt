@@ -32,6 +32,7 @@ import com.harmonixia.android.ui.playback.PlaybackViewModel
 import com.harmonixia.android.ui.screens.settings.entrypoints.PerformanceSettingsEntryPoint
 import dagger.hilt.android.EntryPointAccessors
 import androidx.hilt.navigation.compose.hiltViewModel
+import java.util.Locale
 
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
@@ -251,7 +252,7 @@ private fun clearImageCaches(imageLoader: ImageLoader) {
 private fun formatBytes(value: Long?): String {
     val bytes = value ?: 0L
     val mb = bytes / (1024f * 1024f)
-    return String.format("%.1f MB", mb)
+    return String.format(Locale.getDefault(), "%.1f MB", mb)
 }
 
 private fun formatLatency(value: Long, unavailableLabel: String): String {
