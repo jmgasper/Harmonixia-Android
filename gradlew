@@ -28,6 +28,62 @@ APP_BASE_NAME=$(basename "$0")
 
 DEFAULT_JVM_OPTS="-Xmx64m -Xms64m"
 
+detect_java_version() {
+    java_cmd=$1
+    JAVA_VERSION_OUTPUT=$("$java_cmd" -version 2>&1 | sed -n '1p')
+    JAVA_MAJOR_VERSION=$(echo "$JAVA_VERSION_OUTPUT" | sed -n 's/.*version "\([0-9][0-9]*\).*/\1/p')
+}
+
+find_jdk17_home() {
+    for env_var in HARMONIXIA_JAVA_HOME JAVA17_HOME JDK17_HOME JAVA_HOME_17_X64; do
+        eval candidate=\${$env_var}
+        if [ -n "$candidate" ] && [ -x "$candidate/bin/java" ]; then
+            detect_java_version "$candidate/bin/java"
+            if [ "$JAVA_MAJOR_VERSION" = "17" ]; then
+                echo "$candidate"
+                return 0
+            fi
+        fi
+    done
+
+    if [ "$darwin" = "true" ] && [ -x /usr/libexec/java_home ]; then
+        candidate=$(/usr/libexec/java_home -v 17 2>/dev/null)
+        if [ -n "$candidate" ] && [ -x "$candidate/bin/java" ]; then
+            echo "$candidate"
+            return 0
+        fi
+    fi
+
+    for candidate in \
+        /usr/lib/jvm/java-17-openjdk \
+        /usr/lib/jvm/java-17-openjdk-amd64 \
+        /usr/lib/jvm/java-17-openjdk-arm64 \
+        /usr/lib/jvm/java-1.17.0-openjdk \
+        /usr/lib/jvm/java-1.17.0-openjdk-amd64 \
+        /usr/lib/jvm/temurin-17-jdk \
+        /usr/lib/jvm/temurin-17 \
+        /usr/lib/jvm/adoptopenjdk-17-hotspot \
+        /usr/lib/jvm/zulu-17 \
+        /usr/lib/jvm/msopenjdk-17 \
+        /Library/Java/JavaVirtualMachines/temurin-17.jdk/Contents/Home \
+        /Library/Java/JavaVirtualMachines/zulu-17.jdk/Contents/Home \
+        /Library/Java/JavaVirtualMachines/adoptopenjdk-17.jdk/Contents/Home \
+        /Library/Java/JavaVirtualMachines/jdk-17.jdk/Contents/Home \
+        "$HOME/.sdkman/candidates/java/current" \
+        "$HOME/.asdf/installs/java/openjdk-17"
+    do
+        if [ -x "$candidate/bin/java" ]; then
+            detect_java_version "$candidate/bin/java"
+            if [ "$JAVA_MAJOR_VERSION" = "17" ]; then
+                echo "$candidate"
+                return 0
+            fi
+        fi
+    done
+
+    return 1
+}
+
 # Use the maximum available, or set MAX_FD != -1 to use that value.
 MAX_FD="maximum"
 
@@ -84,6 +140,24 @@ else
 
 Please set the JAVA_HOME variable in your environment to match the
 location of your Java installation."
+fi
+
+detect_java_version "$JAVACMD"
+if [ "$JAVA_MAJOR_VERSION" != "17" ] && [ -z "${JAVA_HOME:-}" ]; then
+    JDK17_HOME=$(find_jdk17_home)
+    if [ -n "${JDK17_HOME:-}" ]; then
+        JAVA_HOME=$JDK17_HOME
+        JAVACMD="$JAVA_HOME/bin/java"
+        detect_java_version "$JAVACMD"
+    fi
+fi
+
+if [ "$JAVA_MAJOR_VERSION" != "17" ]; then
+    die "ERROR: Harmonixia requires JDK 17 for local Gradle builds.
+Detected Java runtime: ${JAVA_VERSION_OUTPUT:-unknown}
+
+Set JAVA_HOME to a JDK 17 installation and retry.
+If JAVA_HOME is unset, this wrapper can auto-detect common JDK 17 install locations."
 fi
 
 # Increase the maximum file descriptors if we can.
