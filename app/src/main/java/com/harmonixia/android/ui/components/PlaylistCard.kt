@@ -184,9 +184,9 @@ private fun PlaylistListContent(
 private fun PlaylistArtwork(
     playlist: Playlist,
     size: Dp,
-    placeholderIcon: ImageVector = Icons.AutoMirrored.Outlined.QueueMusic,
     imageQualityManager: ImageQualityManager,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    placeholderIcon: ImageVector = Icons.AutoMirrored.Outlined.QueueMusic
 ) {
     val placeholder = ColorPainter(MaterialTheme.colorScheme.surfaceVariant)
     val context = LocalContext.current
