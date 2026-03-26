@@ -59,6 +59,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -166,6 +167,8 @@ fun PlaylistDetailScreen(
 
     val windowSizeClass = calculateWindowSizeClass(activity = LocalContext.current as Activity)
     val configuration = LocalConfiguration.current
+    val windowInfo = LocalWindowInfo.current
+    val density = LocalDensity.current
     val spacing = rememberAdaptiveSpacing()
     val isExpanded = windowSizeClass.widthSizeClass == WindowWidthSizeClass.Expanded
     val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
@@ -181,13 +184,14 @@ fun PlaylistDetailScreen(
         }
     }
     val artworkSize = if (isLandscape) baseArtworkSize * 0.8f else baseArtworkSize
-    val useWideLayout by remember(windowSizeClass, configuration) {
+    val containerWidthDp = with(density) { windowInfo.containerSize.width.toDp() }
+    val useWideLayout by remember(windowSizeClass, containerWidthDp) {
         derivedStateOf {
             windowSizeClass.widthSizeClass == WindowWidthSizeClass.Expanded &&
-                configuration.screenWidthDp >= 800
+                containerWidthDp >= 800.dp
         }
     }
-    val isVeryWide = configuration.screenWidthDp > 1200
+    val isVeryWide = containerWidthDp > 1200.dp
     val sectionHeaderStyle = if (isExpanded) {
         MaterialTheme.typography.headlineSmall
     } else {
@@ -214,7 +218,6 @@ fun PlaylistDetailScreen(
         null
     }
     val listState = rememberLazyListState()
-    val density = LocalDensity.current
     val appBarArtworkSize = 32.dp
     val appBarRevealThresholdPx = with(density) {
         (artworkSize + spacing.large).toPx()
