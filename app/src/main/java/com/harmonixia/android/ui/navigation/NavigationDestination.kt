@@ -1,15 +1,15 @@
 package com.harmonixia.android.ui.navigation
 
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.QueueMusic
+import androidx.compose.material.icons.automirrored.outlined.QueueMusic
 import androidx.compose.material.icons.filled.Album
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.QueueMusic
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.outlined.Album
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Person
-import androidx.compose.material.icons.outlined.QueueMusic
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -46,8 +46,8 @@ fun mainNavigationDestinations(): List<NavigationDestination> = listOf(
     NavigationDestination(
         screen = Screen.Playlists,
         label = stringResource(R.string.nav_playlists),
-        selectedIcon = Icons.Filled.QueueMusic,
-        unselectedIcon = Icons.Outlined.QueueMusic
+        selectedIcon = Icons.AutoMirrored.Filled.QueueMusic,
+        unselectedIcon = Icons.AutoMirrored.Outlined.QueueMusic
     ),
     NavigationDestination(
         screen = Screen.Search,

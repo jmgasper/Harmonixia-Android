@@ -1,10 +1,10 @@
 package com.harmonixia.android.ui.components
 
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.PlaylistAdd
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.outlined.Favorite
 import androidx.compose.material.icons.outlined.PlayArrow
-import androidx.compose.material.icons.outlined.PlaylistAdd
 import androidx.compose.material.icons.outlined.PlaylistRemove
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -50,7 +50,7 @@ fun TrackContextMenu(
                 onDismissRequest()
             },
             leadingIcon = {
-                Icon(imageVector = Icons.Outlined.PlaylistAdd, contentDescription = null)
+                Icon(imageVector = Icons.AutoMirrored.Outlined.PlaylistAdd, contentDescription = null)
             }
         )
         if (!isFavorite) {
