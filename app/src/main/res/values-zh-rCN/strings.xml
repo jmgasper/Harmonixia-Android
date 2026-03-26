@@ -19,7 +19,7 @@
     <string name="eq_search_hint">按名称、品牌或作者搜索预设</string>
     <string name="eq_preset_label">预设</string>
     <string name="eq_apply_button">应用预设</string>
-    <string name="eq_loading_presets">正在加载预设...</string>
+    <string name="eq_loading_presets">正在加载预设…</string>
     <string name="eq_no_preset_selected">未选择预设</string>
     <string name="eq_select_preset_hint">选择预设以查看其 EQ 曲线</string>
     <string name="eq_preset_details_title">预设详情</string>
@@ -31,7 +31,9 @@
     <string name="local_media_no_folder_selected">未选择文件夹</string>
     <string name="local_media_select_folder">选择文件夹</string>
     <string name="local_media_refresh">扫描文件夹</string>
-    <string name="local_media_scanning">正在扫描：%1$d / %2$d 个文件</string>
+    <plurals name="local_media_scanning">
+        <item quantity="other">正在扫描：%1$d / %2$d 个文件</item>
+    </plurals>
     <string name="local_media_scan_complete">扫描完成：%1$d 首曲目，%2$d 张专辑，%3$d 位艺术家</string>
     <string name="local_media_scan_error">扫描失败：%1$s</string>
     <string name="content_desc_local_media_folder">本地媒体文件夹路径</string>
@@ -59,7 +61,7 @@
     <string name="content_desc_player_indicator">已选播放器指示器。点按更改播放器。</string>
     <string name="action_disconnect">断开连接</string>
     <string name="action_clear_settings">清除设置</string>
-    <string name="status_connecting">正在连接...</string>
+    <string name="status_connecting">正在连接…</string>
     <string name="status_connected">连接成功</string>
     <string name="status_connection_failed">连接失败</string>
     <string name="status_auth_failed">认证失败</string>
@@ -109,7 +111,7 @@
     <string name="search_section_playlists">播放列表</string>
     <string name="search_section_tracks">曲目</string>
     <string name="search_show_more">显示更多</string>
-    <string name="search_loading">正在搜索...</string>
+    <string name="search_loading">正在搜索…</string>
     <string name="search_empty_query">输入搜索词以查找音乐</string>
     <string name="offline_mode_active">离线模式 - 仅显示已下载内容</string>
     <string name="offline_search_active">离线 - 搜索已下载内容</string>
@@ -129,7 +131,7 @@
     <string name="home_empty_recommendations">推荐内容会显示在这里。</string>
     <string name="home_error_recommendations">无法加载推荐内容。</string>
     <string name="home_empty_no_connection">连接到你的 Music Assistant 服务器以查看音乐。</string>
-    <string name="home_loading">正在加载你的音乐...</string>
+    <string name="home_loading">正在加载你的音乐…</string>
     <string name="home_error_load_failed">无法加载主页数据</string>
     <string name="home_offline_title">你已离线</string>
     <string name="home_offline_message">连接以查看最近播放和新增的专辑。</string>
@@ -145,20 +147,20 @@
     <string name="action_view_albums">查看专辑</string>
     <string name="albums_title">专辑</string>
     <string name="albums_filter">筛选</string>
-    <string name="albums_loading">正在加载专辑...</string>
+    <string name="albums_loading">正在加载专辑…</string>
     <string name="albums_empty">未找到专辑</string>
     <string name="albums_error">加载专辑失败</string>
     <string name="albums_filter_count">专辑（%1$d / %2$d）</string>
     <string name="artists_title">艺术家</string>
-    <string name="artists_loading">正在加载艺术家...</string>
+    <string name="artists_loading">正在加载艺术家…</string>
     <string name="artists_empty">未找到艺术家</string>
     <string name="artists_error">加载艺术家失败</string>
     <string name="album_detail_title">专辑详情</string>
     <string name="album_detail_tracks">曲目</string>
-    <string name="album_detail_loading_tracks">正在加载曲目...</string>
+    <string name="album_detail_loading_tracks">正在加载曲目…</string>
     <string name="album_detail_no_tracks">没有可用曲目</string>
     <string name="artist_detail_title">艺术家详情</string>
-    <string name="artist_detail_loading_albums">正在加载专辑...</string>
+    <string name="artist_detail_loading_albums">正在加载专辑…</string>
     <string name="artist_detail_no_albums">未找到该艺术家的专辑</string>
     <string name="artist_detail_album_count">%1$d 张专辑</string>
     <string name="artist_detail_placeholder">选择艺术家以查看详情</string>
@@ -179,8 +181,8 @@
     <string name="performance_settings_playlist_fresh_latency">播放列表新鲜加载耗时：%1$s</string>
     <string name="performance_settings_album_cached_latency">专辑缓存耗时：%1$s</string>
     <string name="performance_settings_album_fresh_latency">专辑新鲜加载耗时：%1$s</string>
-    <string name="performance_settings_playlist_track_loads">播放列表曲目加载 (&lt;=50 / 51-150 / 151+)：%1$s / %2$s / %3$s</string>
-    <string name="performance_settings_album_track_loads">专辑曲目加载 (&lt;=50 / 51-150 / 151+)：%1$s / %2$s / %3$s</string>
+    <string name="performance_settings_playlist_track_loads">播放列表曲目加载 (&lt;=50 / 51–150 / 151+)：%1$s / %2$s / %3$s</string>
+    <string name="performance_settings_album_track_loads">专辑曲目加载 (&lt;=50 / 51–150 / 151+)：%1$s / %2$s / %3$s</string>
     <string name="performance_settings_memory_cache">内存缓存：%1$s / %2$s</string>
     <string name="performance_settings_disk_cache">磁盘缓存：%1$s / %2$s</string>
     <string name="performance_settings_clear_image_cache">清除图片缓存</string>
@@ -190,7 +192,7 @@
     <string name="filter_select_all">全选</string>
     <string name="filter_clear_all">全部清除</string>
     <string name="playlists_title">播放列表</string>
-    <string name="playlists_loading">正在加载播放列表...</string>
+    <string name="playlists_loading">正在加载播放列表…</string>
     <string name="playlists_empty">未找到播放列表</string>
     <string name="playlists_error">加载播放列表失败</string>
     <string name="playlists_create">创建播放列表</string>
@@ -200,7 +202,7 @@
     <string name="playlists_create_error">无法创建播放列表</string>
     <string name="playlist_detail_title">播放列表详情</string>
     <string name="playlist_detail_tracks">曲目</string>
-    <string name="playlist_detail_loading_tracks">正在加载曲目...</string>
+    <string name="playlist_detail_loading_tracks">正在加载曲目…</string>
     <string name="playlist_detail_no_tracks">该播放列表中没有曲目</string>
     <string name="playlist_detail_empty_message">该播放列表尚无曲目。</string>
     <string name="playlist_detail_owner">由 %1$s 创建</string>
@@ -229,7 +231,6 @@
     <string name="playlist_rename_empty_name">播放列表名称不能为空</string>
     <string name="playlist_rename_same_name">播放列表名称未更改</string>
     <string name="track_action_play">播放</string>
-    <string name="track_action_download">下载</string>
     <string name="track_action_add_to_playlist">添加到播放列表</string>
     <string name="track_action_remove_from_playlist">从播放列表移除</string>
     <string name="track_action_add_to_favorites">添加到收藏</string>
@@ -243,19 +244,7 @@
     <string name="track_remove_error">无法从播放列表移除曲目</string>
     <string name="track_add_success">已将曲目添加到播放列表</string>
     <string name="track_add_error">无法将曲目添加到播放列表</string>
-    <string name="track_download_success">曲目下载已开始</string>
-    <string name="track_download_error">无法开始下载</string>
-    <string name="album_download_success">专辑下载已开始</string>
-    <string name="album_download_error">无法开始专辑下载</string>
-    <string name="album_download_removed">专辑下载已移除</string>
-    <string name="album_download_remove_error">无法移除专辑下载</string>
-    <string name="playlist_download_success">播放列表下载已开始</string>
-    <string name="playlist_download_error">无法开始播放列表下载</string>
-    <string name="playlist_download_removed">播放列表下载已移除</string>
-    <string name="playlist_download_remove_error">无法移除播放列表下载</string>
     <string name="content_desc_playlist_artwork">播放列表封面</string>
-    <string name="content_desc_track_downloaded">曲目已下载</string>
-    <string name="content_desc_track_downloading">曲目下载中</string>
     <string name="content_desc_create_playlist">创建播放列表</string>
     <string name="now_playing_title">正在播放</string>
     <string name="now_playing_empty">没有曲目正在播放</string>
@@ -265,15 +254,12 @@
     <string name="action_pause">暂停</string>
     <string name="action_next_track">下一首</string>
     <string name="action_previous_track">上一首</string>
-    <string name="action_repeat">重复</string>
     <string name="action_repeat_off">重复关闭</string>
     <string name="action_repeat_all">全部重复</string>
     <string name="action_repeat_one">单曲循环</string>
     <string name="action_shuffle">随机播放</string>
     <string name="action_shuffle_on">随机播放开启</string>
     <string name="action_shuffle_off">随机播放关闭</string>
-    <string name="content_desc_repeat_button">重复模式</string>
-    <string name="content_desc_shuffle_button">随机播放模式</string>
     <string name="label_seek">跳转</string>
     <string name="label_volume">音量</string>
     <string name="content_desc_mute">静音</string>
@@ -283,36 +269,6 @@
     <string name="content_desc_mini_player_artwork">迷你播放器封面</string>
     <string name="content_desc_open_now_playing">打开正在播放</string>
     <string name="playback_time_format">%1$d:%2$02d</string>
-    <string name="downloads_title">下载</string>
-    <string name="downloads_in_progress">进行中</string>
-    <string name="downloads_completed">已下载</string>
-    <string name="downloads_empty">没有下载内容</string>
-    <string name="downloads_empty_message">已下载内容会显示在这里</string>
-    <string name="downloads_clear_all">清除所有下载</string>
-    <string name="downloads_clear_confirm_title">清除所有下载？</string>
-    <string name="downloads_clear_confirm_message">这将从你的设备中删除所有已下载文件。</string>
-    <string name="downloads_status_pending">等待中</string>
-    <string name="downloads_status_in_progress">下载中</string>
-    <string name="downloads_status_paused">已暂停</string>
-    <string name="downloads_speed_kbps">%1$.1f Kbps</string>
-    <string name="downloads_speed_mbps">%1$.1f Mbps</string>
-    <string name="downloads_section_playlists">播放列表</string>
-    <string name="downloads_section_albums">专辑</string>
-    <string name="downloads_section_tracks">单曲</string>
-    <string name="content_desc_download_icon">下载</string>
-    <string name="content_desc_download_progress">下载进度</string>
-    <string name="action_cancel_download">取消</string>
-    <string name="action_pause_download">暂停</string>
-    <string name="action_resume_download">继续</string>
-    <string name="android_auto_root_title">Harmonixia</string>
-    <string name="android_auto_albums_category">专辑</string>
-    <string name="android_auto_artists_category">艺术家</string>
-    <string name="android_auto_playlists_category">播放列表</string>
-    <string name="android_auto_downloads_category">下载</string>
-    <string name="android_auto_downloaded_albums">已下载专辑</string>
-    <string name="android_auto_downloaded_playlists">已下载播放列表</string>
-    <string name="android_auto_downloaded_tracks">已下载曲目</string>
-    <string name="android_auto_offline_mode">离线模式</string>
     <string name="local_media_available_files">Local files available: %1$d</string>
     <string name="action_reconnect">Reconnect</string>
     <string name="artist_detail_section_my_library">My Library</string>
