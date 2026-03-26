@@ -26,8 +26,8 @@ import androidx.compose.material.icons.outlined.ErrorOutline
 @Composable
 fun ErrorCard(
     message: String,
-    onDismiss: (() -> Unit)? = null,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onDismiss: (() -> Unit)? = null
 ) {
     Card(
         modifier = modifier
