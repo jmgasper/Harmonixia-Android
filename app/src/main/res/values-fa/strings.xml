@@ -154,9 +154,6 @@
     <string name="artists_empty">هیچ هنرمندی یافت نشد</string>
     <string name="artists_error">بارگذاری هنرمندان ناموفق بود</string>
     <string name="album_detail_title">جزئیات آلبوم</string>
-    <string name="album_detail_download">دانلود آلبوم</string>
-    <string name="album_detail_remove_download">حذف دانلود</string>
-    <string name="album_download_confirm_remove_title">دانلود آلبوم حذف شود؟</string>
     <string name="album_download_confirm_remove_message">این کار همه قطعه‌های دانلودشده این آلبوم را از دستگاه حذف می‌کند.</string>
     <string name="album_detail_tracks">قطعه‌ها</string>
     <string name="album_detail_loading_tracks">در حال بارگذاری قطعه‌ها...</string>

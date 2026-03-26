@@ -154,9 +154,6 @@
     <string name="artists_empty">Nessun artista trovato</string>
     <string name="artists_error">Impossibile caricare gli artisti</string>
     <string name="album_detail_title">Dettagli album</string>
-    <string name="album_detail_download">Scarica album</string>
-    <string name="album_detail_remove_download">Rimuovi download</string>
-    <string name="album_download_confirm_remove_title">Rimuovere il download dell\'album?</string>
     <string name="album_download_confirm_remove_message">Questo eliminerà tutti i brani scaricati di questo album dal dispositivo.</string>
     <string name="album_detail_tracks">Brani</string>
     <string name="album_detail_loading_tracks">Caricamento brani...</string>

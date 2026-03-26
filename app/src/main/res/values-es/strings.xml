@@ -154,9 +154,6 @@
     <string name="artists_empty">No se encontraron artistas</string>
     <string name="artists_error">No se pudieron cargar los artistas</string>
     <string name="album_detail_title">Detalles del álbum</string>
-    <string name="album_detail_download">Descargar álbum</string>
-    <string name="album_detail_remove_download">Eliminar descarga</string>
-    <string name="album_download_confirm_remove_title">¿Eliminar descarga del álbum?</string>
     <string name="album_download_confirm_remove_message">Esto eliminará todas las pistas descargadas de este álbum del dispositivo.</string>
     <string name="album_detail_tracks">Pistas</string>
     <string name="album_detail_loading_tracks">Cargando pistas...</string>

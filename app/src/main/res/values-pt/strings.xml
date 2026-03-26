@@ -154,9 +154,6 @@
     <string name="artists_empty">Nenhum artista encontrado</string>
     <string name="artists_error">Falha ao carregar artistas</string>
     <string name="album_detail_title">Detalhes do álbum</string>
-    <string name="album_detail_download">Descarregar álbum</string>
-    <string name="album_detail_remove_download">Remover download</string>
-    <string name="album_download_confirm_remove_title">Remover download do álbum?</string>
     <string name="album_download_confirm_remove_message">Isto irá eliminar todas as faixas descarregadas deste álbum do dispositivo.</string>
     <string name="album_detail_tracks">Faixas</string>
     <string name="album_detail_loading_tracks">A carregar faixas...</string>

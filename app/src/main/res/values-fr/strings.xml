@@ -154,9 +154,6 @@
     <string name="artists_empty">Aucun artiste trouvé</string>
     <string name="artists_error">Échec du chargement des artistes</string>
     <string name="album_detail_title">Détails de l\'album</string>
-    <string name="album_detail_download">Télécharger l\'album</string>
-    <string name="album_detail_remove_download">Supprimer le téléchargement</string>
-    <string name="album_download_confirm_remove_title">Supprimer le téléchargement de l\'album ?</string>
     <string name="album_download_confirm_remove_message">Cela supprimera toutes les pistes téléchargées de cet album de votre appareil.</string>
     <string name="album_detail_tracks">Pistes</string>
     <string name="album_detail_loading_tracks">Chargement des pistes...</string>

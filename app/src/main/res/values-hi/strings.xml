@@ -154,9 +154,6 @@
     <string name="artists_empty">कोई कलाकार नहीं मिला</string>
     <string name="artists_error">कलाकार लोड नहीं हो सके</string>
     <string name="album_detail_title">एल्बम विवरण</string>
-    <string name="album_detail_download">एल्बम डाउनलोड करें</string>
-    <string name="album_detail_remove_download">डाउनलोड हटाएँ</string>
-    <string name="album_download_confirm_remove_title">एल्बम डाउनलोड हटाएँ?</string>
     <string name="album_download_confirm_remove_message">यह इस एल्बम के सभी डाउनलोड किए गए ट्रैक डिवाइस से हटा देगा।</string>
     <string name="album_detail_tracks">ट्रैक</string>
     <string name="album_detail_loading_tracks">ट्रैक लोड हो रहे हैं...</string>
