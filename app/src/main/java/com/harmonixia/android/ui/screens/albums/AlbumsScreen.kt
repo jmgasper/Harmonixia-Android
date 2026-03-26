@@ -61,6 +61,7 @@ import androidx.compose.ui.graphics.painter.ColorPainter
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
@@ -109,19 +110,23 @@ fun AlbumsScreen(
 
     val windowSizeClass = calculateWindowSizeClass(activity = LocalContext.current as Activity)
     val configuration = LocalConfiguration.current
+    val windowInfo = LocalWindowInfo.current
+    val density = LocalDensity.current
     val spacing = rememberAdaptiveSpacing()
     val isExpanded = windowSizeClass.widthSizeClass == WindowWidthSizeClass.Expanded
     val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
-    val columns by remember(windowSizeClass, configuration) {
+    val containerWidthDp = with(density) { windowInfo.containerSize.width.toDp() }
+    val columns by remember(windowSizeClass, isLandscape, containerWidthDp) {
         derivedStateOf {
+            val containerWidth = containerWidthDp.value.toInt()
             when (windowSizeClass.widthSizeClass) {
                 WindowWidthSizeClass.Compact -> if (isLandscape) 3 else 2
                 WindowWidthSizeClass.Medium -> if (isLandscape) 4 else 3
                 WindowWidthSizeClass.Expanded -> {
                     if (isLandscape) {
-                        (configuration.screenWidthDp / 160).coerceIn(4, 8)
+                        (containerWidth / 160).coerceIn(4, 8)
                     } else {
-                        (configuration.screenWidthDp / 180).coerceIn(4, 6)
+                        (containerWidth / 180).coerceIn(4, 6)
                     }
                 }
                 else -> 2
@@ -158,11 +163,10 @@ fun AlbumsScreen(
         viewModel.updatePagingConfig(pageSize, prefetchDistance)
     }
 
-    val density = LocalDensity.current.density
     val artworkSize by remember(windowSizeClass, density) {
         derivedStateOf {
             if (isExpanded) {
-                val scale = density.coerceIn(1f, 1.3f)
+                val scale = density.density.coerceIn(1f, 1.3f)
                 150.dp * scale
             } else {
                 150.dp
