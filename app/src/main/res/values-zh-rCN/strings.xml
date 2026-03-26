@@ -26,9 +26,6 @@
     <string name="eq_attribution_title">署名</string>
     <string name="eq_error_load_failed">加载 EQ 预设失败</string>
     <string name="eq_error_apply_failed">应用 EQ 预设失败</string>
-    <string name="eq_success_applied">已应用 EQ 预设</string>
-    <string name="eq_configure_button">配置均衡器</string>
-    <string name="eq_enabled_badge">已启用</string>
     <string name="section_local_media">本地媒体</string>
     <string name="local_media_folder_label">音乐文件夹</string>
     <string name="local_media_no_folder_selected">未选择文件夹</string>

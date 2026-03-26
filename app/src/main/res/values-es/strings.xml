@@ -26,9 +26,6 @@
     <string name="eq_attribution_title">Atribución</string>
     <string name="eq_error_load_failed">No se pudieron cargar los preajustes de EQ</string>
     <string name="eq_error_apply_failed">No se pudo aplicar el preajuste de EQ</string>
-    <string name="eq_success_applied">Preajuste de EQ aplicado</string>
-    <string name="eq_configure_button">Configurar ecualizador</string>
-    <string name="eq_enabled_badge">Activado</string>
     <string name="section_local_media">Medios locales</string>
     <string name="local_media_folder_label">Carpeta de música</string>
     <string name="local_media_no_folder_selected">No hay carpeta seleccionada</string>

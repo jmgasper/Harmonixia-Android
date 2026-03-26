@@ -26,9 +26,6 @@
     <string name="eq_attribution_title">Kreditering</string>
     <string name="eq_error_load_failed">Kunne ikke laste EQ-forhåndsinnstillinger</string>
     <string name="eq_error_apply_failed">Kunne ikke bruke EQ-forhåndsinnstilling</string>
-    <string name="eq_success_applied">EQ-forhåndsinnstilling brukt</string>
-    <string name="eq_configure_button">Konfigurer equalizer</string>
-    <string name="eq_enabled_badge">Aktivert</string>
     <string name="section_local_media">Lokale medier</string>
     <string name="local_media_folder_label">Musikkmappe</string>
     <string name="local_media_no_folder_selected">Ingen mappe valgt</string>

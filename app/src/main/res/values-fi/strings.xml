@@ -26,9 +26,6 @@
     <string name="eq_attribution_title">Attribuutio</string>
     <string name="eq_error_load_failed">EQ-esiasetusten lataus epäonnistui</string>
     <string name="eq_error_apply_failed">EQ-esiasetuksen käyttö epäonnistui</string>
-    <string name="eq_success_applied">EQ-esiasetus käytössä</string>
-    <string name="eq_configure_button">Määritä taajuuskorjain</string>
-    <string name="eq_enabled_badge">Käytössä</string>
     <string name="section_local_media">Paikallinen media</string>
     <string name="local_media_folder_label">Musiikkikansio</string>
     <string name="local_media_no_folder_selected">Kansiota ei ole valittu</string>

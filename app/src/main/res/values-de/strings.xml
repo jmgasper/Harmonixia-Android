@@ -26,9 +26,6 @@
     <string name="eq_attribution_title">Zuordnung</string>
     <string name="eq_error_load_failed">EQ-Presets konnten nicht geladen werden</string>
     <string name="eq_error_apply_failed">EQ-Preset konnte nicht angewendet werden</string>
-    <string name="eq_success_applied">EQ-Preset angewendet</string>
-    <string name="eq_configure_button">Equalizer konfigurieren</string>
-    <string name="eq_enabled_badge">Aktiviert</string>
     <string name="section_local_media">Lokale Medien</string>
     <string name="local_media_folder_label">Musikordner</string>
     <string name="local_media_no_folder_selected">Kein Ordner ausgewählt</string>

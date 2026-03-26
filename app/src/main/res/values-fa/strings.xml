@@ -26,9 +26,6 @@
     <string name="eq_attribution_title">انتساب</string>
     <string name="eq_error_load_failed">بارگذاری پیش‌تنظیم‌های EQ ناموفق بود</string>
     <string name="eq_error_apply_failed">اعمال پیش‌تنظیم EQ ناموفق بود</string>
-    <string name="eq_success_applied">پیش‌تنظیم EQ اعمال شد</string>
-    <string name="eq_configure_button">پیکربندی اکولایزر</string>
-    <string name="eq_enabled_badge">فعال</string>
     <string name="section_local_media">رسانه محلی</string>
     <string name="local_media_folder_label">پوشه موسیقی</string>
     <string name="local_media_no_folder_selected">هیچ پوشه‌ای انتخاب نشده است</string>
