@@ -22,6 +22,8 @@ import com.harmonixia.android.util.replaceWithLocalMatches
 import com.harmonixia.android.util.NetworkConnectivityManager
 import com.harmonixia.android.util.Logger
 import java.text.Collator
+import java.text.Normalizer
+import java.util.Locale
 import com.harmonixia.android.util.buildPlaybackExtras
 import com.harmonixia.android.util.playbackDurationMs
 import java.io.File
@@ -998,17 +1000,16 @@ class MediaLibraryBrowser(
         )
     }
 
-    private fun artistSortKey(artist: Artist): String {
-        return artist.name.trim()
-    }
-
-    private fun albumSortKey(album: Album): String {
-        return album.name.trim()
-    }
-
     private fun compareTitles(first: String, second: String): Int {
         val collator = titleCollator.get()
-        return collator.compare(first, second)
+        if (collator != null) {
+            return compareTitlesWithCollator(first, second, collator)
+        }
+
+        Logger.w(TAG, "Title collator was null; recreating for browse sorting")
+        val rebuiltCollator = createTitleCollator()
+        titleCollator.set(rebuiltCollator)
+        return compareTitlesWithCollator(first, second, rebuiltCollator)
     }
 
     private suspend fun buildOfflineArtistsList(page: Int, pageSize: Int): List<MediaItem> {
@@ -1271,37 +1272,14 @@ class MediaLibraryBrowser(
         return "$MEDIA_ID_PREFIX_PLAYLIST:$playlistId:$provider"
     }
 
-    private val titleCollator = ThreadLocal.withInitial {
-        Collator.getInstance().apply {
-            strength = Collator.PRIMARY
-            decomposition = Collator.CANONICAL_DECOMPOSITION
-        }
-    }
+    private val titleCollator = ThreadLocal.withInitial(::createTitleCollator)
 
     private val ArtistAlphabeticalComparator = Comparator<Artist> { left, right ->
-        val primary = compareTitles(artistSortKey(left), artistSortKey(right))
-        if (primary != 0) {
-            primary
-        } else {
-            "${left.provider}:${left.itemId}".compareTo("${right.provider}:${right.itemId}")
-        }
+        compareArtistsAlphabetically(left, right, ::compareTitles)
     }
 
     private val AlbumAlphabeticalComparator = Comparator<Album> { left, right ->
-        val primary = compareTitles(albumSortKey(left), albumSortKey(right))
-        if (primary != 0) {
-            primary
-        } else {
-            val artistCompare = compareTitles(
-                left.artists.firstOrNull().orEmpty().trim(),
-                right.artists.firstOrNull().orEmpty().trim()
-            )
-            if (artistCompare != 0) {
-                artistCompare
-            } else {
-                "${left.provider}:${left.itemId}".compareTo("${right.provider}:${right.itemId}")
-            }
-        }
+        compareAlbumsAlphabetically(left, right, ::compareTitles)
     }
 
     private companion object {
@@ -1355,3 +1333,55 @@ class MediaLibraryBrowser(
         private const val PLAYLIST_URI_CACHE_SIZE = 500
     }
 }
+
+internal fun createTitleCollator(): Collator = Collator.getInstance().apply {
+    strength = Collator.PRIMARY
+    decomposition = Collator.CANONICAL_DECOMPOSITION
+}
+
+internal fun compareTitlesWithCollator(first: String, second: String, collator: Collator?): Int {
+    if (collator != null) {
+        return collator.compare(first, second)
+    }
+    return fallbackTitleSortKey(first).compareTo(fallbackTitleSortKey(second))
+}
+
+internal fun compareArtistsAlphabetically(
+    left: Artist,
+    right: Artist,
+    compareTitles: (String, String) -> Int
+): Int {
+    val primary = compareTitles(left.name.trim(), right.name.trim())
+    if (primary != 0) {
+        return primary
+    }
+    return "${left.provider}:${left.itemId}".compareTo("${right.provider}:${right.itemId}")
+}
+
+internal fun compareAlbumsAlphabetically(
+    left: Album,
+    right: Album,
+    compareTitles: (String, String) -> Int
+): Int {
+    val primary = compareTitles(left.name.trim(), right.name.trim())
+    if (primary != 0) {
+        return primary
+    }
+
+    val artistCompare = compareTitles(
+        left.artists.firstOrNull().orEmpty().trim(),
+        right.artists.firstOrNull().orEmpty().trim()
+    )
+    if (artistCompare != 0) {
+        return artistCompare
+    }
+
+    return "${left.provider}:${left.itemId}".compareTo("${right.provider}:${right.itemId}")
+}
+
+private fun fallbackTitleSortKey(title: String): String {
+    val normalized = Normalizer.normalize(title.trim(), Normalizer.Form.NFD)
+    return TITLE_SORT_DIACRITICS_REGEX.replace(normalized, "").lowercase(Locale.ROOT)
+}
+
+private val TITLE_SORT_DIACRITICS_REGEX = Regex("\\p{M}+")
