@@ -1,5 +1,7 @@
 package com.harmonixia.android.util
 
+import java.net.Inet6Address
+import java.net.InetAddress
 import java.net.URI
 
 enum class UrlValidationError {
@@ -49,8 +51,14 @@ object ValidationUtils {
         val uri = runCatching { URI(normalized) }.getOrNull() ?: return false
         val scheme = uri.scheme?.lowercase() ?: return false
         if (scheme != "http" && scheme != "https") return false
+        if (uri.userInfo != null) return false
+        val port = uri.port
+        if (port != -1 && port !in 1..65535) return false
         val host = uri.host ?: return false
-        return host == "localhost" || isValidIpAddress(host) || isValidDomain(host)
+        return host == "localhost" ||
+            isValidIpAddress(host) ||
+            isValidIpv6Literal(host) ||
+            isValidDomain(host)
     }
 
     fun isValidIpAddress(input: String): Boolean {
@@ -59,6 +67,13 @@ object ValidationUtils {
 
     fun isValidDomain(input: String): Boolean {
         return domainRegex.matches(input)
+    }
+
+    private fun isValidIpv6Literal(input: String): Boolean {
+        val candidate = input.removePrefix("[").removeSuffix("]")
+        if (!candidate.contains(':')) return false
+        val parsed = runCatching { InetAddress.getByName(candidate) }.getOrNull() ?: return false
+        return parsed is Inet6Address
     }
 
     fun normalizeUrl(input: String): String {
