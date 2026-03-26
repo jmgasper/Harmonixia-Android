@@ -38,6 +38,7 @@ class ApplyEqPresetUseCaseTest {
         coEvery { repository.loadPresets(any()) } returns Result.success(listOf(preset))
         every { parser.convertToAndroidBands(preset) } returns bands
         every { equalizerManager.applyPreset(bands) } just runs
+        every { equalizerManager.setSoftwareEqFilters(any()) } just runs
         every { equalizerManager.setEnabled(true) } just runs
         every { dataStore.getEqSettings() } returns flowOf(EqSettings(enabled = true))
         coEvery { dataStore.saveEqSettings(any()) } just runs
@@ -55,6 +56,7 @@ class ApplyEqPresetUseCaseTest {
         assertTrue(result.isSuccess)
         verify { playbackServiceConnection.connect() }
         verify { equalizerManager.applyPreset(bands) }
+        verify { equalizerManager.setSoftwareEqFilters(preset.filters) }
         verify { equalizerManager.setEnabled(true) }
         coVerify { dataStore.saveEqSettings(match { it.selectedPresetId == "preset-1" }) }
     }
