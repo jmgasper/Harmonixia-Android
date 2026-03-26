@@ -154,16 +154,13 @@
     <string name="artists_empty">Ingen artister funnet</string>
     <string name="artists_error">Kunne ikke laste artister</string>
     <string name="album_detail_title">Albumdetaljer</string>
-    <string name="album_download_confirm_remove_message">Dette vil slette alle nedlastede spor for dette albumet fra enheten.</string>
     <string name="album_detail_tracks">Spor</string>
     <string name="album_detail_loading_tracks">Laster spor...</string>
     <string name="album_detail_no_tracks">Ingen spor tilgjengelig</string>
     <string name="artist_detail_title">Artistdetaljer</string>
-    <string name="artist_detail_albums">Album</string>
     <string name="artist_detail_loading_albums">Laster album...</string>
     <string name="artist_detail_no_albums">Ingen album funnet for denne artisten</string>
     <string name="artist_detail_album_count">%1$d album</string>
-    <string name="library_track_count">%1$d spor</string>
     <string name="artist_detail_placeholder">Velg en artist for å se detaljer</string>
     <string name="content_desc_artist_image">Artistbilde</string>
     <string name="track_quality_hires">Hi-Res</string>

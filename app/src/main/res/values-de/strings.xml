@@ -154,16 +154,13 @@
     <string name="artists_empty">Keine Künstler gefunden</string>
     <string name="artists_error">Künstler konnten nicht geladen werden</string>
     <string name="album_detail_title">Albumdetails</string>
-    <string name="album_download_confirm_remove_message">Dadurch werden alle heruntergeladenen Titel dieses Albums vom Gerät gelöscht.</string>
     <string name="album_detail_tracks">Titel</string>
     <string name="album_detail_loading_tracks">Titel werden geladen...</string>
     <string name="album_detail_no_tracks">Keine Titel verfügbar</string>
     <string name="artist_detail_title">Künstlerdetails</string>
-    <string name="artist_detail_albums">Alben</string>
     <string name="artist_detail_loading_albums">Alben werden geladen...</string>
     <string name="artist_detail_no_albums">Keine Alben für diesen Künstler gefunden</string>
     <string name="artist_detail_album_count">%1$d Alben</string>
-    <string name="library_track_count">%1$d Titel</string>
     <string name="artist_detail_placeholder">Wählen Sie einen Künstler, um Details zu sehen</string>
     <string name="content_desc_artist_image">Künstlerbild</string>
     <string name="track_quality_hires">Hi-Res</string>

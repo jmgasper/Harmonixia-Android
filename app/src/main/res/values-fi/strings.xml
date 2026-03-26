@@ -154,16 +154,13 @@
     <string name="artists_empty">Artisteja ei löytynyt</string>
     <string name="artists_error">Artistien lataus epäonnistui</string>
     <string name="album_detail_title">Albumin tiedot</string>
-    <string name="album_download_confirm_remove_message">Tämä poistaa kaikki tämän albumin ladatut kappaleet laitteesta.</string>
     <string name="album_detail_tracks">Kappaleet</string>
     <string name="album_detail_loading_tracks">Ladataan kappaleita...</string>
     <string name="album_detail_no_tracks">Kappaleita ei ole saatavilla</string>
     <string name="artist_detail_title">Artistin tiedot</string>
-    <string name="artist_detail_albums">Albumit</string>
     <string name="artist_detail_loading_albums">Ladataan albumeita...</string>
     <string name="artist_detail_no_albums">Tälle artistille ei löytynyt albumeita</string>
     <string name="artist_detail_album_count">%1$d albumia</string>
-    <string name="library_track_count">%1$d kappaletta</string>
     <string name="artist_detail_placeholder">Valitse artisti nähdäksesi tiedot</string>
     <string name="content_desc_artist_image">Artistikuva</string>
     <string name="track_quality_hires">Hi-Res</string>

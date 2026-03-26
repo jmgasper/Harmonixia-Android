@@ -154,16 +154,13 @@
     <string name="artists_empty">Aucun artiste trouvé</string>
     <string name="artists_error">Échec du chargement des artistes</string>
     <string name="album_detail_title">Détails de l\'album</string>
-    <string name="album_download_confirm_remove_message">Cela supprimera toutes les pistes téléchargées de cet album de votre appareil.</string>
     <string name="album_detail_tracks">Pistes</string>
     <string name="album_detail_loading_tracks">Chargement des pistes...</string>
     <string name="album_detail_no_tracks">Aucune piste disponible</string>
     <string name="artist_detail_title">Détails de l\'artiste</string>
-    <string name="artist_detail_albums">Albums</string>
     <string name="artist_detail_loading_albums">Chargement des albums...</string>
     <string name="artist_detail_no_albums">Aucun album trouvé pour cet artiste</string>
     <string name="artist_detail_album_count">%1$d albums</string>
-    <string name="library_track_count">%1$d pistes</string>
     <string name="artist_detail_placeholder">Sélectionnez un artiste pour voir les détails</string>
     <string name="content_desc_artist_image">Image de l\'artiste</string>
     <string name="track_quality_hires">Hi-Res</string>
