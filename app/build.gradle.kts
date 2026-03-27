@@ -205,7 +205,7 @@ dependencies {
 
     // Lifecycle & ViewModel
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.7")
-    implementation("androidx.lifecycle:lifecycle-runtime-compose:2.8.7")
+    implementation("androidx.lifecycle:lifecycle-runtime-compose:2.10.0")
 
     // Hilt Dependency Injection
     implementation("com.google.dagger:hilt-android:2.57.2")
