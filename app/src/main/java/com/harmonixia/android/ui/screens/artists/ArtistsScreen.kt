@@ -133,7 +133,7 @@ fun ArtistsScreen(
             if (snapshot.placeholdersBefore != 0 || snapshot.placeholdersAfter != 0) {
                 return@derivedStateOf emptyList()
             }
-            val endReached = lazyPagingItems?.loadState?.append?.endOfPaginationReached == true
+            val endReached = lazyPagingItems.loadState.append.endOfPaginationReached
             if (!endReached) {
                 return@derivedStateOf emptyList()
             }
@@ -170,7 +170,7 @@ fun ArtistsScreen(
             } else {
                 val endReached =
                     lazyPagingItems?.loadState?.append?.endOfPaginationReached == true
-                endReached && lazyPagingItems?.itemSnapshotList?.items?.isNotEmpty() == true
+                endReached && lazyPagingItems.itemSnapshotList.items.isNotEmpty()
             }
         }
     }
