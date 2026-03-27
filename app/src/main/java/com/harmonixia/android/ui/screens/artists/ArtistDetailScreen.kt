@@ -421,7 +421,7 @@ private fun ArtistDetailContent(
                     AlbumCard(
                         album = album,
                         onClick = { onAlbumClick(album) },
-                        onLongClick = onAlbumLongClick?.let { callback -> { callback(album) } },
+                        onLongClick = { onAlbumLongClick(album) },
                         artworkSize = artworkSize,
                         isOfflineMode = isOfflineMode,
                         imageQualityManager = imageQualityManager,
@@ -461,7 +461,7 @@ private fun ArtistDetailContent(
                     AlbumCard(
                         album = album,
                         onClick = { onAlbumClick(album) },
-                        onLongClick = onAlbumLongClick?.let { callback -> { callback(album) } },
+                        onLongClick = { onAlbumLongClick(album) },
                         artworkSize = artworkSize,
                         isOfflineMode = isOfflineMode,
                         imageQualityManager = imageQualityManager,
