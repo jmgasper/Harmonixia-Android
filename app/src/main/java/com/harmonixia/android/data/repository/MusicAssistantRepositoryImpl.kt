@@ -144,7 +144,7 @@ class MusicAssistantRepositoryImpl @Inject constructor(
                     .post(requestBody)
                     .build()
                 okHttpClient.newCall(request).execute().use { response ->
-                    val responseBody = response.body?.string().orEmpty()
+                    val responseBody = response.body.string().orEmpty()
                     if (!response.isSuccessful) {
                         val errorMessage = runCatching {
                             val element = json.parseToJsonElement(responseBody)
