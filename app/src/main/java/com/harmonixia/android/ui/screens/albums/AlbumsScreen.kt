@@ -842,7 +842,7 @@ private fun AlbumsEmptyState(
 
 private val AlbumSaver = Saver<Album?, String>(
     save = { album -> album?.let { Json.encodeToString(it) } },
-    restore = { json -> json?.let { Json.decodeFromString<Album>(it) } }
+    restore = { json -> Json.decodeFromString<Album>(json) }
 )
 
 private fun albumSortKey(album: Album): String {
