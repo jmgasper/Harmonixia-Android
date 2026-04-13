@@ -182,7 +182,7 @@ class PlaybackSessionCallback(
                     val parcel = Parcel.obtain()
                     val bundles = ArrayList<android.os.Bundle>(resolvedChildren.size)
                     for (item in resolvedChildren) {
-                        bundles.add(item.toBundle())
+                        bundles.add(toBundleForParcelMeasurement(item))
                     }
                     parcel.writeTypedList(bundles)
                     val size = parcel.dataSize()
@@ -680,6 +680,13 @@ class PlaybackSessionCallback(
         val width = (bitmap.width * scale).toInt().coerceAtLeast(1)
         val height = (bitmap.height * scale).toInt().coerceAtLeast(1)
         return Bitmap.createScaledBitmap(bitmap, width, height, true)
+    }
+
+
+    @Suppress("DEPRECATION")
+    private fun toBundleForParcelMeasurement(item: MediaItem): android.os.Bundle {
+        // Media3 currently only exposes deprecated bundle serialization for MediaItem.
+        return item.toBundle()
     }
 
     private fun encodeBitmap(bitmap: Bitmap): ByteArray? {
