@@ -68,7 +68,7 @@ class PlaylistDetailViewModel @Inject constructor(
     private val playbackStateManager: PlaybackStateManager,
     private val networkConnectivityManager: NetworkConnectivityManager,
     private val performanceMonitor: PerformanceMonitor,
-    @ApplicationContext private val context: Context,
+    @param:ApplicationContext private val context: Context,
     savedStateHandle: SavedStateHandle,
     val imageQualityManager: ImageQualityManager
 ) : ViewModel() {
