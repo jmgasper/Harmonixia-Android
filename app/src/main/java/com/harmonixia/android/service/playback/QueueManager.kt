@@ -6,7 +6,6 @@ import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
 import androidx.media3.common.Player
-import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.source.ShuffleOrder
 import com.harmonixia.android.domain.model.Queue
@@ -446,7 +445,6 @@ class QueueManager(
         lastLocalResolutionMediaId = null
     }
 
-    @OptIn(UnstableApi::class)
     private fun syncShuffleOrderIfNeeded() {
         val player = player ?: return
         if (!isShuffleActive) return
