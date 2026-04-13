@@ -22,6 +22,7 @@ import com.harmonixia.android.util.PagingStatsTracker
 import com.harmonixia.android.util.mergeWithLocal
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -37,6 +38,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.SharingStarted
 
+@OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class ArtistsViewModel @Inject constructor(
     private val repository: MusicAssistantRepository,
