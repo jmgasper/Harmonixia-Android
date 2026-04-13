@@ -36,6 +36,7 @@ import com.harmonixia.android.util.EXTRA_PROVIDER_DOMAINS
 import com.harmonixia.android.util.EXTRA_PROVIDER_ID
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -69,6 +70,7 @@ data class AlbumReference(
 )
 
 @UnstableApi
+@OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class PlaybackViewModel @Inject constructor(
     private val playbackServiceConnection: PlaybackServiceConnection,
