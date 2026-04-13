@@ -101,6 +101,7 @@ class PlaybackSessionCallback(
         player.addListener(playerListener)
     }
 
+    @Suppress("OVERRIDE_DEPRECATION")
     override fun onPlayerCommandRequest(
         session: MediaSession,
         controller: MediaSession.ControllerInfo,
