@@ -46,7 +46,7 @@ class SearchViewModel @Inject constructor(
     private val playbackStateManager: PlaybackStateManager,
     getConnectionStateUseCase: GetConnectionStateUseCase,
     private val savedStateHandle: SavedStateHandle,
-    @ApplicationContext private val context: Context,
+    @param:ApplicationContext private val context: Context,
     private val imageLoader: ImageLoader,
     private val networkConnectivityManager: NetworkConnectivityManager,
     val imageQualityManager: ImageQualityManager
