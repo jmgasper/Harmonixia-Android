@@ -5,6 +5,7 @@ import android.graphics.Bitmap
 import android.graphics.drawable.ColorDrawable
 import coil3.ImageLoader
 import coil3.Uri
+import coil3.annotation.ExperimentalCoilApi
 import coil3.asImage
 import coil3.disk.DiskCache
 import coil3.fetch.FetchResult
@@ -48,6 +49,7 @@ object ImageModule {
 
     @Provides
     @Singleton
+    @OptIn(ExperimentalCoilApi::class)
     fun provideImageLoader(
         @ApplicationContext context: Context,
         imageQualityManager: ImageQualityManager,
