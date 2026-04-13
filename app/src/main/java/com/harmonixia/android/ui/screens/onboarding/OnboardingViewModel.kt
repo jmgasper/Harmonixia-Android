@@ -33,7 +33,7 @@ class OnboardingViewModel @Inject constructor(
     private val connectToServerUseCase: ConnectToServerUseCase,
     private val getConnectionStateUseCase: GetConnectionStateUseCase,
     private val settingsDataStore: SettingsDataStore,
-    @ApplicationContext private val context: Context,
+    @param:ApplicationContext private val context: Context,
     private val savedStateHandle: SavedStateHandle
 ) : ViewModel() {
     private val _uiState = MutableStateFlow<OnboardingUiState>(
