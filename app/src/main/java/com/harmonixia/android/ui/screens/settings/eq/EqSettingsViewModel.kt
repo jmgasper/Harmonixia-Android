@@ -34,7 +34,7 @@ class EqSettingsViewModel @Inject constructor(
     private val getEqSettingsUseCase: GetEqSettingsUseCase,
     private val eqDataStore: EqDataStore,
     private val equalizerManager: EqualizerManager,
-    @ApplicationContext private val context: Context,
+    @param:ApplicationContext private val context: Context,
     private val savedStateHandle: SavedStateHandle
 ) : ViewModel() {
     private val _presets = MutableStateFlow<List<EqPreset>>(emptyList())
