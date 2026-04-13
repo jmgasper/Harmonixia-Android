@@ -1,3 +1,5 @@
+@file:Suppress("DEPRECATION")
+
 package com.harmonixia.android.data.local
 
 import android.content.Context
@@ -213,6 +215,7 @@ interface PasswordStorage {
     fun clearPassword()
 }
 
+@Suppress("DEPRECATION")
 private class EncryptedSharedPreferencesPasswordStorage(
     context: Context
 ) : PasswordStorage {
