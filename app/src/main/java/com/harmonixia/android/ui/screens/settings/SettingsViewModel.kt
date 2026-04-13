@@ -50,7 +50,7 @@ class SettingsViewModel @Inject constructor(
     private val eqPresetRepository: EqPresetRepository,
     private val localMediaRepository: LocalMediaRepository,
     private val localMediaScanner: LocalMediaScanner,
-    @ApplicationContext private val context: Context,
+    @param:ApplicationContext private val context: Context,
     private val savedStateHandle: SavedStateHandle
 ) : ViewModel() {
     private val connectionState: StateFlow<ConnectionState> = getConnectionStateUseCase()
