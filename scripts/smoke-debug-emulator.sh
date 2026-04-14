@@ -38,14 +38,37 @@ Options:
 USAGE
 }
 
+require_option_value() {
+    local option="$1"
+    local value="${2:-}"
+    if [[ -z "$value" || "$value" == --* ]]; then
+        echo "Missing value for ${option}" >&2
+        usage >&2
+        exit 1
+    fi
+    printf '%s\n' "$value"
+}
+
+require_positive_integer() {
+    local option="$1"
+    local value="$2"
+    if ! [[ "$value" =~ ^[1-9][0-9]*$ ]]; then
+        echo "Invalid value for ${option}: ${value}" >&2
+        echo "Expected a positive integer." >&2
+        usage >&2
+        exit 1
+    fi
+    printf '%s\n' "$value"
+}
+
 while [[ $# -gt 0 ]]; do
     case "$1" in
         --avd)
-            avd_name="$2"
+            avd_name="$(require_option_value "$1" "${2:-}")"
             shift 2
             ;;
         --serial)
-            target_serial="$2"
+            target_serial="$(require_option_value "$1" "${2:-}")"
             shift 2
             ;;
         --no-launch)
@@ -57,19 +80,19 @@ while [[ $# -gt 0 ]]; do
             shift
             ;;
         --app-id)
-            app_id="$2"
+            app_id="$(require_option_value "$1" "${2:-}")"
             shift 2
             ;;
         --task)
-            gradle_task="$2"
+            gradle_task="$(require_option_value "$1" "${2:-}")"
             shift 2
             ;;
         --connect-timeout)
-            connect_timeout_seconds="$2"
+            connect_timeout_seconds="$(require_positive_integer "$1" "$(require_option_value "$1" "${2:-}")")"
             shift 2
             ;;
         --boot-timeout)
-            boot_timeout_seconds="$2"
+            boot_timeout_seconds="$(require_positive_integer "$1" "$(require_option_value "$1" "${2:-}")")"
             shift 2
             ;;
         --help|-h)
