@@ -56,6 +56,18 @@ require_option_value() {
     printf '%s\n' "$value"
 }
 
+require_positive_integer() {
+    local option="$1"
+    local value="$2"
+    if ! [[ "$value" =~ ^[1-9][0-9]*$ ]]; then
+        echo "Invalid value for ${option}: ${value}" >&2
+        echo "Expected a positive integer." >&2
+        usage >&2
+        exit 1
+    fi
+    printf '%s\n' "$value"
+}
+
 while [[ $# -gt 0 ]]; do
     case "$1" in
         --with-smoke)
@@ -75,11 +87,11 @@ while [[ $# -gt 0 ]]; do
             shift
             ;;
         --connect-timeout)
-            smoke_connect_timeout="$(require_option_value "$1" "${2:-}")"
+            smoke_connect_timeout="$(require_positive_integer "$1" "$(require_option_value "$1" "${2:-}")")"
             shift 2
             ;;
         --boot-timeout)
-            smoke_boot_timeout="$(require_option_value "$1" "${2:-}")"
+            smoke_boot_timeout="$(require_positive_integer "$1" "$(require_option_value "$1" "${2:-}")")"
             shift 2
             ;;
         --smoke-app-id)
