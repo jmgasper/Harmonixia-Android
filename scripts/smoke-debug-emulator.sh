@@ -13,6 +13,13 @@ launch_wait_seconds=5
 target_serial=""
 auto_launch="true"
 list_avds_only="false"
+avd_option_set="false"
+serial_option_set="false"
+no_launch_option_set="false"
+app_id_option_set="false"
+task_option_set="false"
+connect_timeout_option_set="false"
+boot_timeout_option_set="false"
 
 usage() {
     cat <<USAGE
@@ -65,14 +72,17 @@ while [[ $# -gt 0 ]]; do
     case "$1" in
         --avd)
             avd_name="$(require_option_value "$1" "${2:-}")"
+            avd_option_set="true"
             shift 2
             ;;
         --serial)
             target_serial="$(require_option_value "$1" "${2:-}")"
+            serial_option_set="true"
             shift 2
             ;;
         --no-launch)
             auto_launch="false"
+            no_launch_option_set="true"
             shift
             ;;
         --list-avds)
@@ -81,18 +91,22 @@ while [[ $# -gt 0 ]]; do
             ;;
         --app-id)
             app_id="$(require_option_value "$1" "${2:-}")"
+            app_id_option_set="true"
             shift 2
             ;;
         --task)
             gradle_task="$(require_option_value "$1" "${2:-}")"
+            task_option_set="true"
             shift 2
             ;;
         --connect-timeout)
             connect_timeout_seconds="$(require_positive_integer "$1" "$(require_option_value "$1" "${2:-}")")"
+            connect_timeout_option_set="true"
             shift 2
             ;;
         --boot-timeout)
             boot_timeout_seconds="$(require_positive_integer "$1" "$(require_option_value "$1" "${2:-}")")"
+            boot_timeout_option_set="true"
             shift 2
             ;;
         --help|-h)
@@ -106,6 +120,15 @@ while [[ $# -gt 0 ]]; do
             ;;
     esac
 done
+
+if [[ "$list_avds_only" == "true" ]]; then
+    if [[ "$avd_option_set" == "true" || "$serial_option_set" == "true" || "$no_launch_option_set" == "true" || "$app_id_option_set" == "true" || "$task_option_set" == "true" || "$connect_timeout_option_set" == "true" || "$boot_timeout_option_set" == "true" ]]; then
+        echo "--list-avds cannot be combined with runtime smoke options." >&2
+        echo "Remove --avd/--serial/--no-launch/--app-id/--task/--connect-timeout/--boot-timeout when listing AVDs." >&2
+        usage >&2
+        exit 1
+    fi
+fi
 
 sdk_root="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-$HOME/Android/Sdk}}"
 sdk_home="${ANDROID_SDK_HOME:-$HOME/.config/.android}"
