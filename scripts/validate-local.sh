@@ -38,6 +38,7 @@ Options:
   --smoke-app-id <id>  Forward app id to smoke validation
   --smoke-task <task>  Forward Gradle install task to smoke validation
   --list-avds          Forward --list-avds to smoke validation and exit
+  --smoke-only         Disable compile/test/lint gates and run smoke only
   --skip-compile       Skip :app:compileDebugKotlin gate
   --skip-test          Skip :app:testDebugUnitTest gate
   --skip-lint          Skip :app:lintDebug gate
@@ -105,6 +106,13 @@ while [[ $# -gt 0 ]]; do
         --list-avds)
             smoke_list_avds="true"
             with_smoke="true"
+            shift
+            ;;
+        --smoke-only)
+            with_smoke="true"
+            run_compile="false"
+            run_test="false"
+            run_lint="false"
             shift
             ;;
         --skip-compile)
