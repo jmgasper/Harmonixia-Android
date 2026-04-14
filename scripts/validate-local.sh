@@ -6,6 +6,9 @@ repo_root="$(cd "${script_dir}/.." && pwd)"
 
 with_smoke="false"
 avd_name="Medium_Phone"
+run_compile="true"
+run_test="true"
+run_lint="true"
 
 usage() {
     cat <<USAGE
@@ -21,6 +24,9 @@ Optional:
 Options:
   --with-smoke         Include emulator smoke validation
   --avd <name>         AVD name for smoke validation (default: ${avd_name})
+  --skip-compile       Skip :app:compileDebugKotlin gate
+  --skip-test          Skip :app:testDebugUnitTest gate
+  --skip-lint          Skip :app:lintDebug gate
   --help               Show this help
 USAGE
 }
@@ -34,6 +40,18 @@ while [[ $# -gt 0 ]]; do
         --avd)
             avd_name="$2"
             shift 2
+            ;;
+        --skip-compile)
+            run_compile="false"
+            shift
+            ;;
+        --skip-test)
+            run_test="false"
+            shift
+            ;;
+        --skip-lint)
+            run_lint="false"
+            shift
             ;;
         --help|-h)
             usage
@@ -68,14 +86,27 @@ if [[ "${java_major}" != "17" ]]; then
     exit 1
 fi
 
-echo "Running Gradle validation gates (compile + unit tests + lint)..."
-(
-    cd "$repo_root"
-    ./gradlew --no-daemon \
-        :app:compileDebugKotlin \
-        :app:testDebugUnitTest \
-        :app:lintDebug
-)
+gradle_tasks=()
+if [[ "$run_compile" == "true" ]]; then
+    gradle_tasks+=(":app:compileDebugKotlin")
+fi
+if [[ "$run_test" == "true" ]]; then
+    gradle_tasks+=(":app:testDebugUnitTest")
+fi
+if [[ "$run_lint" == "true" ]]; then
+    gradle_tasks+=(":app:lintDebug")
+fi
+
+if [[ "${#gradle_tasks[@]}" -gt 0 ]]; then
+    echo "Running Gradle validation gates: ${gradle_tasks[*]}"
+    (
+        cd "$repo_root"
+        ./gradlew --no-daemon "${gradle_tasks[@]}"
+    )
+elif [[ "$with_smoke" != "true" ]]; then
+    echo "No validation gates selected. Enable at least one gate or use --with-smoke." >&2
+    exit 1
+fi
 
 if [[ "$with_smoke" == "true" ]]; then
     echo "Running emulator smoke gate..."
