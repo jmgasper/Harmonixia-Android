@@ -6,6 +6,7 @@ repo_root="$(cd "${script_dir}/.." && pwd)"
 
 with_smoke="false"
 avd_name="Medium_Phone"
+smoke_avd_explicit="false"
 smoke_serial=""
 smoke_no_launch="false"
 smoke_connect_timeout=""
@@ -77,6 +78,7 @@ while [[ $# -gt 0 ]]; do
             ;;
         --avd)
             avd_name="$(require_option_value "$1" "${2:-}")"
+            smoke_avd_explicit="true"
             shift 2
             ;;
         --serial)
@@ -138,6 +140,12 @@ while [[ $# -gt 0 ]]; do
             ;;
     esac
 done
+
+if [[ "$smoke_list_avds" != "true" && "$smoke_avd_explicit" == "true" && -n "$smoke_serial" ]]; then
+    echo "Cannot combine --avd with --serial. Choose one target selector." >&2
+    usage >&2
+    exit 1
+fi
 
 skip_java_preflight="false"
 if [[ "$with_smoke" == "true" && "$smoke_list_avds" == "true" && "$run_compile" == "false" && "$run_test" == "false" && "$run_lint" == "false" ]]; then
