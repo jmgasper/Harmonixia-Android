@@ -14,6 +14,7 @@ smoke_boot_timeout=""
 smoke_app_id=""
 smoke_task=""
 smoke_list_avds="false"
+smoke_options_used="false"
 run_compile="true"
 run_test="true"
 run_lint="true"
@@ -79,34 +80,42 @@ while [[ $# -gt 0 ]]; do
         --avd)
             avd_name="$(require_option_value "$1" "${2:-}")"
             smoke_avd_explicit="true"
+            smoke_options_used="true"
             shift 2
             ;;
         --serial)
             smoke_serial="$(require_option_value "$1" "${2:-}")"
+            smoke_options_used="true"
             shift 2
             ;;
         --no-launch)
             smoke_no_launch="true"
+            smoke_options_used="true"
             shift
             ;;
         --connect-timeout)
             smoke_connect_timeout="$(require_positive_integer "$1" "$(require_option_value "$1" "${2:-}")")"
+            smoke_options_used="true"
             shift 2
             ;;
         --boot-timeout)
             smoke_boot_timeout="$(require_positive_integer "$1" "$(require_option_value "$1" "${2:-}")")"
+            smoke_options_used="true"
             shift 2
             ;;
         --smoke-app-id)
             smoke_app_id="$(require_option_value "$1" "${2:-}")"
+            smoke_options_used="true"
             shift 2
             ;;
         --smoke-task)
             smoke_task="$(require_option_value "$1" "${2:-}")"
+            smoke_options_used="true"
             shift 2
             ;;
         --list-avds)
             smoke_list_avds="true"
+            smoke_options_used="true"
             with_smoke="true"
             shift
             ;;
@@ -140,6 +149,12 @@ while [[ $# -gt 0 ]]; do
             ;;
     esac
 done
+
+if [[ "$with_smoke" != "true" && "$smoke_options_used" == "true" ]]; then
+    echo "Smoke-specific flags require --with-smoke or --smoke-only." >&2
+    usage >&2
+    exit 1
+fi
 
 if [[ "$smoke_list_avds" != "true" && "$smoke_avd_explicit" == "true" && -n "$smoke_serial" ]]; then
     echo "Cannot combine --avd with --serial. Choose one target selector." >&2
