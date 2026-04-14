@@ -139,25 +139,32 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-if [[ -z "${JAVA_HOME:-}" ]]; then
-    if [[ -d "$HOME/.jdks/jdk-17.0.17+10" ]]; then
-        export JAVA_HOME="$HOME/.jdks/jdk-17.0.17+10"
-        export PATH="$JAVA_HOME/bin:$PATH"
+skip_java_preflight="false"
+if [[ "$with_smoke" == "true" && "$smoke_list_avds" == "true" && "$run_compile" == "false" && "$run_test" == "false" && "$run_lint" == "false" ]]; then
+    skip_java_preflight="true"
+fi
+
+if [[ "$skip_java_preflight" != "true" ]]; then
+    if [[ -z "${JAVA_HOME:-}" ]]; then
+        if [[ -d "$HOME/.jdks/jdk-17.0.17+10" ]]; then
+            export JAVA_HOME="$HOME/.jdks/jdk-17.0.17+10"
+            export PATH="$JAVA_HOME/bin:$PATH"
+        fi
     fi
-fi
 
-if ! command -v java >/dev/null 2>&1; then
-    echo "Java is required. Install JDK 17 and ensure java is on PATH." >&2
-    exit 1
-fi
+    if ! command -v java >/dev/null 2>&1; then
+        echo "Java is required. Install JDK 17 and ensure java is on PATH." >&2
+        exit 1
+    fi
 
-java_version_line="$(java -version 2>&1 | head -n 1)"
-java_major="$(echo "${java_version_line}" | sed -E 's/.*version "([0-9]+).*/\1/')"
-if [[ "${java_major}" != "17" ]]; then
-    echo "JDK 17 is required for local validation." >&2
-    echo "Detected: ${java_version_line}" >&2
-    echo "Set JAVA_HOME to a JDK 17 installation and retry." >&2
-    exit 1
+    java_version_line="$(java -version 2>&1 | head -n 1)"
+    java_major="$(echo "${java_version_line}" | sed -E 's/.*version "([0-9]+).*/\1/')"
+    if [[ "${java_major}" != "17" ]]; then
+        echo "JDK 17 is required for local validation." >&2
+        echo "Detected: ${java_version_line}" >&2
+        echo "Set JAVA_HOME to a JDK 17 installation and retry." >&2
+        exit 1
+    fi
 fi
 
 gradle_tasks=()
