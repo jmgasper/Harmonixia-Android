@@ -12,6 +12,7 @@ smoke_connect_timeout=""
 smoke_boot_timeout=""
 smoke_app_id=""
 smoke_task=""
+smoke_list_avds="false"
 run_compile="true"
 run_test="true"
 run_lint="true"
@@ -36,6 +37,7 @@ Options:
   --boot-timeout <s>   Forward smoke boot completion timeout in seconds
   --smoke-app-id <id>  Forward app id to smoke validation
   --smoke-task <task>  Forward Gradle install task to smoke validation
+  --list-avds          Forward --list-avds to smoke validation and exit
   --skip-compile       Skip :app:compileDebugKotlin gate
   --skip-test          Skip :app:testDebugUnitTest gate
   --skip-lint          Skip :app:lintDebug gate
@@ -76,6 +78,11 @@ while [[ $# -gt 0 ]]; do
         --smoke-task)
             smoke_task="$2"
             shift 2
+            ;;
+        --list-avds)
+            smoke_list_avds="true"
+            with_smoke="true"
+            shift
             ;;
         --skip-compile)
             run_compile="false"
@@ -147,25 +154,29 @@ fi
 if [[ "$with_smoke" == "true" ]]; then
     echo "Running emulator smoke gate..."
     smoke_args=()
-    if [[ -n "$smoke_serial" ]]; then
-        smoke_args+=(--serial "$smoke_serial")
+    if [[ "$smoke_list_avds" == "true" ]]; then
+        smoke_args+=(--list-avds)
     else
-        smoke_args+=(--avd "$avd_name")
-    fi
-    if [[ "$smoke_no_launch" == "true" ]]; then
-        smoke_args+=(--no-launch)
-    fi
-    if [[ -n "$smoke_connect_timeout" ]]; then
-        smoke_args+=(--connect-timeout "$smoke_connect_timeout")
-    fi
-    if [[ -n "$smoke_boot_timeout" ]]; then
-        smoke_args+=(--boot-timeout "$smoke_boot_timeout")
-    fi
-    if [[ -n "$smoke_app_id" ]]; then
-        smoke_args+=(--app-id "$smoke_app_id")
-    fi
-    if [[ -n "$smoke_task" ]]; then
-        smoke_args+=(--task "$smoke_task")
+        if [[ -n "$smoke_serial" ]]; then
+            smoke_args+=(--serial "$smoke_serial")
+        else
+            smoke_args+=(--avd "$avd_name")
+        fi
+        if [[ "$smoke_no_launch" == "true" ]]; then
+            smoke_args+=(--no-launch)
+        fi
+        if [[ -n "$smoke_connect_timeout" ]]; then
+            smoke_args+=(--connect-timeout "$smoke_connect_timeout")
+        fi
+        if [[ -n "$smoke_boot_timeout" ]]; then
+            smoke_args+=(--boot-timeout "$smoke_boot_timeout")
+        fi
+        if [[ -n "$smoke_app_id" ]]; then
+            smoke_args+=(--app-id "$smoke_app_id")
+        fi
+        if [[ -n "$smoke_task" ]]; then
+            smoke_args+=(--task "$smoke_task")
+        fi
     fi
     "$script_dir/smoke-debug-emulator.sh" "${smoke_args[@]}"
 fi
