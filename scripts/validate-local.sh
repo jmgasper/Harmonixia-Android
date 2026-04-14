@@ -6,6 +6,8 @@ repo_root="$(cd "${script_dir}/.." && pwd)"
 
 with_smoke="false"
 avd_name="Medium_Phone"
+smoke_serial=""
+smoke_no_launch="false"
 run_compile="true"
 run_test="true"
 run_lint="true"
@@ -24,6 +26,8 @@ Optional:
 Options:
   --with-smoke         Include emulator smoke validation
   --avd <name>         AVD name for smoke validation (default: ${avd_name})
+  --serial <id>        adb serial to target for smoke validation
+  --no-launch          Forward --no-launch to smoke validation
   --skip-compile       Skip :app:compileDebugKotlin gate
   --skip-test          Skip :app:testDebugUnitTest gate
   --skip-lint          Skip :app:lintDebug gate
@@ -40,6 +44,14 @@ while [[ $# -gt 0 ]]; do
         --avd)
             avd_name="$2"
             shift 2
+            ;;
+        --serial)
+            smoke_serial="$2"
+            shift 2
+            ;;
+        --no-launch)
+            smoke_no_launch="true"
+            shift
             ;;
         --skip-compile)
             run_compile="false"
@@ -110,7 +122,16 @@ fi
 
 if [[ "$with_smoke" == "true" ]]; then
     echo "Running emulator smoke gate..."
-    "$script_dir/smoke-debug-emulator.sh" --avd "$avd_name"
+    smoke_args=()
+    if [[ -n "$smoke_serial" ]]; then
+        smoke_args+=(--serial "$smoke_serial")
+    else
+        smoke_args+=(--avd "$avd_name")
+    fi
+    if [[ "$smoke_no_launch" == "true" ]]; then
+        smoke_args+=(--no-launch)
+    fi
+    "$script_dir/smoke-debug-emulator.sh" "${smoke_args[@]}"
 fi
 
 echo "Local validation passed."
