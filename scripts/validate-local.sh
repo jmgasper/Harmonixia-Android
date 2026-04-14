@@ -1,0 +1,80 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+repo_root="$(cd "${script_dir}/.." && pwd)"
+
+with_smoke="false"
+avd_name="Medium_Phone"
+
+usage() {
+    cat <<USAGE
+Usage: $(basename "$0") [options]
+
+Run local validation gates before committing:
+  1. :app:compileDebugKotlin
+  2. :app:testDebugUnitTest
+  3. :app:lintDebug
+Optional:
+  4. emulator smoke test via scripts/smoke-debug-emulator.sh
+
+Options:
+  --with-smoke         Include emulator smoke validation
+  --avd <name>         AVD name for smoke validation (default: ${avd_name})
+  --help               Show this help
+USAGE
+}
+
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --with-smoke)
+            with_smoke="true"
+            shift
+            ;;
+        --avd)
+            avd_name="$2"
+            shift 2
+            ;;
+        --help|-h)
+            usage
+            exit 0
+            ;;
+        *)
+            echo "Unknown argument: $1" >&2
+            usage >&2
+            exit 1
+            ;;
+    esac
+done
+
+if [[ -z "${JAVA_HOME:-}" ]]; then
+    if [[ -d "$HOME/.jdks/jdk-17.0.17+10" ]]; then
+        export JAVA_HOME="$HOME/.jdks/jdk-17.0.17+10"
+        export PATH="$JAVA_HOME/bin:$PATH"
+    fi
+fi
+
+echo "Running compile gate..."
+(
+    cd "$repo_root"
+    ./gradlew --no-daemon :app:compileDebugKotlin
+)
+
+echo "Running unit test gate..."
+(
+    cd "$repo_root"
+    ./gradlew --no-daemon :app:testDebugUnitTest
+)
+
+echo "Running lint gate..."
+(
+    cd "$repo_root"
+    ./gradlew --no-daemon :app:lintDebug
+)
+
+if [[ "$with_smoke" == "true" ]]; then
+    echo "Running emulator smoke gate..."
+    "$script_dir/smoke-debug-emulator.sh" --avd "$avd_name"
+fi
+
+echo "Local validation passed."
