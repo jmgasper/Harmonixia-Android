@@ -12,6 +12,7 @@ boot_timeout_seconds=420
 launch_wait_seconds=5
 target_serial=""
 auto_launch="true"
+list_avds_only="false"
 
 usage() {
     cat <<USAGE
@@ -28,6 +29,7 @@ Options:
   --avd <name>          AVD name to launch when no emulator is online (default: ${avd_name})
   --serial <id>         Target specific adb serial instead of auto-detecting the first emulator
   --no-launch           Do not auto-launch an AVD when no emulator is online
+  --list-avds           Print available AVD names and exit
   --app-id <id>         Android application id (default: ${app_id})
   --task <gradle-task>  Gradle install task (default: ${gradle_task})
   --connect-timeout <s> Emulator connect timeout in seconds (default: ${connect_timeout_seconds})
@@ -48,6 +50,10 @@ while [[ $# -gt 0 ]]; do
             ;;
         --no-launch)
             auto_launch="false"
+            shift
+            ;;
+        --list-avds)
+            list_avds_only="true"
             shift
             ;;
         --app-id)
@@ -94,13 +100,18 @@ if [[ -z "${JAVA_HOME:-}" ]]; then
     fi
 fi
 
-if ! command -v adb >/dev/null 2>&1; then
-    echo "adb not found. Ensure Android platform-tools are installed under ${sdk_root}." >&2
+if [[ "$auto_launch" == "true" || "$list_avds_only" == "true" ]] && ! command -v emulator >/dev/null 2>&1; then
+    echo "emulator not found. Ensure Android emulator is installed under ${sdk_root}." >&2
     exit 1
 fi
 
-if [[ "$auto_launch" == "true" ]] && ! command -v emulator >/dev/null 2>&1; then
-    echo "emulator not found. Ensure Android emulator is installed under ${sdk_root}." >&2
+if [[ "$list_avds_only" == "true" ]]; then
+    emulator -list-avds
+    exit 0
+fi
+
+if ! command -v adb >/dev/null 2>&1; then
+    echo "adb not found. Ensure Android platform-tools are installed under ${sdk_root}." >&2
     exit 1
 fi
 
