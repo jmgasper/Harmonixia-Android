@@ -45,6 +45,17 @@ Options:
 USAGE
 }
 
+require_option_value() {
+    local option="$1"
+    local value="${2:-}"
+    if [[ -z "$value" || "$value" == --* ]]; then
+        echo "Missing value for ${option}" >&2
+        usage >&2
+        exit 1
+    fi
+    printf '%s\n' "$value"
+}
+
 while [[ $# -gt 0 ]]; do
     case "$1" in
         --with-smoke)
@@ -52,11 +63,11 @@ while [[ $# -gt 0 ]]; do
             shift
             ;;
         --avd)
-            avd_name="$2"
+            avd_name="$(require_option_value "$1" "${2:-}")"
             shift 2
             ;;
         --serial)
-            smoke_serial="$2"
+            smoke_serial="$(require_option_value "$1" "${2:-}")"
             shift 2
             ;;
         --no-launch)
@@ -64,19 +75,19 @@ while [[ $# -gt 0 ]]; do
             shift
             ;;
         --connect-timeout)
-            smoke_connect_timeout="$2"
+            smoke_connect_timeout="$(require_option_value "$1" "${2:-}")"
             shift 2
             ;;
         --boot-timeout)
-            smoke_boot_timeout="$2"
+            smoke_boot_timeout="$(require_option_value "$1" "${2:-}")"
             shift 2
             ;;
         --smoke-app-id)
-            smoke_app_id="$2"
+            smoke_app_id="$(require_option_value "$1" "${2:-}")"
             shift 2
             ;;
         --smoke-task)
-            smoke_task="$2"
+            smoke_task="$(require_option_value "$1" "${2:-}")"
             shift 2
             ;;
         --list-avds)
