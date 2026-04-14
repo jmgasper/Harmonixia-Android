@@ -10,6 +10,8 @@ smoke_serial=""
 smoke_no_launch="false"
 smoke_connect_timeout=""
 smoke_boot_timeout=""
+smoke_app_id=""
+smoke_task=""
 run_compile="true"
 run_test="true"
 run_lint="true"
@@ -32,6 +34,8 @@ Options:
   --no-launch          Forward --no-launch to smoke validation
   --connect-timeout <s> Forward smoke adb connect timeout in seconds
   --boot-timeout <s>   Forward smoke boot completion timeout in seconds
+  --smoke-app-id <id>  Forward app id to smoke validation
+  --smoke-task <task>  Forward Gradle install task to smoke validation
   --skip-compile       Skip :app:compileDebugKotlin gate
   --skip-test          Skip :app:testDebugUnitTest gate
   --skip-lint          Skip :app:lintDebug gate
@@ -63,6 +67,14 @@ while [[ $# -gt 0 ]]; do
             ;;
         --boot-timeout)
             smoke_boot_timeout="$2"
+            shift 2
+            ;;
+        --smoke-app-id)
+            smoke_app_id="$2"
+            shift 2
+            ;;
+        --smoke-task)
+            smoke_task="$2"
             shift 2
             ;;
         --skip-compile)
@@ -148,6 +160,12 @@ if [[ "$with_smoke" == "true" ]]; then
     fi
     if [[ -n "$smoke_boot_timeout" ]]; then
         smoke_args+=(--boot-timeout "$smoke_boot_timeout")
+    fi
+    if [[ -n "$smoke_app_id" ]]; then
+        smoke_args+=(--app-id "$smoke_app_id")
+    fi
+    if [[ -n "$smoke_task" ]]; then
+        smoke_args+=(--task "$smoke_task")
     fi
     "$script_dir/smoke-debug-emulator.sh" "${smoke_args[@]}"
 fi
