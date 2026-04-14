@@ -8,6 +8,8 @@ with_smoke="false"
 avd_name="Medium_Phone"
 smoke_serial=""
 smoke_no_launch="false"
+smoke_connect_timeout=""
+smoke_boot_timeout=""
 run_compile="true"
 run_test="true"
 run_lint="true"
@@ -28,6 +30,8 @@ Options:
   --avd <name>         AVD name for smoke validation (default: ${avd_name})
   --serial <id>        adb serial to target for smoke validation
   --no-launch          Forward --no-launch to smoke validation
+  --connect-timeout <s> Forward smoke adb connect timeout in seconds
+  --boot-timeout <s>   Forward smoke boot completion timeout in seconds
   --skip-compile       Skip :app:compileDebugKotlin gate
   --skip-test          Skip :app:testDebugUnitTest gate
   --skip-lint          Skip :app:lintDebug gate
@@ -52,6 +56,14 @@ while [[ $# -gt 0 ]]; do
         --no-launch)
             smoke_no_launch="true"
             shift
+            ;;
+        --connect-timeout)
+            smoke_connect_timeout="$2"
+            shift 2
+            ;;
+        --boot-timeout)
+            smoke_boot_timeout="$2"
+            shift 2
             ;;
         --skip-compile)
             run_compile="false"
@@ -130,6 +142,12 @@ if [[ "$with_smoke" == "true" ]]; then
     fi
     if [[ "$smoke_no_launch" == "true" ]]; then
         smoke_args+=(--no-launch)
+    fi
+    if [[ -n "$smoke_connect_timeout" ]]; then
+        smoke_args+=(--connect-timeout "$smoke_connect_timeout")
+    fi
+    if [[ -n "$smoke_boot_timeout" ]]; then
+        smoke_args+=(--boot-timeout "$smoke_boot_timeout")
     fi
     "$script_dir/smoke-debug-emulator.sh" "${smoke_args[@]}"
 fi
