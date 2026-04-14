@@ -3,7 +3,7 @@ package com.harmonixia.android.data.local
 import android.content.Context
 import io.mockk.every
 import io.mockk.mockk
-import java.io.File
+import kotlin.io.path.createTempDirectory
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
 import okhttp3.OkHttpClient
@@ -27,7 +27,7 @@ class EqPresetCacheIntegrationTest {
             server.enqueue(MockResponse().setResponseCode(200).setBody(jsonl))
             server.start()
 
-            val cacheDir = createTempDir()
+            val cacheDir = createTempDirectory(prefix = "eqpreset-cache-test-").toFile()
             val context = mockk<Context>()
             every { context.cacheDir } returns cacheDir
 

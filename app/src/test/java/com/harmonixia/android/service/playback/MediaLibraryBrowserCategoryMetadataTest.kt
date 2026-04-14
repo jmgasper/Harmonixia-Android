@@ -82,9 +82,9 @@ class MediaLibraryBrowserCategoryMetadataTest {
             String::class.java,
             String::class.java,
             String::class.java,
-            Integer::class.java,
-            Integer::class.java,
-            Integer::class.java
+            Int::class.javaObjectType,
+            Int::class.javaObjectType,
+            Int::class.javaObjectType
         )
         method.isAccessible = true
         @Suppress("UNCHECKED_CAST")
