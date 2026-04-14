@@ -54,6 +54,20 @@ if [[ -z "${JAVA_HOME:-}" ]]; then
     fi
 fi
 
+if ! command -v java >/dev/null 2>&1; then
+    echo "Java is required. Install JDK 17 and ensure java is on PATH." >&2
+    exit 1
+fi
+
+java_version_line="$(java -version 2>&1 | head -n 1)"
+java_major="$(echo "${java_version_line}" | sed -E 's/.*version "([0-9]+).*/\1/')"
+if [[ "${java_major}" != "17" ]]; then
+    echo "JDK 17 is required for local validation." >&2
+    echo "Detected: ${java_version_line}" >&2
+    echo "Set JAVA_HOME to a JDK 17 installation and retry." >&2
+    exit 1
+fi
+
 echo "Running Gradle validation gates (compile + unit tests + lint)..."
 (
     cd "$repo_root"
