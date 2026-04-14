@@ -248,6 +248,7 @@ if [[ "$with_smoke" == "true" ]]; then
             smoke_args+=(--task "$smoke_task")
         fi
     fi
+    echo "Smoke command args: ${smoke_args[*]}"
     "$script_dir/smoke-debug-emulator.sh" "${smoke_args[@]}"
 fi
 
