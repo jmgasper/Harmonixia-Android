@@ -54,22 +54,13 @@ if [[ -z "${JAVA_HOME:-}" ]]; then
     fi
 fi
 
-echo "Running compile gate..."
+echo "Running Gradle validation gates (compile + unit tests + lint)..."
 (
     cd "$repo_root"
-    ./gradlew --no-daemon :app:compileDebugKotlin
-)
-
-echo "Running unit test gate..."
-(
-    cd "$repo_root"
-    ./gradlew --no-daemon :app:testDebugUnitTest
-)
-
-echo "Running lint gate..."
-(
-    cd "$repo_root"
-    ./gradlew --no-daemon :app:lintDebug
+    ./gradlew --no-daemon \
+        :app:compileDebugKotlin \
+        :app:testDebugUnitTest \
+        :app:lintDebug
 )
 
 if [[ "$with_smoke" == "true" ]]; then
