@@ -130,6 +130,12 @@ if [[ "$list_avds_only" == "true" ]]; then
     fi
 fi
 
+if [[ "$list_avds_only" != "true" && "$avd_option_set" == "true" && "$serial_option_set" == "true" ]]; then
+    echo "Cannot combine --avd with --serial. Choose one target selector." >&2
+    usage >&2
+    exit 1
+fi
+
 sdk_root="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-$HOME/Android/Sdk}}"
 sdk_home="${ANDROID_SDK_HOME:-$HOME/.config/.android}"
 avd_home="${ANDROID_AVD_HOME:-$sdk_home/avd}"
