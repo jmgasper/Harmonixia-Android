@@ -162,6 +162,15 @@ if [[ "$smoke_list_avds" != "true" && "$smoke_avd_explicit" == "true" && -n "$sm
     exit 1
 fi
 
+if [[ "$smoke_list_avds" == "true" ]]; then
+    if [[ "$smoke_avd_explicit" == "true" || -n "$smoke_serial" || "$smoke_no_launch" == "true" || -n "$smoke_connect_timeout" || -n "$smoke_boot_timeout" || -n "$smoke_app_id" || -n "$smoke_task" ]]; then
+        echo "--list-avds cannot be combined with runtime smoke options." >&2
+        echo "Remove --avd/--serial/--no-launch/--connect-timeout/--boot-timeout/--smoke-app-id/--smoke-task when listing AVDs." >&2
+        usage >&2
+        exit 1
+    fi
+fi
+
 skip_java_preflight="false"
 if [[ "$with_smoke" == "true" && "$smoke_list_avds" == "true" && "$run_compile" == "false" && "$run_test" == "false" && "$run_lint" == "false" ]]; then
     skip_java_preflight="true"
