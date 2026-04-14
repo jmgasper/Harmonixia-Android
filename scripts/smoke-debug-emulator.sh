@@ -10,6 +10,8 @@ gradle_task=":app:installDebug"
 connect_timeout_seconds=300
 boot_timeout_seconds=420
 launch_wait_seconds=5
+target_serial=""
+auto_launch="true"
 
 usage() {
     cat <<USAGE
@@ -24,6 +26,8 @@ Run a local emulator smoke test for the Harmonixia debug app:
 
 Options:
   --avd <name>          AVD name to launch when no emulator is online (default: ${avd_name})
+  --serial <id>         Target specific adb serial instead of auto-detecting the first emulator
+  --no-launch           Do not auto-launch an AVD when no emulator is online
   --app-id <id>         Android application id (default: ${app_id})
   --task <gradle-task>  Gradle install task (default: ${gradle_task})
   --connect-timeout <s> Emulator connect timeout in seconds (default: ${connect_timeout_seconds})
@@ -37,6 +41,14 @@ while [[ $# -gt 0 ]]; do
         --avd)
             avd_name="$2"
             shift 2
+            ;;
+        --serial)
+            target_serial="$2"
+            shift 2
+            ;;
+        --no-launch)
+            auto_launch="false"
+            shift
             ;;
         --app-id)
             app_id="$2"
@@ -87,7 +99,7 @@ if ! command -v adb >/dev/null 2>&1; then
     exit 1
 fi
 
-if ! command -v emulator >/dev/null 2>&1; then
+if [[ "$auto_launch" == "true" ]] && ! command -v emulator >/dev/null 2>&1; then
     echo "emulator not found. Ensure Android emulator is installed under ${sdk_root}." >&2
     exit 1
 fi
@@ -100,8 +112,12 @@ fi
 echo "Starting adb server..."
 adb start-server >/dev/null
 
-emulator_serial="$(adb devices | awk '/^emulator-/{print $1; exit}')"
+emulator_serial="$target_serial"
 if [[ -z "$emulator_serial" ]]; then
+    emulator_serial="$(adb devices | awk '/^emulator-/{print $1; exit}')"
+fi
+
+if [[ -z "$emulator_serial" && "$auto_launch" == "true" ]]; then
     if ! emulator -list-avds | grep -Fx "$avd_name" >/dev/null 2>&1; then
         echo "AVD '$avd_name' not found. Available AVDs:" >&2
         emulator -list-avds >&2 || true
@@ -112,18 +128,31 @@ if [[ -z "$emulator_serial" ]]; then
     echo "Launching AVD '$avd_name' (log: $emulator_log)..."
     nohup emulator -avd "$avd_name" -no-window -no-audio -no-boot-anim \
         -gpu swiftshader_indirect -netdelay none -netspeed full >"$emulator_log" 2>&1 &
+elif [[ -z "$emulator_serial" ]]; then
+    echo "No emulator is online and --no-launch was specified." >&2
+    adb devices -l >&2 || true
+    exit 1
 fi
 
 echo "Waiting for emulator connection..."
 connect_deadline=$((SECONDS + connect_timeout_seconds))
 while true; do
-    emulator_serial="$(adb devices | awk '/^emulator-/{print $1; exit}')"
-    emulator_state="$(adb devices | awk '/^emulator-/{print $2; exit}')"
+    if [[ -n "$target_serial" ]]; then
+        emulator_serial="$target_serial"
+        emulator_state="$(adb devices | awk -v serial="$target_serial" '$1 == serial {print $2; found=1} END {if (!found) print ""}')"
+    else
+        emulator_serial="$(adb devices | awk '/^emulator-/{print $1; exit}')"
+        emulator_state="$(adb devices | awk '/^emulator-/{print $2; exit}')"
+    fi
     if [[ -n "$emulator_serial" && "$emulator_state" == "device" ]]; then
         break
     fi
     if (( SECONDS >= connect_deadline )); then
-        echo "Timed out waiting for emulator to connect." >&2
+        if [[ -n "$target_serial" ]]; then
+            echo "Timed out waiting for adb serial '$target_serial' to become online." >&2
+        else
+            echo "Timed out waiting for emulator to connect." >&2
+        fi
         adb devices -l >&2 || true
         exit 1
     fi
