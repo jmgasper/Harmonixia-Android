@@ -169,6 +169,12 @@ if [[ "$smoke_list_avds" != "true" && "$smoke_avd_explicit" == "true" && -n "$sm
     exit 1
 fi
 
+if [[ "$smoke_list_avds" != "true" && "$smoke_no_launch" == "true" && "$smoke_avd_explicit" == "true" && -z "$smoke_serial" ]]; then
+    echo "--no-launch cannot be combined with --avd unless --serial is also provided." >&2
+    usage >&2
+    exit 1
+fi
+
 if [[ "$smoke_list_avds" == "true" ]]; then
     if [[ "$smoke_avd_explicit" == "true" || -n "$smoke_serial" || "$smoke_no_launch" == "true" || -n "$smoke_connect_timeout" || -n "$smoke_boot_timeout" || -n "$smoke_launch_wait" || -n "$smoke_app_id" || -n "$smoke_task" ]]; then
         echo "--list-avds cannot be combined with runtime smoke options." >&2
