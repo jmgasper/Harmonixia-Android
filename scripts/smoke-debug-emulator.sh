@@ -276,6 +276,7 @@ while true; do
         else
             echo "Timed out waiting for emulator to connect." >&2
         fi
+        echo "Tip: check 'adb devices -l' output and increase --connect-timeout if startup is slow." >&2
         adb devices -l >&2 || true
         exit 1
     fi
