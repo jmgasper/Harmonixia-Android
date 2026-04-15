@@ -243,6 +243,7 @@ fi
 if [[ -z "$emulator_serial" && "$auto_launch" == "true" ]]; then
     if ! emulator -list-avds | grep -Fx "$avd_name" >/dev/null 2>&1; then
         echo "AVD '$avd_name' not found. Available AVDs:" >&2
+        echo "Tip: run --list-avds to choose a valid AVD, or use --serial <emulator-id> to target an already-running emulator." >&2
         emulator -list-avds >&2 || true
         exit 1
     fi
