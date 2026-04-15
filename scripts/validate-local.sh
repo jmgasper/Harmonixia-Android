@@ -34,7 +34,7 @@ Optional:
 Options:
   --with-smoke         Include emulator smoke validation
   --avd <name>         AVD name for smoke validation (default: ${avd_name})
-  --serial <id>        adb serial to target for smoke validation
+  --serial <id>        adb emulator serial for smoke validation (example: emulator-5554)
   --no-launch          Forward --no-launch to smoke validation
   --connect-timeout <s> Forward smoke adb connect timeout in seconds
   --boot-timeout <s>   Forward smoke boot completion timeout in seconds
@@ -76,6 +76,18 @@ require_positive_integer() {
     printf '%s\n' "$value"
 }
 
+require_emulator_serial() {
+    local option="$1"
+    local value="$2"
+    if ! [[ "$value" =~ ^emulator-[0-9]+$ ]]; then
+        echo "Invalid value for ${option}: ${value}" >&2
+        echo "Expected an emulator adb serial like emulator-5554." >&2
+        usage >&2
+        exit 1
+    fi
+    printf '%s\n' "$value"
+}
+
 while [[ $# -gt 0 ]]; do
     case "$1" in
         --with-smoke)
@@ -89,7 +101,7 @@ while [[ $# -gt 0 ]]; do
             shift 2
             ;;
         --serial)
-            smoke_serial="$(require_option_value "$1" "${2:-}")"
+            smoke_serial="$(require_emulator_serial "$1" "$(require_option_value "$1" "${2:-}")")"
             smoke_options_used="true"
             shift 2
             ;;

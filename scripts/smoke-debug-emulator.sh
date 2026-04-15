@@ -35,7 +35,7 @@ Run a local emulator smoke test for the Harmonixia debug app:
 
 Options:
   --avd <name>          AVD name to launch when no emulator is online (default: ${avd_name})
-  --serial <id>         Target specific adb serial instead of auto-detecting the first emulator
+  --serial <id>         Target specific emulator adb serial (example: emulator-5554)
   --no-launch           Do not auto-launch an AVD when no emulator is online
   --list-avds           Print available AVD names and exit
   --app-id <id>         Android application id (default: ${app_id})
@@ -73,6 +73,18 @@ require_positive_integer() {
     printf '%s\n' "$value"
 }
 
+require_emulator_serial() {
+    local option="$1"
+    local value="$2"
+    if ! [[ "$value" =~ ^emulator-[0-9]+$ ]]; then
+        echo "Invalid value for ${option}: ${value}" >&2
+        echo "Expected an emulator adb serial like emulator-5554." >&2
+        usage >&2
+        exit 1
+    fi
+    printf '%s\n' "$value"
+}
+
 while [[ $# -gt 0 ]]; do
     case "$1" in
         --avd)
@@ -81,7 +93,7 @@ while [[ $# -gt 0 ]]; do
             shift 2
             ;;
         --serial)
-            target_serial="$(require_option_value "$1" "${2:-}")"
+            target_serial="$(require_emulator_serial "$1" "$(require_option_value "$1" "${2:-}")")"
             serial_option_set="true"
             shift 2
             ;;
