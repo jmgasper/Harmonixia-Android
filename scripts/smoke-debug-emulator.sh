@@ -186,7 +186,7 @@ if [[ "$auto_launch" == "true" || "$list_avds_only" == "true" ]] && ! command -v
 fi
 
 if [[ "$list_avds_only" == "true" ]]; then
-    echo "Smoke settings: mode=list-avds"
+echo "Smoke settings: mode=list-avds"
     emulator -list-avds
     exit 0
 fi
@@ -205,7 +205,13 @@ if [[ "${java_major}" != "17" ]]; then
     exit 1
 fi
 
-echo "Smoke settings: avd=${avd_name}, serial=${target_serial:-<auto>}, auto_launch=${auto_launch}, app_id=${app_id}, task=${gradle_task}, connect_timeout=${connect_timeout_seconds}s, boot_timeout=${boot_timeout_seconds}s, launch_wait=${launch_wait_seconds}s"
+target_mode="first-online-emulator"
+if [[ -n "$target_serial" ]]; then
+    target_mode="serial:${target_serial}"
+elif [[ "$auto_launch" == "true" ]]; then
+    target_mode="avd:${avd_name}"
+fi
+echo "Smoke settings: target=${target_mode}, auto_launch=${auto_launch}, app_id=${app_id}, task=${gradle_task}, connect_timeout=${connect_timeout_seconds}s, boot_timeout=${boot_timeout_seconds}s, launch_wait=${launch_wait_seconds}s"
 
 if ! command -v adb >/dev/null 2>&1; then
     echo "adb not found. Ensure Android platform-tools are installed under ${sdk_root}." >&2
