@@ -16,7 +16,7 @@ This project includes two local helper scripts:
 - Run standard local gates:
   - `scripts/validate-local.sh`
 - Run smoke only and list AVDs:
-  - `scripts/validate-local.sh --smoke-only --list-avds`
+  - `scripts/validate-local.sh --list-avds`
 - Run smoke against an existing emulator serial:
   - `scripts/validate-local.sh --with-smoke --no-launch --serial emulator-5554 --skip-compile --skip-test --skip-lint`
 - Tune smoke timeouts and launch wait:
@@ -45,3 +45,4 @@ This project includes two local helper scripts:
   - `--app-id`
   - `--task`
 - In `validate-local.sh`, smoke-specific flags require smoke mode (`--with-smoke` or `--smoke-only`).
+- In `validate-local.sh`, `--list-avds` implies smoke-only mode and skips compile/test/lint gates.
