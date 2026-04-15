@@ -234,6 +234,7 @@ if [[ "${#gradle_tasks[@]}" -gt 0 ]]; then
     )
 elif [[ "$with_smoke" != "true" ]]; then
     echo "No validation gates selected. Enable at least one gate or use --with-smoke/--smoke-only." >&2
+    echo "See docs/local-validation-workflow.md for examples." >&2
     exit 1
 fi
 
