@@ -20,6 +20,8 @@ This project includes two local helper scripts:
   - `scripts/validate-local.sh --list-avds`
 - Run smoke against an existing emulator serial:
   - `scripts/validate-local.sh --with-smoke --no-launch --serial emulator-5554 --skip-compile --skip-test --skip-lint`
+- Run smoke against any already-online emulator (no auto-launch):
+  - `scripts/validate-local.sh --with-smoke --no-launch --skip-compile --skip-test --skip-lint`
 - Tune smoke timeouts and launch wait:
   - `scripts/validate-local.sh --with-smoke --serial emulator-5554 --connect-timeout 60 --boot-timeout 120 --launch-wait 2 --skip-compile --skip-test --skip-lint`
 
@@ -37,6 +39,7 @@ This project includes two local helper scripts:
 - `--serial` must be an emulator adb serial in `emulator-<port>` format (for example `emulator-5554`).
 - `--serial` and `--avd` are mutually exclusive for non-list runs.
 - `--no-launch --avd` requires also providing `--serial`; otherwise it is rejected.
+- In `validate-local.sh`, `--no-launch` without `--serial` targets the first already-online emulator (it no longer forces a default AVD selector).
 - `--list-avds` cannot be combined with runtime smoke flags such as:
   - `--avd`
   - `--serial`

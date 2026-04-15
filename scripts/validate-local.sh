@@ -35,7 +35,7 @@ Options:
   --with-smoke         Include emulator smoke validation
   --avd <name>         AVD name for smoke validation (default: ${avd_name})
   --serial <id>        adb emulator serial for smoke validation (example: emulator-5554)
-  --no-launch          Forward --no-launch to smoke validation
+  --no-launch          Forward --no-launch to smoke validation (use an already-online emulator)
   --connect-timeout <s> Forward smoke adb connect timeout in seconds
   --boot-timeout <s>   Forward smoke boot completion timeout in seconds
   --launch-wait <s>    Forward post-launch wait seconds to smoke validation
@@ -261,7 +261,7 @@ if [[ "$with_smoke" == "true" ]]; then
     else
         if [[ -n "$smoke_serial" ]]; then
             smoke_args+=(--serial "$smoke_serial")
-        else
+        elif [[ "$smoke_no_launch" != "true" ]]; then
             smoke_args+=(--avd "$avd_name")
         fi
         if [[ "$smoke_no_launch" == "true" ]]; then
