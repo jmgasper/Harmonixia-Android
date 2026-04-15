@@ -8,6 +8,7 @@ This project includes two local helper scripts:
 ## Prerequisites
 
 - JDK 17 for normal validation gates and non-list smoke execution.
+- `scripts/smoke-debug-emulator.sh --list-avds` does not require Java preflight.
 - Android SDK with `adb` and emulator tools.
 - A configured AVD if you plan to auto-launch an emulator.
 
@@ -57,3 +58,5 @@ This project includes two local helper scripts:
   - Fix: provide `--serial <id>` when using `--no-launch`, or remove `--no-launch` if you want AVD auto-launch.
 - Error: `Cannot combine --avd with --serial. Choose one target selector.`
   - Fix: choose exactly one target mode: AVD name (`--avd`) or adb serial (`--serial`).
+- Error: `JDK 17 is required for smoke execution.`
+  - Fix: install/use JDK 17 (`java -version` should report 17) or set `JAVA_HOME` to a JDK 17 path.
