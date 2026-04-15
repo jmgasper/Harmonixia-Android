@@ -46,3 +46,14 @@ This project includes two local helper scripts:
   - `--task`
 - In `validate-local.sh`, smoke-specific flags require smoke mode (`--with-smoke` or `--smoke-only`).
 - In `validate-local.sh`, `--list-avds` implies smoke-only mode and skips compile/test/lint gates.
+
+## Troubleshooting
+
+- Error: `No validation gates selected. Enable at least one gate or use --with-smoke/--smoke-only.`
+  - Fix: enable at least one compile/test/lint gate, or run smoke mode via `--with-smoke` or `--smoke-only`.
+- Error: `--list-avds cannot be combined with runtime smoke options.`
+  - Fix: run `--list-avds` alone (or with non-runtime flags only), without serial/AVD/launch/task/timeout overrides.
+- Error: `--no-launch cannot be combined with --avd unless --serial is also provided.`
+  - Fix: provide `--serial <id>` when using `--no-launch`, or remove `--no-launch` if you want AVD auto-launch.
+- Error: `Cannot combine --avd with --serial. Choose one target selector.`
+  - Fix: choose exactly one target mode: AVD name (`--avd`) or adb serial (`--serial`).
