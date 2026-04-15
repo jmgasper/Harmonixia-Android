@@ -41,7 +41,7 @@ Options:
   --launch-wait <s>    Forward post-launch wait seconds to smoke validation
   --smoke-app-id <id>  Forward app id to smoke validation
   --smoke-task <task>  Forward Gradle install task to smoke validation
-  --list-avds          Forward --list-avds to smoke validation and exit
+  --list-avds          List AVDs via smoke validation (implies smoke-only)
   --smoke-only         Disable compile/test/lint gates and run smoke only
   --skip-compile       Skip :app:compileDebugKotlin gate
   --skip-test          Skip :app:testDebugUnitTest gate
@@ -127,6 +127,9 @@ while [[ $# -gt 0 ]]; do
             smoke_list_avds="true"
             smoke_options_used="true"
             with_smoke="true"
+            run_compile="false"
+            run_test="false"
+            run_lint="false"
             shift
             ;;
         --smoke-only)
