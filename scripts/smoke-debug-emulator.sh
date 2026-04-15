@@ -20,6 +20,7 @@ app_id_option_set="false"
 task_option_set="false"
 connect_timeout_option_set="false"
 boot_timeout_option_set="false"
+launch_wait_option_set="false"
 
 usage() {
     cat <<USAGE
@@ -41,6 +42,7 @@ Options:
   --task <gradle-task>  Gradle install task (default: ${gradle_task})
   --connect-timeout <s> Emulator connect timeout in seconds (default: ${connect_timeout_seconds})
   --boot-timeout <s>    Boot completion timeout in seconds (default: ${boot_timeout_seconds})
+  --launch-wait <s>     Wait after launch before verification (default: ${launch_wait_seconds})
   --help                Show this help
 USAGE
 }
@@ -109,6 +111,11 @@ while [[ $# -gt 0 ]]; do
             boot_timeout_option_set="true"
             shift 2
             ;;
+        --launch-wait)
+            launch_wait_seconds="$(require_positive_integer "$1" "$(require_option_value "$1" "${2:-}")")"
+            launch_wait_option_set="true"
+            shift 2
+            ;;
         --help|-h)
             usage
             exit 0
@@ -122,9 +129,9 @@ while [[ $# -gt 0 ]]; do
 done
 
 if [[ "$list_avds_only" == "true" ]]; then
-    if [[ "$avd_option_set" == "true" || "$serial_option_set" == "true" || "$no_launch_option_set" == "true" || "$app_id_option_set" == "true" || "$task_option_set" == "true" || "$connect_timeout_option_set" == "true" || "$boot_timeout_option_set" == "true" ]]; then
+    if [[ "$avd_option_set" == "true" || "$serial_option_set" == "true" || "$no_launch_option_set" == "true" || "$app_id_option_set" == "true" || "$task_option_set" == "true" || "$connect_timeout_option_set" == "true" || "$boot_timeout_option_set" == "true" || "$launch_wait_option_set" == "true" ]]; then
         echo "--list-avds cannot be combined with runtime smoke options." >&2
-        echo "Remove --avd/--serial/--no-launch/--app-id/--task/--connect-timeout/--boot-timeout when listing AVDs." >&2
+        echo "Remove --avd/--serial/--no-launch/--app-id/--task/--connect-timeout/--boot-timeout/--launch-wait when listing AVDs." >&2
         usage >&2
         exit 1
     fi
@@ -169,7 +176,7 @@ if [[ "$list_avds_only" == "true" ]]; then
     exit 0
 fi
 
-echo "Smoke settings: avd=${avd_name}, serial=${target_serial:-<auto>}, auto_launch=${auto_launch}, app_id=${app_id}, task=${gradle_task}, connect_timeout=${connect_timeout_seconds}s, boot_timeout=${boot_timeout_seconds}s"
+echo "Smoke settings: avd=${avd_name}, serial=${target_serial:-<auto>}, auto_launch=${auto_launch}, app_id=${app_id}, task=${gradle_task}, connect_timeout=${connect_timeout_seconds}s, boot_timeout=${boot_timeout_seconds}s, launch_wait=${launch_wait_seconds}s"
 
 if ! command -v adb >/dev/null 2>&1; then
     echo "adb not found. Ensure Android platform-tools are installed under ${sdk_root}." >&2
