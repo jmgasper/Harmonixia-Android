@@ -79,6 +79,8 @@ The `target=` value indicates how emulator selection will work:
   - Fix: install Android emulator tools for `--list-avds` or auto-launch runs, or use `--serial --no-launch` when only `adb` is available.
 - Error: `Timed out waiting for emulator to connect.` or `Timed out waiting for adb serial '...' to become online.`
   - Fix: verify device visibility with `adb devices -l`, correct the serial/target mode, and increase `--connect-timeout` if emulator startup is slow.
+- Error: `No emulator is online and --no-launch was specified.`
+  - Fix: start an emulator first, provide `--serial <emulator-id>`, or remove `--no-launch` so the script can auto-launch an AVD.
 - Error: `Timed out waiting for sys.boot_completed on ...`
   - Fix: check boot state with `adb -s <serial> shell getprop sys.boot_completed` and increase `--boot-timeout` if the device is still initializing.
 - Error: `JDK 17 is required for smoke execution.`

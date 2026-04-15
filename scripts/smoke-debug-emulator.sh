@@ -253,6 +253,7 @@ if [[ -z "$emulator_serial" && "$auto_launch" == "true" ]]; then
         -gpu swiftshader_indirect -netdelay none -netspeed full >"$emulator_log" 2>&1 &
 elif [[ -z "$emulator_serial" ]]; then
     echo "No emulator is online and --no-launch was specified." >&2
+    echo "Tip: start an emulator first, provide --serial <emulator-id>, or remove --no-launch to allow auto-launch." >&2
     adb devices -l >&2 || true
     exit 1
 fi
