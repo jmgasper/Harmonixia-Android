@@ -294,6 +294,7 @@ while true; do
     fi
     if (( SECONDS >= boot_deadline )); then
         echo "Timed out waiting for sys.boot_completed on $emulator_serial." >&2
+        echo "Tip: check emulator health in 'adb -s $emulator_serial shell getprop sys.boot_completed' and increase --boot-timeout if needed." >&2
         exit 1
     fi
     sleep 3
