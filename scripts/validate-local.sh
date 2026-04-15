@@ -11,6 +11,7 @@ smoke_serial=""
 smoke_no_launch="false"
 smoke_connect_timeout=""
 smoke_boot_timeout=""
+smoke_launch_wait=""
 smoke_app_id=""
 smoke_task=""
 smoke_list_avds="false"
@@ -37,6 +38,7 @@ Options:
   --no-launch          Forward --no-launch to smoke validation
   --connect-timeout <s> Forward smoke adb connect timeout in seconds
   --boot-timeout <s>   Forward smoke boot completion timeout in seconds
+  --launch-wait <s>    Forward post-launch wait seconds to smoke validation
   --smoke-app-id <id>  Forward app id to smoke validation
   --smoke-task <task>  Forward Gradle install task to smoke validation
   --list-avds          Forward --list-avds to smoke validation and exit
@@ -103,6 +105,11 @@ while [[ $# -gt 0 ]]; do
             smoke_options_used="true"
             shift 2
             ;;
+        --launch-wait)
+            smoke_launch_wait="$(require_positive_integer "$1" "$(require_option_value "$1" "${2:-}")")"
+            smoke_options_used="true"
+            shift 2
+            ;;
         --smoke-app-id)
             smoke_app_id="$(require_option_value "$1" "${2:-}")"
             smoke_options_used="true"
@@ -163,9 +170,9 @@ if [[ "$smoke_list_avds" != "true" && "$smoke_avd_explicit" == "true" && -n "$sm
 fi
 
 if [[ "$smoke_list_avds" == "true" ]]; then
-    if [[ "$smoke_avd_explicit" == "true" || -n "$smoke_serial" || "$smoke_no_launch" == "true" || -n "$smoke_connect_timeout" || -n "$smoke_boot_timeout" || -n "$smoke_app_id" || -n "$smoke_task" ]]; then
+    if [[ "$smoke_avd_explicit" == "true" || -n "$smoke_serial" || "$smoke_no_launch" == "true" || -n "$smoke_connect_timeout" || -n "$smoke_boot_timeout" || -n "$smoke_launch_wait" || -n "$smoke_app_id" || -n "$smoke_task" ]]; then
         echo "--list-avds cannot be combined with runtime smoke options." >&2
-        echo "Remove --avd/--serial/--no-launch/--connect-timeout/--boot-timeout/--smoke-app-id/--smoke-task when listing AVDs." >&2
+        echo "Remove --avd/--serial/--no-launch/--connect-timeout/--boot-timeout/--launch-wait/--smoke-app-id/--smoke-task when listing AVDs." >&2
         usage >&2
         exit 1
     fi
@@ -240,6 +247,9 @@ if [[ "$with_smoke" == "true" ]]; then
         fi
         if [[ -n "$smoke_boot_timeout" ]]; then
             smoke_args+=(--boot-timeout "$smoke_boot_timeout")
+        fi
+        if [[ -n "$smoke_launch_wait" ]]; then
+            smoke_args+=(--launch-wait "$smoke_launch_wait")
         fi
         if [[ -n "$smoke_app_id" ]]; then
             smoke_args+=(--app-id "$smoke_app_id")
