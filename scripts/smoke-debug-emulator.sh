@@ -179,6 +179,20 @@ if [[ "$list_avds_only" == "true" ]]; then
     exit 0
 fi
 
+if ! command -v java >/dev/null 2>&1; then
+    echo "Java is required for smoke execution. Install JDK 17 and ensure java is on PATH." >&2
+    exit 1
+fi
+
+java_version_line="$(java -version 2>&1 | head -n 1)"
+java_major="$(echo "${java_version_line}" | sed -E 's/.*version "([0-9]+).*/\1/')"
+if [[ "${java_major}" != "17" ]]; then
+    echo "JDK 17 is required for smoke execution." >&2
+    echo "Detected: ${java_version_line}" >&2
+    echo "Set JAVA_HOME to a JDK 17 installation and retry." >&2
+    exit 1
+fi
+
 echo "Smoke settings: avd=${avd_name}, serial=${target_serial:-<auto>}, auto_launch=${auto_launch}, app_id=${app_id}, task=${gradle_task}, connect_timeout=${connect_timeout_seconds}s, boot_timeout=${boot_timeout_seconds}s, launch_wait=${launch_wait_seconds}s"
 
 if ! command -v adb >/dev/null 2>&1; then
