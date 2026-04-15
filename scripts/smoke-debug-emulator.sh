@@ -47,6 +47,10 @@ Options:
 
 Documentation:
   docs/local-validation-workflow.md
+
+Notes:
+  - emulator binary is required for --list-avds and AVD auto-launch paths.
+  - --serial --no-launch can run without emulator when adb is available.
 USAGE
 }
 

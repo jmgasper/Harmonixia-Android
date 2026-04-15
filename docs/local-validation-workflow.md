@@ -75,5 +75,7 @@ The `target=` value indicates how emulator selection will work:
   - Fix: choose exactly one target mode: AVD name (`--avd`) or adb serial (`--serial`).
 - Error: `Invalid value for --serial: ...`
   - Fix: provide an emulator serial in `emulator-<port>` format (for example `emulator-5554`).
+- Error: `emulator not found. Ensure Android emulator is installed under ...`
+  - Fix: install Android emulator tools for `--list-avds` or auto-launch runs, or use `--serial --no-launch` when only `adb` is available.
 - Error: `JDK 17 is required for smoke execution.`
   - Fix: install/use JDK 17 (`java -version` should report 17) or set `JAVA_HOME` to a JDK 17 path.
