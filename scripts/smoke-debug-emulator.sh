@@ -136,6 +136,12 @@ if [[ "$list_avds_only" != "true" && "$avd_option_set" == "true" && "$serial_opt
     exit 1
 fi
 
+if [[ "$list_avds_only" != "true" && "$no_launch_option_set" == "true" && "$avd_option_set" == "true" && "$serial_option_set" != "true" ]]; then
+    echo "--no-launch cannot be combined with --avd unless --serial is also provided." >&2
+    usage >&2
+    exit 1
+fi
+
 sdk_root="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-$HOME/Android/Sdk}}"
 sdk_home="${ANDROID_SDK_HOME:-$HOME/.config/.android}"
 avd_home="${ANDROID_AVD_HOME:-$sdk_home/avd}"
