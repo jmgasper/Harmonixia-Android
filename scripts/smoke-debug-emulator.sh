@@ -180,7 +180,12 @@ if [[ -z "${JAVA_HOME:-}" ]]; then
     fi
 fi
 
-if [[ "$auto_launch" == "true" || "$list_avds_only" == "true" ]] && ! command -v emulator >/dev/null 2>&1; then
+requires_emulator_binary="false"
+if [[ "$list_avds_only" == "true" || ( "$auto_launch" == "true" && "$serial_option_set" != "true" ) ]]; then
+    requires_emulator_binary="true"
+fi
+
+if [[ "$requires_emulator_binary" == "true" ]] && ! command -v emulator >/dev/null 2>&1; then
     echo "emulator not found. Ensure Android emulator is installed under ${sdk_root}." >&2
     exit 1
 fi

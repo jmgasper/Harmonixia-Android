@@ -9,7 +9,8 @@ This project includes two local helper scripts:
 
 - JDK 17 for normal validation gates and non-list smoke execution.
 - `scripts/smoke-debug-emulator.sh --list-avds` does not require Java preflight.
-- Android SDK with `adb` and emulator tools.
+- Android SDK with `adb` for all smoke runs.
+- Android emulator tool is required only for `--list-avds` and AVD auto-launch paths (not required for `--serial` + `--no-launch` runs).
 - A configured AVD if you plan to auto-launch an emulator.
 
 ## Typical Validate-Local Commands
