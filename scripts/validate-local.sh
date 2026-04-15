@@ -47,6 +47,9 @@ Options:
   --skip-test          Skip :app:testDebugUnitTest gate
   --skip-lint          Skip :app:lintDebug gate
   --help               Show this help
+
+Documentation:
+  docs/local-validation-workflow.md
 USAGE
 }
 

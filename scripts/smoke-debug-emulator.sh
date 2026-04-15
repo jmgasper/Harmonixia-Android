@@ -44,6 +44,9 @@ Options:
   --boot-timeout <s>    Boot completion timeout in seconds (default: ${boot_timeout_seconds})
   --launch-wait <s>     Wait after launch before verification (default: ${launch_wait_seconds})
   --help                Show this help
+
+Documentation:
+  docs/local-validation-workflow.md
 USAGE
 }
 
