@@ -88,6 +88,17 @@ require_emulator_serial() {
     printf '%s\n' "$value"
 }
 
+print_shell_escaped_command() {
+    local prefix="$1"
+    shift
+    printf '%s' "$prefix"
+    local arg
+    for arg in "$@"; do
+        printf ' %q' "$arg"
+    done
+    printf '\n'
+}
+
 while [[ $# -gt 0 ]]; do
     case "$1" in
         --with-smoke)
@@ -283,8 +294,9 @@ if [[ "$with_smoke" == "true" ]]; then
             smoke_args+=(--task "$smoke_task")
         fi
     fi
-    echo "Smoke command args: ${smoke_args[*]}"
-    "$script_dir/smoke-debug-emulator.sh" "${smoke_args[@]}"
+    smoke_command=("$script_dir/smoke-debug-emulator.sh" "${smoke_args[@]}")
+    print_shell_escaped_command "Smoke command:" "${smoke_command[@]}"
+    "${smoke_command[@]}"
 fi
 
 echo "Local validation passed."
