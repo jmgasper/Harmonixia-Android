@@ -233,7 +233,7 @@ if [[ "${#gradle_tasks[@]}" -gt 0 ]]; then
         ./gradlew --no-daemon "${gradle_tasks[@]}"
     )
 elif [[ "$with_smoke" != "true" ]]; then
-    echo "No validation gates selected. Enable at least one gate or use --with-smoke." >&2
+    echo "No validation gates selected. Enable at least one gate or use --with-smoke/--smoke-only." >&2
     exit 1
 fi
 
