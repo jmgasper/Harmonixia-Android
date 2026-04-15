@@ -35,6 +35,15 @@ This project includes two local helper scripts:
 - Smoke run that auto-launches an AVD:
   - `scripts/smoke-debug-emulator.sh --avd Medium_Phone`
 
+## Smoke Settings Output
+
+`scripts/smoke-debug-emulator.sh` prints a `Smoke settings:` line before execution.  
+The `target=` value indicates how emulator selection will work:
+
+- `target=serial:<id>`: uses the explicit serial from `--serial`.
+- `target=avd:<name>`: auto-launch path will use the provided/default AVD.
+- `target=first-online-emulator`: `--no-launch` mode without `--serial`; uses the first already-online emulator.
+
 ## Option-Conflict Rules
 
 - `--serial` must be an emulator adb serial in `emulator-<port>` format (for example `emulator-5554`).
