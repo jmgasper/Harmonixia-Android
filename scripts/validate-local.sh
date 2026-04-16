@@ -36,16 +36,16 @@ Optional:
 
 Options:
   --with-smoke         Include emulator smoke validation
-  --avd <name>         AVD name for smoke validation (default: ${avd_name})
-  --serial <id>        adb emulator serial for smoke validation (example: emulator-5554)
-  --no-launch          Forward --no-launch to smoke validation (use an already-online emulator)
-  --connect-timeout <s> Forward smoke adb connect timeout in seconds
-  --boot-timeout <s>   Forward smoke boot completion timeout in seconds
-  --launch-wait <s>    Forward post-launch wait seconds to smoke validation
+  --avd <name>         AVD name for smoke validation (default: ${avd_name}, alias: --smoke-avd)
+  --serial <id>        adb emulator serial for smoke validation (example: emulator-5554, alias: --smoke-serial)
+  --no-launch          Forward --no-launch to smoke validation (alias: --smoke-no-launch)
+  --connect-timeout <s> Forward smoke adb connect timeout in seconds (alias: --smoke-connect-timeout)
+  --boot-timeout <s>   Forward smoke boot completion timeout in seconds (alias: --smoke-boot-timeout)
+  --launch-wait <s>    Forward post-launch wait seconds to smoke validation (alias: --smoke-launch-wait)
   --smoke-app-id <id>  Forward app id to smoke validation (alias: --app-id)
   --smoke-task <task>  Forward Gradle install task to smoke validation (alias: --task)
   --keep-logs          Forward --keep-logs to smoke validation (alias: --smoke-keep-logs)
-  --list-avds          List AVDs via smoke validation (implies smoke-only)
+  --list-avds          List AVDs via smoke validation (implies smoke-only, alias: --smoke-list-avds)
   --smoke-help         Print smoke script help and exit (implies smoke-only)
   --smoke-only         Disable compile/test/lint gates and run smoke only
   --skip-compile       Skip :app:compileDebugKotlin gate
@@ -110,38 +110,38 @@ while [[ $# -gt 0 ]]; do
             with_smoke="true"
             shift
             ;;
-        --avd)
+        --avd|--smoke-avd)
             avd_name="$(require_option_value "$1" "${2:-}")"
             smoke_avd_explicit="true"
             smoke_options_used="true"
             smoke_runtime_conflict_options_used="true"
             shift 2
             ;;
-        --serial)
+        --serial|--smoke-serial)
             smoke_serial="$(require_emulator_serial "$1" "$(require_option_value "$1" "${2:-}")")"
             smoke_options_used="true"
             smoke_runtime_conflict_options_used="true"
             shift 2
             ;;
-        --no-launch)
+        --no-launch|--smoke-no-launch)
             smoke_no_launch="true"
             smoke_options_used="true"
             smoke_runtime_conflict_options_used="true"
             shift
             ;;
-        --connect-timeout)
+        --connect-timeout|--smoke-connect-timeout)
             smoke_connect_timeout="$(require_positive_integer "$1" "$(require_option_value "$1" "${2:-}")")"
             smoke_options_used="true"
             smoke_runtime_conflict_options_used="true"
             shift 2
             ;;
-        --boot-timeout)
+        --boot-timeout|--smoke-boot-timeout)
             smoke_boot_timeout="$(require_positive_integer "$1" "$(require_option_value "$1" "${2:-}")")"
             smoke_options_used="true"
             smoke_runtime_conflict_options_used="true"
             shift 2
             ;;
-        --launch-wait)
+        --launch-wait|--smoke-launch-wait)
             smoke_launch_wait="$(require_positive_integer "$1" "$(require_option_value "$1" "${2:-}")")"
             smoke_options_used="true"
             smoke_runtime_conflict_options_used="true"
@@ -164,7 +164,7 @@ while [[ $# -gt 0 ]]; do
             smoke_options_used="true"
             shift
             ;;
-        --list-avds)
+        --list-avds|--smoke-list-avds)
             smoke_list_avds="true"
             smoke_options_used="true"
             with_smoke="true"
