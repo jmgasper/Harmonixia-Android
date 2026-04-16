@@ -21,6 +21,7 @@ task_option_set="false"
 connect_timeout_option_set="false"
 boot_timeout_option_set="false"
 launch_wait_option_set="false"
+keep_logs_option_set="false"
 log_suffix="${$}-${RANDOM}"
 uninstall_log="/tmp/harmonixia-smoke-uninstall-${log_suffix}.log"
 monkey_log="/tmp/harmonixia-smoke-monkey-${log_suffix}.log"
@@ -29,6 +30,9 @@ keep_monkey_log="false"
 keep_emulator_log="false"
 
 cleanup_logs() {
+    if [[ "$keep_logs_option_set" == "true" ]]; then
+        return
+    fi
     rm -f "$uninstall_log"
     if [[ "$keep_monkey_log" != "true" ]]; then
         rm -f "$monkey_log"
@@ -61,6 +65,7 @@ Options:
   --connect-timeout <s> Emulator connect timeout in seconds (default: ${connect_timeout_seconds})
   --boot-timeout <s>    Boot completion timeout in seconds (default: ${boot_timeout_seconds})
   --launch-wait <s>     Wait after launch before verification (default: ${launch_wait_seconds})
+  --keep-logs           Retain per-run logs on exit (for debugging successful runs)
   --help                Show this help
 
 Documentation:
@@ -152,6 +157,10 @@ while [[ $# -gt 0 ]]; do
             launch_wait_seconds="$(require_positive_integer "$1" "$(require_option_value "$1" "${2:-}")")"
             launch_wait_option_set="true"
             shift 2
+            ;;
+        --keep-logs)
+            keep_logs_option_set="true"
+            shift
             ;;
         --help|-h)
             usage

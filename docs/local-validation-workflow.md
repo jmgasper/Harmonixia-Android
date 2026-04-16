@@ -37,6 +37,8 @@ This project includes two local helper scripts:
   - `scripts/smoke-debug-emulator.sh --no-launch --serial emulator-5554 --connect-timeout 60 --boot-timeout 120 --launch-wait 2`
 - Smoke run that auto-launches an AVD:
   - `scripts/smoke-debug-emulator.sh --avd Medium_Phone`
+- Smoke run that retains all per-run logs:
+  - `scripts/smoke-debug-emulator.sh --no-launch --serial emulator-5554 --task help --keep-logs`
 
 ## Smoke Settings Output
 
@@ -103,5 +105,6 @@ The `target=` value indicates how emulator selection will work:
   - Fix: inspect the printed per-run monkey log path (for example `/tmp/harmonixia-smoke-monkey-*.log`) and increase `--launch-wait` when startup is slow.
   - Note: when auto-launch is used, the failure output also prints a per-run emulator launch log path.
   - Note: failed runs retain the monkey log for diagnosis; transient uninstall logs are cleaned automatically.
+- Debugging tip: use `--keep-logs` to retain per-run uninstall/monkey/emulator logs even when the run succeeds.
 - Error: `JDK 17 is required for smoke execution.`
   - Fix: install/use JDK 17 (`java -version` should report 17) or set `JAVA_HOME` to a JDK 17 path.
