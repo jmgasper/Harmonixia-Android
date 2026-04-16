@@ -15,6 +15,8 @@ This project includes two local helper scripts:
 
 ## Typical Validate-Local Commands
 
+- Run all option-parsing regression checks:
+  - `scripts/test-local-validation-option-regressions.sh`
 - `validate-local.sh` prints a shell-escaped smoke command preview before launching `smoke-debug-emulator.sh`.
 - Run option-parsing regression checks for `validate-local.sh`:
   - `scripts/test-validate-local-options.sh`
