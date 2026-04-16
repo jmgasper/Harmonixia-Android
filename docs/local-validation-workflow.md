@@ -20,6 +20,8 @@ This project includes two local helper scripts:
   - `scripts/validate-local.sh`
 - Run smoke only and list AVDs:
   - `scripts/validate-local.sh --list-avds`
+- Show smoke-script help without running Gradle gates:
+  - `scripts/validate-local.sh --smoke-help`
 - Run smoke against an existing emulator serial:
   - `scripts/validate-local.sh --with-smoke --no-launch --serial emulator-5554 --skip-compile --skip-test --skip-lint`
 - Run smoke against any already-online emulator (no auto-launch):
@@ -62,6 +64,7 @@ The `target=` value indicates how emulator selection will work:
   - `--task`
 - In `validate-local.sh`, smoke-specific flags require smoke mode (`--with-smoke` or `--smoke-only`).
 - In `validate-local.sh`, `--list-avds` implies smoke-only mode and skips compile/test/lint gates.
+- In `validate-local.sh`, `--smoke-help` implies smoke-only mode and cannot be combined with runtime smoke flags.
 
 ## Troubleshooting
 
@@ -69,6 +72,8 @@ The `target=` value indicates how emulator selection will work:
   - Fix: enable at least one compile/test/lint gate, or run smoke mode via `--with-smoke` or `--smoke-only`.
 - Error: `--list-avds cannot be combined with runtime smoke options.`
   - Fix: run `--list-avds` alone (or with non-runtime flags only), without serial/AVD/launch/task/timeout overrides.
+- Error: `--smoke-help cannot be combined with runtime smoke options.`
+  - Fix: run `--smoke-help` alone to print smoke-script usage, without runtime selector/timeout/app/task flags.
 - Error: `--no-launch cannot be combined with --avd unless --serial is also provided.`
   - Fix: provide `--serial <id>` when using `--no-launch`, or remove `--no-launch` if you want AVD auto-launch.
 - Error: `Cannot combine --avd with --serial. Choose one target selector.`

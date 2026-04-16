@@ -15,6 +15,7 @@ smoke_launch_wait=""
 smoke_app_id=""
 smoke_task=""
 smoke_list_avds="false"
+smoke_help="false"
 smoke_options_used="false"
 run_compile="true"
 run_test="true"
@@ -42,6 +43,7 @@ Options:
   --smoke-app-id <id>  Forward app id to smoke validation
   --smoke-task <task>  Forward Gradle install task to smoke validation
   --list-avds          List AVDs via smoke validation (implies smoke-only)
+  --smoke-help         Print smoke script help (implies smoke-only)
   --smoke-only         Disable compile/test/lint gates and run smoke only
   --skip-compile       Skip :app:compileDebugKotlin gate
   --skip-test          Skip :app:testDebugUnitTest gate
@@ -155,6 +157,14 @@ while [[ $# -gt 0 ]]; do
             run_lint="false"
             shift
             ;;
+        --smoke-help)
+            smoke_help="true"
+            with_smoke="true"
+            run_compile="false"
+            run_test="false"
+            run_lint="false"
+            shift
+            ;;
         --smoke-only)
             with_smoke="true"
             run_compile="false"
@@ -192,6 +202,13 @@ if [[ "$with_smoke" != "true" && "$smoke_options_used" == "true" ]]; then
     exit 1
 fi
 
+if [[ "$smoke_help" == "true" && "$smoke_options_used" == "true" ]]; then
+    echo "--smoke-help cannot be combined with runtime smoke options." >&2
+    echo "Remove --avd/--serial/--no-launch/--connect-timeout/--boot-timeout/--launch-wait/--smoke-app-id/--smoke-task/--list-avds." >&2
+    usage >&2
+    exit 1
+fi
+
 if [[ "$smoke_list_avds" != "true" && "$smoke_avd_explicit" == "true" && -n "$smoke_serial" ]]; then
     echo "Cannot combine --avd with --serial. Choose one target selector." >&2
     usage >&2
@@ -214,7 +231,7 @@ if [[ "$smoke_list_avds" == "true" ]]; then
 fi
 
 skip_java_preflight="false"
-if [[ "$with_smoke" == "true" && "$smoke_list_avds" == "true" && "$run_compile" == "false" && "$run_test" == "false" && "$run_lint" == "false" ]]; then
+if [[ "$with_smoke" == "true" && "$run_compile" == "false" && "$run_test" == "false" && "$run_lint" == "false" && ( "$smoke_list_avds" == "true" || "$smoke_help" == "true" ) ]]; then
     skip_java_preflight="true"
 fi
 
@@ -267,7 +284,9 @@ fi
 if [[ "$with_smoke" == "true" ]]; then
     echo "Running emulator smoke gate..."
     smoke_args=()
-    if [[ "$smoke_list_avds" == "true" ]]; then
+    if [[ "$smoke_help" == "true" ]]; then
+        smoke_args+=(--help)
+    elif [[ "$smoke_list_avds" == "true" ]]; then
         smoke_args+=(--list-avds)
     else
         if [[ -n "$smoke_serial" ]]; then
