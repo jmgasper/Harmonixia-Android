@@ -24,6 +24,16 @@ launch_wait_option_set="false"
 log_suffix="${$}-${RANDOM}"
 uninstall_log="/tmp/harmonixia-smoke-uninstall-${log_suffix}.log"
 monkey_log="/tmp/harmonixia-smoke-monkey-${log_suffix}.log"
+keep_monkey_log="false"
+
+cleanup_logs() {
+    rm -f "$uninstall_log"
+    if [[ "$keep_monkey_log" != "true" ]]; then
+        rm -f "$monkey_log"
+    fi
+}
+
+trap cleanup_logs EXIT
 
 usage() {
     cat <<USAGE
@@ -344,10 +354,9 @@ if [[ -z "$pid" ]]; then
     echo "Monkey log: ${monkey_log}" >&2
     echo "Monkey output:" >&2
     sed -n '1,80p' "$monkey_log" >&2 || true
+    keep_monkey_log="true"
     exit 1
 fi
-
-rm -f "$uninstall_log" "$monkey_log"
 
 echo "Smoke test passed"
 echo "  serial: $emulator_serial"
