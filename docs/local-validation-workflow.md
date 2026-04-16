@@ -67,6 +67,7 @@ The `target=` value indicates how emulator selection will work:
 - In `validate-local.sh`, `--list-avds` prints AVD output and exits without printing a validation-pass summary.
 - In `validate-local.sh`, `--smoke-help` implies smoke-only mode and cannot be combined with runtime smoke flags.
 - In `validate-local.sh`, `--smoke-help` prints smoke usage and exits without printing a validation-pass summary.
+- In `validate-local.sh`, informational smoke modes print mode-specific headings (`Showing emulator smoke help...`, `Listing available AVDs via smoke validation...`).
 
 ## Troubleshooting
 

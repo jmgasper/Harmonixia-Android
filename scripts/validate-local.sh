@@ -282,7 +282,13 @@ elif [[ "$with_smoke" != "true" ]]; then
 fi
 
 if [[ "$with_smoke" == "true" ]]; then
-    echo "Running emulator smoke gate..."
+    if [[ "$smoke_help" == "true" ]]; then
+        echo "Showing emulator smoke help..."
+    elif [[ "$smoke_list_avds" == "true" ]]; then
+        echo "Listing available AVDs via smoke validation..."
+    else
+        echo "Running emulator smoke gate..."
+    fi
     smoke_args=()
     if [[ "$smoke_help" == "true" ]]; then
         smoke_args+=(--help)
