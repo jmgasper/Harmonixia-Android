@@ -220,7 +220,7 @@ fi
 
 if [[ "$smoke_help" == "true" && ( "$smoke_runtime_conflict_options_used" == "true" || "$smoke_list_avds" == "true" ) ]]; then
     echo "--smoke-help cannot be combined with runtime smoke options." >&2
-    echo "Remove --avd/--serial/--no-launch/--connect-timeout/--boot-timeout/--launch-wait/--smoke-app-id/--app-id/--smoke-task/--task/--list-avds." >&2
+    echo "Remove selector/timeout/app/task flags (for example --serial, --connect-timeout, --app-id, --task, --list-avds), including any --smoke-* aliases." >&2
     usage >&2
     exit 1
 fi
@@ -240,7 +240,7 @@ fi
 if [[ "$smoke_list_avds" == "true" ]]; then
     if [[ "$smoke_runtime_conflict_options_used" == "true" ]]; then
         echo "--list-avds cannot be combined with runtime smoke options." >&2
-        echo "Remove --avd/--serial/--no-launch/--connect-timeout/--boot-timeout/--launch-wait/--smoke-app-id/--app-id/--smoke-task/--task when listing AVDs." >&2
+        echo "Remove selector/timeout/app/task flags (for example --serial, --connect-timeout, --app-id, --task), including any --smoke-* aliases, when listing AVDs." >&2
         usage >&2
         exit 1
     fi

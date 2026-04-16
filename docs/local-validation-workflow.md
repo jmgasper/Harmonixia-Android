@@ -82,9 +82,9 @@ The `target=` value indicates how emulator selection will work:
 - Error: `No validation gates selected. Enable at least one gate or use --with-smoke/--smoke-only.`
   - Fix: enable at least one compile/test/lint gate, or run smoke mode via `--with-smoke` or `--smoke-only`.
 - Error: `--list-avds cannot be combined with runtime smoke options.`
-  - Fix: run `--list-avds` alone (or with non-runtime flags only), without serial/AVD/launch/task/timeout overrides.
+  - Fix: run `--list-avds` alone (or with non-runtime flags only), without serial/AVD/launch/task/timeout overrides (including `--smoke-*` alias forms).
 - Error: `--smoke-help cannot be combined with runtime smoke options.`
-  - Fix: run `--smoke-help` alone to print smoke-script usage, without runtime selector/timeout/app/task flags.
+  - Fix: run `--smoke-help` alone to print smoke-script usage, without runtime selector/timeout/app/task flags (including `--smoke-*` alias forms).
 - Error: `--no-launch cannot be combined with --avd unless --serial is also provided.`
   - Fix: provide `--serial <id>` when using `--no-launch`, or remove `--no-launch` if you want AVD auto-launch.
 - Error: `Cannot combine --avd with --serial. Choose one target selector.`
