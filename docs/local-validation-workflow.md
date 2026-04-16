@@ -16,6 +16,8 @@ This project includes two local helper scripts:
 ## Typical Validate-Local Commands
 
 - `validate-local.sh` prints a shell-escaped smoke command preview before launching `smoke-debug-emulator.sh`.
+- Run option-parsing regression checks for `validate-local.sh`:
+  - `scripts/test-validate-local-options.sh`
 - Run standard local gates:
   - `scripts/validate-local.sh`
 - Run smoke only and list AVDs:
