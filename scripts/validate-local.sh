@@ -44,7 +44,7 @@ Options:
   --launch-wait <s>    Forward post-launch wait seconds to smoke validation
   --smoke-app-id <id>  Forward app id to smoke validation (alias: --app-id)
   --smoke-task <task>  Forward Gradle install task to smoke validation (alias: --task)
-  --keep-logs          Forward --keep-logs to smoke validation
+  --keep-logs          Forward --keep-logs to smoke validation (alias: --smoke-keep-logs)
   --list-avds          List AVDs via smoke validation (implies smoke-only)
   --smoke-help         Print smoke script help and exit (implies smoke-only)
   --smoke-only         Disable compile/test/lint gates and run smoke only
@@ -159,7 +159,7 @@ while [[ $# -gt 0 ]]; do
             smoke_runtime_conflict_options_used="true"
             shift 2
             ;;
-        --keep-logs)
+        --keep-logs|--smoke-keep-logs)
             smoke_keep_logs="true"
             smoke_options_used="true"
             shift
