@@ -64,11 +64,11 @@ The `target=` value indicates how emulator selection will work:
   - `--connect-timeout`
   - `--boot-timeout`
   - `--launch-wait`
-  - `--keep-logs`
   - `--app-id`
   - `--task`
 - In `validate-local.sh`, smoke-specific flags require smoke mode (`--with-smoke` or `--smoke-only`).
 - In `validate-local.sh`, both `--smoke-app-id`/`--app-id` and `--smoke-task`/`--task` are accepted aliases.
+- In `validate-local.sh`, `--keep-logs` is accepted with all smoke modes, including `--list-avds` and `--smoke-help` (informational modes do not produce uninstall/monkey logs).
 - In `validate-local.sh`, `--list-avds` implies smoke-only mode and skips compile/test/lint gates.
 - In `validate-local.sh`, `--list-avds` prints AVD output and exits without printing a validation-pass summary.
 - In `validate-local.sh`, `--smoke-help` implies smoke-only mode and cannot be combined with runtime smoke flags.
@@ -80,9 +80,9 @@ The `target=` value indicates how emulator selection will work:
 - Error: `No validation gates selected. Enable at least one gate or use --with-smoke/--smoke-only.`
   - Fix: enable at least one compile/test/lint gate, or run smoke mode via `--with-smoke` or `--smoke-only`.
 - Error: `--list-avds cannot be combined with runtime smoke options.`
-  - Fix: run `--list-avds` alone (or with non-runtime flags only), without serial/AVD/launch/task/timeout/keep-logs overrides.
+  - Fix: run `--list-avds` alone (or with non-runtime flags only), without serial/AVD/launch/task/timeout overrides.
 - Error: `--smoke-help cannot be combined with runtime smoke options.`
-  - Fix: run `--smoke-help` alone to print smoke-script usage, without runtime selector/timeout/app/task/keep-logs flags.
+  - Fix: run `--smoke-help` alone to print smoke-script usage, without runtime selector/timeout/app/task flags.
 - Error: `--no-launch cannot be combined with --avd unless --serial is also provided.`
   - Fix: provide `--serial <id>` when using `--no-launch`, or remove `--no-launch` if you want AVD auto-launch.
 - Error: `Cannot combine --avd with --serial. Choose one target selector.`

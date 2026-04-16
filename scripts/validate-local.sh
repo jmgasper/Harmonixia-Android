@@ -18,6 +18,7 @@ smoke_keep_logs="false"
 smoke_list_avds="false"
 smoke_help="false"
 smoke_options_used="false"
+smoke_runtime_conflict_options_used="false"
 run_compile="true"
 run_test="true"
 run_lint="true"
@@ -113,41 +114,49 @@ while [[ $# -gt 0 ]]; do
             avd_name="$(require_option_value "$1" "${2:-}")"
             smoke_avd_explicit="true"
             smoke_options_used="true"
+            smoke_runtime_conflict_options_used="true"
             shift 2
             ;;
         --serial)
             smoke_serial="$(require_emulator_serial "$1" "$(require_option_value "$1" "${2:-}")")"
             smoke_options_used="true"
+            smoke_runtime_conflict_options_used="true"
             shift 2
             ;;
         --no-launch)
             smoke_no_launch="true"
             smoke_options_used="true"
+            smoke_runtime_conflict_options_used="true"
             shift
             ;;
         --connect-timeout)
             smoke_connect_timeout="$(require_positive_integer "$1" "$(require_option_value "$1" "${2:-}")")"
             smoke_options_used="true"
+            smoke_runtime_conflict_options_used="true"
             shift 2
             ;;
         --boot-timeout)
             smoke_boot_timeout="$(require_positive_integer "$1" "$(require_option_value "$1" "${2:-}")")"
             smoke_options_used="true"
+            smoke_runtime_conflict_options_used="true"
             shift 2
             ;;
         --launch-wait)
             smoke_launch_wait="$(require_positive_integer "$1" "$(require_option_value "$1" "${2:-}")")"
             smoke_options_used="true"
+            smoke_runtime_conflict_options_used="true"
             shift 2
             ;;
         --smoke-app-id|--app-id)
             smoke_app_id="$(require_option_value "$1" "${2:-}")"
             smoke_options_used="true"
+            smoke_runtime_conflict_options_used="true"
             shift 2
             ;;
         --smoke-task|--task)
             smoke_task="$(require_option_value "$1" "${2:-}")"
             smoke_options_used="true"
+            smoke_runtime_conflict_options_used="true"
             shift 2
             ;;
         --keep-logs)
@@ -209,9 +218,9 @@ if [[ "$with_smoke" != "true" && "$smoke_options_used" == "true" ]]; then
     exit 1
 fi
 
-if [[ "$smoke_help" == "true" && "$smoke_options_used" == "true" ]]; then
+if [[ "$smoke_help" == "true" && ( "$smoke_runtime_conflict_options_used" == "true" || "$smoke_list_avds" == "true" ) ]]; then
     echo "--smoke-help cannot be combined with runtime smoke options." >&2
-    echo "Remove --avd/--serial/--no-launch/--connect-timeout/--boot-timeout/--launch-wait/--smoke-app-id/--app-id/--smoke-task/--task/--keep-logs/--list-avds." >&2
+    echo "Remove --avd/--serial/--no-launch/--connect-timeout/--boot-timeout/--launch-wait/--smoke-app-id/--app-id/--smoke-task/--task/--list-avds." >&2
     usage >&2
     exit 1
 fi
@@ -229,9 +238,9 @@ if [[ "$smoke_list_avds" != "true" && "$smoke_no_launch" == "true" && "$smoke_av
 fi
 
 if [[ "$smoke_list_avds" == "true" ]]; then
-    if [[ "$smoke_avd_explicit" == "true" || -n "$smoke_serial" || "$smoke_no_launch" == "true" || -n "$smoke_connect_timeout" || -n "$smoke_boot_timeout" || -n "$smoke_launch_wait" || -n "$smoke_app_id" || -n "$smoke_task" || "$smoke_keep_logs" == "true" ]]; then
+    if [[ "$smoke_runtime_conflict_options_used" == "true" ]]; then
         echo "--list-avds cannot be combined with runtime smoke options." >&2
-        echo "Remove --avd/--serial/--no-launch/--connect-timeout/--boot-timeout/--launch-wait/--smoke-app-id/--app-id/--smoke-task/--task/--keep-logs when listing AVDs." >&2
+        echo "Remove --avd/--serial/--no-launch/--connect-timeout/--boot-timeout/--launch-wait/--smoke-app-id/--app-id/--smoke-task/--task when listing AVDs." >&2
         usage >&2
         exit 1
     fi
@@ -325,9 +334,9 @@ if [[ "$with_smoke" == "true" ]]; then
         if [[ -n "$smoke_task" ]]; then
             smoke_args+=(--task "$smoke_task")
         fi
-        if [[ "$smoke_keep_logs" == "true" ]]; then
-            smoke_args+=(--keep-logs)
-        fi
+    fi
+    if [[ "$smoke_keep_logs" == "true" ]]; then
+        smoke_args+=(--keep-logs)
     fi
     smoke_command=("$script_dir/smoke-debug-emulator.sh" "${smoke_args[@]}")
     print_shell_escaped_command "Smoke command:" "${smoke_command[@]}"
