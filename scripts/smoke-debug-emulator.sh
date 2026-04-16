@@ -24,12 +24,17 @@ launch_wait_option_set="false"
 log_suffix="${$}-${RANDOM}"
 uninstall_log="/tmp/harmonixia-smoke-uninstall-${log_suffix}.log"
 monkey_log="/tmp/harmonixia-smoke-monkey-${log_suffix}.log"
+emulator_log=""
 keep_monkey_log="false"
+keep_emulator_log="false"
 
 cleanup_logs() {
     rm -f "$uninstall_log"
     if [[ "$keep_monkey_log" != "true" ]]; then
         rm -f "$monkey_log"
+    fi
+    if [[ -n "$emulator_log" && "$keep_emulator_log" != "true" ]]; then
+        rm -f "$emulator_log"
     fi
 }
 
@@ -275,7 +280,8 @@ if [[ -z "$emulator_serial" && "$auto_launch" == "true" ]]; then
         exit 1
     fi
 
-    emulator_log="/tmp/harmonixia-emulator-${avd_name}.log"
+    emulator_log="/tmp/harmonixia-emulator-${avd_name}-${log_suffix}.log"
+    keep_emulator_log="true"
     echo "Launching AVD '$avd_name' (log: $emulator_log)..."
     nohup emulator -avd "$avd_name" -no-window -no-audio -no-boot-anim \
         -gpu swiftshader_indirect -netdelay none -netspeed full >"$emulator_log" 2>&1 &
@@ -306,6 +312,9 @@ while true; do
             echo "Timed out waiting for emulator to connect." >&2
         fi
         echo "Tip: check 'adb devices -l' output and increase --connect-timeout if startup is slow." >&2
+        if [[ -n "$emulator_log" ]]; then
+            echo "Emulator launch log: ${emulator_log}" >&2
+        fi
         adb devices -l >&2 || true
         exit 1
     fi
@@ -324,6 +333,9 @@ while true; do
     if (( SECONDS >= boot_deadline )); then
         echo "Timed out waiting for sys.boot_completed on $emulator_serial." >&2
         echo "Tip: check emulator health in 'adb -s $emulator_serial shell getprop sys.boot_completed' and increase --boot-timeout if needed." >&2
+        if [[ -n "$emulator_log" ]]; then
+            echo "Emulator launch log: ${emulator_log}" >&2
+        fi
         exit 1
     fi
     sleep 3
@@ -352,11 +364,16 @@ if [[ -z "$pid" ]]; then
     echo "Top activity: ${top_activity:-<none>}" >&2
     echo "Tip: inspect ${monkey_log} and increase --launch-wait if app startup is slow." >&2
     echo "Monkey log: ${monkey_log}" >&2
+    if [[ -n "$emulator_log" ]]; then
+        echo "Emulator launch log: ${emulator_log}" >&2
+    fi
     echo "Monkey output:" >&2
     sed -n '1,80p' "$monkey_log" >&2 || true
     keep_monkey_log="true"
     exit 1
 fi
+
+keep_emulator_log="false"
 
 echo "Smoke test passed"
 echo "  serial: $emulator_serial"

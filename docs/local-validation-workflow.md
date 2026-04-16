@@ -87,6 +87,7 @@ The `target=` value indicates how emulator selection will work:
   - Fix: install Android emulator tools for `--list-avds` or auto-launch runs, or use `--serial --no-launch` when only `adb` is available.
 - Error: `Timed out waiting for emulator to connect.` or `Timed out waiting for adb serial '...' to become online.`
   - Fix: verify device visibility with `adb devices -l`, correct the serial/target mode, and increase `--connect-timeout` if emulator startup is slow.
+  - Note: if auto-launch was used, inspect the printed per-run emulator launch log path (`/tmp/harmonixia-emulator-<avd>-*.log`).
 - Error: `No emulator is online and --no-launch was specified.`
   - Fix: start an emulator first, provide `--serial <emulator-id>`, or remove `--no-launch` so the script can auto-launch an AVD.
 - Error: `AVD '<name>' not found.`
@@ -97,8 +98,10 @@ The `target=` value indicates how emulator selection will work:
   - Fix: inspect the surfaced emulator stderr details (first 40 lines), verify emulator installation/SDK setup, then rerun `--list-avds`.
 - Error: `Timed out waiting for sys.boot_completed on ...`
   - Fix: check boot state with `adb -s <serial> shell getprop sys.boot_completed` and increase `--boot-timeout` if the device is still initializing.
+  - Note: if auto-launch was used, inspect the printed per-run emulator launch log path (`/tmp/harmonixia-emulator-<avd>-*.log`).
 - Error: `Smoke test failed: app process not running for ...`
   - Fix: inspect the printed per-run monkey log path (for example `/tmp/harmonixia-smoke-monkey-*.log`) and increase `--launch-wait` when startup is slow.
+  - Note: when auto-launch is used, the failure output also prints a per-run emulator launch log path.
   - Note: failed runs retain the monkey log for diagnosis; transient uninstall logs are cleaned automatically.
 - Error: `JDK 17 is required for smoke execution.`
   - Fix: install/use JDK 17 (`java -version` should report 17) or set `JAVA_HOME` to a JDK 17 path.
