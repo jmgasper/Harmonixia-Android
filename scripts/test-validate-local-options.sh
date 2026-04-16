@@ -43,6 +43,7 @@ assert_contains "$help_output" "--smoke-avd"
 assert_contains "$help_output" "--smoke-list-avds"
 assert_contains "$help_output" "--keep-logs"
 assert_contains "$help_output" "--smoke-keep-logs"
+assert_contains "$help_output" "--option-tests"
 
 smoke_help_keep_logs_base_output="$(run_expect_exit 0 --smoke-help --keep-logs)"
 assert_contains "$smoke_help_keep_logs_base_output" "Smoke command:"
@@ -67,5 +68,8 @@ assert_contains "$list_avds_conflict_base_output" "--smoke-* aliases"
 list_avds_conflict_output="$(run_expect_exit 1 --smoke-list-avds --smoke-task help)"
 assert_contains "$list_avds_conflict_output" "--list-avds cannot be combined with runtime smoke options."
 assert_contains "$list_avds_conflict_output" "--smoke-* aliases"
+
+option_tests_conflict_output="$(run_expect_exit 1 --option-tests --with-smoke)"
+assert_contains "$option_tests_conflict_output" "--option-tests cannot be combined with compile/test/lint toggles or smoke execution flags."
 
 echo "validate-local option tests passed."

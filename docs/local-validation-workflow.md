@@ -17,6 +17,8 @@ This project includes two local helper scripts:
 
 - Run all option-parsing regression checks:
   - `scripts/test-local-validation-option-regressions.sh`
+- Run option-parsing regression checks via the top-level wrapper:
+  - `scripts/validate-local.sh --option-tests`
 - `validate-local.sh` prints a shell-escaped smoke command preview before launching `smoke-debug-emulator.sh`.
 - Run option-parsing regression checks for `validate-local.sh`:
   - `scripts/test-validate-local-options.sh`
@@ -74,6 +76,7 @@ The `target=` value indicates how emulator selection will work:
   - `--app-id`
   - `--task`
 - In `validate-local.sh`, smoke-specific flags require smoke mode (`--with-smoke` or `--smoke-only`).
+- In `validate-local.sh`, `--option-tests` cannot be combined with compile/test/lint toggles or smoke execution flags.
 - In `validate-local.sh`, smoke passthrough flags also accept `--smoke-*` aliases (for example `--smoke-avd`, `--smoke-serial`, `--smoke-no-launch`, `--smoke-connect-timeout`, `--smoke-boot-timeout`, `--smoke-launch-wait`, `--smoke-list-avds`).
 - In `validate-local.sh`, both `--smoke-app-id`/`--app-id` and `--smoke-task`/`--task` are accepted aliases.
 - In `validate-local.sh`, both `--keep-logs` and `--smoke-keep-logs` are accepted aliases.
@@ -92,6 +95,8 @@ The `target=` value indicates how emulator selection will work:
   - Fix: run `--list-avds` alone (or with non-runtime flags only), without serial/AVD/launch/task/timeout overrides (including `--smoke-*` alias forms).
 - Error: `--smoke-help cannot be combined with runtime smoke options.`
   - Fix: run `--smoke-help` alone to print smoke-script usage, without runtime selector/timeout/app/task flags (including `--smoke-*` alias forms).
+- Error: `--option-tests cannot be combined with compile/test/lint toggles or smoke execution flags.`
+  - Fix: run `scripts/validate-local.sh --option-tests` by itself.
 - Error: `--no-launch cannot be combined with --avd unless --serial is also provided.`
   - Fix: provide `--serial <id>` when using `--no-launch`, or remove `--no-launch` if you want AVD auto-launch.
 - Error: `Cannot combine --avd with --serial. Choose one target selector.`

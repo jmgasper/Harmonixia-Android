@@ -19,6 +19,7 @@ smoke_list_avds="false"
 smoke_help="false"
 smoke_options_used="false"
 smoke_runtime_conflict_options_used="false"
+run_option_tests="false"
 run_compile="true"
 run_test="true"
 run_lint="true"
@@ -48,6 +49,7 @@ Options:
   --list-avds          List AVDs via smoke validation (implies smoke-only, alias: --smoke-list-avds)
   --smoke-help         Print smoke script help and exit (implies smoke-only)
   --smoke-only         Disable compile/test/lint gates and run smoke only
+  --option-tests       Run local option regression suites and exit
   --skip-compile       Skip :app:compileDebugKotlin gate
   --skip-test          Skip :app:testDebugUnitTest gate
   --skip-lint          Skip :app:lintDebug gate
@@ -188,6 +190,10 @@ while [[ $# -gt 0 ]]; do
             run_lint="false"
             shift
             ;;
+        --option-tests)
+            run_option_tests="true"
+            shift
+            ;;
         --skip-compile)
             run_compile="false"
             shift
@@ -244,6 +250,18 @@ if [[ "$smoke_list_avds" == "true" ]]; then
         usage >&2
         exit 1
     fi
+fi
+
+if [[ "$run_option_tests" == "true" ]]; then
+    if [[ "$with_smoke" == "true" || "$smoke_options_used" == "true" || "$run_compile" != "true" || "$run_test" != "true" || "$run_lint" != "true" ]]; then
+        echo "--option-tests cannot be combined with compile/test/lint toggles or smoke execution flags." >&2
+        echo "Run --option-tests by itself." >&2
+        usage >&2
+        exit 1
+    fi
+    echo "Running local validation option regression tests..."
+    "${script_dir}/test-local-validation-option-regressions.sh"
+    exit 0
 fi
 
 skip_java_preflight="false"
