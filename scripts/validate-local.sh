@@ -316,7 +316,7 @@ if [[ "$with_smoke" == "true" ]]; then
     smoke_command=("$script_dir/smoke-debug-emulator.sh" "${smoke_args[@]}")
     print_shell_escaped_command "Smoke command:" "${smoke_command[@]}"
     "${smoke_command[@]}"
-    if [[ "$smoke_help" == "true" ]]; then
+    if [[ "$smoke_help" == "true" || "$smoke_list_avds" == "true" ]]; then
         exit 0
     fi
 fi
