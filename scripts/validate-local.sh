@@ -14,6 +14,7 @@ smoke_boot_timeout=""
 smoke_launch_wait=""
 smoke_app_id=""
 smoke_task=""
+smoke_keep_logs="false"
 smoke_list_avds="false"
 smoke_help="false"
 smoke_options_used="false"
@@ -42,6 +43,7 @@ Options:
   --launch-wait <s>    Forward post-launch wait seconds to smoke validation
   --smoke-app-id <id>  Forward app id to smoke validation
   --smoke-task <task>  Forward Gradle install task to smoke validation
+  --keep-logs          Forward --keep-logs to smoke validation
   --list-avds          List AVDs via smoke validation (implies smoke-only)
   --smoke-help         Print smoke script help and exit (implies smoke-only)
   --smoke-only         Disable compile/test/lint gates and run smoke only
@@ -148,6 +150,11 @@ while [[ $# -gt 0 ]]; do
             smoke_options_used="true"
             shift 2
             ;;
+        --keep-logs)
+            smoke_keep_logs="true"
+            smoke_options_used="true"
+            shift
+            ;;
         --list-avds)
             smoke_list_avds="true"
             smoke_options_used="true"
@@ -204,7 +211,7 @@ fi
 
 if [[ "$smoke_help" == "true" && "$smoke_options_used" == "true" ]]; then
     echo "--smoke-help cannot be combined with runtime smoke options." >&2
-    echo "Remove --avd/--serial/--no-launch/--connect-timeout/--boot-timeout/--launch-wait/--smoke-app-id/--smoke-task/--list-avds." >&2
+    echo "Remove --avd/--serial/--no-launch/--connect-timeout/--boot-timeout/--launch-wait/--smoke-app-id/--smoke-task/--keep-logs/--list-avds." >&2
     usage >&2
     exit 1
 fi
@@ -222,9 +229,9 @@ if [[ "$smoke_list_avds" != "true" && "$smoke_no_launch" == "true" && "$smoke_av
 fi
 
 if [[ "$smoke_list_avds" == "true" ]]; then
-    if [[ "$smoke_avd_explicit" == "true" || -n "$smoke_serial" || "$smoke_no_launch" == "true" || -n "$smoke_connect_timeout" || -n "$smoke_boot_timeout" || -n "$smoke_launch_wait" || -n "$smoke_app_id" || -n "$smoke_task" ]]; then
+    if [[ "$smoke_avd_explicit" == "true" || -n "$smoke_serial" || "$smoke_no_launch" == "true" || -n "$smoke_connect_timeout" || -n "$smoke_boot_timeout" || -n "$smoke_launch_wait" || -n "$smoke_app_id" || -n "$smoke_task" || "$smoke_keep_logs" == "true" ]]; then
         echo "--list-avds cannot be combined with runtime smoke options." >&2
-        echo "Remove --avd/--serial/--no-launch/--connect-timeout/--boot-timeout/--launch-wait/--smoke-app-id/--smoke-task when listing AVDs." >&2
+        echo "Remove --avd/--serial/--no-launch/--connect-timeout/--boot-timeout/--launch-wait/--smoke-app-id/--smoke-task/--keep-logs when listing AVDs." >&2
         usage >&2
         exit 1
     fi
@@ -317,6 +324,9 @@ if [[ "$with_smoke" == "true" ]]; then
         fi
         if [[ -n "$smoke_task" ]]; then
             smoke_args+=(--task "$smoke_task")
+        fi
+        if [[ "$smoke_keep_logs" == "true" ]]; then
+            smoke_args+=(--keep-logs)
         fi
     fi
     smoke_command=("$script_dir/smoke-debug-emulator.sh" "${smoke_args[@]}")

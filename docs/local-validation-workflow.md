@@ -28,6 +28,8 @@ This project includes two local helper scripts:
   - `scripts/validate-local.sh --with-smoke --no-launch --skip-compile --skip-test --skip-lint`
 - Tune smoke timeouts and launch wait:
   - `scripts/validate-local.sh --with-smoke --serial emulator-5554 --connect-timeout 60 --boot-timeout 120 --launch-wait 2 --skip-compile --skip-test --skip-lint`
+- Run smoke via `validate-local.sh` and keep per-run logs:
+  - `scripts/validate-local.sh --with-smoke --no-launch --serial emulator-5554 --task help --keep-logs --skip-compile --skip-test --skip-lint`
 
 ## Typical Smoke-Script Commands
 
@@ -62,6 +64,7 @@ The `target=` value indicates how emulator selection will work:
   - `--connect-timeout`
   - `--boot-timeout`
   - `--launch-wait`
+  - `--keep-logs`
   - `--app-id`
   - `--task`
 - In `validate-local.sh`, smoke-specific flags require smoke mode (`--with-smoke` or `--smoke-only`).
@@ -76,9 +79,9 @@ The `target=` value indicates how emulator selection will work:
 - Error: `No validation gates selected. Enable at least one gate or use --with-smoke/--smoke-only.`
   - Fix: enable at least one compile/test/lint gate, or run smoke mode via `--with-smoke` or `--smoke-only`.
 - Error: `--list-avds cannot be combined with runtime smoke options.`
-  - Fix: run `--list-avds` alone (or with non-runtime flags only), without serial/AVD/launch/task/timeout overrides.
+  - Fix: run `--list-avds` alone (or with non-runtime flags only), without serial/AVD/launch/task/timeout/keep-logs overrides.
 - Error: `--smoke-help cannot be combined with runtime smoke options.`
-  - Fix: run `--smoke-help` alone to print smoke-script usage, without runtime selector/timeout/app/task flags.
+  - Fix: run `--smoke-help` alone to print smoke-script usage, without runtime selector/timeout/app/task/keep-logs flags.
 - Error: `--no-launch cannot be combined with --avd unless --serial is also provided.`
   - Fix: provide `--serial <id>` when using `--no-launch`, or remove `--no-launch` if you want AVD auto-launch.
 - Error: `Cannot combine --avd with --serial. Choose one target selector.`
