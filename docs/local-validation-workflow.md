@@ -36,6 +36,8 @@ This project includes two local helper scripts:
 
 ## Typical Smoke-Script Commands
 
+- Run option-parsing regression checks for `smoke-debug-emulator.sh`:
+  - `scripts/test-smoke-debug-emulator-options.sh`
 - List available AVDs:
   - `scripts/smoke-debug-emulator.sh --list-avds`
 - Smoke run against an existing emulator:
