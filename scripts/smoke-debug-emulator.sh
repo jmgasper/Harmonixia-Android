@@ -323,6 +323,7 @@ top_activity="$(adb -s "$emulator_serial" shell dumpsys activity activities \
 if [[ -z "$pid" ]]; then
     echo "Smoke test failed: app process not running for $app_id." >&2
     echo "Top activity: ${top_activity:-<none>}" >&2
+    echo "Tip: inspect /tmp/harmonixia-smoke-monkey.log and increase --launch-wait if app startup is slow." >&2
     echo "Monkey output:" >&2
     sed -n '1,80p' /tmp/harmonixia-smoke-monkey.log >&2 || true
     exit 1
