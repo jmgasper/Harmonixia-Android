@@ -94,7 +94,7 @@ The `target=` value indicates how emulator selection will work:
 - Error: `No AVDs found under ...`
   - Fix: create an AVD in Android Studio Device Manager and rerun `scripts/smoke-debug-emulator.sh --list-avds`.
 - Error: `Failed to list AVDs via emulator -list-avds.`
-  - Fix: inspect the surfaced emulator stderr details, verify emulator installation/SDK setup, then rerun `--list-avds`.
+  - Fix: inspect the surfaced emulator stderr details (first 40 lines), verify emulator installation/SDK setup, then rerun `--list-avds`.
 - Error: `Timed out waiting for sys.boot_completed on ...`
   - Fix: check boot state with `adb -s <serial> shell getprop sys.boot_completed` and increase `--boot-timeout` if the device is still initializing.
 - Error: `Smoke test failed: app process not running for ...`
