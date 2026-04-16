@@ -43,7 +43,7 @@ Options:
   --smoke-app-id <id>  Forward app id to smoke validation
   --smoke-task <task>  Forward Gradle install task to smoke validation
   --list-avds          List AVDs via smoke validation (implies smoke-only)
-  --smoke-help         Print smoke script help (implies smoke-only)
+  --smoke-help         Print smoke script help and exit (implies smoke-only)
   --smoke-only         Disable compile/test/lint gates and run smoke only
   --skip-compile       Skip :app:compileDebugKotlin gate
   --skip-test          Skip :app:testDebugUnitTest gate
@@ -316,6 +316,9 @@ if [[ "$with_smoke" == "true" ]]; then
     smoke_command=("$script_dir/smoke-debug-emulator.sh" "${smoke_args[@]}")
     print_shell_escaped_command "Smoke command:" "${smoke_command[@]}"
     "${smoke_command[@]}"
+    if [[ "$smoke_help" == "true" ]]; then
+        exit 0
+    fi
 fi
 
 echo "Local validation passed."
