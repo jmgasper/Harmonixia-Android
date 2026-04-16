@@ -21,6 +21,9 @@ task_option_set="false"
 connect_timeout_option_set="false"
 boot_timeout_option_set="false"
 launch_wait_option_set="false"
+log_suffix="${$}-${RANDOM}"
+uninstall_log="/tmp/harmonixia-smoke-uninstall-${log_suffix}.log"
+monkey_log="/tmp/harmonixia-smoke-monkey-${log_suffix}.log"
 
 usage() {
     cat <<USAGE
@@ -317,7 +320,7 @@ while true; do
 done
 
 echo "Uninstalling existing package (if present): $app_id"
-adb -s "$emulator_serial" uninstall "$app_id" >/tmp/harmonixia-smoke-uninstall.log 2>&1 || true
+adb -s "$emulator_serial" uninstall "$app_id" >"$uninstall_log" 2>&1 || true
 
 echo "Installing debug app via Gradle task '$gradle_task'..."
 (
@@ -327,7 +330,7 @@ echo "Installing debug app via Gradle task '$gradle_task'..."
 
 echo "Launching $app_id..."
 adb -s "$emulator_serial" shell monkey -p "$app_id" -c android.intent.category.LAUNCHER 1 \
-    >/tmp/harmonixia-smoke-monkey.log 2>&1
+    >"$monkey_log" 2>&1
 sleep "$launch_wait_seconds"
 
 pid="$(adb -s "$emulator_serial" shell pidof "$app_id" 2>/dev/null | tr -d '\r' || true)"
@@ -337,11 +340,14 @@ top_activity="$(adb -s "$emulator_serial" shell dumpsys activity activities \
 if [[ -z "$pid" ]]; then
     echo "Smoke test failed: app process not running for $app_id." >&2
     echo "Top activity: ${top_activity:-<none>}" >&2
-    echo "Tip: inspect /tmp/harmonixia-smoke-monkey.log and increase --launch-wait if app startup is slow." >&2
+    echo "Tip: inspect ${monkey_log} and increase --launch-wait if app startup is slow." >&2
+    echo "Monkey log: ${monkey_log}" >&2
     echo "Monkey output:" >&2
-    sed -n '1,80p' /tmp/harmonixia-smoke-monkey.log >&2 || true
+    sed -n '1,80p' "$monkey_log" >&2 || true
     exit 1
 fi
+
+rm -f "$uninstall_log" "$monkey_log"
 
 echo "Smoke test passed"
 echo "  serial: $emulator_serial"

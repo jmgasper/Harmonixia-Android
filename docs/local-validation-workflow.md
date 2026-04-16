@@ -98,6 +98,6 @@ The `target=` value indicates how emulator selection will work:
 - Error: `Timed out waiting for sys.boot_completed on ...`
   - Fix: check boot state with `adb -s <serial> shell getprop sys.boot_completed` and increase `--boot-timeout` if the device is still initializing.
 - Error: `Smoke test failed: app process not running for ...`
-  - Fix: inspect `/tmp/harmonixia-smoke-monkey.log` for launch errors and increase `--launch-wait` when startup is slow.
+  - Fix: inspect the printed per-run monkey log path (for example `/tmp/harmonixia-smoke-monkey-*.log`) and increase `--launch-wait` when startup is slow.
 - Error: `JDK 17 is required for smoke execution.`
   - Fix: install/use JDK 17 (`java -version` should report 17) or set `JAVA_HOME` to a JDK 17 path.
