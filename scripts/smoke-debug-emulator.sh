@@ -195,8 +195,14 @@ if [[ "$requires_emulator_binary" == "true" ]] && ! command -v emulator >/dev/nu
 fi
 
 if [[ "$list_avds_only" == "true" ]]; then
-echo "Smoke settings: mode=list-avds"
-    emulator -list-avds
+    echo "Smoke settings: mode=list-avds"
+    avd_list="$(emulator -list-avds || true)"
+    if [[ -z "$avd_list" ]]; then
+        echo "No AVDs found under ${avd_home}." >&2
+        echo "Tip: create an AVD in Android Studio Device Manager, then rerun --list-avds." >&2
+        exit 1
+    fi
+    printf '%s\n' "$avd_list"
     exit 0
 fi
 

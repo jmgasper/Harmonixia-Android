@@ -91,6 +91,8 @@ The `target=` value indicates how emulator selection will work:
   - Fix: start an emulator first, provide `--serial <emulator-id>`, or remove `--no-launch` so the script can auto-launch an AVD.
 - Error: `AVD '<name>' not found.`
   - Fix: run `scripts/smoke-debug-emulator.sh --list-avds` to pick a valid AVD, or use `--serial <emulator-id>` to target an already-running emulator.
+- Error: `No AVDs found under ...`
+  - Fix: create an AVD in Android Studio Device Manager and rerun `scripts/smoke-debug-emulator.sh --list-avds`.
 - Error: `Timed out waiting for sys.boot_completed on ...`
   - Fix: check boot state with `adb -s <serial> shell getprop sys.boot_completed` and increase `--boot-timeout` if the device is still initializing.
 - Error: `Smoke test failed: app process not running for ...`
