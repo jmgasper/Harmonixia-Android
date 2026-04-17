@@ -65,6 +65,7 @@ if [[ "$run_syntax" == "true" ]]; then
     bash -n "${script_dir}/smoke-debug-emulator.sh"
     bash -n "${script_dir}/test-validate-local-options.sh"
     bash -n "${script_dir}/test-smoke-debug-emulator-options.sh"
+    bash -n "${script_dir}/test-local-validation-option-regressions-runner.sh"
     echo "Shell syntax checks passed."
 fi
 
