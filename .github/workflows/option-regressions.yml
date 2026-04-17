@@ -24,11 +24,13 @@ jobs:
       matrix:
         mode:
           - name: syntax-only
-            flag: --syntax-only
+            command: ./scripts/test-local-validation-option-regressions.sh --syntax-only
           - name: behavior-only
-            flag: --behavior-only
+            command: ./scripts/test-local-validation-option-regressions.sh --behavior-only
+          - name: runner-self-test
+            command: ./scripts/test-local-validation-option-regressions-runner.sh
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
       - name: Run local validation option regressions (${{ matrix.mode.name }})
-        run: ./scripts/test-local-validation-option-regressions.sh ${{ matrix.mode.flag }}
+        run: ${{ matrix.mode.command }}
