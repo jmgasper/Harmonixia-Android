@@ -20,7 +20,7 @@ This project includes two local helper scripts:
   - Includes `bash -n` syntax checks plus both option regression suites.
   - Syntax-only mode: `scripts/test-local-validation-option-regressions.sh --syntax-only`
   - Behavior-only mode: `scripts/test-local-validation-option-regressions.sh --behavior-only`
-  - CI automation: `.github/workflows/option-regressions.yml` runs this suite on pushes/PRs to `master`.
+  - CI automation: `.github/workflows/option-regressions.yml` runs syntax-only and behavior-only modes separately on pushes/PRs to `master`.
 - Run option-parsing regression checks via the top-level wrapper:
   - `scripts/validate-local.sh --option-tests`
 - `validate-local.sh` prints a shell-escaped smoke command preview before launching `smoke-debug-emulator.sh`.
