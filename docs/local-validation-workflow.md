@@ -40,6 +40,8 @@ This project includes two local helper scripts:
 
 ## Typical Smoke-Script Commands
 
+- Run option-parsing regression checks via the smoke script:
+  - `scripts/smoke-debug-emulator.sh --option-tests`
 - Run option-parsing regression checks for `smoke-debug-emulator.sh`:
   - `scripts/test-smoke-debug-emulator-options.sh`
 - List available AVDs:
@@ -65,6 +67,7 @@ The `target=` value indicates how emulator selection will work:
 - `--serial` must be an emulator adb serial in `emulator-<port>` format (for example `emulator-5554`).
 - `--serial` and `--avd` are mutually exclusive for non-list runs.
 - `--no-launch --avd` requires also providing `--serial`; otherwise it is rejected.
+- In `smoke-debug-emulator.sh`, `--option-tests` cannot be combined with smoke execution flags.
 - In `validate-local.sh`, `--no-launch` without `--serial` targets the first already-online emulator (it no longer forces a default AVD selector).
 - `--list-avds` cannot be combined with runtime smoke flags such as:
   - `--avd`
@@ -97,6 +100,8 @@ The `target=` value indicates how emulator selection will work:
   - Fix: run `--smoke-help` alone to print smoke-script usage, without runtime selector/timeout/app/task flags (including `--smoke-*` alias forms).
 - Error: `--option-tests cannot be combined with compile/test/lint toggles or smoke execution flags.`
   - Fix: run `scripts/validate-local.sh --option-tests` by itself.
+- Error: `--option-tests cannot be combined with smoke execution flags.`
+  - Fix: run `scripts/smoke-debug-emulator.sh --option-tests` by itself.
 - Error: `--no-launch cannot be combined with --avd unless --serial is also provided.`
   - Fix: provide `--serial <id>` when using `--no-launch`, or remove `--no-launch` if you want AVD auto-launch.
 - Error: `Cannot combine --avd with --serial. Choose one target selector.`

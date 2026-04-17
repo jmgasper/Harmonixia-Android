@@ -22,6 +22,7 @@ connect_timeout_option_set="false"
 boot_timeout_option_set="false"
 launch_wait_option_set="false"
 keep_logs_option_set="false"
+run_option_tests="false"
 log_suffix="${$}-${RANDOM}"
 uninstall_log="/tmp/harmonixia-smoke-uninstall-${log_suffix}.log"
 monkey_log="/tmp/harmonixia-smoke-monkey-${log_suffix}.log"
@@ -66,6 +67,7 @@ Options:
   --boot-timeout <s>    Boot completion timeout in seconds (default: ${boot_timeout_seconds})
   --launch-wait <s>     Wait after launch before verification (default: ${launch_wait_seconds})
   --keep-logs           Retain per-run logs on exit (for debugging successful runs)
+  --option-tests        Run smoke option regression suite and exit
   --help                Show this help
 
 Documentation:
@@ -162,6 +164,10 @@ while [[ $# -gt 0 ]]; do
             keep_logs_option_set="true"
             shift
             ;;
+        --option-tests)
+            run_option_tests="true"
+            shift
+            ;;
         --help|-h)
             usage
             exit 0
@@ -173,6 +179,18 @@ while [[ $# -gt 0 ]]; do
             ;;
     esac
 done
+
+if [[ "$run_option_tests" == "true" ]]; then
+    if [[ "$avd_option_set" == "true" || "$serial_option_set" == "true" || "$no_launch_option_set" == "true" || "$list_avds_only" == "true" || "$app_id_option_set" == "true" || "$task_option_set" == "true" || "$connect_timeout_option_set" == "true" || "$boot_timeout_option_set" == "true" || "$launch_wait_option_set" == "true" || "$keep_logs_option_set" == "true" ]]; then
+        echo "--option-tests cannot be combined with smoke execution flags." >&2
+        echo "Run --option-tests by itself." >&2
+        usage >&2
+        exit 1
+    fi
+    echo "Running smoke option regression tests..."
+    "${script_dir}/test-smoke-debug-emulator-options.sh"
+    exit 0
+fi
 
 if [[ "$list_avds_only" == "true" ]]; then
     if [[ "$avd_option_set" == "true" || "$serial_option_set" == "true" || "$no_launch_option_set" == "true" || "$app_id_option_set" == "true" || "$task_option_set" == "true" || "$connect_timeout_option_set" == "true" || "$boot_timeout_option_set" == "true" || "$launch_wait_option_set" == "true" ]]; then

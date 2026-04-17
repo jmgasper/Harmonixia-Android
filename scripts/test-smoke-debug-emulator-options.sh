@@ -41,6 +41,7 @@ help_output="$(run_expect_exit 0 --help)"
 assert_contains "$help_output" "--list-avds"
 assert_contains "$help_output" "--task <gradle-task>"
 assert_contains "$help_output" "--keep-logs"
+assert_contains "$help_output" "--option-tests"
 
 list_conflict_output="$(run_expect_exit 1 --list-avds --task help)"
 assert_contains "$list_conflict_output" "--list-avds cannot be combined with runtime smoke options."
@@ -58,5 +59,8 @@ assert_contains "$invalid_serial_output" "Expected an emulator adb serial like e
 invalid_timeout_output="$(run_expect_exit 1 --connect-timeout 0)"
 assert_contains "$invalid_timeout_output" "Invalid value for --connect-timeout: 0"
 assert_contains "$invalid_timeout_output" "Expected a positive integer."
+
+option_tests_conflict_output="$(run_expect_exit 1 --option-tests --task help)"
+assert_contains "$option_tests_conflict_output" "--option-tests cannot be combined with smoke execution flags."
 
 echo "smoke-debug-emulator option tests passed."
