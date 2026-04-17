@@ -44,6 +44,8 @@ jobs:
             command: ./scripts/test-local-validation-option-regressions.sh --behavior-only
           - name: runner-self-test
             command: ./scripts/test-local-validation-option-regressions-runner.sh
+          - name: validate-option-tests-wrapper
+            command: ./scripts/validate-local.sh --option-tests
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
