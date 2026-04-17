@@ -4,9 +4,23 @@ on:
   push:
     branches:
       - master
+    paths:
+      - .github/workflows/option-regressions.yml
+      - scripts/validate-local.sh
+      - scripts/smoke-debug-emulator.sh
+      - scripts/test-*-options.sh
+      - scripts/test-local-validation-option-regressions*.sh
+      - docs/local-validation-workflow.md
   pull_request:
     branches:
       - master
+    paths:
+      - .github/workflows/option-regressions.yml
+      - scripts/validate-local.sh
+      - scripts/smoke-debug-emulator.sh
+      - scripts/test-*-options.sh
+      - scripts/test-local-validation-option-regressions*.sh
+      - docs/local-validation-workflow.md
   workflow_dispatch:
 
 concurrency:
