@@ -76,4 +76,10 @@ option_tests_avd_conflict_output="$(run_expect_exit 1 --option-tests --smoke-avd
 assert_contains "$option_tests_avd_conflict_output" "--option-tests cannot be combined with compile/test/lint toggles or smoke execution flags."
 assert_contains "$option_tests_avd_conflict_output" "(default: Medium_Phone"
 
+unknown_argument_output="$(run_expect_exit 1 --definitely-unknown-flag)"
+assert_contains "$unknown_argument_output" "Unknown argument: --definitely-unknown-flag"
+
+missing_value_output="$(run_expect_exit 1 --smoke-task)"
+assert_contains "$missing_value_output" "Missing value for --smoke-task"
+
 echo "validate-local option tests passed."

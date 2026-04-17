@@ -22,7 +22,7 @@ This project includes two local helper scripts:
 - `validate-local.sh` prints a shell-escaped smoke command preview before launching `smoke-debug-emulator.sh`.
 - Run option-parsing regression checks for `validate-local.sh`:
   - `scripts/test-validate-local-options.sh`
-  - Covers both base smoke flags and `--smoke-*` alias forms for help, passthrough, and conflict behavior.
+  - Covers both base smoke flags and `--smoke-*` alias forms for help, passthrough, conflict behavior, unknown-argument handling, and missing-value validation.
 - Run standard local gates:
   - `scripts/validate-local.sh`
 - Run smoke only and list AVDs:
@@ -44,6 +44,7 @@ This project includes two local helper scripts:
   - `scripts/smoke-debug-emulator.sh --option-tests`
 - Run option-parsing regression checks for `smoke-debug-emulator.sh`:
   - `scripts/test-smoke-debug-emulator-options.sh`
+  - Covers help output, selector/conflict validation, unknown-argument handling, and missing-value validation.
 - List available AVDs:
   - `scripts/smoke-debug-emulator.sh --list-avds`
 - Smoke run against an existing emulator:

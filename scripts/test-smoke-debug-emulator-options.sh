@@ -65,4 +65,10 @@ option_tests_conflict_output="$(run_expect_exit 1 --option-tests --task help)"
 assert_contains "$option_tests_conflict_output" "--option-tests cannot be combined with smoke execution flags."
 assert_contains "$option_tests_conflict_output" "(default: :app:installDebug)"
 
+unknown_argument_output="$(run_expect_exit 1 --definitely-unknown-flag)"
+assert_contains "$unknown_argument_output" "Unknown argument: --definitely-unknown-flag"
+
+missing_value_output="$(run_expect_exit 1 --task)"
+assert_contains "$missing_value_output" "Missing value for --task"
+
 echo "smoke-debug-emulator option tests passed."
