@@ -4,12 +4,18 @@ set -euo pipefail
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 repo_root="$(cd "${script_dir}/.." && pwd)"
 
-avd_name="Medium_Phone"
-app_id="com.harmonixia.android"
-gradle_task=":app:installDebug"
-connect_timeout_seconds=300
-boot_timeout_seconds=420
-launch_wait_seconds=5
+default_avd_name="Medium_Phone"
+default_app_id="com.harmonixia.android"
+default_gradle_task=":app:installDebug"
+default_connect_timeout_seconds=300
+default_boot_timeout_seconds=420
+default_launch_wait_seconds=5
+avd_name="$default_avd_name"
+app_id="$default_app_id"
+gradle_task="$default_gradle_task"
+connect_timeout_seconds="$default_connect_timeout_seconds"
+boot_timeout_seconds="$default_boot_timeout_seconds"
+launch_wait_seconds="$default_launch_wait_seconds"
 target_serial=""
 auto_launch="true"
 list_avds_only="false"
@@ -57,15 +63,15 @@ Run a local emulator smoke test for the Harmonixia debug app:
 5. Launch app and verify it is running
 
 Options:
-  --avd <name>          AVD name to launch when no emulator is online (default: ${avd_name})
+  --avd <name>          AVD name to launch when no emulator is online (default: ${default_avd_name})
   --serial <id>         Target specific emulator adb serial (example: emulator-5554)
   --no-launch           Do not auto-launch an AVD when no emulator is online
   --list-avds           Print available AVD names and exit
-  --app-id <id>         Android application id (default: ${app_id})
-  --task <gradle-task>  Gradle install task (default: ${gradle_task})
-  --connect-timeout <s> Emulator connect timeout in seconds (default: ${connect_timeout_seconds})
-  --boot-timeout <s>    Boot completion timeout in seconds (default: ${boot_timeout_seconds})
-  --launch-wait <s>     Wait after launch before verification (default: ${launch_wait_seconds})
+  --app-id <id>         Android application id (default: ${default_app_id})
+  --task <gradle-task>  Gradle install task (default: ${default_gradle_task})
+  --connect-timeout <s> Emulator connect timeout in seconds (default: ${default_connect_timeout_seconds})
+  --boot-timeout <s>    Boot completion timeout in seconds (default: ${default_boot_timeout_seconds})
+  --launch-wait <s>     Wait after launch before verification (default: ${default_launch_wait_seconds})
   --keep-logs           Retain per-run logs on exit (for debugging successful runs)
   --option-tests        Run smoke option regression suite and exit
   --help                Show this help

@@ -5,7 +5,8 @@ script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 repo_root="$(cd "${script_dir}/.." && pwd)"
 
 with_smoke="false"
-avd_name="Medium_Phone"
+default_avd_name="Medium_Phone"
+avd_name="$default_avd_name"
 smoke_avd_explicit="false"
 smoke_serial=""
 smoke_no_launch="false"
@@ -37,7 +38,7 @@ Optional:
 
 Options:
   --with-smoke         Include emulator smoke validation
-  --avd <name>         AVD name for smoke validation (default: ${avd_name}, alias: --smoke-avd)
+  --avd <name>         AVD name for smoke validation (default: ${default_avd_name}, alias: --smoke-avd)
   --serial <id>        adb emulator serial for smoke validation (example: emulator-5554, alias: --smoke-serial)
   --no-launch          Forward --no-launch to smoke validation (alias: --smoke-no-launch)
   --connect-timeout <s> Forward smoke adb connect timeout in seconds (alias: --smoke-connect-timeout)
@@ -218,6 +219,18 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
+if [[ "$run_option_tests" == "true" ]]; then
+    if [[ "$with_smoke" == "true" || "$smoke_options_used" == "true" || "$run_compile" != "true" || "$run_test" != "true" || "$run_lint" != "true" ]]; then
+        echo "--option-tests cannot be combined with compile/test/lint toggles or smoke execution flags." >&2
+        echo "Run --option-tests by itself." >&2
+        usage >&2
+        exit 1
+    fi
+    echo "Running local validation option regression tests..."
+    "${script_dir}/test-local-validation-option-regressions.sh"
+    exit 0
+fi
+
 if [[ "$with_smoke" != "true" && "$smoke_options_used" == "true" ]]; then
     echo "Smoke-specific flags require --with-smoke or --smoke-only." >&2
     usage >&2
@@ -250,18 +263,6 @@ if [[ "$smoke_list_avds" == "true" ]]; then
         usage >&2
         exit 1
     fi
-fi
-
-if [[ "$run_option_tests" == "true" ]]; then
-    if [[ "$with_smoke" == "true" || "$smoke_options_used" == "true" || "$run_compile" != "true" || "$run_test" != "true" || "$run_lint" != "true" ]]; then
-        echo "--option-tests cannot be combined with compile/test/lint toggles or smoke execution flags." >&2
-        echo "Run --option-tests by itself." >&2
-        usage >&2
-        exit 1
-    fi
-    echo "Running local validation option regression tests..."
-    "${script_dir}/test-local-validation-option-regressions.sh"
-    exit 0
 fi
 
 skip_java_preflight="false"

@@ -72,4 +72,8 @@ assert_contains "$list_avds_conflict_output" "--smoke-* aliases"
 option_tests_conflict_output="$(run_expect_exit 1 --option-tests --with-smoke)"
 assert_contains "$option_tests_conflict_output" "--option-tests cannot be combined with compile/test/lint toggles or smoke execution flags."
 
+option_tests_avd_conflict_output="$(run_expect_exit 1 --option-tests --smoke-avd Temp_AVD)"
+assert_contains "$option_tests_avd_conflict_output" "--option-tests cannot be combined with compile/test/lint toggles or smoke execution flags."
+assert_contains "$option_tests_avd_conflict_output" "(default: Medium_Phone"
+
 echo "validate-local option tests passed."

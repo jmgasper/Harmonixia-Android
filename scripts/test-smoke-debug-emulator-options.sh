@@ -45,6 +45,7 @@ assert_contains "$help_output" "--option-tests"
 
 list_conflict_output="$(run_expect_exit 1 --list-avds --task help)"
 assert_contains "$list_conflict_output" "--list-avds cannot be combined with runtime smoke options."
+assert_contains "$list_conflict_output" "(default: :app:installDebug)"
 
 target_conflict_output="$(run_expect_exit 1 --avd Medium_Phone --serial emulator-5554)"
 assert_contains "$target_conflict_output" "Cannot combine --avd with --serial. Choose one target selector."
@@ -62,5 +63,6 @@ assert_contains "$invalid_timeout_output" "Expected a positive integer."
 
 option_tests_conflict_output="$(run_expect_exit 1 --option-tests --task help)"
 assert_contains "$option_tests_conflict_output" "--option-tests cannot be combined with smoke execution flags."
+assert_contains "$option_tests_conflict_output" "(default: :app:installDebug)"
 
 echo "smoke-debug-emulator option tests passed."
