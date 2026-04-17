@@ -1,0 +1,25 @@
+name: Option Regressions
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+  workflow_dispatch:
+
+concurrency:
+  group: option-regressions-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  option-regressions:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Run local validation option regressions
+        run: ./scripts/test-local-validation-option-regressions.sh
