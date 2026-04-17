@@ -133,8 +133,18 @@ assert_contains "$dry_run_conflict_mixed_order_output" "Usage:"
 unknown_argument_output="$(run_expect_exit 1 --definitely-unknown-flag)"
 assert_contains "$unknown_argument_output" "Unknown argument: --definitely-unknown-flag"
 
+unknown_before_help_output="$(run_expect_exit 1 --definitely-unknown-flag --help)"
+assert_contains "$unknown_before_help_output" "Unknown argument: --definitely-unknown-flag"
+
+unknown_before_help_alias_output="$(run_expect_exit 1 --definitely-unknown-flag -h)"
+assert_contains "$unknown_before_help_alias_output" "Unknown argument: --definitely-unknown-flag"
+
 dry_run_unknown_argument_output="$(run_expect_exit 1 --dry-run --definitely-unknown-flag)"
 assert_contains "$dry_run_unknown_argument_output" "Unknown argument: --definitely-unknown-flag"
 assert_not_contains "$dry_run_unknown_argument_output" "Dry run mode enabled."
+
+dry_run_unknown_before_help_output="$(run_expect_exit 1 --dry-run --definitely-unknown-flag --help)"
+assert_contains "$dry_run_unknown_before_help_output" "Unknown argument: --definitely-unknown-flag"
+assert_not_contains "$dry_run_unknown_before_help_output" "Dry run mode enabled."
 
 echo "local validation option regression runner tests passed."
