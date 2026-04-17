@@ -66,6 +66,18 @@ assert_contains "$help_with_mode_output" "Usage:"
 assert_contains "$help_with_mode_output" "--syntax-only"
 assert_not_contains "$help_with_mode_output" "Would run shell syntax checks."
 
+help_first_with_unknown_output="$(run_expect_exit 0 --help --definitely-unknown-flag)"
+assert_contains "$help_first_with_unknown_output" "Usage:"
+assert_not_contains "$help_first_with_unknown_output" "Unknown argument: --definitely-unknown-flag"
+
+help_alias_first_with_unknown_output="$(run_expect_exit 0 -h --definitely-unknown-flag)"
+assert_contains "$help_alias_first_with_unknown_output" "Usage:"
+assert_not_contains "$help_alias_first_with_unknown_output" "Unknown argument: --definitely-unknown-flag"
+
+help_first_with_conflict_flags_output="$(run_expect_exit 0 --help --syntax-only --behavior-only)"
+assert_contains "$help_first_with_conflict_flags_output" "Usage:"
+assert_not_contains "$help_first_with_conflict_flags_output" "Cannot combine --syntax-only with --behavior-only."
+
 dry_run_default_output="$(run_expect_exit 0 --dry-run)"
 assert_contains "$dry_run_default_output" "Dry run mode enabled."
 assert_contains "$dry_run_default_output" "Would run shell syntax checks."
