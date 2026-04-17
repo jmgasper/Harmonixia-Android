@@ -43,6 +43,10 @@ assert_contains "$help_output" "--task <gradle-task>"
 assert_contains "$help_output" "--keep-logs"
 assert_contains "$help_output" "--option-tests"
 
+help_alias_output="$(run_expect_exit 0 -h)"
+assert_contains "$help_alias_output" "--list-avds"
+assert_contains "$help_alias_output" "--option-tests"
+
 list_conflict_output="$(run_expect_exit 1 --list-avds --task help)"
 assert_contains "$list_conflict_output" "--list-avds cannot be combined with runtime smoke options."
 assert_contains "$list_conflict_output" "(default: :app:installDebug)"

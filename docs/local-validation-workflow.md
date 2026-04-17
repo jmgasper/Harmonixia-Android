@@ -70,6 +70,7 @@ The `target=` value indicates how emulator selection will work:
 
 ## Option-Conflict Rules
 
+- In `validate-local.sh`, `smoke-debug-emulator.sh`, and `test-local-validation-option-regressions.sh`, `-h` is accepted as a short alias for `--help`.
 - `--serial` must be an emulator adb serial in `emulator-<port>` format (for example `emulator-5554`).
 - `--serial` and `--avd` are mutually exclusive for non-list runs.
 - `--no-launch --avd` requires also providing `--serial`; otherwise it is rejected.

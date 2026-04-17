@@ -51,6 +51,10 @@ assert_contains "$help_output" "--syntax-only"
 assert_contains "$help_output" "--behavior-only"
 assert_contains "$help_output" "Default:"
 
+help_alias_output="$(run_expect_exit 0 -h)"
+assert_contains "$help_alias_output" "--syntax-only"
+assert_contains "$help_alias_output" "--behavior-only"
+
 default_output="$(run_expect_exit 0)"
 assert_contains "$default_output" "Running shell syntax checks..."
 assert_contains "$default_output" "Running validate-local option regressions..."

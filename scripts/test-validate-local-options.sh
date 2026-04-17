@@ -45,6 +45,10 @@ assert_contains "$help_output" "--keep-logs"
 assert_contains "$help_output" "--smoke-keep-logs"
 assert_contains "$help_output" "--option-tests"
 
+help_alias_output="$(run_expect_exit 0 -h)"
+assert_contains "$help_alias_output" "--serial"
+assert_contains "$help_alias_output" "--option-tests"
+
 smoke_help_keep_logs_base_output="$(run_expect_exit 0 --smoke-help --keep-logs)"
 assert_contains "$smoke_help_keep_logs_base_output" "Smoke command:"
 assert_contains "$smoke_help_keep_logs_base_output" "--help --keep-logs"
