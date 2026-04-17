@@ -17,6 +17,7 @@ This project includes two local helper scripts:
 
 - Run all option-parsing regression checks:
   - `scripts/test-local-validation-option-regressions.sh`
+  - Includes `bash -n` syntax checks plus both option regression suites.
 - Run option-parsing regression checks via the top-level wrapper:
   - `scripts/validate-local.sh --option-tests`
 - `validate-local.sh` prints a shell-escaped smoke command preview before launching `smoke-debug-emulator.sh`.
