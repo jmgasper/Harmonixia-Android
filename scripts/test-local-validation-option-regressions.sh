@@ -5,13 +5,14 @@ script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 show_usage() {
     cat <<USAGE
-Usage: $(basename "$0") [--syntax-only | --behavior-only]
+Usage: $(basename "$0") [--syntax-only | --behavior-only] [--dry-run]
 
 Run local validation option regressions.
 
 Modes:
   --syntax-only    Run only bash syntax checks.
   --behavior-only  Run only behavioral option regression scripts.
+  --dry-run        Print selected mode(s) without executing checks.
   --help           Show this help.
 
 Default:
@@ -21,6 +22,7 @@ USAGE
 
 syntax_only="false"
 behavior_only="false"
+dry_run="false"
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -30,6 +32,10 @@ while [[ $# -gt 0 ]]; do
             ;;
         --behavior-only)
             behavior_only="true"
+            shift
+            ;;
+        --dry-run)
+            dry_run="true"
             shift
             ;;
         --help|-h)
@@ -57,6 +63,24 @@ if [[ "$syntax_only" == "true" ]]; then
 fi
 if [[ "$behavior_only" == "true" ]]; then
     run_syntax="false"
+fi
+
+if [[ "$dry_run" == "true" ]]; then
+    echo "Dry run mode enabled."
+    if [[ "$run_syntax" == "true" ]]; then
+        echo "Would run shell syntax checks."
+    fi
+    if [[ "$run_behavior" == "true" ]]; then
+        echo "Would run behavioral option regressions."
+    fi
+    if [[ "$run_syntax" == "true" && "$run_behavior" == "true" ]]; then
+        echo "Dry run summary: syntax and behavioral regressions."
+    elif [[ "$run_syntax" == "true" ]]; then
+        echo "Dry run summary: syntax regressions only."
+    else
+        echo "Dry run summary: behavioral regressions only."
+    fi
+    exit 0
 fi
 
 if [[ "$run_syntax" == "true" ]]; then
