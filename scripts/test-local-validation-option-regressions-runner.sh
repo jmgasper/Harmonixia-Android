@@ -130,6 +130,14 @@ conflict_output="$(run_expect_exit 1 --syntax-only --behavior-only)"
 assert_contains "$conflict_output" "Cannot combine --syntax-only with --behavior-only."
 assert_contains "$conflict_output" "Usage:"
 
+conflict_duplicate_syntax_output="$(run_expect_exit 1 --syntax-only --syntax-only --behavior-only)"
+assert_contains "$conflict_duplicate_syntax_output" "Cannot combine --syntax-only with --behavior-only."
+assert_contains "$conflict_duplicate_syntax_output" "Usage:"
+
+conflict_duplicate_behavior_output="$(run_expect_exit 1 --syntax-only --behavior-only --behavior-only)"
+assert_contains "$conflict_duplicate_behavior_output" "Cannot combine --syntax-only with --behavior-only."
+assert_contains "$conflict_duplicate_behavior_output" "Usage:"
+
 dry_run_conflict_output="$(run_expect_exit 1 --dry-run --syntax-only --behavior-only)"
 assert_contains "$dry_run_conflict_output" "Cannot combine --syntax-only with --behavior-only."
 assert_contains "$dry_run_conflict_output" "Usage:"
@@ -141,6 +149,10 @@ assert_contains "$dry_run_conflict_reversed_output" "Usage:"
 dry_run_conflict_mixed_order_output="$(run_expect_exit 1 --syntax-only --dry-run --behavior-only)"
 assert_contains "$dry_run_conflict_mixed_order_output" "Cannot combine --syntax-only with --behavior-only."
 assert_contains "$dry_run_conflict_mixed_order_output" "Usage:"
+
+dry_run_conflict_duplicate_behavior_output="$(run_expect_exit 1 --dry-run --syntax-only --behavior-only --behavior-only)"
+assert_contains "$dry_run_conflict_duplicate_behavior_output" "Cannot combine --syntax-only with --behavior-only."
+assert_contains "$dry_run_conflict_duplicate_behavior_output" "Usage:"
 
 unknown_argument_output="$(run_expect_exit 1 --definitely-unknown-flag)"
 assert_contains "$unknown_argument_output" "Unknown argument: --definitely-unknown-flag"
