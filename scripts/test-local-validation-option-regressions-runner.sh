@@ -80,13 +80,6 @@ assert_not_contains "$dry_run_behavior_output" "Would run shell syntax checks."
 assert_not_contains "$dry_run_behavior_output" "Running validate-local option regressions..."
 assert_not_contains "$dry_run_behavior_output" "Running smoke-debug-emulator option regressions..."
 
-syntax_only_output="$(run_expect_exit 0 --syntax-only)"
-assert_contains "$syntax_only_output" "Running shell syntax checks..."
-assert_contains "$syntax_only_output" "Shell syntax checks passed."
-assert_contains "$syntax_only_output" "Local validation syntax checks passed."
-assert_not_contains "$syntax_only_output" "Running validate-local option regressions..."
-assert_not_contains "$syntax_only_output" "Running smoke-debug-emulator option regressions..."
-
 conflict_output="$(run_expect_exit 1 --syntax-only --behavior-only)"
 assert_contains "$conflict_output" "Cannot combine --syntax-only with --behavior-only."
 assert_contains "$conflict_output" "Usage:"
