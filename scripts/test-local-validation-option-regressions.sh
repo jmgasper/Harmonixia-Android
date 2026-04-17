@@ -3,17 +3,83 @@ set -euo pipefail
 
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-echo "Running shell syntax checks..."
-bash -n "${script_dir}/validate-local.sh"
-bash -n "${script_dir}/smoke-debug-emulator.sh"
-bash -n "${script_dir}/test-validate-local-options.sh"
-bash -n "${script_dir}/test-smoke-debug-emulator-options.sh"
-echo "Shell syntax checks passed."
+show_usage() {
+    cat <<USAGE
+Usage: $(basename "$0") [--syntax-only | --behavior-only]
 
-echo "Running validate-local option regressions..."
-"${script_dir}/test-validate-local-options.sh"
+Run local validation option regressions.
 
-echo "Running smoke-debug-emulator option regressions..."
-"${script_dir}/test-smoke-debug-emulator-options.sh"
+Modes:
+  --syntax-only    Run only bash syntax checks.
+  --behavior-only  Run only behavioral option regression scripts.
+  --help           Show this help.
 
-echo "All local validation option regressions passed."
+Default:
+  Runs both syntax checks and behavioral regressions.
+USAGE
+}
+
+syntax_only="false"
+behavior_only="false"
+
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --syntax-only)
+            syntax_only="true"
+            shift
+            ;;
+        --behavior-only)
+            behavior_only="true"
+            shift
+            ;;
+        --help|-h)
+            show_usage
+            exit 0
+            ;;
+        *)
+            echo "Unknown argument: $1" >&2
+            show_usage >&2
+            exit 1
+            ;;
+    esac
+done
+
+if [[ "$syntax_only" == "true" && "$behavior_only" == "true" ]]; then
+    echo "Cannot combine --syntax-only with --behavior-only." >&2
+    show_usage >&2
+    exit 1
+fi
+
+run_syntax="true"
+run_behavior="true"
+if [[ "$syntax_only" == "true" ]]; then
+    run_behavior="false"
+fi
+if [[ "$behavior_only" == "true" ]]; then
+    run_syntax="false"
+fi
+
+if [[ "$run_syntax" == "true" ]]; then
+    echo "Running shell syntax checks..."
+    bash -n "${script_dir}/validate-local.sh"
+    bash -n "${script_dir}/smoke-debug-emulator.sh"
+    bash -n "${script_dir}/test-validate-local-options.sh"
+    bash -n "${script_dir}/test-smoke-debug-emulator-options.sh"
+    echo "Shell syntax checks passed."
+fi
+
+if [[ "$run_behavior" == "true" ]]; then
+    echo "Running validate-local option regressions..."
+    "${script_dir}/test-validate-local-options.sh"
+
+    echo "Running smoke-debug-emulator option regressions..."
+    "${script_dir}/test-smoke-debug-emulator-options.sh"
+fi
+
+if [[ "$run_syntax" == "true" && "$run_behavior" == "true" ]]; then
+    echo "All local validation option regressions passed."
+elif [[ "$run_syntax" == "true" ]]; then
+    echo "Local validation syntax checks passed."
+else
+    echo "Local validation behavioral regressions passed."
+fi

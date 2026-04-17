@@ -18,6 +18,8 @@ This project includes two local helper scripts:
 - Run all option-parsing regression checks:
   - `scripts/test-local-validation-option-regressions.sh`
   - Includes `bash -n` syntax checks plus both option regression suites.
+  - Syntax-only mode: `scripts/test-local-validation-option-regressions.sh --syntax-only`
+  - Behavior-only mode: `scripts/test-local-validation-option-regressions.sh --behavior-only`
   - CI automation: `.github/workflows/option-regressions.yml` runs this suite on pushes/PRs to `master`.
 - Run option-parsing regression checks via the top-level wrapper:
   - `scripts/validate-local.sh --option-tests`
