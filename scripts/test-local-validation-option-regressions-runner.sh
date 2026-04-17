@@ -72,6 +72,12 @@ assert_contains "$dry_run_syntax_output" "Dry run summary: syntax regressions on
 assert_not_contains "$dry_run_syntax_output" "Would run behavioral option regressions."
 assert_not_contains "$dry_run_syntax_output" "Running shell syntax checks..."
 
+dry_run_syntax_reversed_output="$(run_expect_exit 0 --syntax-only --dry-run)"
+assert_contains "$dry_run_syntax_reversed_output" "Dry run mode enabled."
+assert_contains "$dry_run_syntax_reversed_output" "Would run shell syntax checks."
+assert_contains "$dry_run_syntax_reversed_output" "Dry run summary: syntax regressions only."
+assert_not_contains "$dry_run_syntax_reversed_output" "Would run behavioral option regressions."
+
 dry_run_behavior_output="$(run_expect_exit 0 --dry-run --behavior-only)"
 assert_contains "$dry_run_behavior_output" "Dry run mode enabled."
 assert_contains "$dry_run_behavior_output" "Would run behavioral option regressions."
@@ -80,6 +86,12 @@ assert_not_contains "$dry_run_behavior_output" "Would run shell syntax checks."
 assert_not_contains "$dry_run_behavior_output" "Running validate-local option regressions..."
 assert_not_contains "$dry_run_behavior_output" "Running smoke-debug-emulator option regressions..."
 
+dry_run_behavior_reversed_output="$(run_expect_exit 0 --behavior-only --dry-run)"
+assert_contains "$dry_run_behavior_reversed_output" "Dry run mode enabled."
+assert_contains "$dry_run_behavior_reversed_output" "Would run behavioral option regressions."
+assert_contains "$dry_run_behavior_reversed_output" "Dry run summary: behavioral regressions only."
+assert_not_contains "$dry_run_behavior_reversed_output" "Would run shell syntax checks."
+
 conflict_output="$(run_expect_exit 1 --syntax-only --behavior-only)"
 assert_contains "$conflict_output" "Cannot combine --syntax-only with --behavior-only."
 assert_contains "$conflict_output" "Usage:"
@@ -87,6 +99,10 @@ assert_contains "$conflict_output" "Usage:"
 dry_run_conflict_output="$(run_expect_exit 1 --dry-run --syntax-only --behavior-only)"
 assert_contains "$dry_run_conflict_output" "Cannot combine --syntax-only with --behavior-only."
 assert_contains "$dry_run_conflict_output" "Usage:"
+
+dry_run_conflict_reversed_output="$(run_expect_exit 1 --syntax-only --behavior-only --dry-run)"
+assert_contains "$dry_run_conflict_reversed_output" "Cannot combine --syntax-only with --behavior-only."
+assert_contains "$dry_run_conflict_reversed_output" "Usage:"
 
 unknown_argument_output="$(run_expect_exit 1 --definitely-unknown-flag)"
 assert_contains "$unknown_argument_output" "Unknown argument: --definitely-unknown-flag"
