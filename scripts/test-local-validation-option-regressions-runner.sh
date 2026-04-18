@@ -88,6 +88,16 @@ help_alias_first_with_conflict_flags_output="$(run_expect_exit 0 -h --syntax-onl
 assert_contains "$help_alias_first_with_conflict_flags_output" "Usage:"
 assert_not_contains "$help_alias_first_with_conflict_flags_output" "Cannot combine --syntax-only with --behavior-only."
 
+help_alias_first_with_dry_run_unknown_output="$(run_expect_exit 0 -h --dry-run --definitely-unknown-flag)"
+assert_contains "$help_alias_first_with_dry_run_unknown_output" "Usage:"
+assert_not_contains "$help_alias_first_with_dry_run_unknown_output" "Unknown argument: --definitely-unknown-flag"
+assert_not_contains "$help_alias_first_with_dry_run_unknown_output" "Dry run mode enabled."
+
+help_alias_first_with_dry_run_conflict_output="$(run_expect_exit 0 -h --dry-run --syntax-only --behavior-only)"
+assert_contains "$help_alias_first_with_dry_run_conflict_output" "Usage:"
+assert_not_contains "$help_alias_first_with_dry_run_conflict_output" "Cannot combine --syntax-only with --behavior-only."
+assert_not_contains "$help_alias_first_with_dry_run_conflict_output" "Dry run mode enabled."
+
 dry_run_default_output="$(run_expect_exit 0 --dry-run)"
 assert_contains "$dry_run_default_output" "Dry run mode enabled."
 assert_contains "$dry_run_default_output" "Would run shell syntax checks."
@@ -207,5 +217,9 @@ assert_not_contains "$dry_run_unknown_argument_output" "Dry run mode enabled."
 dry_run_unknown_before_help_output="$(run_expect_exit 1 --dry-run --definitely-unknown-flag --help)"
 assert_contains "$dry_run_unknown_before_help_output" "Unknown argument: --definitely-unknown-flag"
 assert_not_contains "$dry_run_unknown_before_help_output" "Dry run mode enabled."
+
+dry_run_unknown_before_help_alias_output="$(run_expect_exit 1 --dry-run --definitely-unknown-flag -h)"
+assert_contains "$dry_run_unknown_before_help_alias_output" "Unknown argument: --definitely-unknown-flag"
+assert_not_contains "$dry_run_unknown_before_help_alias_output" "Dry run mode enabled."
 
 echo "local validation option regression runner tests passed."
