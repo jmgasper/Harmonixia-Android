@@ -36,6 +36,7 @@ jobs:
       contents: read
     strategy:
       fail-fast: false
+      max-parallel: 1
       matrix:
         mode:
           - name: syntax-only
