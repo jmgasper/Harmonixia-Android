@@ -269,6 +269,12 @@ assert_contains "$dry_run_conflict_duplicate_syntax_output" "Usage:"
 assert_not_contains "$dry_run_conflict_duplicate_syntax_output" "Dry run mode enabled."
 assert_not_contains "$dry_run_conflict_duplicate_syntax_output" "Dry run summary:"
 
+dry_run_conflict_duplicate_both_output="$(run_expect_exit 1 --dry-run --syntax-only --syntax-only --behavior-only --behavior-only)"
+assert_contains "$dry_run_conflict_duplicate_both_output" "Cannot combine --syntax-only with --behavior-only."
+assert_contains "$dry_run_conflict_duplicate_both_output" "Usage:"
+assert_not_contains "$dry_run_conflict_duplicate_both_output" "Dry run mode enabled."
+assert_not_contains "$dry_run_conflict_duplicate_both_output" "Dry run summary:"
+
 conflict_before_help_output="$(run_expect_exit 0 --syntax-only --behavior-only --help)"
 assert_contains "$conflict_before_help_output" "Usage:"
 assert_not_contains "$conflict_before_help_output" "Cannot combine --syntax-only with --behavior-only."
