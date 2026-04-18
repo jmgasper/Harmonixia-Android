@@ -201,6 +201,24 @@ dry_run_conflict_duplicate_behavior_output="$(run_expect_exit 1 --dry-run --synt
 assert_contains "$dry_run_conflict_duplicate_behavior_output" "Cannot combine --syntax-only with --behavior-only."
 assert_contains "$dry_run_conflict_duplicate_behavior_output" "Usage:"
 
+conflict_before_help_output="$(run_expect_exit 0 --syntax-only --behavior-only --help)"
+assert_contains "$conflict_before_help_output" "Usage:"
+assert_not_contains "$conflict_before_help_output" "Cannot combine --syntax-only with --behavior-only."
+
+conflict_before_help_alias_output="$(run_expect_exit 0 --syntax-only --behavior-only -h)"
+assert_contains "$conflict_before_help_alias_output" "Usage:"
+assert_not_contains "$conflict_before_help_alias_output" "Cannot combine --syntax-only with --behavior-only."
+
+dry_run_conflict_before_help_output="$(run_expect_exit 0 --dry-run --syntax-only --behavior-only --help)"
+assert_contains "$dry_run_conflict_before_help_output" "Usage:"
+assert_not_contains "$dry_run_conflict_before_help_output" "Cannot combine --syntax-only with --behavior-only."
+assert_not_contains "$dry_run_conflict_before_help_output" "Dry run mode enabled."
+
+dry_run_conflict_before_help_alias_output="$(run_expect_exit 0 --dry-run --syntax-only --behavior-only -h)"
+assert_contains "$dry_run_conflict_before_help_alias_output" "Usage:"
+assert_not_contains "$dry_run_conflict_before_help_alias_output" "Cannot combine --syntax-only with --behavior-only."
+assert_not_contains "$dry_run_conflict_before_help_alias_output" "Dry run mode enabled."
+
 unknown_argument_output="$(run_expect_exit 1 --definitely-unknown-flag)"
 assert_contains "$unknown_argument_output" "Unknown argument: --definitely-unknown-flag"
 
