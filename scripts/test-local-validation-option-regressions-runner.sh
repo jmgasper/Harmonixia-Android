@@ -161,6 +161,25 @@ assert_not_contains "$dry_run_behavior_duplicate_flag_output" "Would run shell s
 assert_not_contains "$dry_run_behavior_duplicate_flag_output" "Running validate-local option regressions..."
 assert_not_contains "$dry_run_behavior_duplicate_flag_output" "Running smoke-debug-emulator option regressions..."
 
+runtime_syntax_only_output="$(run_expect_exit 0 --syntax-only)"
+assert_contains "$runtime_syntax_only_output" "Running shell syntax checks..."
+assert_contains "$runtime_syntax_only_output" "Shell syntax checks passed."
+assert_contains "$runtime_syntax_only_output" "Local validation syntax checks passed."
+assert_not_contains "$runtime_syntax_only_output" "Running validate-local option regressions..."
+assert_not_contains "$runtime_syntax_only_output" "Running smoke-debug-emulator option regressions..."
+
+runtime_behavior_only_output="$(run_expect_exit 0 --behavior-only)"
+assert_contains "$runtime_behavior_only_output" "Running validate-local option regressions..."
+assert_contains "$runtime_behavior_only_output" "Running smoke-debug-emulator option regressions..."
+assert_contains "$runtime_behavior_only_output" "Local validation behavioral regressions passed."
+assert_not_contains "$runtime_behavior_only_output" "Running shell syntax checks..."
+
+runtime_default_output="$(run_expect_exit 0)"
+assert_contains "$runtime_default_output" "Running shell syntax checks..."
+assert_contains "$runtime_default_output" "Running validate-local option regressions..."
+assert_contains "$runtime_default_output" "Running smoke-debug-emulator option regressions..."
+assert_contains "$runtime_default_output" "All local validation option regressions passed."
+
 conflict_output="$(run_expect_exit 1 --syntax-only --behavior-only)"
 assert_contains "$conflict_output" "Cannot combine --syntax-only with --behavior-only."
 assert_contains "$conflict_output" "Usage:"
