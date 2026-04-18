@@ -130,6 +130,10 @@ conflict_output="$(run_expect_exit 1 --syntax-only --behavior-only)"
 assert_contains "$conflict_output" "Cannot combine --syntax-only with --behavior-only."
 assert_contains "$conflict_output" "Usage:"
 
+conflict_behavior_first_output="$(run_expect_exit 1 --behavior-only --syntax-only)"
+assert_contains "$conflict_behavior_first_output" "Cannot combine --syntax-only with --behavior-only."
+assert_contains "$conflict_behavior_first_output" "Usage:"
+
 conflict_duplicate_syntax_output="$(run_expect_exit 1 --syntax-only --syntax-only --behavior-only)"
 assert_contains "$conflict_duplicate_syntax_output" "Cannot combine --syntax-only with --behavior-only."
 assert_contains "$conflict_duplicate_syntax_output" "Usage:"
@@ -138,9 +142,17 @@ conflict_duplicate_behavior_output="$(run_expect_exit 1 --syntax-only --behavior
 assert_contains "$conflict_duplicate_behavior_output" "Cannot combine --syntax-only with --behavior-only."
 assert_contains "$conflict_duplicate_behavior_output" "Usage:"
 
+conflict_behavior_first_duplicate_behavior_output="$(run_expect_exit 1 --behavior-only --behavior-only --syntax-only)"
+assert_contains "$conflict_behavior_first_duplicate_behavior_output" "Cannot combine --syntax-only with --behavior-only."
+assert_contains "$conflict_behavior_first_duplicate_behavior_output" "Usage:"
+
 dry_run_conflict_output="$(run_expect_exit 1 --dry-run --syntax-only --behavior-only)"
 assert_contains "$dry_run_conflict_output" "Cannot combine --syntax-only with --behavior-only."
 assert_contains "$dry_run_conflict_output" "Usage:"
+
+dry_run_conflict_behavior_first_output="$(run_expect_exit 1 --dry-run --behavior-only --syntax-only)"
+assert_contains "$dry_run_conflict_behavior_first_output" "Cannot combine --syntax-only with --behavior-only."
+assert_contains "$dry_run_conflict_behavior_first_output" "Usage:"
 
 dry_run_conflict_reversed_output="$(run_expect_exit 1 --syntax-only --behavior-only --dry-run)"
 assert_contains "$dry_run_conflict_reversed_output" "Cannot combine --syntax-only with --behavior-only."
