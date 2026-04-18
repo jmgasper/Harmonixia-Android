@@ -57,6 +57,21 @@ assert_contains "$help_alias_output" "--syntax-only"
 assert_contains "$help_alias_output" "--behavior-only"
 assert_contains "$help_alias_output" "--dry-run"
 
+help_duplicate_output="$(run_expect_exit 0 --help --help)"
+assert_contains "$help_duplicate_output" "Usage:"
+assert_contains "$help_duplicate_output" "--dry-run"
+assert_not_contains "$help_duplicate_output" "Dry run mode enabled."
+
+help_alias_duplicate_output="$(run_expect_exit 0 -h -h)"
+assert_contains "$help_alias_duplicate_output" "Usage:"
+assert_contains "$help_alias_duplicate_output" "--dry-run"
+assert_not_contains "$help_alias_duplicate_output" "Dry run mode enabled."
+
+help_mixed_duplicate_output="$(run_expect_exit 0 --help -h --dry-run)"
+assert_contains "$help_mixed_duplicate_output" "Usage:"
+assert_contains "$help_mixed_duplicate_output" "--dry-run"
+assert_not_contains "$help_mixed_duplicate_output" "Dry run mode enabled."
+
 help_with_dry_run_output="$(run_expect_exit 0 --dry-run --help)"
 assert_contains "$help_with_dry_run_output" "Usage:"
 assert_contains "$help_with_dry_run_output" "--dry-run"
