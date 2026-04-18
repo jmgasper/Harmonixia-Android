@@ -55,11 +55,17 @@ assert_contains "$help_output" "Default:"
 help_alias_output="$(run_expect_exit 0 -h)"
 assert_contains "$help_alias_output" "--syntax-only"
 assert_contains "$help_alias_output" "--behavior-only"
+assert_contains "$help_alias_output" "--dry-run"
 
 help_with_dry_run_output="$(run_expect_exit 0 --dry-run --help)"
 assert_contains "$help_with_dry_run_output" "Usage:"
 assert_contains "$help_with_dry_run_output" "--dry-run"
 assert_not_contains "$help_with_dry_run_output" "Dry run mode enabled."
+
+help_alias_with_dry_run_output="$(run_expect_exit 0 --dry-run -h)"
+assert_contains "$help_alias_with_dry_run_output" "Usage:"
+assert_contains "$help_alias_with_dry_run_output" "--dry-run"
+assert_not_contains "$help_alias_with_dry_run_output" "Dry run mode enabled."
 
 help_with_mode_output="$(run_expect_exit 0 --syntax-only --help)"
 assert_contains "$help_with_mode_output" "Usage:"
@@ -77,6 +83,10 @@ assert_not_contains "$help_alias_first_with_unknown_output" "Unknown argument: -
 help_first_with_conflict_flags_output="$(run_expect_exit 0 --help --syntax-only --behavior-only)"
 assert_contains "$help_first_with_conflict_flags_output" "Usage:"
 assert_not_contains "$help_first_with_conflict_flags_output" "Cannot combine --syntax-only with --behavior-only."
+
+help_alias_first_with_conflict_flags_output="$(run_expect_exit 0 -h --syntax-only --behavior-only)"
+assert_contains "$help_alias_first_with_conflict_flags_output" "Usage:"
+assert_not_contains "$help_alias_first_with_conflict_flags_output" "Cannot combine --syntax-only with --behavior-only."
 
 dry_run_default_output="$(run_expect_exit 0 --dry-run)"
 assert_contains "$dry_run_default_output" "Dry run mode enabled."
