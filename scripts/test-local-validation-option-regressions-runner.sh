@@ -175,6 +175,8 @@ assert_not_contains "$dry_run_default_output" "Running smoke-debug-emulator opti
 
 dry_run_duplicate_flag_output="$(run_expect_exit 0 --dry-run --dry-run)"
 assert_contains "$dry_run_duplicate_flag_output" "Dry run mode enabled."
+assert_contains "$dry_run_duplicate_flag_output" "Would run shell syntax checks."
+assert_contains "$dry_run_duplicate_flag_output" "Would run behavioral option regressions."
 assert_contains "$dry_run_duplicate_flag_output" "Dry run summary: syntax and behavioral regressions."
 assert_not_contains "$dry_run_duplicate_flag_output" "Running shell syntax checks..."
 assert_not_contains "$dry_run_duplicate_flag_output" "Running validate-local option regressions..."
@@ -193,6 +195,7 @@ assert_not_contains "$dry_run_syntax_output" "Running smoke-debug-emulator optio
 
 dry_run_syntax_duplicate_flag_output="$(run_expect_exit 0 --dry-run --syntax-only --syntax-only)"
 assert_contains "$dry_run_syntax_duplicate_flag_output" "Dry run mode enabled."
+assert_contains "$dry_run_syntax_duplicate_flag_output" "Would run shell syntax checks."
 assert_contains "$dry_run_syntax_duplicate_flag_output" "Dry run summary: syntax regressions only."
 assert_not_contains "$dry_run_syntax_duplicate_flag_output" "Dry run summary: syntax and behavioral regressions."
 assert_not_contains "$dry_run_syntax_duplicate_flag_output" "Dry run summary: behavioral regressions only."
@@ -230,6 +233,7 @@ assert_not_contains "$dry_run_behavior_reversed_output" "Running smoke-debug-emu
 
 dry_run_behavior_duplicate_flag_output="$(run_expect_exit 0 --dry-run --behavior-only --behavior-only)"
 assert_contains "$dry_run_behavior_duplicate_flag_output" "Dry run mode enabled."
+assert_contains "$dry_run_behavior_duplicate_flag_output" "Would run behavioral option regressions."
 assert_contains "$dry_run_behavior_duplicate_flag_output" "Dry run summary: behavioral regressions only."
 assert_not_contains "$dry_run_behavior_duplicate_flag_output" "Dry run summary: syntax and behavioral regressions."
 assert_not_contains "$dry_run_behavior_duplicate_flag_output" "Dry run summary: syntax regressions only."
