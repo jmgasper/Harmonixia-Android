@@ -3,6 +3,7 @@ package com.harmonixia.android.data.local
 import android.content.Context
 import android.media.MediaMetadataRetriever
 import android.net.Uri
+import androidx.core.net.toUri
 import androidx.documentfile.provider.DocumentFile
 import androidx.room.withTransaction
 import com.harmonixia.android.data.local.dao.LocalAlbumDao
@@ -27,12 +28,30 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
+internal fun reuseCachedTrackEntityIfUnchanged(
+    cachedTrack: LocalTrackEntity?,
+    lastModified: Long,
+    fileSize: Long,
+    mimeType: String
+): LocalTrackEntity? {
+    val unchangedTrack = cachedTrack?.takeIf {
+        it.lastModified == lastModified &&
+            it.fileSize == fileSize
+    } ?: return null
+    return unchangedTrack.copy(
+        id = 0L,
+        mimeType = mimeType,
+        fileSize = fileSize,
+        lastModified = lastModified
+    )
+}
+
 class LocalMediaScanner @Inject constructor(
     private val localTrackDao: LocalTrackDao,
     private val localAlbumDao: LocalAlbumDao,
     private val localArtistDao: LocalArtistDao,
     private val localMediaDatabase: LocalMediaDatabase,
-    @ApplicationContext private val context: Context,
+    @param:ApplicationContext private val context: Context,
     private val ioDispatcher: CoroutineDispatcher
 ) {
     private val scannerScope = CoroutineScope(SupervisorJob() + ioDispatcher)
@@ -71,7 +90,7 @@ class LocalMediaScanner @Inject constructor(
         if (folderUri.isBlank()) {
             return@withContext failureResult("Local media folder URI is blank")
         }
-        val uri = runCatching { Uri.parse(folderUri) }.getOrNull()
+        val uri = runCatching { folderUri.toUri() }.getOrNull()
             ?: return@withContext failureResult("Invalid local media folder URI")
         val root = DocumentFile.fromTreeUri(context, uri)
             ?: return@withContext failureResult("Unable to access local media folder")
@@ -149,17 +168,15 @@ class LocalMediaScanner @Inject constructor(
         val lastModified = documentFile.lastModified()
         val fileSize = documentFile.length()
         val cachedTrack = cachedTracksByPath[filePath]
-        val unchanged = cachedTrack != null &&
-            cachedTrack.lastModified == lastModified &&
-            cachedTrack.fileSize == fileSize
+        val unchangedTrack = reuseCachedTrackEntityIfUnchanged(
+            cachedTrack = cachedTrack,
+            lastModified = lastModified,
+            fileSize = fileSize,
+            mimeType = mimeType
+        )
 
-        val trackEntity = if (unchanged) {
-            cachedTrack!!.copy(
-                id = 0L,
-                mimeType = mimeType,
-                fileSize = fileSize,
-                lastModified = lastModified
-            )
+        val trackEntity = if (unchangedTrack != null) {
+            unchangedTrack
         } else {
             val fallbackTitle = documentFile.name
                 ?.substringBeforeLast('.')
