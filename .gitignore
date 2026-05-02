@@ -36,6 +36,8 @@ proguard/
 
 # Log Files
 *.log
+!docs/evidence/
+!docs/evidence/*.log
 
 # Android Studio
 /*/build/
