@@ -2,6 +2,7 @@ package com.harmonixia.android.service.playback
 
 import android.net.Uri
 import android.os.Bundle
+import androidx.core.net.toUri
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
@@ -20,8 +21,12 @@ import com.harmonixia.android.util.EXTRA_TRACK_QUALITY
 import com.harmonixia.android.util.Logger
 import com.harmonixia.android.util.applyContentFormatIcons
 import com.harmonixia.android.util.buildPlaybackExtras
+import com.harmonixia.android.util.isSchemeLessPlaybackUri
 import com.harmonixia.android.util.matchesLocal
+import com.harmonixia.android.util.normalizePlaybackUri
+import com.harmonixia.android.util.normalizePlaybackUriOrOriginal
 import com.harmonixia.android.util.playbackDurationMs
+import com.harmonixia.android.util.resolvePlaybackStreamUri
 import java.io.File
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
@@ -82,32 +87,33 @@ class QueueManager(
     }
 
     suspend fun buildMediaItem(track: Track, resolveLocal: Boolean = false): MediaItem {
+        val trackUri = normalizePlaybackUriOrOriginal(track.uri)
         val localFile = when {
             resolveLocal -> resolveLocalFile(track)
             track.provider == OFFLINE_PROVIDER &&
-                track.uri.isNotBlank() &&
-                Uri.parse(track.uri).scheme.isNullOrBlank() -> File(track.uri)
+                trackUri.isNotBlank() &&
+                isSchemeLessPlaybackUri(trackUri) -> File(trackUri)
             else -> null
         }
         if (resolveLocal && track.itemId.isNotBlank()) {
             lastLocalResolutionMediaId = track.itemId
         }
-        return buildMediaItemInternal(track, localFile)
+        return buildMediaItemInternal(track, trackUri, localFile)
     }
 
-    private fun buildMediaItemInternal(track: Track, localFile: File?): MediaItem {
+    private fun buildMediaItemInternal(track: Track, trackUri: String, localFile: File?): MediaItem {
         val isLocalFile = localFile != null
         val durationMs = track.playbackDurationMs()
         val metadataBuilder = MediaMetadata.Builder()
             .setTitle(track.title)
             .setArtist(track.artist)
             .setAlbumTitle(track.album)
-            .setArtworkUri(track.imageUrl?.let { Uri.parse(it) })
+            .setArtworkUri(track.imageUrl?.toUri())
             .setDurationMs(durationMs)
         val extras = track.buildPlaybackExtras(isLocalFile = isLocalFile)
         metadataBuilder.setExtras(extras)
         return MediaItem.Builder()
-            .setUri(localFile?.let { Uri.fromFile(it) } ?: Uri.parse(track.uri))
+            .setUri(localFile?.let { Uri.fromFile(it) } ?: trackUri.toUri())
             .setMediaId(track.itemId)
             .setMediaMetadata(metadataBuilder.build())
             .build()
@@ -169,7 +175,11 @@ class QueueManager(
         if (currentMediaId != track.itemId) return
         val index = player.currentMediaItemIndex
         if (index !in queueItems.indices) return
-        val mediaItem = buildMediaItemInternal(track, localFile)
+        val mediaItem = buildMediaItemInternal(
+            track = track,
+            trackUri = normalizePlaybackUriOrOriginal(track.uri),
+            localFile = localFile
+        )
         queueItems[index] = mediaItem
         player.replaceMediaItem(index, mediaItem)
         player.seekTo(index, currentPosition)
@@ -178,7 +188,7 @@ class QueueManager(
     private suspend fun resolveLocalFile(track: Track): File? {
         return withContext(ioDispatcher) {
             val localPath = if (track.provider == OFFLINE_PROVIDER) {
-                track.uri
+                normalizePlaybackUri(track.uri) ?: track.uri
             } else {
                 resolveMappedLocalPath(track) ?: resolveMatchedLocalPath(track)
             }
@@ -270,8 +280,10 @@ class QueueManager(
 
     private fun isFallbackTitle(title: String, mediaItem: MediaItem): Boolean {
         if (title.isBlank()) return true
-        val streamUri = mediaItem.mediaMetadata.extras?.getString(EXTRA_STREAM_URI).orEmpty()
-        val itemUri = mediaItem.localConfiguration?.uri?.toString().orEmpty()
+        val streamUri = normalizePlaybackUri(
+            mediaItem.mediaMetadata.extras?.getString(EXTRA_STREAM_URI)
+        ).orEmpty()
+        val itemUri = normalizePlaybackUri(mediaItem.localConfiguration?.uri?.toString()).orEmpty()
         return title == streamUri || (itemUri.isNotBlank() && title == itemUri)
     }
 
@@ -398,7 +410,7 @@ class QueueManager(
         if (!resolvedDomains.isNullOrEmpty()) {
             merged.putStringArray(EXTRA_PROVIDER_DOMAINS, resolvedDomains)
         }
-        val streamUri = pickBestString(
+        val streamUri = resolvePlaybackStreamUri(
             existing?.getString(EXTRA_STREAM_URI),
             incoming?.getString(EXTRA_STREAM_URI)
         )
