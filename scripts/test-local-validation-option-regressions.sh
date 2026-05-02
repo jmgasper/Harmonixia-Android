@@ -89,6 +89,7 @@ if [[ "$run_syntax" == "true" ]]; then
     bash -n "${script_dir}/validate-local.sh"
     bash -n "${script_dir}/smoke-debug-emulator.sh"
     bash -n "${script_dir}/test-agp9-phase2-audit-options.sh"
+    bash -n "${script_dir}/test-validate-local-agp-gate-simulator.sh"
     bash -n "${script_dir}/test-validate-local-options.sh"
     bash -n "${script_dir}/test-smoke-debug-emulator-options.sh"
     bash -n "${script_dir}/test-local-validation-option-regressions-runner.sh"
@@ -101,6 +102,9 @@ if [[ "$run_behavior" == "true" ]]; then
 
     echo "Running validate-local option regressions..."
     "${script_dir}/test-validate-local-options.sh"
+
+    echo "Running validate-local AGP gate simulator regressions..."
+    "${script_dir}/test-validate-local-agp-gate-simulator.sh"
 
     echo "Running smoke-debug-emulator option regressions..."
     "${script_dir}/test-smoke-debug-emulator-options.sh"

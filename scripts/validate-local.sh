@@ -3,6 +3,7 @@ set -euo pipefail
 
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 repo_root="$(cd "${script_dir}/.." && pwd)"
+agp9_audit_script="${script_dir}/agp9-phase2-audit.sh"
 
 with_smoke="false"
 default_avd_name="Medium_Phone"
@@ -20,6 +21,7 @@ smoke_list_avds="false"
 smoke_help="false"
 smoke_options_used="false"
 smoke_runtime_conflict_options_used="false"
+agp9_full_path="false"
 run_option_tests="false"
 run_compile="true"
 run_test="true"
@@ -30,11 +32,12 @@ usage() {
 Usage: $(basename "$0") [options]
 
 Run local validation gates before committing:
-  1. :app:compileDebugKotlin
-  2. :app:testDebugUnitTest
-  3. :app:lintDebug
+  1. AGP 9 Phase 2 static audit via scripts/agp9-phase2-audit.sh
+  2. :app:compileDebugKotlin
+  3. :app:testDebugUnitTest
+  4. :app:lintDebug
 Optional:
-  4. emulator smoke test via scripts/smoke-debug-emulator.sh
+  5. emulator smoke test via scripts/smoke-debug-emulator.sh
 
 Options:
   --with-smoke         Include emulator smoke validation
@@ -49,6 +52,7 @@ Options:
   --keep-logs          Forward --keep-logs to smoke validation (alias: --smoke-keep-logs)
   --list-avds          List AVDs via smoke validation (implies smoke-only, alias: --smoke-list-avds)
   --smoke-help         Print smoke script help and exit (implies smoke-only)
+  --agp9-full-path     Run AGP audit + compile/test/lint + smoke as one gate path
   --smoke-only         Disable compile/test/lint gates and run smoke only
   --option-tests       Run local option regression suites and exit
   --skip-compile       Skip :app:compileDebugKotlin gate
@@ -184,6 +188,14 @@ while [[ $# -gt 0 ]]; do
             run_lint="false"
             shift
             ;;
+        --agp9-full-path)
+            agp9_full_path="true"
+            with_smoke="true"
+            run_compile="true"
+            run_test="true"
+            run_lint="true"
+            shift
+            ;;
         --smoke-only)
             with_smoke="true"
             run_compile="false"
@@ -220,7 +232,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 if [[ "$run_option_tests" == "true" ]]; then
-    if [[ "$with_smoke" == "true" || "$smoke_options_used" == "true" || "$run_compile" != "true" || "$run_test" != "true" || "$run_lint" != "true" ]]; then
+    if [[ "$with_smoke" == "true" || "$smoke_options_used" == "true" || "$agp9_full_path" == "true" || "$run_compile" != "true" || "$run_test" != "true" || "$run_lint" != "true" ]]; then
         echo "--option-tests cannot be combined with compile/test/lint toggles or smoke execution flags." >&2
         echo "Run --option-tests by itself." >&2
         usage >&2
@@ -233,6 +245,18 @@ fi
 
 if [[ "$with_smoke" != "true" && "$smoke_options_used" == "true" ]]; then
     echo "Smoke-specific flags require --with-smoke or --smoke-only." >&2
+    usage >&2
+    exit 1
+fi
+
+if [[ "$agp9_full_path" == "true" && ( "$smoke_help" == "true" || "$smoke_list_avds" == "true" ) ]]; then
+    echo "--agp9-full-path cannot be combined with informational smoke-only modes (--smoke-help or --list-avds)." >&2
+    usage >&2
+    exit 1
+fi
+
+if [[ "$agp9_full_path" == "true" && ( "$run_compile" != "true" || "$run_test" != "true" || "$run_lint" != "true" ) ]]; then
+    echo "--agp9-full-path cannot be combined with compile/test/lint skip flags." >&2
     usage >&2
     exit 1
 fi
@@ -305,6 +329,18 @@ if [[ "$run_lint" == "true" ]]; then
 fi
 
 if [[ "${#gradle_tasks[@]}" -gt 0 ]]; then
+    if [[ "$agp9_full_path" == "true" ]]; then
+        echo "Running AGP 9 full-path validation gate (audit + compile/test/lint + smoke)..."
+    fi
+
+    if [[ ! -x "$agp9_audit_script" ]]; then
+        echo "AGP 9 audit script is missing or not executable: $agp9_audit_script" >&2
+        exit 1
+    fi
+
+    echo "Running AGP 9 Phase 2 static audit gate..."
+    "$agp9_audit_script"
+
     echo "Running Gradle validation gates: ${gradle_tasks[*]}"
     (
         cd "$repo_root"

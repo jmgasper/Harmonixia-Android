@@ -2,7 +2,7 @@
 
 This project includes two local helper scripts:
 
-- `scripts/validate-local.sh`: primary entrypoint for compile/test/lint and optional smoke runs.
+- `scripts/validate-local.sh`: primary entrypoint for AGP 9 Phase 2 static audit, compile/test/lint, and optional smoke runs.
 - `scripts/smoke-debug-emulator.sh`: direct emulator smoke runner.
 
 ## Prerequisites
@@ -18,11 +18,17 @@ This project includes two local helper scripts:
 - Run all option-parsing regression checks:
   - `scripts/test-local-validation-option-regressions.sh`
   - Includes `bash -n` syntax checks plus both option regression suites.
+- Run option-parsing regression checks for AGP 9 audit scaffold:
+  - `scripts/test-agp9-phase2-audit-options.sh`
+  - Covers help output, unknown-argument handling, and static-audit baseline execution output.
+- Run AGP gate-path simulator regression checks for `validate-local.sh`:
+  - `scripts/test-validate-local-agp-gate-simulator.sh`
+  - Uses local command simulators to validate gate ordering, fail-fast behavior, and smoke-only bypass without running real Gradle/emulator jobs.
   - Preview selected mode(s) without running checks: `scripts/test-local-validation-option-regressions.sh --dry-run [--syntax-only|--behavior-only]`
   - Syntax-only mode: `scripts/test-local-validation-option-regressions.sh --syntax-only`
   - Behavior-only mode: `scripts/test-local-validation-option-regressions.sh --behavior-only`
   - Runner-mode self-test: `scripts/test-local-validation-option-regressions-runner.sh` (covers dry-run mode selection, runtime mode summaries, plus conflict and unknown-argument handling).
-  - CI automation: `.github/workflows/option-regressions.yml` runs syntax-only, behavior-only, dry-run-preview, runner-self-test, and `validate-local.sh --option-tests` wrapper modes on pushes/PRs to `master` when local-validation workflow/scripts/docs files change.
+  - CI automation: `.github/workflows/option-regressions.yml` runs syntax-only, `agp9-audit-options`, `validate-local-agp-gate-simulator`, behavior-only, dry-run-preview, runner-self-test, and `validate-local.sh --option-tests` wrapper modes on pushes/PRs to `master` when local-validation workflow/scripts/docs files change.
   - The option-regression matrix is intentionally serialized (`max-parallel: 1`) to keep output ordering predictable and reduce hosted-runner contention.
 - Run option-parsing regression checks via the top-level wrapper:
   - `scripts/validate-local.sh --option-tests`
@@ -32,6 +38,14 @@ This project includes two local helper scripts:
   - Covers both base smoke flags and `--smoke-*` alias forms for help, passthrough, conflict behavior, unknown-argument handling, and missing-value validation.
 - Run standard local gates:
   - `scripts/validate-local.sh`
+  - Includes AGP 9 static audit (`scripts/agp9-phase2-audit.sh`) before Gradle compile/test/lint tasks.
+- Run AGP 9 full-path gate with simulator smoke targeting:
+  - `scripts/validate-local.sh --agp9-full-path --no-launch --serial emulator-5554 --task :app:installDebug`
+  - Expected markers include:
+    - `Running AGP 9 full-path validation gate (audit + compile/test/lint + smoke)...`
+    - `Running AGP 9 Phase 2 static audit gate...`
+    - `Running Gradle validation gates: :app:compileDebugKotlin :app:testDebugUnitTest :app:lintDebug`
+    - `Running emulator smoke gate...`
 - Run smoke only and list AVDs:
   - `scripts/validate-local.sh --list-avds`
 - Show smoke-script help without running Gradle gates:
@@ -89,7 +103,10 @@ The `target=` value indicates how emulator selection will work:
   - `--app-id`
   - `--task`
 - In `validate-local.sh`, smoke-specific flags require smoke mode (`--with-smoke` or `--smoke-only`).
+- In `validate-local.sh`, `--agp9-full-path` enables AGP audit + compile/test/lint + smoke in one command.
+- In `validate-local.sh`, `--agp9-full-path` cannot be combined with informational smoke-only modes (`--smoke-help`, `--list-avds`) or compile/test/lint skip flags.
 - In `validate-local.sh`, `--option-tests` cannot be combined with compile/test/lint toggles or smoke execution flags.
+- In `validate-local.sh`, selecting any compile/test/lint gate also runs the AGP 9 Phase 2 static audit gate first.
 - In `validate-local.sh`, smoke passthrough flags also accept `--smoke-*` aliases (for example `--smoke-avd`, `--smoke-serial`, `--smoke-no-launch`, `--smoke-connect-timeout`, `--smoke-boot-timeout`, `--smoke-launch-wait`, `--smoke-list-avds`).
 - In `validate-local.sh`, both `--smoke-app-id`/`--app-id` and `--smoke-task`/`--task` are accepted aliases.
 - In `validate-local.sh`, both `--keep-logs` and `--smoke-keep-logs` are accepted aliases.
@@ -104,6 +121,8 @@ The `target=` value indicates how emulator selection will work:
 
 - Error: `No validation gates selected. Enable at least one gate or use --with-smoke/--smoke-only.`
   - Fix: enable at least one compile/test/lint gate, or run smoke mode via `--with-smoke` or `--smoke-only`.
+- Error: `AGP 9 audit script is missing or not executable: .../scripts/agp9-phase2-audit.sh`
+  - Fix: restore executable permissions and file presence (`chmod +x scripts/agp9-phase2-audit.sh` if needed), then rerun validation.
 - Error: `--list-avds cannot be combined with runtime smoke options.`
   - Fix: run `--list-avds` alone (or with non-runtime flags only), without serial/AVD/launch/task/timeout overrides (including `--smoke-*` alias forms).
 - Error: `--smoke-help cannot be combined with runtime smoke options.`
@@ -141,3 +160,15 @@ The `target=` value indicates how emulator selection will work:
 - Debugging tip: use `--keep-logs` to retain per-run uninstall/monkey/emulator logs even when the run succeeds.
 - Error: `JDK 17 is required for smoke execution.`
   - Fix: install/use JDK 17 (`java -version` should report 17) or set `JAVA_HOME` to a JDK 17 path.
+- Error: `SDK location not found. Define a valid SDK location with an ANDROID_HOME environment variable or by setting the sdk.dir path...`
+  - Fix: ensure `local.properties` `sdk.dir` points to an existing SDK directory and export:
+    - `ANDROID_HOME=<sdk-path>`
+    - `ANDROID_SDK_ROOT=<sdk-path>`
+  - Expected packages for this repo baseline (`compileSdk 36`):
+    - `platform-tools`
+    - `platforms;android-36`
+    - `build-tools;36.0.0`
+  - Quick bootstrap example (Linux):
+    - install command-line tools under `$HOME/Android/Sdk/cmdline-tools/latest`
+    - run `sdkmanager "platform-tools" "platforms;android-36" "build-tools;36.0.0"`
+    - re-run `./gradlew :app:kaptDebugUnitTestKotlin --warning-mode=all`

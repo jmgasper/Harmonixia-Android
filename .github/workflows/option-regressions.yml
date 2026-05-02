@@ -9,6 +9,7 @@ on:
       - scripts/agp9-phase2-audit.sh
       - scripts/test-agp9-phase2-audit-options.sh
       - scripts/validate-local.sh
+      - scripts/test-validate-local-agp-gate-simulator.sh
       - scripts/smoke-debug-emulator.sh
       - scripts/test-*-options.sh
       - scripts/test-local-validation-option-regressions*.sh
@@ -22,6 +23,7 @@ on:
       - scripts/agp9-phase2-audit.sh
       - scripts/test-agp9-phase2-audit-options.sh
       - scripts/validate-local.sh
+      - scripts/test-validate-local-agp-gate-simulator.sh
       - scripts/smoke-debug-emulator.sh
       - scripts/test-*-options.sh
       - scripts/test-local-validation-option-regressions*.sh
@@ -49,6 +51,8 @@ jobs:
             command: ./scripts/test-local-validation-option-regressions.sh --syntax-only
           - name: agp9-audit-options
             command: ./scripts/test-agp9-phase2-audit-options.sh
+          - name: validate-local-agp-gate-simulator
+            command: ./scripts/test-validate-local-agp-gate-simulator.sh
           - name: behavior-only
             command: ./scripts/test-local-validation-option-regressions.sh --behavior-only
           - name: dry-run-preview
