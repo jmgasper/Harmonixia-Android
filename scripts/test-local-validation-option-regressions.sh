@@ -85,8 +85,10 @@ fi
 
 if [[ "$run_syntax" == "true" ]]; then
     echo "Running shell syntax checks..."
+    bash -n "${script_dir}/agp9-phase2-audit.sh"
     bash -n "${script_dir}/validate-local.sh"
     bash -n "${script_dir}/smoke-debug-emulator.sh"
+    bash -n "${script_dir}/test-agp9-phase2-audit-options.sh"
     bash -n "${script_dir}/test-validate-local-options.sh"
     bash -n "${script_dir}/test-smoke-debug-emulator-options.sh"
     bash -n "${script_dir}/test-local-validation-option-regressions-runner.sh"
@@ -94,6 +96,9 @@ if [[ "$run_syntax" == "true" ]]; then
 fi
 
 if [[ "$run_behavior" == "true" ]]; then
+    echo "Running AGP 9 phase 2 audit option regressions..."
+    "${script_dir}/test-agp9-phase2-audit-options.sh"
+
     echo "Running validate-local option regressions..."
     "${script_dir}/test-validate-local-options.sh"
 

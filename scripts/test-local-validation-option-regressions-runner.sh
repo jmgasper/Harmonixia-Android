@@ -259,6 +259,7 @@ assert_not_contains "$runtime_syntax_only_duplicate_flag_output" "Dry run mode e
 assert_not_contains "$runtime_syntax_only_duplicate_flag_output" "Dry run summary:"
 
 runtime_behavior_only_output="$(run_expect_exit 0 --behavior-only)"
+assert_contains "$runtime_behavior_only_output" "Running AGP 9 phase 2 audit option regressions..."
 assert_contains "$runtime_behavior_only_output" "Running validate-local option regressions..."
 assert_contains "$runtime_behavior_only_output" "Running smoke-debug-emulator option regressions..."
 assert_contains "$runtime_behavior_only_output" "Local validation behavioral regressions passed."
@@ -267,6 +268,7 @@ assert_not_contains "$runtime_behavior_only_output" "Dry run mode enabled."
 assert_not_contains "$runtime_behavior_only_output" "Dry run summary:"
 
 runtime_behavior_only_duplicate_flag_output="$(run_expect_exit 0 --behavior-only --behavior-only)"
+assert_contains "$runtime_behavior_only_duplicate_flag_output" "Running AGP 9 phase 2 audit option regressions..."
 assert_contains "$runtime_behavior_only_duplicate_flag_output" "Running validate-local option regressions..."
 assert_contains "$runtime_behavior_only_duplicate_flag_output" "Running smoke-debug-emulator option regressions..."
 assert_contains "$runtime_behavior_only_duplicate_flag_output" "Local validation behavioral regressions passed."
@@ -276,6 +278,7 @@ assert_not_contains "$runtime_behavior_only_duplicate_flag_output" "Dry run summ
 
 runtime_default_output="$(run_expect_exit 0)"
 assert_contains "$runtime_default_output" "Running shell syntax checks..."
+assert_contains "$runtime_default_output" "Running AGP 9 phase 2 audit option regressions..."
 assert_contains "$runtime_default_output" "Running validate-local option regressions..."
 assert_contains "$runtime_default_output" "Running smoke-debug-emulator option regressions..."
 assert_contains "$runtime_default_output" "All local validation option regressions passed."

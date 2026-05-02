@@ -6,20 +6,26 @@ on:
       - master
     paths:
       - .github/workflows/option-regressions.yml
+      - scripts/agp9-phase2-audit.sh
+      - scripts/test-agp9-phase2-audit-options.sh
       - scripts/validate-local.sh
       - scripts/smoke-debug-emulator.sh
       - scripts/test-*-options.sh
       - scripts/test-local-validation-option-regressions*.sh
+      - docs/agp9-phase2-audit-scaffolding.md
       - docs/local-validation-workflow.md
   pull_request:
     branches:
       - master
     paths:
       - .github/workflows/option-regressions.yml
+      - scripts/agp9-phase2-audit.sh
+      - scripts/test-agp9-phase2-audit-options.sh
       - scripts/validate-local.sh
       - scripts/smoke-debug-emulator.sh
       - scripts/test-*-options.sh
       - scripts/test-local-validation-option-regressions*.sh
+      - docs/agp9-phase2-audit-scaffolding.md
       - docs/local-validation-workflow.md
   workflow_dispatch:
 
@@ -41,6 +47,8 @@ jobs:
         mode:
           - name: syntax-only
             command: ./scripts/test-local-validation-option-regressions.sh --syntax-only
+          - name: agp9-audit-options
+            command: ./scripts/test-agp9-phase2-audit-options.sh
           - name: behavior-only
             command: ./scripts/test-local-validation-option-regressions.sh --behavior-only
           - name: dry-run-preview
