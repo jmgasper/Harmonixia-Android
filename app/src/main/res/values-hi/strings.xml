@@ -63,6 +63,7 @@
     <string name="player_selection_this_device">यह डिवाइस</string>
     <string name="player_available">उपलब्ध</string>
     <string name="player_unavailable">अनुपलब्ध</string>
+    <string name="player_selection_no_players_available">No players available</string>
     <string name="content_desc_player_icon">प्लेयर</string>
     <string name="content_desc_speaker_icon">स्पीकर सेटिंग्स</string>
     <string name="player_indicator_no_player">कोई प्लेयर चुना नहीं गया</string>

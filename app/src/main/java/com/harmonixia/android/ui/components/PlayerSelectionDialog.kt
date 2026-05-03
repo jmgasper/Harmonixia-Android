@@ -119,7 +119,7 @@ fun PlayerSelectionDialog(
                             .weight(1f)
                     ) {
                         Text(
-                            text = "No players available",
+                            text = stringResource(R.string.player_selection_no_players_available),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             textAlign = TextAlign.Center,

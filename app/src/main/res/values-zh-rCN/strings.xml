@@ -63,6 +63,7 @@
     <string name="player_selection_this_device">本设备</string>
     <string name="player_available">可用</string>
     <string name="player_unavailable">不可用</string>
+    <string name="player_selection_no_players_available">No players available</string>
     <string name="content_desc_player_icon">播放器</string>
     <string name="content_desc_speaker_icon">扬声器设置</string>
     <string name="player_indicator_no_player">未选择播放器</string>

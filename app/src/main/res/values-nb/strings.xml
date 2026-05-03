@@ -63,6 +63,7 @@
     <string name="player_selection_this_device">Denne enheten</string>
     <string name="player_available">Tilgjengelig</string>
     <string name="player_unavailable">Utilgjengelig</string>
+    <string name="player_selection_no_players_available">No players available</string>
     <string name="content_desc_player_icon">Spiller</string>
     <string name="content_desc_speaker_icon">Høyttalerinnstillinger</string>
     <string name="player_indicator_no_player">Ingen spiller valgt</string>

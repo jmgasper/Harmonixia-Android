@@ -63,6 +63,7 @@
     <string name="player_selection_this_device">Tämä laite</string>
     <string name="player_available">Saatavilla</string>
     <string name="player_unavailable">Ei saatavilla</string>
+    <string name="player_selection_no_players_available">No players available</string>
     <string name="content_desc_player_icon">Soitin</string>
     <string name="content_desc_speaker_icon">Kaiuttimen asetukset</string>
     <string name="player_indicator_no_player">Soitinta ei ole valittu</string>

@@ -63,6 +63,7 @@
     <string name="player_selection_this_device">Den här enheten</string>
     <string name="player_available">Tillgänglig</string>
     <string name="player_unavailable">Otillgänglig</string>
+    <string name="player_selection_no_players_available">No players available</string>
     <string name="content_desc_player_icon">Spelare</string>
     <string name="content_desc_speaker_icon">Högtalarinställningar</string>
     <string name="player_indicator_no_player">Ingen spelare vald</string>

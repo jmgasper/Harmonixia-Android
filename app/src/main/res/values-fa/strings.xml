@@ -63,6 +63,7 @@
     <string name="player_selection_this_device">این دستگاه</string>
     <string name="player_available">در دسترس</string>
     <string name="player_unavailable">در دسترس نیست</string>
+    <string name="player_selection_no_players_available">No players available</string>
     <string name="content_desc_player_icon">پخش‌کننده</string>
     <string name="content_desc_speaker_icon">تنظیمات بلندگو</string>
     <string name="player_indicator_no_player">هیچ پخش‌کننده‌ای انتخاب نشده است</string>

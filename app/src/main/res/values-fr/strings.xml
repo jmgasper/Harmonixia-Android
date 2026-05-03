@@ -63,6 +63,7 @@
     <string name="player_selection_this_device">Cet appareil</string>
     <string name="player_available">Disponible</string>
     <string name="player_unavailable">Indisponible</string>
+    <string name="player_selection_no_players_available">No players available</string>
     <string name="content_desc_player_icon">Lecteur</string>
     <string name="content_desc_speaker_icon">Paramètres du haut-parleur</string>
     <string name="player_indicator_no_player">Aucun lecteur sélectionné</string>
