@@ -1,5 +1,6 @@
 package com.harmonixia.android.ui.screens.albums
 
+import android.content.Context
 import android.net.Uri
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
@@ -27,6 +28,7 @@ import com.harmonixia.android.util.mergeWithLocal
 import com.harmonixia.android.util.NetworkConnectivityManager
 import com.harmonixia.android.util.PrefetchScheduler
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -64,6 +66,7 @@ class AlbumDetailViewModel @Inject constructor(
     private val networkConnectivityManager: NetworkConnectivityManager,
     private val prefetchScheduler: PrefetchScheduler,
     private val performanceMonitor: PerformanceMonitor,
+    @param:ApplicationContext private val context: Context,
     savedStateHandle: SavedStateHandle,
     val imageQualityManager: ImageQualityManager
 ) : ViewModel() {
@@ -128,7 +131,7 @@ class AlbumDetailViewModel @Inject constructor(
     ) {
         cancelTrackDetailsRetry()
         if (albumId.isBlank() || provider.isBlank()) {
-            _uiState.value = AlbumDetailUiState.Error("Missing album details.")
+            _uiState.value = AlbumDetailUiState.Error(albumsErrorMessage())
             return
         }
         val detailKey = detailKey()
@@ -138,7 +141,7 @@ class AlbumDetailViewModel @Inject constructor(
         if (provider == OFFLINE_PROVIDER) {
             val localAlbum = resolveLocalAlbum()
             if (localAlbum == null) {
-                _uiState.value = AlbumDetailUiState.Error("Album not found.")
+                _uiState.value = AlbumDetailUiState.Error(albumNotFoundMessage())
                 return
             }
             val localTracks = loadLocalTracks(localAlbum)
@@ -164,7 +167,7 @@ class AlbumDetailViewModel @Inject constructor(
         if (isOfflineMode.value) {
             if (cachedAlbum == null || cachedTracks == null) {
                 _uiState.value = AlbumDetailUiState.Error(
-                    "Offline cache unavailable for this album."
+                    offlineAlbumUnavailableMessage()
                 )
                 return
             }
@@ -238,7 +241,7 @@ class AlbumDetailViewModel @Inject constructor(
             val error = albumResult.exceptionOrNull() ?: tracksResult.exceptionOrNull()
             if (error != null) {
                 if (cachedAlbum == null) {
-                    _uiState.value = AlbumDetailUiState.Error(error.message ?: "Unknown error")
+                    _uiState.value = AlbumDetailUiState.Error(error.message ?: albumsErrorMessage())
                 }
                 return@supervisorScope
             }
@@ -890,6 +893,12 @@ class AlbumDetailViewModel @Inject constructor(
     private fun normalizeMatchKey(value: String): String {
         return value.trim().lowercase()
     }
+
+    private fun albumsErrorMessage(): String = context.getString(R.string.albums_error)
+
+    private fun albumNotFoundMessage(): String = context.getString(R.string.now_playing_album_not_found)
+
+    private fun offlineAlbumUnavailableMessage(): String = context.getString(R.string.home_offline_no_content)
 
     private fun detailKey(): String {
         return "${albumId.trim()}:${provider.trim()}"
