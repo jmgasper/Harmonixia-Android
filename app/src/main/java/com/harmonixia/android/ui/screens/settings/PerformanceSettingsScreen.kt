@@ -31,7 +31,7 @@ import com.harmonixia.android.ui.components.PlayerSelectionAction
 import com.harmonixia.android.ui.playback.PlaybackViewModel
 import com.harmonixia.android.ui.screens.settings.entrypoints.PerformanceSettingsEntryPoint
 import dagger.hilt.android.EntryPointAccessors
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import java.util.Locale
 
 @Composable

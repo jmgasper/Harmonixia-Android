@@ -1,6 +1,6 @@
 package com.harmonixia.android.ui.components
 
-import android.app.Activity
+import androidx.activity.compose.LocalActivity
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -24,7 +24,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.harmonixia.android.R
@@ -38,7 +37,7 @@ fun AlbumTypeFilterMenu(
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val windowSizeClass = calculateWindowSizeClass(activity = LocalContext.current as Activity)
+    val windowSizeClass = calculateWindowSizeClass(activity = checkNotNull(LocalActivity.current))
     val isCompact = windowSizeClass.widthSizeClass == WindowWidthSizeClass.Compact
     val albumTypes = remember {
         listOf(

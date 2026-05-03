@@ -1,6 +1,6 @@
 package com.harmonixia.android.ui.navigation
 
-import android.app.Activity
+import androidx.activity.compose.LocalActivity
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
@@ -58,7 +58,7 @@ fun NavGraph(
     } else {
         Screen.Home.route
     }
-    val windowSizeClass = calculateWindowSizeClass(activity = context as Activity)
+    val windowSizeClass = calculateWindowSizeClass(activity = checkNotNull(LocalActivity.current))
     var enableSharedArtworkTransition by rememberSaveable { mutableStateOf(false) }
     val getConnectionStateUseCase = remember(context) {
         (context.applicationContext as HarmonixiaApplication).getConnectionStateUseCase
