@@ -41,16 +41,16 @@ abstract class LocalMediaDatabase : RoomDatabase() {
         const val DATABASE_NAME = "local_media_database"
 
         val MIGRATION_1_2 = object : Migration(1, 2) {
-            override fun migrate(database: SupportSQLiteDatabase) {
-                database.execSQL(
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
                     "ALTER TABLE local_albums ADD COLUMN firstTrackPath TEXT"
                 )
             }
         }
 
         val MIGRATION_2_3 = object : Migration(2, 3) {
-            override fun migrate(database: SupportSQLiteDatabase) {
-                database.execSQL(
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
                     """
                     CREATE TABLE IF NOT EXISTS cached_albums (
                         cacheKey TEXT NOT NULL,
@@ -70,18 +70,18 @@ abstract class LocalMediaDatabase : RoomDatabase() {
                     )
                     """.trimIndent()
                 )
-                database.execSQL(
+                db.execSQL(
                     "CREATE INDEX IF NOT EXISTS index_cached_albums_sortIndex ON cached_albums(sortIndex)"
                 )
-                database.execSQL(
+                db.execSQL(
                     "CREATE INDEX IF NOT EXISTS index_cached_albums_syncId ON cached_albums(syncId)"
                 )
             }
         }
 
         val MIGRATION_3_4 = object : Migration(3, 4) {
-            override fun migrate(database: SupportSQLiteDatabase) {
-                database.execSQL(
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
                     """
                     CREATE TABLE IF NOT EXISTS cached_artists (
                         cacheKey TEXT NOT NULL,
@@ -97,10 +97,10 @@ abstract class LocalMediaDatabase : RoomDatabase() {
                     )
                     """.trimIndent()
                 )
-                database.execSQL(
+                db.execSQL(
                     "CREATE INDEX IF NOT EXISTS index_cached_artists_sortIndex ON cached_artists(sortIndex)"
                 )
-                database.execSQL(
+                db.execSQL(
                     "CREATE INDEX IF NOT EXISTS index_cached_artists_syncId ON cached_artists(syncId)"
                 )
             }

@@ -1,0 +1,15 @@
+  bash arg: -p
+  bash arg: com.harmonixia.android
+  bash arg: -c
+  bash arg: android.intent.category.LAUNCHER
+  bash arg: 1
+args: [-p, com.harmonixia.android, -c, android.intent.category.LAUNCHER, 1]
+ arg: "-p"
+ arg: "com.harmonixia.android"
+ arg: "-c"
+ arg: "android.intent.category.LAUNCHER"
+ arg: "1"
+data="com.harmonixia.android"
+data="android.intent.category.LAUNCHER"
+Events injected: 1
+## Network stats: elapsed time=22ms (0ms mobile, 0ms wifi, 22ms not connected)
