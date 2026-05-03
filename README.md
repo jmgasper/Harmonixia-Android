@@ -31,6 +31,20 @@ playback control, and EQ presets.  Primarily built with Codex.
    - CLI: `./gradlew installDebug`
 4. On first launch, enter the Music Assistant server URL (http(s)://host:port) and, if needed, an access token.
 
+## Testing build cadence
+
+- GitHub Actions workflow `Build Debug APK (Testing Cadence)` creates a fresh debug APK for testers:
+  - On every push to `master`
+  - Every weekday on a schedule (12:00 UTC)
+  - On demand via workflow dispatch
+- Testers can download the latest installable APK from:
+  - GitHub repository Actions tab
+  - Latest successful `Build Debug APK (Testing Cadence)` run
+  - Artifact `harmonixia-debug-apk` (`Harmonixia-debug.apk` + `build-info.txt`)
+- Local equivalent command:
+  - `./scripts/build-debug-apk.sh`
+  - Output defaults to `build/testing/Harmonixia-debug.apk`
+
 ## Implementation details
 
 - Architecture: MVVM-style UI with a data/domain/UI split. Repositories expose flows of state and use cases
