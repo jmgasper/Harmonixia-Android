@@ -31,11 +31,6 @@
     <string name="local_media_no_folder_selected">Nenhuma pasta selecionada</string>
     <string name="local_media_select_folder">Selecionar pasta</string>
     <string name="local_media_refresh">Analisar pasta</string>
-    <plurals name="local_media_scanning">
-        <item quantity="one">A analisar: %1$d / %2$d ficheiros</item>
-        <item quantity="many">A analisar: %1$d / %2$d ficheiros</item>
-        <item quantity="other">A analisar: %1$d / %2$d ficheiros</item>
-    </plurals>
     <string name="local_media_scan_complete">Análise concluída: %1$d faixas, %2$d álbuns, %3$d artistas</string>
     <string name="local_media_scan_error">Falha na análise: %1$s</string>
     <string name="content_desc_local_media_folder">Caminho da pasta multimédia local</string>

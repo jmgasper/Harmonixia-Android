@@ -31,10 +31,6 @@
     <string name="local_media_no_folder_selected">Ingen mappe valgt</string>
     <string name="local_media_select_folder">Velg mappe</string>
     <string name="local_media_refresh">Skann mappe</string>
-    <plurals name="local_media_scanning">
-        <item quantity="one">Skanner: %1$d / %2$d filer</item>
-        <item quantity="other">Skanner: %1$d / %2$d filer</item>
-    </plurals>
     <string name="local_media_scan_complete">Skanning fullført: %1$d spor, %2$d album, %3$d artister</string>
     <string name="local_media_scan_error">Skanning mislyktes: %1$s</string>
     <string name="content_desc_local_media_folder">Sti til lokal mediamappe</string>

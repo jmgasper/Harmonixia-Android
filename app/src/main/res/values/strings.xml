@@ -33,10 +33,6 @@
     <string name="local_media_available_files">Local files available: %1$d</string>
     <string name="local_media_select_folder">Select Folder</string>
     <string name="local_media_refresh">Scan Folder</string>
-    <plurals name="local_media_scanning">
-        <item quantity="one">Scanning: %1$d / %2$d file</item>
-        <item quantity="other">Scanning: %1$d / %2$d files</item>
-    </plurals>
     <string
         name="local_media_scan_complete"
         tools:ignore="PluralsCandidate">Scan complete: %1$d tracks, %2$d albums, %3$d artists</string>

@@ -31,10 +31,6 @@
     <string name="local_media_no_folder_selected">Kansiota ei ole valittu</string>
     <string name="local_media_select_folder">Valitse kansio</string>
     <string name="local_media_refresh">Skannaa kansio</string>
-    <plurals name="local_media_scanning">
-        <item quantity="one">Skannataan: %1$d / %2$d tiedostoa</item>
-        <item quantity="other">Skannataan: %1$d / %2$d tiedostoa</item>
-    </plurals>
     <string name="local_media_scan_complete">Skannaus valmis: %1$d kappaletta, %2$d albumia, %3$d artistia</string>
     <string name="local_media_scan_error">Skannaus epäonnistui: %1$s</string>
     <string name="content_desc_local_media_folder">Paikallisen mediakansion polku</string>

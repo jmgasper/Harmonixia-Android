@@ -31,11 +31,6 @@
     <string name="local_media_no_folder_selected">Aucun dossier sélectionné</string>
     <string name="local_media_select_folder">Sélectionner un dossier</string>
     <string name="local_media_refresh">Analyser le dossier</string>
-    <plurals name="local_media_scanning">
-        <item quantity="one">Analyse : %1$d / %2$d fichiers</item>
-        <item quantity="many">Analyse : %1$d / %2$d fichiers</item>
-        <item quantity="other">Analyse : %1$d / %2$d fichiers</item>
-    </plurals>
     <string name="local_media_scan_complete">Analyse terminée : %1$d pistes, %2$d albums, %3$d artistes</string>
     <string name="local_media_scan_error">Échec de l\'analyse : %1$s</string>
     <string name="content_desc_local_media_folder">Chemin du dossier de médias locaux</string>

@@ -31,10 +31,6 @@
     <string name="local_media_no_folder_selected">هیچ پوشه‌ای انتخاب نشده است</string>
     <string name="local_media_select_folder">انتخاب پوشه</string>
     <string name="local_media_refresh">اسکن پوشه</string>
-    <plurals name="local_media_scanning">
-        <item quantity="one">در حال اسکن: %1$d / %2$d فایل</item>
-        <item quantity="other">در حال اسکن: %1$d / %2$d فایل</item>
-    </plurals>
     <string name="local_media_scan_complete">اسکن کامل شد: %1$d آهنگ، %2$d آلبوم، %3$d هنرمند</string>
     <string name="local_media_scan_error">اسکن ناموفق: %1$s</string>
     <string name="content_desc_local_media_folder">مسیر پوشه رسانه محلی</string>

@@ -31,10 +31,6 @@
     <string name="local_media_no_folder_selected">未选择文件夹</string>
     <string name="local_media_select_folder">选择文件夹</string>
     <string name="local_media_refresh">扫描文件夹</string>
-    <plurals name="local_media_scanning">
-        <item quantity="one">正在扫描：%1$d / %2$d 个文件</item>
-        <item quantity="other">正在扫描：%1$d / %2$d 个文件</item>
-    </plurals>
     <string name="local_media_scan_complete">扫描完成：%1$d 首曲目，%2$d 张专辑，%3$d 位艺术家</string>
     <string name="local_media_scan_error">扫描失败：%1$s</string>
     <string name="content_desc_local_media_folder">本地媒体文件夹路径</string>
@@ -164,7 +160,6 @@
     <string name="artist_detail_loading_albums">正在加载专辑…</string>
     <string name="artist_detail_no_albums">未找到该艺术家的专辑</string>
     <plurals name="artist_detail_album_count">
-        <item quantity="one">%1$d 张专辑</item>
         <item quantity="other">%1$d 张专辑</item>
     </plurals>
     <string name="artist_detail_placeholder">选择艺术家以查看详情</string>

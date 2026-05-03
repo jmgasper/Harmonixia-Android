@@ -31,10 +31,6 @@
     <string name="local_media_no_folder_selected">Ingen mapp vald</string>
     <string name="local_media_select_folder">Välj mapp</string>
     <string name="local_media_refresh">Skanna mapp</string>
-    <plurals name="local_media_scanning">
-        <item quantity="one">Skannar: %1$d / %2$d filer</item>
-        <item quantity="other">Skannar: %1$d / %2$d filer</item>
-    </plurals>
     <string name="local_media_scan_complete">Skanning klar: %1$d spår, %2$d album, %3$d artister</string>
     <string name="local_media_scan_error">Skanning misslyckades: %1$s</string>
     <string name="content_desc_local_media_folder">Sökväg till lokal mediamapp</string>

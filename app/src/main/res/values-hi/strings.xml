@@ -31,10 +31,6 @@
     <string name="local_media_no_folder_selected">कोई फ़ोल्डर चुना नहीं गया</string>
     <string name="local_media_select_folder">फ़ोल्डर चुनें</string>
     <string name="local_media_refresh">फ़ोल्डर स्कैन करें</string>
-    <plurals name="local_media_scanning">
-        <item quantity="one">स्कैन हो रहा है: %1$d / %2$d फ़ाइलें</item>
-        <item quantity="other">स्कैन हो रहा है: %1$d / %2$d फ़ाइलें</item>
-    </plurals>
     <string name="local_media_scan_complete">स्कैन पूरा: %1$d ट्रैक, %2$d एल्बम, %3$d कलाकार</string>
     <string name="local_media_scan_error">स्कैन असफल: %1$s</string>
     <string name="content_desc_local_media_folder">लोकल मीडिया फ़ोल्डर पथ</string>

@@ -31,11 +31,6 @@
     <string name="local_media_no_folder_selected">Nessuna cartella selezionata</string>
     <string name="local_media_select_folder">Seleziona cartella</string>
     <string name="local_media_refresh">Scansiona cartella</string>
-    <plurals name="local_media_scanning">
-        <item quantity="one">Scansione: %1$d / %2$d file</item>
-        <item quantity="many">Scansione: %1$d / %2$d file</item>
-        <item quantity="other">Scansione: %1$d / %2$d file</item>
-    </plurals>
     <string name="local_media_scan_complete">Scansione completata: %1$d brani, %2$d album, %3$d artisti</string>
     <string name="local_media_scan_error">Scansione non riuscita: %1$s</string>
     <string name="content_desc_local_media_folder">Percorso cartella media locali</string>

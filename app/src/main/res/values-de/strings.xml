@@ -31,10 +31,6 @@
     <string name="local_media_no_folder_selected">Kein Ordner ausgewählt</string>
     <string name="local_media_select_folder">Ordner auswählen</string>
     <string name="local_media_refresh">Ordner scannen</string>
-    <plurals name="local_media_scanning">
-        <item quantity="one">Scanne: %1$d / %2$d Dateien</item>
-        <item quantity="other">Scanne: %1$d / %2$d Dateien</item>
-    </plurals>
     <string name="local_media_scan_complete">Scan abgeschlossen: %1$d Titel, %2$d Alben, %3$d Künstler</string>
     <string name="local_media_scan_error">Scan fehlgeschlagen: %1$s</string>
     <string name="content_desc_local_media_folder">Pfad zum lokalen Medienordner</string>
