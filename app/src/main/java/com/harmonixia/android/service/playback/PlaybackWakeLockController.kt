@@ -19,12 +19,19 @@ internal class PlaybackWakeLockController(
     }
 
     companion object {
-        private const val WAKE_LOCK_TAG = "Harmonixia:PlaybackWakeLock"
+        private const val WAKE_LOCK_TAG_SUFFIX = "PlaybackWakeLock"
         const val DEFAULT_WAKE_LOCK_TIMEOUT_MS = 24 * 60 * 60 * 1000L
 
-        fun create(powerManager: PowerManager): PlaybackWakeLockController {
+        internal fun buildWakeLockTag(appName: String): String {
+            return "${appName.trim()}:$WAKE_LOCK_TAG_SUFFIX"
+        }
+
+        fun create(
+            powerManager: PowerManager,
+            appName: String
+        ): PlaybackWakeLockController {
             val wakeLock = powerManager
-                .newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, WAKE_LOCK_TAG)
+                .newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, buildWakeLockTag(appName))
                 .apply { setReferenceCounted(false) }
             return PlaybackWakeLockController(wakeLock)
         }

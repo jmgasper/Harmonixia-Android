@@ -4,6 +4,7 @@ import android.os.PowerManager
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
+import org.junit.Assert.assertEquals
 import org.junit.Test
 
 class PlaybackWakeLockControllerTest {
@@ -46,5 +47,13 @@ class PlaybackWakeLockControllerTest {
         PlaybackWakeLockController(wakeLock).releaseIfHeld()
 
         verify(exactly = 0) { wakeLock.release() }
+    }
+
+    @Test
+    fun buildWakeLockTag_usesAppNamePrefix() {
+        assertEquals(
+            "Harmonixia:PlaybackWakeLock",
+            PlaybackWakeLockController.buildWakeLockTag("Harmonixia")
+        )
     }
 }

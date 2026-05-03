@@ -68,7 +68,8 @@ class PlaybackService : MediaLibraryService() {
             .build()
 
         wakeLockController = PlaybackWakeLockController.create(
-            getSystemService(Context.POWER_SERVICE) as PowerManager
+            powerManager = getSystemService(Context.POWER_SERVICE) as PowerManager,
+            appName = getString(R.string.app_name)
         )
 
         player.addListener(
