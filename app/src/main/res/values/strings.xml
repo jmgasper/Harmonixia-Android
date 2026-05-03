@@ -316,4 +316,5 @@
     <string name="playback_error_playlist_has_no_tracks">Playlist has no tracks</string>
     <string name="playback_error_track_uri_required">Track URI is required</string>
     <string name="playback_error_seek_position_required">Position required for SEEK</string>
+    <string name="playback_error_no_tracks_to_play">No tracks to play</string>
 </resources>
