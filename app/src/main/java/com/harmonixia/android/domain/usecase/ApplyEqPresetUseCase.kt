@@ -1,5 +1,7 @@
 package com.harmonixia.android.domain.usecase
 
+import android.content.Context
+import com.harmonixia.android.R
 import com.harmonixia.android.data.local.EqDataStore
 import com.harmonixia.android.data.local.EqPresetParser
 import com.harmonixia.android.domain.repository.EqPresetRepository
@@ -8,6 +10,7 @@ import com.harmonixia.android.service.playback.PlaybackServiceConnection
 import kotlinx.coroutines.flow.first
 
 class ApplyEqPresetUseCase(
+    private val context: Context,
     private val repository: EqPresetRepository,
     private val eqDataStore: EqDataStore,
     private val eqPresetParser: EqPresetParser,
@@ -21,7 +24,7 @@ class ApplyEqPresetUseCase(
                     repository.loadPresets(forceRefresh = false).getOrThrow()
                     repository.getPresetById(presetId)
                 }
-                ?: throw IllegalStateException("Preset not found")
+                ?: throw IllegalStateException(context.getString(R.string.eq_validation_preset_not_found))
 
             playbackServiceConnection.connect()
 

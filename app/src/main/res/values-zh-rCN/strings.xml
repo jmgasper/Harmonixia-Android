@@ -317,4 +317,6 @@
     <string name="playback_error_track_uri_required">Track URI is required</string>
     <string name="playback_error_seek_position_required">Position required for SEEK</string>
     <string name="playback_error_no_tracks_to_play">No tracks to play</string>
+    <string name="search_validation_query_required">Search query is required</string>
+    <string name="eq_validation_preset_not_found">Preset not found</string>
 </resources>

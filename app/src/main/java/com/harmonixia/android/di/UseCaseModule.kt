@@ -91,8 +91,9 @@ object UseCaseModule {
     @Provides
     @Singleton
     fun provideSearchLibraryUseCase(
+        @ApplicationContext context: Context,
         repository: MusicAssistantRepository
-    ): SearchLibraryUseCase = SearchLibraryUseCase(repository)
+    ): SearchLibraryUseCase = SearchLibraryUseCase(context, repository)
 
     @Provides
     @Singleton
@@ -127,12 +128,14 @@ object UseCaseModule {
     @Provides
     @Singleton
     fun provideApplyEqPresetUseCase(
+        @ApplicationContext context: Context,
         repository: EqPresetRepository,
         eqDataStore: EqDataStore,
         eqPresetParser: EqPresetParser,
         equalizerManager: EqualizerManager,
         playbackServiceConnection: PlaybackServiceConnection
     ): ApplyEqPresetUseCase = ApplyEqPresetUseCase(
+        context,
         repository,
         eqDataStore,
         eqPresetParser,
