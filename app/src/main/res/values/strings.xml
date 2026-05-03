@@ -1,4 +1,4 @@
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
     <string name="app_name">Harmonixia</string>
     <string name="onboarding_title">Welcome to Harmonixia</string>
     <string name="settings_title">Settings</string>
@@ -19,7 +19,7 @@
     <string name="eq_search_hint">Search presets by name, brand, or creator</string>
     <string name="eq_preset_label">Preset</string>
     <string name="eq_apply_button">Apply Preset</string>
-    <string name="eq_loading_presets">Loading presets...</string>
+    <string name="eq_loading_presets">Loading presets…</string>
     <string name="eq_no_preset_selected">No preset selected</string>
     <string name="eq_select_preset_hint">Select a preset to view its EQ curve</string>
     <string name="eq_preset_details_title">Preset Details</string>
@@ -33,8 +33,13 @@
     <string name="local_media_available_files">Local files available: %1$d</string>
     <string name="local_media_select_folder">Select Folder</string>
     <string name="local_media_refresh">Scan Folder</string>
-    <string name="local_media_scanning">Scanning: %1$d / %2$d files</string>
-    <string name="local_media_scan_complete">Scan complete: %1$d tracks, %2$d albums, %3$d artists</string>
+    <plurals name="local_media_scanning">
+        <item quantity="one">Scanning: %1$d / %2$d file</item>
+        <item quantity="other">Scanning: %1$d / %2$d files</item>
+    </plurals>
+    <string
+        name="local_media_scan_complete"
+        tools:ignore="PluralsCandidate">Scan complete: %1$d tracks, %2$d albums, %3$d artists</string>
     <string name="local_media_scan_error">Scan failed: %1$s</string>
     <string name="content_desc_local_media_folder">Local media folder path</string>
     <string name="label_server_url">Server URL</string>
@@ -62,7 +67,7 @@
     <string name="content_desc_player_indicator">Selected player indicator. Tap to change player.</string>
     <string name="action_disconnect">Disconnect</string>
     <string name="action_clear_settings">Clear Settings</string>
-    <string name="status_connecting">Connecting...</string>
+    <string name="status_connecting">Connecting…</string>
     <string name="status_connected">Connected successfully</string>
     <string name="status_connection_failed">Connection failed</string>
     <string name="status_auth_failed">Authentication failed</string>
@@ -112,7 +117,7 @@
     <string name="search_section_playlists">Playlists</string>
     <string name="search_section_tracks">Tracks</string>
     <string name="search_show_more">Show More</string>
-    <string name="search_loading">Searching...</string>
+    <string name="search_loading">Searching…</string>
     <string name="search_empty_query">Enter a search term to find music</string>
     <string name="offline_mode_active">Offline Mode - Showing downloaded content only</string>
     <string name="offline_search_active">Offline - Searching downloaded content</string>
@@ -132,11 +137,13 @@
     <string name="home_empty_recommendations">Recommendations will appear here.</string>
     <string name="home_error_recommendations">Unable to load recommendations.</string>
     <string name="home_empty_no_connection">Connect to your Music Assistant server to see your music.</string>
-    <string name="home_loading">Loading your music...</string>
+    <string name="home_loading">Loading your music…</string>
     <string name="home_error_load_failed">Unable to load home data</string>
     <string name="home_offline_title">You\'re Offline</string>
     <string name="home_offline_message">Connect to see recently played and added albums.</string>
-    <string name="home_offline_stats">%1$d albums, %2$d artists, %3$d tracks available offline</string>
+    <string
+        name="home_offline_stats"
+        tools:ignore="PluralsCandidate">%1$d albums, %2$d artists, %3$d tracks available offline</string>
     <string name="home_offline_no_content">No offline content available. Download albums to listen offline.</string>
     <string name="action_retry">Retry</string>
     <string name="content_desc_album_artwork">Album artwork</string>
@@ -148,22 +155,25 @@
     <string name="action_view_albums">View Albums</string>
     <string name="albums_title">Albums</string>
     <string name="albums_filter">Filter</string>
-    <string name="albums_loading">Loading albums...</string>
+    <string name="albums_loading">Loading albums…</string>
     <string name="albums_empty">No albums found</string>
     <string name="albums_error">Failed to load albums</string>
     <string name="albums_filter_count">Albums (%1$d of %2$d)</string>
     <string name="artists_title">Artists</string>
-    <string name="artists_loading">Loading artists...</string>
+    <string name="artists_loading">Loading artists…</string>
     <string name="artists_empty">No artists found</string>
     <string name="artists_error">Failed to load artists</string>
     <string name="album_detail_title">Album Details</string>
     <string name="album_detail_tracks">Tracks</string>
-    <string name="album_detail_loading_tracks">Loading tracks...</string>
+    <string name="album_detail_loading_tracks">Loading tracks…</string>
     <string name="album_detail_no_tracks">No tracks available</string>
     <string name="artist_detail_title">Artist Details</string>
-    <string name="artist_detail_loading_albums">Loading albums...</string>
+    <string name="artist_detail_loading_albums">Loading albums…</string>
     <string name="artist_detail_no_albums">No albums found for this artist</string>
-    <string name="artist_detail_album_count">%1$d albums</string>
+    <plurals name="artist_detail_album_count">
+        <item quantity="one">%1$d albums</item>
+        <item quantity="other">%1$d albums</item>
+    </plurals>
     <string name="artist_detail_section_my_library">My Library</string>
     <string name="artist_detail_section_all">All</string>
     <string name="artist_detail_placeholder">Select an artist to view details</string>
@@ -184,8 +194,8 @@
     <string name="performance_settings_playlist_fresh_latency">Playlist time to fresh: %1$s</string>
     <string name="performance_settings_album_cached_latency">Album time to cached: %1$s</string>
     <string name="performance_settings_album_fresh_latency">Album time to fresh: %1$s</string>
-    <string name="performance_settings_playlist_track_loads">Playlist track load (&lt;=50 / 51-150 / 151+): %1$s / %2$s / %3$s</string>
-    <string name="performance_settings_album_track_loads">Album track load (&lt;=50 / 51-150 / 151+): %1$s / %2$s / %3$s</string>
+    <string name="performance_settings_playlist_track_loads">Playlist track load (&lt;=50 / 51–150 / 151+): %1$s / %2$s / %3$s</string>
+    <string name="performance_settings_album_track_loads">Album track load (&lt;=50 / 51–150 / 151+): %1$s / %2$s / %3$s</string>
     <string name="performance_settings_memory_cache">Memory cache: %1$s / %2$s</string>
     <string name="performance_settings_disk_cache">Disk cache: %1$s / %2$s</string>
     <string name="performance_settings_clear_image_cache">Clear Image Cache</string>
@@ -195,7 +205,7 @@
     <string name="filter_select_all">Select All</string>
     <string name="filter_clear_all">Clear All</string>
     <string name="playlists_title">Playlists</string>
-    <string name="playlists_loading">Loading playlists...</string>
+    <string name="playlists_loading">Loading playlists…</string>
     <string name="playlists_empty">No playlists found</string>
     <string name="playlists_error">Failed to load playlists</string>
     <string name="playlists_create">Create Playlist</string>
@@ -205,7 +215,7 @@
     <string name="playlists_create_error">Unable to create playlist</string>
     <string name="playlist_detail_title">Playlist Details</string>
     <string name="playlist_detail_tracks">Tracks</string>
-    <string name="playlist_detail_loading_tracks">Loading tracks...</string>
+    <string name="playlist_detail_loading_tracks">Loading tracks…</string>
     <string name="playlist_detail_no_tracks">No tracks in this playlist</string>
     <string name="playlist_detail_empty_message">This playlist does not have any tracks yet.</string>
     <string name="playlist_detail_owner">By %1$s</string>
@@ -234,7 +244,6 @@
     <string name="playlist_rename_empty_name">Playlist name cannot be empty</string>
     <string name="playlist_rename_same_name">Playlist name is unchanged</string>
     <string name="track_action_play">Play</string>
-    <string name="track_action_download">Download</string>
     <string name="track_action_add_to_playlist">Add to Playlist</string>
     <string name="track_action_remove_from_playlist">Remove from Playlist</string>
     <string name="track_action_add_to_favorites">Add to Favorites</string>
@@ -248,19 +257,7 @@
     <string name="track_remove_error">Unable to remove track from playlist</string>
     <string name="track_add_success">Added track to playlist</string>
     <string name="track_add_error">Unable to add track to playlist</string>
-    <string name="track_download_success">Track download started</string>
-    <string name="track_download_error">Unable to start download</string>
-    <string name="album_download_success">Album download started</string>
-    <string name="album_download_error">Unable to start album download</string>
-    <string name="album_download_removed">Album download removed</string>
-    <string name="album_download_remove_error">Unable to remove album download</string>
-    <string name="playlist_download_success">Playlist download started</string>
-    <string name="playlist_download_error">Unable to start playlist download</string>
-    <string name="playlist_download_removed">Playlist download removed</string>
-    <string name="playlist_download_remove_error">Unable to remove playlist download</string>
     <string name="content_desc_playlist_artwork">Playlist artwork</string>
-    <string name="content_desc_track_downloaded">Track downloaded</string>
-    <string name="content_desc_track_downloading">Track downloading</string>
     <string name="content_desc_create_playlist">Create playlist</string>
     <string name="now_playing_title">Now Playing</string>
     <string name="now_playing_empty">No track playing</string>
@@ -270,15 +267,12 @@
     <string name="action_pause">Pause</string>
     <string name="action_next_track">Next track</string>
     <string name="action_previous_track">Previous track</string>
-    <string name="action_repeat">Repeat</string>
     <string name="action_repeat_off">Repeat off</string>
     <string name="action_repeat_all">Repeat all</string>
     <string name="action_repeat_one">Repeat one</string>
     <string name="action_shuffle">Shuffle</string>
     <string name="action_shuffle_on">Shuffle on</string>
     <string name="action_shuffle_off">Shuffle off</string>
-    <string name="content_desc_repeat_button">Repeat mode</string>
-    <string name="content_desc_shuffle_button">Shuffle mode</string>
     <string name="label_seek">Seek</string>
     <string name="label_volume">Volume</string>
     <string name="content_desc_mute">Mute</string>
@@ -288,34 +282,4 @@
     <string name="content_desc_mini_player_artwork">Mini player artwork</string>
     <string name="content_desc_open_now_playing">Open Now Playing</string>
     <string name="playback_time_format">%1$d:%2$02d</string>
-    <string name="downloads_title">Downloads</string>
-    <string name="downloads_in_progress">In Progress</string>
-    <string name="downloads_completed">Downloaded</string>
-    <string name="downloads_empty">No downloads</string>
-    <string name="downloads_empty_message">Downloaded content will appear here</string>
-    <string name="downloads_clear_all">Clear All Downloads</string>
-    <string name="downloads_clear_confirm_title">Clear all downloads?</string>
-    <string name="downloads_clear_confirm_message">This will remove all downloaded files from your device.</string>
-    <string name="downloads_status_pending">Pending</string>
-    <string name="downloads_status_in_progress">Downloading</string>
-    <string name="downloads_status_paused">Paused</string>
-    <string name="downloads_speed_kbps">%1$.1f Kbps</string>
-    <string name="downloads_speed_mbps">%1$.1f Mbps</string>
-    <string name="downloads_section_playlists">Playlists</string>
-    <string name="downloads_section_albums">Albums</string>
-    <string name="downloads_section_tracks">Individual Tracks</string>
-    <string name="content_desc_download_icon">Downloads</string>
-    <string name="content_desc_download_progress">Download progress</string>
-    <string name="action_cancel_download">Cancel</string>
-    <string name="action_pause_download">Pause</string>
-    <string name="action_resume_download">Resume</string>
-    <string name="android_auto_root_title">Harmonixia</string>
-    <string name="android_auto_albums_category">Albums</string>
-    <string name="android_auto_artists_category">Artists</string>
-    <string name="android_auto_playlists_category">Playlists</string>
-    <string name="android_auto_downloads_category">Downloads</string>
-    <string name="android_auto_downloaded_albums">Downloaded Albums</string>
-    <string name="android_auto_downloaded_playlists">Downloaded Playlists</string>
-    <string name="android_auto_downloaded_tracks">Downloaded Tracks</string>
-    <string name="android_auto_offline_mode">Offline Mode</string>
 </resources>

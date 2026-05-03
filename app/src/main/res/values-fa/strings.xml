@@ -19,7 +19,7 @@
     <string name="eq_search_hint">جستجوی پیش‌تنظیم بر اساس نام، برند یا سازنده</string>
     <string name="eq_preset_label">پیش‌تنظیم</string>
     <string name="eq_apply_button">اعمال پیش‌تنظیم</string>
-    <string name="eq_loading_presets">در حال بارگذاری پیش‌تنظیم‌ها...</string>
+    <string name="eq_loading_presets">در حال بارگذاری پیش‌تنظیم‌ها…</string>
     <string name="eq_no_preset_selected">هیچ پیش‌تنظیمی انتخاب نشده است</string>
     <string name="eq_select_preset_hint">برای دیدن منحنی EQ یک پیش‌تنظیم انتخاب کنید</string>
     <string name="eq_preset_details_title">جزئیات پیش‌تنظیم</string>
@@ -31,7 +31,10 @@
     <string name="local_media_no_folder_selected">هیچ پوشه‌ای انتخاب نشده است</string>
     <string name="local_media_select_folder">انتخاب پوشه</string>
     <string name="local_media_refresh">اسکن پوشه</string>
-    <string name="local_media_scanning">در حال اسکن: %1$d / %2$d فایل</string>
+    <plurals name="local_media_scanning">
+        <item quantity="one">در حال اسکن: %1$d / %2$d فایل</item>
+        <item quantity="other">در حال اسکن: %1$d / %2$d فایل</item>
+    </plurals>
     <string name="local_media_scan_complete">اسکن کامل شد: %1$d آهنگ، %2$d آلبوم، %3$d هنرمند</string>
     <string name="local_media_scan_error">اسکن ناموفق: %1$s</string>
     <string name="content_desc_local_media_folder">مسیر پوشه رسانه محلی</string>
@@ -59,7 +62,7 @@
     <string name="content_desc_player_indicator">نشانگر پخش‌کننده انتخاب‌شده. برای تغییر پخش‌کننده ضربه بزنید.</string>
     <string name="action_disconnect">قطع اتصال</string>
     <string name="action_clear_settings">پاک کردن تنظیمات</string>
-    <string name="status_connecting">در حال اتصال...</string>
+    <string name="status_connecting">در حال اتصال…</string>
     <string name="status_connected">با موفقیت متصل شد</string>
     <string name="status_connection_failed">اتصال ناموفق</string>
     <string name="status_auth_failed">احراز هویت ناموفق</string>
@@ -109,7 +112,7 @@
     <string name="search_section_playlists">فهرست‌های پخش</string>
     <string name="search_section_tracks">قطعه‌ها</string>
     <string name="search_show_more">نمایش بیشتر</string>
-    <string name="search_loading">در حال جستجو...</string>
+    <string name="search_loading">در حال جستجو…</string>
     <string name="search_empty_query">برای یافتن موسیقی یک عبارت جستجو وارد کنید</string>
     <string name="offline_mode_active">حالت آفلاین - فقط محتوای دانلودشده نمایش داده می‌شود</string>
     <string name="offline_search_active">آفلاین - جستجو در محتوای دانلودشده</string>
@@ -129,7 +132,7 @@
     <string name="home_empty_recommendations">پیشنهادها اینجا نمایش داده می‌شوند.</string>
     <string name="home_error_recommendations">امکان بارگذاری پیشنهادها نیست.</string>
     <string name="home_empty_no_connection">برای دیدن موسیقی‌تان به سرور Music Assistant متصل شوید.</string>
-    <string name="home_loading">در حال بارگذاری موسیقی شما...</string>
+    <string name="home_loading">در حال بارگذاری موسیقی شما…</string>
     <string name="home_error_load_failed">امکان بارگذاری داده‌های صفحه خانه نیست</string>
     <string name="home_offline_title">شما آفلاین هستید</string>
     <string name="home_offline_message">برای دیدن آلبوم‌های اخیراً پخش‌شده و اضافه‌شده متصل شوید.</string>
@@ -145,22 +148,25 @@
     <string name="action_view_albums">دیدن آلبوم‌ها</string>
     <string name="albums_title">آلبوم‌ها</string>
     <string name="albums_filter">فیلتر</string>
-    <string name="albums_loading">در حال بارگذاری آلبوم‌ها...</string>
+    <string name="albums_loading">در حال بارگذاری آلبوم‌ها…</string>
     <string name="albums_empty">هیچ آلبومی یافت نشد</string>
     <string name="albums_error">بارگذاری آلبوم‌ها ناموفق بود</string>
     <string name="albums_filter_count">آلبوم‌ها (%1$d از %2$d)</string>
     <string name="artists_title">هنرمندان</string>
-    <string name="artists_loading">در حال بارگذاری هنرمندان...</string>
+    <string name="artists_loading">در حال بارگذاری هنرمندان…</string>
     <string name="artists_empty">هیچ هنرمندی یافت نشد</string>
     <string name="artists_error">بارگذاری هنرمندان ناموفق بود</string>
     <string name="album_detail_title">جزئیات آلبوم</string>
     <string name="album_detail_tracks">قطعه‌ها</string>
-    <string name="album_detail_loading_tracks">در حال بارگذاری قطعه‌ها...</string>
+    <string name="album_detail_loading_tracks">در حال بارگذاری قطعه‌ها…</string>
     <string name="album_detail_no_tracks">هیچ قطعه‌ای موجود نیست</string>
     <string name="artist_detail_title">جزئیات هنرمند</string>
-    <string name="artist_detail_loading_albums">در حال بارگذاری آلبوم‌ها...</string>
+    <string name="artist_detail_loading_albums">در حال بارگذاری آلبوم‌ها…</string>
     <string name="artist_detail_no_albums">برای این هنرمند آلبومی یافت نشد</string>
-    <string name="artist_detail_album_count">%1$d آلبوم</string>
+    <plurals name="artist_detail_album_count">
+        <item quantity="one">%1$d آلبوم</item>
+        <item quantity="other">%1$d آلبوم</item>
+    </plurals>
     <string name="artist_detail_placeholder">برای دیدن جزئیات یک هنرمند را انتخاب کنید</string>
     <string name="content_desc_artist_image">تصویر هنرمند</string>
     <string name="track_quality_hires">Hi-Res</string>
@@ -179,8 +185,8 @@
     <string name="performance_settings_playlist_fresh_latency">زمان بارگذاری تازه فهرست پخش: %1$s</string>
     <string name="performance_settings_album_cached_latency">زمان کش شدن آلبوم: %1$s</string>
     <string name="performance_settings_album_fresh_latency">زمان بارگذاری تازه آلبوم: %1$s</string>
-    <string name="performance_settings_playlist_track_loads">بارگذاری قطعه‌های فهرست پخش (&lt;=50 / 51-150 / 151+): %1$s / %2$s / %3$s</string>
-    <string name="performance_settings_album_track_loads">بارگذاری قطعه‌های آلبوم (&lt;=50 / 51-150 / 151+): %1$s / %2$s / %3$s</string>
+    <string name="performance_settings_playlist_track_loads">بارگذاری قطعه‌های فهرست پخش (&lt;=50 / 51–150 / 151+): %1$s / %2$s / %3$s</string>
+    <string name="performance_settings_album_track_loads">بارگذاری قطعه‌های آلبوم (&lt;=50 / 51–150 / 151+): %1$s / %2$s / %3$s</string>
     <string name="performance_settings_memory_cache">کش حافظه: %1$s / %2$s</string>
     <string name="performance_settings_disk_cache">کش دیسک: %1$s / %2$s</string>
     <string name="performance_settings_clear_image_cache">پاک کردن کش تصویر</string>
@@ -190,7 +196,7 @@
     <string name="filter_select_all">انتخاب همه</string>
     <string name="filter_clear_all">پاک کردن همه</string>
     <string name="playlists_title">فهرست‌های پخش</string>
-    <string name="playlists_loading">در حال بارگذاری فهرست‌های پخش...</string>
+    <string name="playlists_loading">در حال بارگذاری فهرست‌های پخش…</string>
     <string name="playlists_empty">هیچ فهرست پخشی یافت نشد</string>
     <string name="playlists_error">بارگذاری فهرست‌های پخش ناموفق بود</string>
     <string name="playlists_create">ایجاد فهرست پخش</string>
@@ -200,7 +206,7 @@
     <string name="playlists_create_error">امکان ایجاد فهرست پخش نیست</string>
     <string name="playlist_detail_title">جزئیات فهرست پخش</string>
     <string name="playlist_detail_tracks">قطعه‌ها</string>
-    <string name="playlist_detail_loading_tracks">در حال بارگذاری قطعه‌ها...</string>
+    <string name="playlist_detail_loading_tracks">در حال بارگذاری قطعه‌ها…</string>
     <string name="playlist_detail_no_tracks">هیچ قطعه‌ای در این فهرست پخش نیست</string>
     <string name="playlist_detail_empty_message">این فهرست پخش هنوز هیچ قطعه‌ای ندارد.</string>
     <string name="playlist_detail_owner">توسط %1$s</string>
@@ -229,7 +235,6 @@
     <string name="playlist_rename_empty_name">نام فهرست پخش نمی‌تواند خالی باشد</string>
     <string name="playlist_rename_same_name">نام فهرست پخش تغییری نکرد</string>
     <string name="track_action_play">پخش</string>
-    <string name="track_action_download">دانلود</string>
     <string name="track_action_add_to_playlist">افزودن به فهرست پخش</string>
     <string name="track_action_remove_from_playlist">حذف از فهرست پخش</string>
     <string name="track_action_add_to_favorites">افزودن به علاقه‌مندی‌ها</string>
@@ -243,19 +248,7 @@
     <string name="track_remove_error">امکان حذف قطعه از فهرست پخش نیست</string>
     <string name="track_add_success">قطعه به فهرست پخش اضافه شد</string>
     <string name="track_add_error">امکان افزودن قطعه به فهرست پخش نیست</string>
-    <string name="track_download_success">دانلود قطعه شروع شد</string>
-    <string name="track_download_error">امکان شروع دانلود نیست</string>
-    <string name="album_download_success">دانلود آلبوم شروع شد</string>
-    <string name="album_download_error">امکان شروع دانلود آلبوم نیست</string>
-    <string name="album_download_removed">دانلود آلبوم حذف شد</string>
-    <string name="album_download_remove_error">امکان حذف دانلود آلبوم نیست</string>
-    <string name="playlist_download_success">دانلود فهرست پخش شروع شد</string>
-    <string name="playlist_download_error">امکان شروع دانلود فهرست پخش نیست</string>
-    <string name="playlist_download_removed">دانلود فهرست پخش حذف شد</string>
-    <string name="playlist_download_remove_error">امکان حذف دانلود فهرست پخش نیست</string>
     <string name="content_desc_playlist_artwork">کاور فهرست پخش</string>
-    <string name="content_desc_track_downloaded">قطعه دانلود شد</string>
-    <string name="content_desc_track_downloading">در حال دانلود قطعه</string>
     <string name="content_desc_create_playlist">ایجاد فهرست پخش</string>
     <string name="now_playing_title">در حال پخش</string>
     <string name="now_playing_empty">هیچ قطعه‌ای در حال پخش نیست</string>
@@ -265,15 +258,12 @@
     <string name="action_pause">مکث</string>
     <string name="action_next_track">قطعه بعدی</string>
     <string name="action_previous_track">قطعه قبلی</string>
-    <string name="action_repeat">تکرار</string>
     <string name="action_repeat_off">تکرار خاموش</string>
     <string name="action_repeat_all">تکرار همه</string>
     <string name="action_repeat_one">تکرار یکی</string>
     <string name="action_shuffle">پخش تصادفی</string>
     <string name="action_shuffle_on">پخش تصادفی روشن</string>
     <string name="action_shuffle_off">پخش تصادفی خاموش</string>
-    <string name="content_desc_repeat_button">حالت تکرار</string>
-    <string name="content_desc_shuffle_button">حالت تصادفی</string>
     <string name="label_seek">جستجو</string>
     <string name="label_volume">صدا</string>
     <string name="content_desc_mute">بی‌صدا</string>
@@ -283,36 +273,6 @@
     <string name="content_desc_mini_player_artwork">کاور پخش‌کننده کوچک</string>
     <string name="content_desc_open_now_playing">باز کردن در حال پخش</string>
     <string name="playback_time_format">%1$d:%2$02d</string>
-    <string name="downloads_title">دانلودها</string>
-    <string name="downloads_in_progress">در حال انجام</string>
-    <string name="downloads_completed">دانلود شده</string>
-    <string name="downloads_empty">دانلودی وجود ندارد</string>
-    <string name="downloads_empty_message">محتوای دانلودشده اینجا نمایش داده می‌شود</string>
-    <string name="downloads_clear_all">پاک کردن همه دانلودها</string>
-    <string name="downloads_clear_confirm_title">همه دانلودها پاک شود؟</string>
-    <string name="downloads_clear_confirm_message">این کار همه فایل‌های دانلودشده را از دستگاه حذف می‌کند.</string>
-    <string name="downloads_status_pending">در انتظار</string>
-    <string name="downloads_status_in_progress">در حال دانلود</string>
-    <string name="downloads_status_paused">متوقف شده</string>
-    <string name="downloads_speed_kbps">%1$.1f Kbps</string>
-    <string name="downloads_speed_mbps">%1$.1f Mbps</string>
-    <string name="downloads_section_playlists">فهرست‌های پخش</string>
-    <string name="downloads_section_albums">آلبوم‌ها</string>
-    <string name="downloads_section_tracks">قطعه‌های تکی</string>
-    <string name="content_desc_download_icon">دانلودها</string>
-    <string name="content_desc_download_progress">پیشرفت دانلود</string>
-    <string name="action_cancel_download">لغو</string>
-    <string name="action_pause_download">مکث</string>
-    <string name="action_resume_download">ادامه</string>
-    <string name="android_auto_root_title">Harmonixia</string>
-    <string name="android_auto_albums_category">آلبوم‌ها</string>
-    <string name="android_auto_artists_category">هنرمندان</string>
-    <string name="android_auto_playlists_category">فهرست‌های پخش</string>
-    <string name="android_auto_downloads_category">دانلودها</string>
-    <string name="android_auto_downloaded_albums">آلبوم‌های دانلودشده</string>
-    <string name="android_auto_downloaded_playlists">فهرست‌های پخش دانلودشده</string>
-    <string name="android_auto_downloaded_tracks">قطعه‌های دانلودشده</string>
-    <string name="android_auto_offline_mode">حالت آفلاین</string>
     <string name="local_media_available_files">Local files available: %1$d</string>
     <string name="action_reconnect">Reconnect</string>
     <string name="artist_detail_section_my_library">My Library</string>

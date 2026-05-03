@@ -19,7 +19,7 @@
     <string name="eq_search_hint">Sök förinställningar efter namn, märke eller skapare</string>
     <string name="eq_preset_label">Förinställning</string>
     <string name="eq_apply_button">Använd förinställning</string>
-    <string name="eq_loading_presets">Läser in förinställningar...</string>
+    <string name="eq_loading_presets">Läser in förinställningar…</string>
     <string name="eq_no_preset_selected">Ingen förinställning vald</string>
     <string name="eq_select_preset_hint">Välj en förinställning för att se dess EQ-kurva</string>
     <string name="eq_preset_details_title">Detaljer för förinställning</string>
@@ -31,7 +31,10 @@
     <string name="local_media_no_folder_selected">Ingen mapp vald</string>
     <string name="local_media_select_folder">Välj mapp</string>
     <string name="local_media_refresh">Skanna mapp</string>
-    <string name="local_media_scanning">Skannar: %1$d / %2$d filer</string>
+    <plurals name="local_media_scanning">
+        <item quantity="one">Skannar: %1$d / %2$d filer</item>
+        <item quantity="other">Skannar: %1$d / %2$d filer</item>
+    </plurals>
     <string name="local_media_scan_complete">Skanning klar: %1$d spår, %2$d album, %3$d artister</string>
     <string name="local_media_scan_error">Skanning misslyckades: %1$s</string>
     <string name="content_desc_local_media_folder">Sökväg till lokal mediamapp</string>
@@ -59,7 +62,7 @@
     <string name="content_desc_player_indicator">Indikator för vald spelare. Tryck för att byta spelare.</string>
     <string name="action_disconnect">Koppla från</string>
     <string name="action_clear_settings">Rensa inställningar</string>
-    <string name="status_connecting">Ansluter...</string>
+    <string name="status_connecting">Ansluter…</string>
     <string name="status_connected">Ansluten</string>
     <string name="status_connection_failed">Anslutningen misslyckades</string>
     <string name="status_auth_failed">Autentisering misslyckades</string>
@@ -109,7 +112,7 @@
     <string name="search_section_playlists">Spellistor</string>
     <string name="search_section_tracks">Spår</string>
     <string name="search_show_more">Visa mer</string>
-    <string name="search_loading">Söker...</string>
+    <string name="search_loading">Söker…</string>
     <string name="search_empty_query">Ange en sökterm för att hitta musik</string>
     <string name="offline_mode_active">Offline-läge - visar endast nedladdat innehåll</string>
     <string name="offline_search_active">Offline - söker i nedladdat innehåll</string>
@@ -129,7 +132,7 @@
     <string name="home_empty_recommendations">Rekommendationer visas här.</string>
     <string name="home_error_recommendations">Kunde inte läsa in rekommendationer.</string>
     <string name="home_empty_no_connection">Anslut till din Music Assistant-server för att se din musik.</string>
-    <string name="home_loading">Laddar din musik...</string>
+    <string name="home_loading">Laddar din musik…</string>
     <string name="home_error_load_failed">Kunde inte läsa in hemdatan</string>
     <string name="home_offline_title">Du är offline</string>
     <string name="home_offline_message">Anslut för att se nyligen spelade och tillagda album.</string>
@@ -145,22 +148,25 @@
     <string name="action_view_albums">Visa album</string>
     <string name="albums_title">Album</string>
     <string name="albums_filter">Filter</string>
-    <string name="albums_loading">Laddar album...</string>
+    <string name="albums_loading">Laddar album…</string>
     <string name="albums_empty">Inga album hittades</string>
     <string name="albums_error">Kunde inte läsa in album</string>
     <string name="albums_filter_count">Album (%1$d av %2$d)</string>
     <string name="artists_title">Artister</string>
-    <string name="artists_loading">Laddar artister...</string>
+    <string name="artists_loading">Laddar artister…</string>
     <string name="artists_empty">Inga artister hittades</string>
     <string name="artists_error">Kunde inte läsa in artister</string>
     <string name="album_detail_title">Albumdetaljer</string>
     <string name="album_detail_tracks">Spår</string>
-    <string name="album_detail_loading_tracks">Laddar spår...</string>
+    <string name="album_detail_loading_tracks">Laddar spår…</string>
     <string name="album_detail_no_tracks">Inga spår tillgängliga</string>
     <string name="artist_detail_title">Artistdetaljer</string>
-    <string name="artist_detail_loading_albums">Laddar album...</string>
+    <string name="artist_detail_loading_albums">Laddar album…</string>
     <string name="artist_detail_no_albums">Inga album hittades för denna artist</string>
-    <string name="artist_detail_album_count">%1$d album</string>
+    <plurals name="artist_detail_album_count">
+        <item quantity="one">%1$d album</item>
+        <item quantity="other">%1$d album</item>
+    </plurals>
     <string name="artist_detail_placeholder">Välj en artist för att visa detaljer</string>
     <string name="content_desc_artist_image">Artistbild</string>
     <string name="track_quality_hires">Hi-Res</string>
@@ -179,8 +185,8 @@
     <string name="performance_settings_playlist_fresh_latency">Tid till ny laddning för spellista: %1$s</string>
     <string name="performance_settings_album_cached_latency">Tid till cache för album: %1$s</string>
     <string name="performance_settings_album_fresh_latency">Tid till ny laddning för album: %1$s</string>
-    <string name="performance_settings_playlist_track_loads">Spårladdning för spellista (&lt;=50 / 51-150 / 151+): %1$s / %2$s / %3$s</string>
-    <string name="performance_settings_album_track_loads">Spårladdning för album (&lt;=50 / 51-150 / 151+): %1$s / %2$s / %3$s</string>
+    <string name="performance_settings_playlist_track_loads">Spårladdning för spellista (&lt;=50 / 51–150 / 151+): %1$s / %2$s / %3$s</string>
+    <string name="performance_settings_album_track_loads">Spårladdning för album (&lt;=50 / 51–150 / 151+): %1$s / %2$s / %3$s</string>
     <string name="performance_settings_memory_cache">Minnescache: %1$s / %2$s</string>
     <string name="performance_settings_disk_cache">Diskcache: %1$s / %2$s</string>
     <string name="performance_settings_clear_image_cache">Rensa bildcache</string>
@@ -190,7 +196,7 @@
     <string name="filter_select_all">Markera alla</string>
     <string name="filter_clear_all">Rensa alla</string>
     <string name="playlists_title">Spellistor</string>
-    <string name="playlists_loading">Laddar spellistor...</string>
+    <string name="playlists_loading">Laddar spellistor…</string>
     <string name="playlists_empty">Inga spellistor hittades</string>
     <string name="playlists_error">Kunde inte läsa in spellistor</string>
     <string name="playlists_create">Skapa spellista</string>
@@ -200,7 +206,7 @@
     <string name="playlists_create_error">Kunde inte skapa spellista</string>
     <string name="playlist_detail_title">Spellistdetaljer</string>
     <string name="playlist_detail_tracks">Spår</string>
-    <string name="playlist_detail_loading_tracks">Laddar spår...</string>
+    <string name="playlist_detail_loading_tracks">Laddar spår…</string>
     <string name="playlist_detail_no_tracks">Inga spår i denna spellista</string>
     <string name="playlist_detail_empty_message">Den här spellistan har inga spår ännu.</string>
     <string name="playlist_detail_owner">Av %1$s</string>
@@ -229,7 +235,6 @@
     <string name="playlist_rename_empty_name">Spellistans namn får inte vara tomt</string>
     <string name="playlist_rename_same_name">Spellistans namn är oförändrat</string>
     <string name="track_action_play">Spela</string>
-    <string name="track_action_download">Ladda ner</string>
     <string name="track_action_add_to_playlist">Lägg till i spellista</string>
     <string name="track_action_remove_from_playlist">Ta bort från spellista</string>
     <string name="track_action_add_to_favorites">Lägg till i favoriter</string>
@@ -243,19 +248,7 @@
     <string name="track_remove_error">Kunde inte ta bort spår från spellista</string>
     <string name="track_add_success">Spår tillagt i spellista</string>
     <string name="track_add_error">Kunde inte lägga till spår i spellista</string>
-    <string name="track_download_success">Spårnedladdning startad</string>
-    <string name="track_download_error">Kunde inte starta nedladdning</string>
-    <string name="album_download_success">Album nedladdning startad</string>
-    <string name="album_download_error">Kunde inte starta album nedladdning</string>
-    <string name="album_download_removed">Album nedladdning borttagen</string>
-    <string name="album_download_remove_error">Kunde inte ta bort album nedladdning</string>
-    <string name="playlist_download_success">Spellistanedladdning startad</string>
-    <string name="playlist_download_error">Kunde inte starta spellistanedladdning</string>
-    <string name="playlist_download_removed">Spellistanedladdning borttagen</string>
-    <string name="playlist_download_remove_error">Kunde inte ta bort spellistanedladdning</string>
     <string name="content_desc_playlist_artwork">Spellistomslag</string>
-    <string name="content_desc_track_downloaded">Spår nedladdat</string>
-    <string name="content_desc_track_downloading">Spår laddas ner</string>
     <string name="content_desc_create_playlist">Skapa spellista</string>
     <string name="now_playing_title">Spelas nu</string>
     <string name="now_playing_empty">Inget spår spelas</string>
@@ -265,15 +258,12 @@
     <string name="action_pause">Pausa</string>
     <string name="action_next_track">Nästa spår</string>
     <string name="action_previous_track">Föregående spår</string>
-    <string name="action_repeat">Upprepa</string>
     <string name="action_repeat_off">Upprepa av</string>
     <string name="action_repeat_all">Upprepa alla</string>
     <string name="action_repeat_one">Upprepa en</string>
     <string name="action_shuffle">Blanda</string>
     <string name="action_shuffle_on">Blanda på</string>
     <string name="action_shuffle_off">Blanda av</string>
-    <string name="content_desc_repeat_button">Upprepningsläge</string>
-    <string name="content_desc_shuffle_button">Blandningsläge</string>
     <string name="label_seek">Sök</string>
     <string name="label_volume">Volym</string>
     <string name="content_desc_mute">Tysta</string>
@@ -283,36 +273,6 @@
     <string name="content_desc_mini_player_artwork">Omslag för minispelare</string>
     <string name="content_desc_open_now_playing">Öppna Spelas nu</string>
     <string name="playback_time_format">%1$d:%2$02d</string>
-    <string name="downloads_title">Nedladdningar</string>
-    <string name="downloads_in_progress">Pågår</string>
-    <string name="downloads_completed">Nedladdat</string>
-    <string name="downloads_empty">Inga nedladdningar</string>
-    <string name="downloads_empty_message">Nedladdat innehåll visas här</string>
-    <string name="downloads_clear_all">Rensa alla nedladdningar</string>
-    <string name="downloads_clear_confirm_title">Rensa alla nedladdningar?</string>
-    <string name="downloads_clear_confirm_message">Detta tar bort alla nedladdade filer från enheten.</string>
-    <string name="downloads_status_pending">Väntar</string>
-    <string name="downloads_status_in_progress">Laddar ner</string>
-    <string name="downloads_status_paused">Pausad</string>
-    <string name="downloads_speed_kbps">%1$.1f Kbps</string>
-    <string name="downloads_speed_mbps">%1$.1f Mbps</string>
-    <string name="downloads_section_playlists">Spellistor</string>
-    <string name="downloads_section_albums">Album</string>
-    <string name="downloads_section_tracks">Enskilda spår</string>
-    <string name="content_desc_download_icon">Nedladdningar</string>
-    <string name="content_desc_download_progress">Nedladdningsförlopp</string>
-    <string name="action_cancel_download">Avbryt</string>
-    <string name="action_pause_download">Pausa</string>
-    <string name="action_resume_download">Återuppta</string>
-    <string name="android_auto_root_title">Harmonixia</string>
-    <string name="android_auto_albums_category">Album</string>
-    <string name="android_auto_artists_category">Artister</string>
-    <string name="android_auto_playlists_category">Spellistor</string>
-    <string name="android_auto_downloads_category">Nedladdningar</string>
-    <string name="android_auto_downloaded_albums">Nedladdade album</string>
-    <string name="android_auto_downloaded_playlists">Nedladdade spellistor</string>
-    <string name="android_auto_downloaded_tracks">Nedladdade spår</string>
-    <string name="android_auto_offline_mode">Offline-läge</string>
     <string name="local_media_available_files">Local files available: %1$d</string>
     <string name="action_reconnect">Reconnect</string>
     <string name="artist_detail_section_my_library">My Library</string>

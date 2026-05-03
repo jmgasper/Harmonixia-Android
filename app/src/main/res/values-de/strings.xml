@@ -19,7 +19,7 @@
     <string name="eq_search_hint">Presets nach Name, Marke oder Ersteller suchen</string>
     <string name="eq_preset_label">Preset</string>
     <string name="eq_apply_button">Preset anwenden</string>
-    <string name="eq_loading_presets">Presets werden geladen...</string>
+    <string name="eq_loading_presets">Presets werden geladen…</string>
     <string name="eq_no_preset_selected">Kein Preset ausgewählt</string>
     <string name="eq_select_preset_hint">Wählen Sie ein Preset, um die EQ-Kurve zu sehen</string>
     <string name="eq_preset_details_title">Preset-Details</string>
@@ -31,7 +31,10 @@
     <string name="local_media_no_folder_selected">Kein Ordner ausgewählt</string>
     <string name="local_media_select_folder">Ordner auswählen</string>
     <string name="local_media_refresh">Ordner scannen</string>
-    <string name="local_media_scanning">Scanne: %1$d / %2$d Dateien</string>
+    <plurals name="local_media_scanning">
+        <item quantity="one">Scanne: %1$d / %2$d Dateien</item>
+        <item quantity="other">Scanne: %1$d / %2$d Dateien</item>
+    </plurals>
     <string name="local_media_scan_complete">Scan abgeschlossen: %1$d Titel, %2$d Alben, %3$d Künstler</string>
     <string name="local_media_scan_error">Scan fehlgeschlagen: %1$s</string>
     <string name="content_desc_local_media_folder">Pfad zum lokalen Medienordner</string>
@@ -59,7 +62,7 @@
     <string name="content_desc_player_indicator">Anzeige des ausgewählten Players. Tippen, um Player zu ändern.</string>
     <string name="action_disconnect">Trennen</string>
     <string name="action_clear_settings">Einstellungen löschen</string>
-    <string name="status_connecting">Verbinden...</string>
+    <string name="status_connecting">Verbinden…</string>
     <string name="status_connected">Erfolgreich verbunden</string>
     <string name="status_connection_failed">Verbindung fehlgeschlagen</string>
     <string name="status_auth_failed">Authentifizierung fehlgeschlagen</string>
@@ -109,7 +112,7 @@
     <string name="search_section_playlists">Playlists</string>
     <string name="search_section_tracks">Titel</string>
     <string name="search_show_more">Mehr anzeigen</string>
-    <string name="search_loading">Suche...</string>
+    <string name="search_loading">Suche…</string>
     <string name="search_empty_query">Geben Sie einen Suchbegriff ein, um Musik zu finden</string>
     <string name="offline_mode_active">Offline-Modus - nur heruntergeladene Inhalte anzeigen</string>
     <string name="offline_search_active">Offline - Durchsuche heruntergeladene Inhalte</string>
@@ -129,7 +132,7 @@
     <string name="home_empty_recommendations">Empfehlungen werden hier angezeigt.</string>
     <string name="home_error_recommendations">Empfehlungen konnten nicht geladen werden.</string>
     <string name="home_empty_no_connection">Verbinden Sie sich mit Ihrem Music Assistant-Server, um Ihre Musik zu sehen.</string>
-    <string name="home_loading">Ihre Musik wird geladen...</string>
+    <string name="home_loading">Ihre Musik wird geladen…</string>
     <string name="home_error_load_failed">Startdaten konnten nicht geladen werden</string>
     <string name="home_offline_title">Sie sind offline</string>
     <string name="home_offline_message">Verbinden Sie sich, um kürzlich gespielte und hinzugefügte Alben zu sehen.</string>
@@ -145,22 +148,25 @@
     <string name="action_view_albums">Alben anzeigen</string>
     <string name="albums_title">Alben</string>
     <string name="albums_filter">Filter</string>
-    <string name="albums_loading">Alben werden geladen...</string>
+    <string name="albums_loading">Alben werden geladen…</string>
     <string name="albums_empty">Keine Alben gefunden</string>
     <string name="albums_error">Alben konnten nicht geladen werden</string>
     <string name="albums_filter_count">Alben (%1$d von %2$d)</string>
     <string name="artists_title">Künstler</string>
-    <string name="artists_loading">Künstler werden geladen...</string>
+    <string name="artists_loading">Künstler werden geladen…</string>
     <string name="artists_empty">Keine Künstler gefunden</string>
     <string name="artists_error">Künstler konnten nicht geladen werden</string>
     <string name="album_detail_title">Albumdetails</string>
     <string name="album_detail_tracks">Titel</string>
-    <string name="album_detail_loading_tracks">Titel werden geladen...</string>
+    <string name="album_detail_loading_tracks">Titel werden geladen…</string>
     <string name="album_detail_no_tracks">Keine Titel verfügbar</string>
     <string name="artist_detail_title">Künstlerdetails</string>
-    <string name="artist_detail_loading_albums">Alben werden geladen...</string>
+    <string name="artist_detail_loading_albums">Alben werden geladen…</string>
     <string name="artist_detail_no_albums">Keine Alben für diesen Künstler gefunden</string>
-    <string name="artist_detail_album_count">%1$d Alben</string>
+    <plurals name="artist_detail_album_count">
+        <item quantity="one">%1$d Alben</item>
+        <item quantity="other">%1$d Alben</item>
+    </plurals>
     <string name="artist_detail_placeholder">Wählen Sie einen Künstler, um Details zu sehen</string>
     <string name="content_desc_artist_image">Künstlerbild</string>
     <string name="track_quality_hires">Hi-Res</string>
@@ -179,8 +185,8 @@
     <string name="performance_settings_playlist_fresh_latency">Zeit bis Playlist frisch geladen: %1$s</string>
     <string name="performance_settings_album_cached_latency">Zeit bis Album gecached: %1$s</string>
     <string name="performance_settings_album_fresh_latency">Zeit bis Album frisch geladen: %1$s</string>
-    <string name="performance_settings_playlist_track_loads">Playlist-Titelladung (&lt;=50 / 51-150 / 151+): %1$s / %2$s / %3$s</string>
-    <string name="performance_settings_album_track_loads">Album-Titelladung (&lt;=50 / 51-150 / 151+): %1$s / %2$s / %3$s</string>
+    <string name="performance_settings_playlist_track_loads">Playlist-Titelladung (&lt;=50 / 51–150 / 151+): %1$s / %2$s / %3$s</string>
+    <string name="performance_settings_album_track_loads">Album-Titelladung (&lt;=50 / 51–150 / 151+): %1$s / %2$s / %3$s</string>
     <string name="performance_settings_memory_cache">Speicher-Cache: %1$s / %2$s</string>
     <string name="performance_settings_disk_cache">Datenträger-Cache: %1$s / %2$s</string>
     <string name="performance_settings_clear_image_cache">Bild-Cache leeren</string>
@@ -190,7 +196,7 @@
     <string name="filter_select_all">Alle auswählen</string>
     <string name="filter_clear_all">Alle löschen</string>
     <string name="playlists_title">Playlists</string>
-    <string name="playlists_loading">Playlists werden geladen...</string>
+    <string name="playlists_loading">Playlists werden geladen…</string>
     <string name="playlists_empty">Keine Playlists gefunden</string>
     <string name="playlists_error">Playlists konnten nicht geladen werden</string>
     <string name="playlists_create">Playlist erstellen</string>
@@ -200,7 +206,7 @@
     <string name="playlists_create_error">Playlist konnte nicht erstellt werden</string>
     <string name="playlist_detail_title">Playlist-Details</string>
     <string name="playlist_detail_tracks">Titel</string>
-    <string name="playlist_detail_loading_tracks">Titel werden geladen...</string>
+    <string name="playlist_detail_loading_tracks">Titel werden geladen…</string>
     <string name="playlist_detail_no_tracks">Keine Titel in dieser Playlist</string>
     <string name="playlist_detail_empty_message">Diese Playlist hat noch keine Titel.</string>
     <string name="playlist_detail_owner">Von %1$s</string>
@@ -229,7 +235,6 @@
     <string name="playlist_rename_empty_name">Playlist-Name darf nicht leer sein</string>
     <string name="playlist_rename_same_name">Playlist-Name unverändert</string>
     <string name="track_action_play">Abspielen</string>
-    <string name="track_action_download">Herunterladen</string>
     <string name="track_action_add_to_playlist">Zur Playlist hinzufügen</string>
     <string name="track_action_remove_from_playlist">Aus Playlist entfernen</string>
     <string name="track_action_add_to_favorites">Zu Favoriten hinzufügen</string>
@@ -243,19 +248,7 @@
     <string name="track_remove_error">Titel konnte nicht aus Playlist entfernt werden</string>
     <string name="track_add_success">Titel zur Playlist hinzugefügt</string>
     <string name="track_add_error">Titel konnte nicht zur Playlist hinzugefügt werden</string>
-    <string name="track_download_success">Titel-Download gestartet</string>
-    <string name="track_download_error">Download konnte nicht gestartet werden</string>
-    <string name="album_download_success">Album-Download gestartet</string>
-    <string name="album_download_error">Album-Download konnte nicht gestartet werden</string>
-    <string name="album_download_removed">Album-Download entfernt</string>
-    <string name="album_download_remove_error">Album-Download konnte nicht entfernt werden</string>
-    <string name="playlist_download_success">Playlist-Download gestartet</string>
-    <string name="playlist_download_error">Playlist-Download konnte nicht gestartet werden</string>
-    <string name="playlist_download_removed">Playlist-Download entfernt</string>
-    <string name="playlist_download_remove_error">Playlist-Download konnte nicht entfernt werden</string>
     <string name="content_desc_playlist_artwork">Playlist-Cover</string>
-    <string name="content_desc_track_downloaded">Titel heruntergeladen</string>
-    <string name="content_desc_track_downloading">Titel wird heruntergeladen</string>
     <string name="content_desc_create_playlist">Playlist erstellen</string>
     <string name="now_playing_title">Jetzt läuft</string>
     <string name="now_playing_empty">Kein Titel wird abgespielt</string>
@@ -265,15 +258,12 @@
     <string name="action_pause">Pause</string>
     <string name="action_next_track">Nächster Titel</string>
     <string name="action_previous_track">Vorheriger Titel</string>
-    <string name="action_repeat">Wiederholen</string>
     <string name="action_repeat_off">Wiederholen aus</string>
     <string name="action_repeat_all">Alle wiederholen</string>
     <string name="action_repeat_one">Einen wiederholen</string>
     <string name="action_shuffle">Zufällig</string>
     <string name="action_shuffle_on">Zufällig an</string>
     <string name="action_shuffle_off">Zufällig aus</string>
-    <string name="content_desc_repeat_button">Wiederholmodus</string>
-    <string name="content_desc_shuffle_button">Zufallsmodus</string>
     <string name="label_seek">Spulen</string>
     <string name="label_volume">Lautstärke</string>
     <string name="content_desc_mute">Stummschalten</string>
@@ -283,36 +273,6 @@
     <string name="content_desc_mini_player_artwork">Cover des Mini-Players</string>
     <string name="content_desc_open_now_playing">Jetzt läuft öffnen</string>
     <string name="playback_time_format">%1$d:%2$02d</string>
-    <string name="downloads_title">Downloads</string>
-    <string name="downloads_in_progress">In Bearbeitung</string>
-    <string name="downloads_completed">Heruntergeladen</string>
-    <string name="downloads_empty">Keine Downloads</string>
-    <string name="downloads_empty_message">Heruntergeladene Inhalte werden hier angezeigt</string>
-    <string name="downloads_clear_all">Alle Downloads löschen</string>
-    <string name="downloads_clear_confirm_title">Alle Downloads löschen?</string>
-    <string name="downloads_clear_confirm_message">Dadurch werden alle heruntergeladenen Dateien vom Gerät entfernt.</string>
-    <string name="downloads_status_pending">Ausstehend</string>
-    <string name="downloads_status_in_progress">Wird heruntergeladen</string>
-    <string name="downloads_status_paused">Pausiert</string>
-    <string name="downloads_speed_kbps">%1$.1f Kbps</string>
-    <string name="downloads_speed_mbps">%1$.1f Mbps</string>
-    <string name="downloads_section_playlists">Playlists</string>
-    <string name="downloads_section_albums">Alben</string>
-    <string name="downloads_section_tracks">Einzelne Titel</string>
-    <string name="content_desc_download_icon">Downloads</string>
-    <string name="content_desc_download_progress">Download-Fortschritt</string>
-    <string name="action_cancel_download">Abbrechen</string>
-    <string name="action_pause_download">Pause</string>
-    <string name="action_resume_download">Fortsetzen</string>
-    <string name="android_auto_root_title">Harmonixia</string>
-    <string name="android_auto_albums_category">Alben</string>
-    <string name="android_auto_artists_category">Künstler</string>
-    <string name="android_auto_playlists_category">Playlists</string>
-    <string name="android_auto_downloads_category">Downloads</string>
-    <string name="android_auto_downloaded_albums">Heruntergeladene Alben</string>
-    <string name="android_auto_downloaded_playlists">Heruntergeladene Playlists</string>
-    <string name="android_auto_downloaded_tracks">Heruntergeladene Titel</string>
-    <string name="android_auto_offline_mode">Offline-Modus</string>
     <string name="local_media_available_files">Local files available: %1$d</string>
     <string name="action_reconnect">Reconnect</string>
     <string name="artist_detail_section_my_library">My Library</string>

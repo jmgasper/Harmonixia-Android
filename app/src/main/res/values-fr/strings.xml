@@ -19,7 +19,7 @@
     <string name="eq_search_hint">Rechercher des préréglages par nom, marque ou créateur</string>
     <string name="eq_preset_label">Préréglage</string>
     <string name="eq_apply_button">Appliquer le préréglage</string>
-    <string name="eq_loading_presets">Chargement des préréglages...</string>
+    <string name="eq_loading_presets">Chargement des préréglages…</string>
     <string name="eq_no_preset_selected">Aucun préréglage sélectionné</string>
     <string name="eq_select_preset_hint">Sélectionnez un préréglage pour voir sa courbe EQ</string>
     <string name="eq_preset_details_title">Détails du préréglage</string>
@@ -31,7 +31,11 @@
     <string name="local_media_no_folder_selected">Aucun dossier sélectionné</string>
     <string name="local_media_select_folder">Sélectionner un dossier</string>
     <string name="local_media_refresh">Analyser le dossier</string>
-    <string name="local_media_scanning">Analyse : %1$d / %2$d fichiers</string>
+    <plurals name="local_media_scanning">
+        <item quantity="one">Analyse : %1$d / %2$d fichiers</item>
+        <item quantity="many">Analyse : %1$d / %2$d fichiers</item>
+        <item quantity="other">Analyse : %1$d / %2$d fichiers</item>
+    </plurals>
     <string name="local_media_scan_complete">Analyse terminée : %1$d pistes, %2$d albums, %3$d artistes</string>
     <string name="local_media_scan_error">Échec de l\'analyse : %1$s</string>
     <string name="content_desc_local_media_folder">Chemin du dossier de médias locaux</string>
@@ -59,7 +63,7 @@
     <string name="content_desc_player_indicator">Indicateur du lecteur sélectionné. Touchez pour changer de lecteur.</string>
     <string name="action_disconnect">Se déconnecter</string>
     <string name="action_clear_settings">Effacer les paramètres</string>
-    <string name="status_connecting">Connexion...</string>
+    <string name="status_connecting">Connexion…</string>
     <string name="status_connected">Connexion réussie</string>
     <string name="status_connection_failed">Échec de connexion</string>
     <string name="status_auth_failed">Échec de l\'authentification</string>
@@ -109,7 +113,7 @@
     <string name="search_section_playlists">Listes de lecture</string>
     <string name="search_section_tracks">Pistes</string>
     <string name="search_show_more">Afficher plus</string>
-    <string name="search_loading">Recherche...</string>
+    <string name="search_loading">Recherche…</string>
     <string name="search_empty_query">Entrez un terme de recherche pour trouver de la musique</string>
     <string name="offline_mode_active">Mode hors ligne - affichage du contenu téléchargé uniquement</string>
     <string name="offline_search_active">Hors ligne - recherche dans le contenu téléchargé</string>
@@ -129,7 +133,7 @@
     <string name="home_empty_recommendations">Les recommandations apparaîtront ici.</string>
     <string name="home_error_recommendations">Impossible de charger les recommandations.</string>
     <string name="home_empty_no_connection">Connectez-vous à votre serveur Music Assistant pour voir votre musique.</string>
-    <string name="home_loading">Chargement de votre musique...</string>
+    <string name="home_loading">Chargement de votre musique…</string>
     <string name="home_error_load_failed">Impossible de charger les données d\'accueil</string>
     <string name="home_offline_title">Vous êtes hors ligne</string>
     <string name="home_offline_message">Connectez-vous pour voir les albums récents et ajoutés.</string>
@@ -145,22 +149,26 @@
     <string name="action_view_albums">Voir les albums</string>
     <string name="albums_title">Albums</string>
     <string name="albums_filter">Filtrer</string>
-    <string name="albums_loading">Chargement des albums...</string>
+    <string name="albums_loading">Chargement des albums…</string>
     <string name="albums_empty">Aucun album trouvé</string>
     <string name="albums_error">Échec du chargement des albums</string>
     <string name="albums_filter_count">Albums (%1$d sur %2$d)</string>
     <string name="artists_title">Artistes</string>
-    <string name="artists_loading">Chargement des artistes...</string>
+    <string name="artists_loading">Chargement des artistes…</string>
     <string name="artists_empty">Aucun artiste trouvé</string>
     <string name="artists_error">Échec du chargement des artistes</string>
     <string name="album_detail_title">Détails de l\'album</string>
     <string name="album_detail_tracks">Pistes</string>
-    <string name="album_detail_loading_tracks">Chargement des pistes...</string>
+    <string name="album_detail_loading_tracks">Chargement des pistes…</string>
     <string name="album_detail_no_tracks">Aucune piste disponible</string>
     <string name="artist_detail_title">Détails de l\'artiste</string>
-    <string name="artist_detail_loading_albums">Chargement des albums...</string>
+    <string name="artist_detail_loading_albums">Chargement des albums…</string>
     <string name="artist_detail_no_albums">Aucun album trouvé pour cet artiste</string>
-    <string name="artist_detail_album_count">%1$d albums</string>
+    <plurals name="artist_detail_album_count">
+        <item quantity="one">%1$d albums</item>
+        <item quantity="many">%1$d albums</item>
+        <item quantity="other">%1$d albums</item>
+    </plurals>
     <string name="artist_detail_placeholder">Sélectionnez un artiste pour voir les détails</string>
     <string name="content_desc_artist_image">Image de l\'artiste</string>
     <string name="track_quality_hires">Hi-Res</string>
@@ -179,8 +187,8 @@
     <string name="performance_settings_playlist_fresh_latency">Temps de chargement frais des playlists : %1$s</string>
     <string name="performance_settings_album_cached_latency">Temps de mise en cache des albums : %1$s</string>
     <string name="performance_settings_album_fresh_latency">Temps de chargement frais des albums : %1$s</string>
-    <string name="performance_settings_playlist_track_loads">Chargement de pistes des playlists (&lt;=50 / 51-150 / 151+) : %1$s / %2$s / %3$s</string>
-    <string name="performance_settings_album_track_loads">Chargement de pistes des albums (&lt;=50 / 51-150 / 151+) : %1$s / %2$s / %3$s</string>
+    <string name="performance_settings_playlist_track_loads">Chargement de pistes des playlists (&lt;=50 / 51–150 / 151+) : %1$s / %2$s / %3$s</string>
+    <string name="performance_settings_album_track_loads">Chargement de pistes des albums (&lt;=50 / 51–150 / 151+) : %1$s / %2$s / %3$s</string>
     <string name="performance_settings_memory_cache">Cache mémoire : %1$s / %2$s</string>
     <string name="performance_settings_disk_cache">Cache disque : %1$s / %2$s</string>
     <string name="performance_settings_clear_image_cache">Vider le cache d\'images</string>
@@ -190,7 +198,7 @@
     <string name="filter_select_all">Tout sélectionner</string>
     <string name="filter_clear_all">Tout effacer</string>
     <string name="playlists_title">Listes de lecture</string>
-    <string name="playlists_loading">Chargement des listes de lecture...</string>
+    <string name="playlists_loading">Chargement des listes de lecture…</string>
     <string name="playlists_empty">Aucune liste trouvée</string>
     <string name="playlists_error">Échec du chargement des listes</string>
     <string name="playlists_create">Créer une liste</string>
@@ -200,7 +208,7 @@
     <string name="playlists_create_error">Impossible de créer la liste</string>
     <string name="playlist_detail_title">Détails de la liste</string>
     <string name="playlist_detail_tracks">Pistes</string>
-    <string name="playlist_detail_loading_tracks">Chargement des pistes...</string>
+    <string name="playlist_detail_loading_tracks">Chargement des pistes…</string>
     <string name="playlist_detail_no_tracks">Aucune piste dans cette liste</string>
     <string name="playlist_detail_empty_message">Cette liste n\'a pas encore de pistes.</string>
     <string name="playlist_detail_owner">Par %1$s</string>
@@ -229,7 +237,6 @@
     <string name="playlist_rename_empty_name">Le nom de la liste ne peut pas être vide</string>
     <string name="playlist_rename_same_name">Le nom de la liste est inchangé</string>
     <string name="track_action_play">Lire</string>
-    <string name="track_action_download">Télécharger</string>
     <string name="track_action_add_to_playlist">Ajouter à la liste</string>
     <string name="track_action_remove_from_playlist">Retirer de la liste</string>
     <string name="track_action_add_to_favorites">Ajouter aux favoris</string>
@@ -243,19 +250,7 @@
     <string name="track_remove_error">Impossible de retirer la piste de la liste</string>
     <string name="track_add_success">Piste ajoutée à la liste</string>
     <string name="track_add_error">Impossible d\'ajouter la piste à la liste</string>
-    <string name="track_download_success">Téléchargement de la piste démarré</string>
-    <string name="track_download_error">Impossible de démarrer le téléchargement</string>
-    <string name="album_download_success">Téléchargement de l\'album démarré</string>
-    <string name="album_download_error">Impossible de démarrer le téléchargement de l\'album</string>
-    <string name="album_download_removed">Téléchargement de l\'album supprimé</string>
-    <string name="album_download_remove_error">Impossible de supprimer le téléchargement de l\'album</string>
-    <string name="playlist_download_success">Téléchargement de la liste démarré</string>
-    <string name="playlist_download_error">Impossible de démarrer le téléchargement de la liste</string>
-    <string name="playlist_download_removed">Téléchargement de la liste supprimé</string>
-    <string name="playlist_download_remove_error">Impossible de supprimer le téléchargement de la liste</string>
     <string name="content_desc_playlist_artwork">Illustration de la liste</string>
-    <string name="content_desc_track_downloaded">Piste téléchargée</string>
-    <string name="content_desc_track_downloading">Piste en téléchargement</string>
     <string name="content_desc_create_playlist">Créer une liste</string>
     <string name="now_playing_title">Lecture en cours</string>
     <string name="now_playing_empty">Aucune piste en lecture</string>
@@ -265,15 +260,12 @@
     <string name="action_pause">Pause</string>
     <string name="action_next_track">Piste suivante</string>
     <string name="action_previous_track">Piste précédente</string>
-    <string name="action_repeat">Répéter</string>
     <string name="action_repeat_off">Répétition désactivée</string>
     <string name="action_repeat_all">Répéter tout</string>
     <string name="action_repeat_one">Répéter une</string>
     <string name="action_shuffle">Aléatoire</string>
     <string name="action_shuffle_on">Aléatoire activé</string>
     <string name="action_shuffle_off">Aléatoire désactivé</string>
-    <string name="content_desc_repeat_button">Mode de répétition</string>
-    <string name="content_desc_shuffle_button">Mode aléatoire</string>
     <string name="label_seek">Aller à</string>
     <string name="label_volume">Volume</string>
     <string name="content_desc_mute">Muet</string>
@@ -283,36 +275,6 @@
     <string name="content_desc_mini_player_artwork">Illustration du mini lecteur</string>
     <string name="content_desc_open_now_playing">Ouvrir Lecture en cours</string>
     <string name="playback_time_format">%1$d:%2$02d</string>
-    <string name="downloads_title">Téléchargements</string>
-    <string name="downloads_in_progress">En cours</string>
-    <string name="downloads_completed">Téléchargé</string>
-    <string name="downloads_empty">Aucun téléchargement</string>
-    <string name="downloads_empty_message">Le contenu téléchargé apparaîtra ici</string>
-    <string name="downloads_clear_all">Effacer tous les téléchargements</string>
-    <string name="downloads_clear_confirm_title">Effacer tous les téléchargements ?</string>
-    <string name="downloads_clear_confirm_message">Cela supprimera tous les fichiers téléchargés de votre appareil.</string>
-    <string name="downloads_status_pending">En attente</string>
-    <string name="downloads_status_in_progress">Téléchargement</string>
-    <string name="downloads_status_paused">En pause</string>
-    <string name="downloads_speed_kbps">%1$.1f Kbps</string>
-    <string name="downloads_speed_mbps">%1$.1f Mbps</string>
-    <string name="downloads_section_playlists">Listes de lecture</string>
-    <string name="downloads_section_albums">Albums</string>
-    <string name="downloads_section_tracks">Pistes individuelles</string>
-    <string name="content_desc_download_icon">Téléchargements</string>
-    <string name="content_desc_download_progress">Progression du téléchargement</string>
-    <string name="action_cancel_download">Annuler</string>
-    <string name="action_pause_download">Pause</string>
-    <string name="action_resume_download">Reprendre</string>
-    <string name="android_auto_root_title">Harmonixia</string>
-    <string name="android_auto_albums_category">Albums</string>
-    <string name="android_auto_artists_category">Artistes</string>
-    <string name="android_auto_playlists_category">Listes de lecture</string>
-    <string name="android_auto_downloads_category">Téléchargements</string>
-    <string name="android_auto_downloaded_albums">Albums téléchargés</string>
-    <string name="android_auto_downloaded_playlists">Listes téléchargées</string>
-    <string name="android_auto_downloaded_tracks">Pistes téléchargées</string>
-    <string name="android_auto_offline_mode">Mode hors ligne</string>
     <string name="local_media_available_files">Local files available: %1$d</string>
     <string name="action_reconnect">Reconnect</string>
     <string name="artist_detail_section_my_library">My Library</string>

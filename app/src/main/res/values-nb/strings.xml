@@ -19,7 +19,7 @@
     <string name="eq_search_hint">Søk etter forhåndsinnstillinger etter navn, merke eller opphav</string>
     <string name="eq_preset_label">Forhåndsinnstilling</string>
     <string name="eq_apply_button">Bruk forhåndsinnstilling</string>
-    <string name="eq_loading_presets">Laster forhåndsinnstillinger...</string>
+    <string name="eq_loading_presets">Laster forhåndsinnstillinger…</string>
     <string name="eq_no_preset_selected">Ingen forhåndsinnstilling valgt</string>
     <string name="eq_select_preset_hint">Velg en forhåndsinnstilling for å se EQ-kurven</string>
     <string name="eq_preset_details_title">Detaljer for forhåndsinnstilling</string>
@@ -31,7 +31,10 @@
     <string name="local_media_no_folder_selected">Ingen mappe valgt</string>
     <string name="local_media_select_folder">Velg mappe</string>
     <string name="local_media_refresh">Skann mappe</string>
-    <string name="local_media_scanning">Skanner: %1$d / %2$d filer</string>
+    <plurals name="local_media_scanning">
+        <item quantity="one">Skanner: %1$d / %2$d filer</item>
+        <item quantity="other">Skanner: %1$d / %2$d filer</item>
+    </plurals>
     <string name="local_media_scan_complete">Skanning fullført: %1$d spor, %2$d album, %3$d artister</string>
     <string name="local_media_scan_error">Skanning mislyktes: %1$s</string>
     <string name="content_desc_local_media_folder">Sti til lokal mediamappe</string>
@@ -59,7 +62,7 @@
     <string name="content_desc_player_indicator">Indikator for valgt spiller. Trykk for å bytte spiller.</string>
     <string name="action_disconnect">Koble fra</string>
     <string name="action_clear_settings">Tøm innstillinger</string>
-    <string name="status_connecting">Kobler til...</string>
+    <string name="status_connecting">Kobler til…</string>
     <string name="status_connected">Tilkoblet</string>
     <string name="status_connection_failed">Tilkobling mislyktes</string>
     <string name="status_auth_failed">Autentisering mislyktes</string>
@@ -109,7 +112,7 @@
     <string name="search_section_playlists">Spillelister</string>
     <string name="search_section_tracks">Spor</string>
     <string name="search_show_more">Vis mer</string>
-    <string name="search_loading">Søker...</string>
+    <string name="search_loading">Søker…</string>
     <string name="search_empty_query">Skriv inn et søkeord for å finne musikk</string>
     <string name="offline_mode_active">Offline-modus - viser bare nedlastet innhold</string>
     <string name="offline_search_active">Offline - søker i nedlastet innhold</string>
@@ -129,7 +132,7 @@
     <string name="home_empty_recommendations">Anbefalinger vises her.</string>
     <string name="home_error_recommendations">Kunne ikke laste anbefalinger.</string>
     <string name="home_empty_no_connection">Koble til Music Assistant-serveren din for å se musikken din.</string>
-    <string name="home_loading">Laster musikken din...</string>
+    <string name="home_loading">Laster musikken din…</string>
     <string name="home_error_load_failed">Kunne ikke laste hjemmedata</string>
     <string name="home_offline_title">Du er offline</string>
     <string name="home_offline_message">Koble til for å se nylig spilte og lagt til album.</string>
@@ -145,22 +148,25 @@
     <string name="action_view_albums">Vis album</string>
     <string name="albums_title">Album</string>
     <string name="albums_filter">Filtrer</string>
-    <string name="albums_loading">Laster album...</string>
+    <string name="albums_loading">Laster album…</string>
     <string name="albums_empty">Ingen album funnet</string>
     <string name="albums_error">Kunne ikke laste album</string>
     <string name="albums_filter_count">Album (%1$d av %2$d)</string>
     <string name="artists_title">Artister</string>
-    <string name="artists_loading">Laster artister...</string>
+    <string name="artists_loading">Laster artister…</string>
     <string name="artists_empty">Ingen artister funnet</string>
     <string name="artists_error">Kunne ikke laste artister</string>
     <string name="album_detail_title">Albumdetaljer</string>
     <string name="album_detail_tracks">Spor</string>
-    <string name="album_detail_loading_tracks">Laster spor...</string>
+    <string name="album_detail_loading_tracks">Laster spor…</string>
     <string name="album_detail_no_tracks">Ingen spor tilgjengelig</string>
     <string name="artist_detail_title">Artistdetaljer</string>
-    <string name="artist_detail_loading_albums">Laster album...</string>
+    <string name="artist_detail_loading_albums">Laster album…</string>
     <string name="artist_detail_no_albums">Ingen album funnet for denne artisten</string>
-    <string name="artist_detail_album_count">%1$d album</string>
+    <plurals name="artist_detail_album_count">
+        <item quantity="one">%1$d album</item>
+        <item quantity="other">%1$d album</item>
+    </plurals>
     <string name="artist_detail_placeholder">Velg en artist for å se detaljer</string>
     <string name="content_desc_artist_image">Artistbilde</string>
     <string name="track_quality_hires">Hi-Res</string>
@@ -179,8 +185,8 @@
     <string name="performance_settings_playlist_fresh_latency">Tid til ny lasting for spilleliste: %1$s</string>
     <string name="performance_settings_album_cached_latency">Tid til cache for album: %1$s</string>
     <string name="performance_settings_album_fresh_latency">Tid til ny lasting for album: %1$s</string>
-    <string name="performance_settings_playlist_track_loads">Spillelistespor-lasting (&lt;=50 / 51-150 / 151+): %1$s / %2$s / %3$s</string>
-    <string name="performance_settings_album_track_loads">Albumspor-lasting (&lt;=50 / 51-150 / 151+): %1$s / %2$s / %3$s</string>
+    <string name="performance_settings_playlist_track_loads">Spillelistespor-lasting (&lt;=50 / 51–150 / 151+): %1$s / %2$s / %3$s</string>
+    <string name="performance_settings_album_track_loads">Albumspor-lasting (&lt;=50 / 51–150 / 151+): %1$s / %2$s / %3$s</string>
     <string name="performance_settings_memory_cache">Minnecache: %1$s / %2$s</string>
     <string name="performance_settings_disk_cache">Diskcache: %1$s / %2$s</string>
     <string name="performance_settings_clear_image_cache">Tøm bildebuffer</string>
@@ -190,7 +196,7 @@
     <string name="filter_select_all">Velg alle</string>
     <string name="filter_clear_all">Tøm alle</string>
     <string name="playlists_title">Spillelister</string>
-    <string name="playlists_loading">Laster spillelister...</string>
+    <string name="playlists_loading">Laster spillelister…</string>
     <string name="playlists_empty">Ingen spillelister funnet</string>
     <string name="playlists_error">Kunne ikke laste spillelister</string>
     <string name="playlists_create">Opprett spilleliste</string>
@@ -200,7 +206,7 @@
     <string name="playlists_create_error">Kunne ikke opprette spilleliste</string>
     <string name="playlist_detail_title">Spillelistedetaljer</string>
     <string name="playlist_detail_tracks">Spor</string>
-    <string name="playlist_detail_loading_tracks">Laster spor...</string>
+    <string name="playlist_detail_loading_tracks">Laster spor…</string>
     <string name="playlist_detail_no_tracks">Ingen spor i denne spillelisten</string>
     <string name="playlist_detail_empty_message">Denne spillelisten har ingen spor ennå.</string>
     <string name="playlist_detail_owner">Av %1$s</string>
@@ -229,7 +235,6 @@
     <string name="playlist_rename_empty_name">Spillelistenavnet kan ikke være tomt</string>
     <string name="playlist_rename_same_name">Spillelistenavnet er uendret</string>
     <string name="track_action_play">Spill</string>
-    <string name="track_action_download">Last ned</string>
     <string name="track_action_add_to_playlist">Legg til i spilleliste</string>
     <string name="track_action_remove_from_playlist">Fjern fra spilleliste</string>
     <string name="track_action_add_to_favorites">Legg til i favoritter</string>
@@ -243,19 +248,7 @@
     <string name="track_remove_error">Kunne ikke fjerne spor fra spilleliste</string>
     <string name="track_add_success">Spor lagt til i spilleliste</string>
     <string name="track_add_error">Kunne ikke legge til spor i spilleliste</string>
-    <string name="track_download_success">Spor-nedlasting startet</string>
-    <string name="track_download_error">Kunne ikke starte nedlasting</string>
-    <string name="album_download_success">Album-nedlasting startet</string>
-    <string name="album_download_error">Kunne ikke starte album-nedlasting</string>
-    <string name="album_download_removed">Album-nedlasting fjernet</string>
-    <string name="album_download_remove_error">Kunne ikke fjerne album-nedlasting</string>
-    <string name="playlist_download_success">Spilleliste-nedlasting startet</string>
-    <string name="playlist_download_error">Kunne ikke starte spilleliste-nedlasting</string>
-    <string name="playlist_download_removed">Spilleliste-nedlasting fjernet</string>
-    <string name="playlist_download_remove_error">Kunne ikke fjerne spilleliste-nedlasting</string>
     <string name="content_desc_playlist_artwork">Spillelisteomslag</string>
-    <string name="content_desc_track_downloaded">Spor nedlastet</string>
-    <string name="content_desc_track_downloading">Spor lastes ned</string>
     <string name="content_desc_create_playlist">Opprett spilleliste</string>
     <string name="now_playing_title">Spilles nå</string>
     <string name="now_playing_empty">Ingen spor spilles</string>
@@ -265,15 +258,12 @@
     <string name="action_pause">Pause</string>
     <string name="action_next_track">Neste spor</string>
     <string name="action_previous_track">Forrige spor</string>
-    <string name="action_repeat">Gjenta</string>
     <string name="action_repeat_off">Gjenta av</string>
     <string name="action_repeat_all">Gjenta alle</string>
     <string name="action_repeat_one">Gjenta én</string>
     <string name="action_shuffle">Tilfeldig</string>
     <string name="action_shuffle_on">Tilfeldig på</string>
     <string name="action_shuffle_off">Tilfeldig av</string>
-    <string name="content_desc_repeat_button">Gjentakelsesmodus</string>
-    <string name="content_desc_shuffle_button">Tilfeldig modus</string>
     <string name="label_seek">Søk</string>
     <string name="label_volume">Volum</string>
     <string name="content_desc_mute">Demp</string>
@@ -283,36 +273,6 @@
     <string name="content_desc_mini_player_artwork">Omslag for minispiller</string>
     <string name="content_desc_open_now_playing">Åpne Spilles nå</string>
     <string name="playback_time_format">%1$d:%2$02d</string>
-    <string name="downloads_title">Nedlastinger</string>
-    <string name="downloads_in_progress">Pågår</string>
-    <string name="downloads_completed">Nedlastet</string>
-    <string name="downloads_empty">Ingen nedlastinger</string>
-    <string name="downloads_empty_message">Nedlastet innhold vises her</string>
-    <string name="downloads_clear_all">Tøm alle nedlastinger</string>
-    <string name="downloads_clear_confirm_title">Tøm alle nedlastinger?</string>
-    <string name="downloads_clear_confirm_message">Dette vil fjerne alle nedlastede filer fra enheten.</string>
-    <string name="downloads_status_pending">Venter</string>
-    <string name="downloads_status_in_progress">Laster ned</string>
-    <string name="downloads_status_paused">Pauset</string>
-    <string name="downloads_speed_kbps">%1$.1f Kbps</string>
-    <string name="downloads_speed_mbps">%1$.1f Mbps</string>
-    <string name="downloads_section_playlists">Spillelister</string>
-    <string name="downloads_section_albums">Album</string>
-    <string name="downloads_section_tracks">Enkeltspor</string>
-    <string name="content_desc_download_icon">Nedlastinger</string>
-    <string name="content_desc_download_progress">Nedlastingsfremdrift</string>
-    <string name="action_cancel_download">Avbryt</string>
-    <string name="action_pause_download">Pause</string>
-    <string name="action_resume_download">Fortsett</string>
-    <string name="android_auto_root_title">Harmonixia</string>
-    <string name="android_auto_albums_category">Album</string>
-    <string name="android_auto_artists_category">Artister</string>
-    <string name="android_auto_playlists_category">Spillelister</string>
-    <string name="android_auto_downloads_category">Nedlastinger</string>
-    <string name="android_auto_downloaded_albums">Nedlastede album</string>
-    <string name="android_auto_downloaded_playlists">Nedlastede spillelister</string>
-    <string name="android_auto_downloaded_tracks">Nedlastede spor</string>
-    <string name="android_auto_offline_mode">Offline-modus</string>
     <string name="local_media_available_files">Local files available: %1$d</string>
     <string name="action_reconnect">Reconnect</string>
     <string name="artist_detail_section_my_library">My Library</string>

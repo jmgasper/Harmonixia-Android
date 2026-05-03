@@ -19,7 +19,7 @@
     <string name="eq_search_hint">नाम, ब्रांड या निर्माता के अनुसार प्रीसेट खोजें</string>
     <string name="eq_preset_label">प्रीसेट</string>
     <string name="eq_apply_button">प्रीसेट लागू करें</string>
-    <string name="eq_loading_presets">प्रीसेट लोड हो रहे हैं...</string>
+    <string name="eq_loading_presets">प्रीसेट लोड हो रहे हैं…</string>
     <string name="eq_no_preset_selected">कोई प्रीसेट चुना नहीं गया</string>
     <string name="eq_select_preset_hint">EQ कर्व देखने के लिए एक प्रीसेट चुनें</string>
     <string name="eq_preset_details_title">प्रीसेट विवरण</string>
@@ -31,7 +31,10 @@
     <string name="local_media_no_folder_selected">कोई फ़ोल्डर चुना नहीं गया</string>
     <string name="local_media_select_folder">फ़ोल्डर चुनें</string>
     <string name="local_media_refresh">फ़ोल्डर स्कैन करें</string>
-    <string name="local_media_scanning">स्कैन हो रहा है: %1$d / %2$d फ़ाइलें</string>
+    <plurals name="local_media_scanning">
+        <item quantity="one">स्कैन हो रहा है: %1$d / %2$d फ़ाइलें</item>
+        <item quantity="other">स्कैन हो रहा है: %1$d / %2$d फ़ाइलें</item>
+    </plurals>
     <string name="local_media_scan_complete">स्कैन पूरा: %1$d ट्रैक, %2$d एल्बम, %3$d कलाकार</string>
     <string name="local_media_scan_error">स्कैन असफल: %1$s</string>
     <string name="content_desc_local_media_folder">लोकल मीडिया फ़ोल्डर पथ</string>
@@ -59,7 +62,7 @@
     <string name="content_desc_player_indicator">चयनित प्लेयर संकेतक। प्लेयर बदलने के लिए टैप करें।</string>
     <string name="action_disconnect">डिस्कनेक्ट</string>
     <string name="action_clear_settings">सेटिंग्स साफ़ करें</string>
-    <string name="status_connecting">कनेक्ट हो रहा है...</string>
+    <string name="status_connecting">कनेक्ट हो रहा है…</string>
     <string name="status_connected">सफलतापूर्वक कनेक्ट हुआ</string>
     <string name="status_connection_failed">कनेक्शन असफल</string>
     <string name="status_auth_failed">प्रमाणीकरण असफल</string>
@@ -109,7 +112,7 @@
     <string name="search_section_playlists">प्लेलिस्ट</string>
     <string name="search_section_tracks">ट्रैक</string>
     <string name="search_show_more">और दिखाएँ</string>
-    <string name="search_loading">खोजा जा रहा है...</string>
+    <string name="search_loading">खोजा जा रहा है…</string>
     <string name="search_empty_query">संगीत खोजने के लिए खोज शब्द दर्ज करें</string>
     <string name="offline_mode_active">ऑफ़लाइन मोड - केवल डाउनलोड की गई सामग्री दिखाई जाएगी</string>
     <string name="offline_search_active">ऑफ़लाइन - डाउनलोड की गई सामग्री खोजी जा रही है</string>
@@ -129,7 +132,7 @@
     <string name="home_empty_recommendations">सिफारिशें यहाँ दिखाई देंगी।</string>
     <string name="home_error_recommendations">सिफारिशें लोड नहीं हो सकीं।</string>
     <string name="home_empty_no_connection">अपना संगीत देखने के लिए Music Assistant सर्वर से कनेक्ट करें।</string>
-    <string name="home_loading">आपका संगीत लोड हो रहा है...</string>
+    <string name="home_loading">आपका संगीत लोड हो रहा है…</string>
     <string name="home_error_load_failed">होम डेटा लोड नहीं हो सका</string>
     <string name="home_offline_title">आप ऑफ़लाइन हैं</string>
     <string name="home_offline_message">हाल ही में चलाए गए और जोड़े गए एल्बम देखने के लिए कनेक्ट करें।</string>
@@ -145,22 +148,25 @@
     <string name="action_view_albums">एल्बम देखें</string>
     <string name="albums_title">एल्बम</string>
     <string name="albums_filter">फ़िल्टर</string>
-    <string name="albums_loading">एल्बम लोड हो रहे हैं...</string>
+    <string name="albums_loading">एल्बम लोड हो रहे हैं…</string>
     <string name="albums_empty">कोई एल्बम नहीं मिला</string>
     <string name="albums_error">एल्बम लोड नहीं हो सके</string>
     <string name="albums_filter_count">एल्बम (%1$d में से %2$d)</string>
     <string name="artists_title">कलाकार</string>
-    <string name="artists_loading">कलाकार लोड हो रहे हैं...</string>
+    <string name="artists_loading">कलाकार लोड हो रहे हैं…</string>
     <string name="artists_empty">कोई कलाकार नहीं मिला</string>
     <string name="artists_error">कलाकार लोड नहीं हो सके</string>
     <string name="album_detail_title">एल्बम विवरण</string>
     <string name="album_detail_tracks">ट्रैक</string>
-    <string name="album_detail_loading_tracks">ट्रैक लोड हो रहे हैं...</string>
+    <string name="album_detail_loading_tracks">ट्रैक लोड हो रहे हैं…</string>
     <string name="album_detail_no_tracks">कोई ट्रैक उपलब्ध नहीं है</string>
     <string name="artist_detail_title">कलाकार विवरण</string>
-    <string name="artist_detail_loading_albums">एल्बम लोड हो रहे हैं...</string>
+    <string name="artist_detail_loading_albums">एल्बम लोड हो रहे हैं…</string>
     <string name="artist_detail_no_albums">इस कलाकार के लिए कोई एल्बम नहीं मिला</string>
-    <string name="artist_detail_album_count">%1$d एल्बम</string>
+    <plurals name="artist_detail_album_count">
+        <item quantity="one">%1$d एल्बम</item>
+        <item quantity="other">%1$d एल्बम</item>
+    </plurals>
     <string name="artist_detail_placeholder">विवरण देखने के लिए किसी कलाकार का चयन करें</string>
     <string name="content_desc_artist_image">कलाकार की छवि</string>
     <string name="track_quality_hires">Hi-Res</string>
@@ -179,8 +185,8 @@
     <string name="performance_settings_playlist_fresh_latency">प्लेलिस्ट फ्रेश लोड समय: %1$s</string>
     <string name="performance_settings_album_cached_latency">एल्बम कैश तक समय: %1$s</string>
     <string name="performance_settings_album_fresh_latency">एल्बम फ्रेश लोड समय: %1$s</string>
-    <string name="performance_settings_playlist_track_loads">प्लेलिस्ट ट्रैक लोड (&lt;=50 / 51-150 / 151+): %1$s / %2$s / %3$s</string>
-    <string name="performance_settings_album_track_loads">एल्बम ट्रैक लोड (&lt;=50 / 51-150 / 151+): %1$s / %2$s / %3$s</string>
+    <string name="performance_settings_playlist_track_loads">प्लेलिस्ट ट्रैक लोड (&lt;=50 / 51–150 / 151+): %1$s / %2$s / %3$s</string>
+    <string name="performance_settings_album_track_loads">एल्बम ट्रैक लोड (&lt;=50 / 51–150 / 151+): %1$s / %2$s / %3$s</string>
     <string name="performance_settings_memory_cache">मेमोरी कैश: %1$s / %2$s</string>
     <string name="performance_settings_disk_cache">डिस्क कैश: %1$s / %2$s</string>
     <string name="performance_settings_clear_image_cache">इमेज कैश साफ़ करें</string>
@@ -190,7 +196,7 @@
     <string name="filter_select_all">सभी चुनें</string>
     <string name="filter_clear_all">सभी साफ़ करें</string>
     <string name="playlists_title">प्लेलिस्ट</string>
-    <string name="playlists_loading">प्लेलिस्ट लोड हो रही हैं...</string>
+    <string name="playlists_loading">प्लेलिस्ट लोड हो रही हैं…</string>
     <string name="playlists_empty">कोई प्लेलिस्ट नहीं मिली</string>
     <string name="playlists_error">प्लेलिस्ट लोड नहीं हो सकीं</string>
     <string name="playlists_create">प्लेलिस्ट बनाएँ</string>
@@ -200,7 +206,7 @@
     <string name="playlists_create_error">प्लेलिस्ट नहीं बनाई जा सकी</string>
     <string name="playlist_detail_title">प्लेलिस्ट विवरण</string>
     <string name="playlist_detail_tracks">ट्रैक</string>
-    <string name="playlist_detail_loading_tracks">ट्रैक लोड हो रहे हैं...</string>
+    <string name="playlist_detail_loading_tracks">ट्रैक लोड हो रहे हैं…</string>
     <string name="playlist_detail_no_tracks">इस प्लेलिस्ट में कोई ट्रैक नहीं है</string>
     <string name="playlist_detail_empty_message">इस प्लेलिस्ट में अभी कोई ट्रैक नहीं है।</string>
     <string name="playlist_detail_owner">%1$s द्वारा</string>
@@ -229,7 +235,6 @@
     <string name="playlist_rename_empty_name">प्लेलिस्ट का नाम खाली नहीं हो सकता</string>
     <string name="playlist_rename_same_name">प्लेलिस्ट का नाम बदला नहीं गया</string>
     <string name="track_action_play">चलाएँ</string>
-    <string name="track_action_download">डाउनलोड</string>
     <string name="track_action_add_to_playlist">प्लेलिस्ट में जोड़ें</string>
     <string name="track_action_remove_from_playlist">प्लेलिस्ट से हटाएँ</string>
     <string name="track_action_add_to_favorites">पसंदीदा में जोड़ें</string>
@@ -243,19 +248,7 @@
     <string name="track_remove_error">ट्रैक प्लेलिस्ट से नहीं हटाया जा सका</string>
     <string name="track_add_success">ट्रैक प्लेलिस्ट में जोड़ा गया</string>
     <string name="track_add_error">ट्रैक प्लेलिस्ट में नहीं जोड़ा जा सका</string>
-    <string name="track_download_success">ट्रैक डाउनलोड शुरू हुआ</string>
-    <string name="track_download_error">डाउनलोड शुरू नहीं हो सका</string>
-    <string name="album_download_success">एल्बम डाउनलोड शुरू हुआ</string>
-    <string name="album_download_error">एल्बम डाउनलोड शुरू नहीं हो सका</string>
-    <string name="album_download_removed">एल्बम डाउनलोड हटाया गया</string>
-    <string name="album_download_remove_error">एल्बम डाउनलोड हटाया नहीं जा सका</string>
-    <string name="playlist_download_success">प्लेलिस्ट डाउनलोड शुरू हुआ</string>
-    <string name="playlist_download_error">प्लेलिस्ट डाउनलोड शुरू नहीं हो सका</string>
-    <string name="playlist_download_removed">प्लेलिस्ट डाउनलोड हटाया गया</string>
-    <string name="playlist_download_remove_error">प्लेलिस्ट डाउनलोड हटाया नहीं जा सका</string>
     <string name="content_desc_playlist_artwork">प्लेलिस्ट आर्टवर्क</string>
-    <string name="content_desc_track_downloaded">ट्रैक डाउनलोड हुआ</string>
-    <string name="content_desc_track_downloading">ट्रैक डाउनलोड हो रहा है</string>
     <string name="content_desc_create_playlist">प्लेलिस्ट बनाएँ</string>
     <string name="now_playing_title">अभी चल रहा है</string>
     <string name="now_playing_empty">कोई ट्रैक नहीं चल रहा</string>
@@ -265,15 +258,12 @@
     <string name="action_pause">रोकें</string>
     <string name="action_next_track">अगला ट्रैक</string>
     <string name="action_previous_track">पिछला ट्रैक</string>
-    <string name="action_repeat">दोहराएँ</string>
     <string name="action_repeat_off">दोहराव बंद</string>
     <string name="action_repeat_all">सभी दोहराएँ</string>
     <string name="action_repeat_one">एक दोहराएँ</string>
     <string name="action_shuffle">शफ़ल</string>
     <string name="action_shuffle_on">शफ़ल चालू</string>
     <string name="action_shuffle_off">शफ़ल बंद</string>
-    <string name="content_desc_repeat_button">दोहराव मोड</string>
-    <string name="content_desc_shuffle_button">शफ़ल मोड</string>
     <string name="label_seek">सीक</string>
     <string name="label_volume">वॉल्यूम</string>
     <string name="content_desc_mute">म्यूट</string>
@@ -283,36 +273,6 @@
     <string name="content_desc_mini_player_artwork">मिनी प्लेयर आर्टवर्क</string>
     <string name="content_desc_open_now_playing">अभी चल रहा खोलें</string>
     <string name="playback_time_format">%1$d:%2$02d</string>
-    <string name="downloads_title">डाउनलोड</string>
-    <string name="downloads_in_progress">प्रगति में</string>
-    <string name="downloads_completed">डाउनलोड हो चुके</string>
-    <string name="downloads_empty">कोई डाउनलोड नहीं</string>
-    <string name="downloads_empty_message">डाउनलोड की गई सामग्री यहाँ दिखाई देगी</string>
-    <string name="downloads_clear_all">सभी डाउनलोड साफ़ करें</string>
-    <string name="downloads_clear_confirm_title">सभी डाउनलोड साफ़ करें?</string>
-    <string name="downloads_clear_confirm_message">यह डिवाइस से सभी डाउनलोड की गई फ़ाइलें हटा देगा।</string>
-    <string name="downloads_status_pending">लंबित</string>
-    <string name="downloads_status_in_progress">डाउनलोड हो रहा है</string>
-    <string name="downloads_status_paused">रुका हुआ</string>
-    <string name="downloads_speed_kbps">%1$.1f Kbps</string>
-    <string name="downloads_speed_mbps">%1$.1f Mbps</string>
-    <string name="downloads_section_playlists">प्लेलिस्ट</string>
-    <string name="downloads_section_albums">एल्बम</string>
-    <string name="downloads_section_tracks">एकल ट्रैक</string>
-    <string name="content_desc_download_icon">डाउनलोड</string>
-    <string name="content_desc_download_progress">डाउनलोड प्रगति</string>
-    <string name="action_cancel_download">रद्द करें</string>
-    <string name="action_pause_download">रोकें</string>
-    <string name="action_resume_download">फिर से शुरू करें</string>
-    <string name="android_auto_root_title">Harmonixia</string>
-    <string name="android_auto_albums_category">एल्बम</string>
-    <string name="android_auto_artists_category">कलाकार</string>
-    <string name="android_auto_playlists_category">प्लेलिस्ट</string>
-    <string name="android_auto_downloads_category">डाउनलोड</string>
-    <string name="android_auto_downloaded_albums">डाउनलोड किए गए एल्बम</string>
-    <string name="android_auto_downloaded_playlists">डाउनलोड की गई प्लेलिस्ट</string>
-    <string name="android_auto_downloaded_tracks">डाउनलोड किए गए ट्रैक</string>
-    <string name="android_auto_offline_mode">ऑफ़लाइन मोड</string>
     <string name="local_media_available_files">Local files available: %1$d</string>
     <string name="action_reconnect">Reconnect</string>
     <string name="artist_detail_section_my_library">My Library</string>
