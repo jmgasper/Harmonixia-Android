@@ -320,6 +320,9 @@
     <string name="playback_error_seek_position_required">Position required for SEEK</string>
     <string name="playback_error_no_tracks_to_play">No tracks to play</string>
     <string name="search_validation_query_required">Search query is required</string>
+    <string name="connection_validation_server_url_not_set">Server URL is not set</string>
+    <string name="track_validation_metadata_required">Track metadata is required</string>
+    <string name="track_validation_item_id_required">Track item id is required</string>
     <string name="eq_validation_preset_not_found">Preset not found</string>
     <string name="eq_validation_opra_cache_missing">OPRA cache missing</string>
     <string name="eq_validation_opra_cache_empty">OPRA cache is empty</string>

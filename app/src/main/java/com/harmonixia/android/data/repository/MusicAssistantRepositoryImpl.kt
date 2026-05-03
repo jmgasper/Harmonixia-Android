@@ -1,5 +1,7 @@
 package com.harmonixia.android.data.repository
 
+import android.content.Context
+import com.harmonixia.android.R
 import com.harmonixia.android.data.remote.ApiCommand
 import com.harmonixia.android.data.remote.ConnectionState
 import com.harmonixia.android.data.remote.MusicAssistantWebSocketClient
@@ -25,6 +27,7 @@ import com.harmonixia.android.util.Logger
 import com.harmonixia.android.util.NetworkError
 import com.harmonixia.android.util.PerformanceMonitor
 import com.harmonixia.android.util.toNetworkError
+import dagger.hilt.android.qualifiers.ApplicationContext
 import java.io.IOException
 import java.net.ConnectException
 import java.net.SocketTimeoutException
@@ -59,6 +62,7 @@ import okhttp3.RequestBody.Companion.toRequestBody
 
 @Singleton
 class MusicAssistantRepositoryImpl @Inject constructor(
+    @param:ApplicationContext private val context: Context,
     private val webSocketClient: MusicAssistantWebSocketClient,
     private val okHttpClient: OkHttpClient,
     private val json: Json,
@@ -489,7 +493,9 @@ class MusicAssistantRepositoryImpl @Inject constructor(
     override suspend fun getPlaylist(playlistId: String, provider: String): Result<Playlist> {
         return runCatching {
             if (playlistId.isBlank() || provider.isBlank()) {
-                throw IllegalArgumentException("Playlist details are required")
+                throw IllegalArgumentException(
+                    context.getString(R.string.playlist_validation_details_required)
+                )
             }
             var offset = 0
             val pageSize = DEFAULT_PAGE_SIZE
@@ -570,7 +576,9 @@ class MusicAssistantRepositoryImpl @Inject constructor(
     ): Result<Unit> {
         val trimmedMedia = media.trim()
         if (trimmedMedia.isBlank()) {
-            return Result.failure(IllegalArgumentException("Media URI is required"))
+            return Result.failure(
+                IllegalArgumentException(context.getString(R.string.playback_error_track_uri_required))
+            )
         }
         val params = buildMap {
             put("queue_id", queueId)
@@ -631,7 +639,9 @@ class MusicAssistantRepositoryImpl @Inject constructor(
         positionSeconds: Int
     ): Result<Unit> {
         val mediaItem = buildTrackPayload(track)
-            ?: return Result.failure(IllegalArgumentException("Missing track metadata for playback reporting"))
+            ?: return Result.failure(
+                IllegalArgumentException(context.getString(R.string.track_validation_metadata_required))
+            )
         val result = sendMarkPlayed(
             mediaItem = mediaItem,
             queueId = queueId,
@@ -656,7 +666,9 @@ class MusicAssistantRepositoryImpl @Inject constructor(
         durationSeconds: Int
     ): Result<Unit> {
         val mediaItem = buildTrackPayload(track)
-            ?: return Result.failure(IllegalArgumentException("Missing track metadata for playback reporting"))
+            ?: return Result.failure(
+                IllegalArgumentException(context.getString(R.string.track_validation_metadata_required))
+            )
         val result = sendMarkPlayed(
             mediaItem = mediaItem,
             queueId = queueId,
@@ -724,7 +736,9 @@ class MusicAssistantRepositoryImpl @Inject constructor(
     override suspend fun deletePlaylist(playlistId: String): Result<Unit> {
         return runCatching {
             if (playlistId.isBlank()) {
-                throw IllegalArgumentException("Playlist id is required")
+                throw IllegalArgumentException(
+                    context.getString(R.string.playlist_validation_id_required)
+                )
             }
             webSocketClient.sendRequest(
                 ApiCommand.MUSIC_DELETE_PLAYLIST,
@@ -766,7 +780,7 @@ class MusicAssistantRepositoryImpl @Inject constructor(
     override suspend fun addToFavorites(track: Track): Result<Unit> {
         val item = buildTrackPayload(track)
             ?: return Result.failure(
-                IllegalArgumentException("Missing track metadata for favorites")
+                IllegalArgumentException(context.getString(R.string.track_validation_metadata_required))
             )
         return sendCommand(
             ApiCommand.MUSIC_FAVORITES_ADD_ITEM,
@@ -777,7 +791,9 @@ class MusicAssistantRepositoryImpl @Inject constructor(
     override suspend fun removeFromFavorites(track: Track): Result<Unit> {
         val itemId = track.itemId
         if (itemId.isBlank()) {
-            return Result.failure(IllegalArgumentException("Track item id is required"))
+            return Result.failure(
+                IllegalArgumentException(context.getString(R.string.track_validation_item_id_required))
+            )
         }
         return sendCommand(
             ApiCommand.MUSIC_FAVORITES_REMOVE_ITEM,

@@ -1,6 +1,9 @@
 package com.harmonixia.android.data.remote
 
+import android.content.Context
+import com.harmonixia.android.R
 import com.harmonixia.android.util.Logger
+import dagger.hilt.android.qualifiers.ApplicationContext
 import java.util.ArrayDeque
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicInteger
@@ -42,6 +45,7 @@ import okhttp3.WebSocketListener
 import okio.ByteString
 
 open class MusicAssistantWebSocketClient(
+    @param:ApplicationContext private val context: Context,
     private val okHttpClient: OkHttpClient,
     private val json: Json
 ) {
@@ -169,7 +173,9 @@ open class MusicAssistantWebSocketClient(
 
     private suspend fun connectInternal(): Result<Unit> {
         val url = serverUrl
-            ?: return Result.failure(IllegalStateException("Server URL is not set"))
+            ?: return Result.failure(
+                IllegalStateException(context.getString(R.string.connection_validation_server_url_not_set))
+            )
         val webSocketUrl = buildWebSocketUrl(url)
         _connectionState.value = ConnectionState.Connecting
         val deferred = CompletableDeferred<Unit>()

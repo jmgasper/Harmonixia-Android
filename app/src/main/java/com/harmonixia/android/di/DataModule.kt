@@ -161,9 +161,10 @@ abstract class DataModule {
         @Provides
         @Singleton
         fun provideMusicAssistantWebSocketClient(
+            @ApplicationContext context: Context,
             okHttpClient: OkHttpClient,
             json: Json
-        ): MusicAssistantWebSocketClient = MusicAssistantWebSocketClient(okHttpClient, json)
+        ): MusicAssistantWebSocketClient = MusicAssistantWebSocketClient(context, okHttpClient, json)
 
         @Provides
         @Singleton
