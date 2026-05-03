@@ -88,7 +88,9 @@ class ArtistDetailViewModel @Inject constructor(
     fun loadArtistAlbums() {
         viewModelScope.launch {
             if (artistId.isBlank() || provider.isBlank()) {
-                _uiState.value = ArtistDetailUiState.Error("Missing artist details.")
+                _uiState.value = ArtistDetailUiState.Error(
+                    context.getString(R.string.now_playing_artist_not_found)
+                )
                 return@launch
             }
             _uiState.value = ArtistDetailUiState.Loading
