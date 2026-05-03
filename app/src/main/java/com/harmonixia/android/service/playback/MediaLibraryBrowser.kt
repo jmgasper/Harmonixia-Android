@@ -327,7 +327,7 @@ class MediaLibraryBrowser(
             ),
             buildCategoryItem(
                 MEDIA_ID_HOME_FAVORITES,
-                TITLE_HOME_FAVORITES,
+                context.getString(R.string.home_favorites),
                 mediaType = MediaMetadata.MEDIA_TYPE_MIXED
             ),
             buildCategoryItem(
@@ -461,19 +461,19 @@ class MediaLibraryBrowser(
         return listOf(
             buildCategoryItem(
                 MEDIA_ID_LOCAL_ALBUMS,
-                TITLE_LOCAL_ALBUMS,
+                context.getString(R.string.section_local_albums),
                 mediaType = MediaMetadata.MEDIA_TYPE_FOLDER_ALBUMS,
                 browsableContentStyle = albumsStyle
             ),
             buildCategoryItem(
                 MEDIA_ID_LOCAL_ARTISTS,
-                TITLE_LOCAL_ARTISTS,
+                context.getString(R.string.section_local_artists),
                 mediaType = MediaMetadata.MEDIA_TYPE_FOLDER_ARTISTS,
                 browsableContentStyle = letterGridStyle
             ),
             buildCategoryItem(
                 MEDIA_ID_LOCAL_TRACKS,
-                TITLE_LOCAL_TRACKS,
+                context.getString(R.string.section_local_tracks),
                 mediaType = MediaMetadata.MEDIA_TYPE_MIXED
             )
         )
@@ -1279,11 +1279,6 @@ class MediaLibraryBrowser(
         private const val MEDIA_ID_PREFIX_ALBUMS_LETTER = "albums_letter"
         private const val MEDIA_ID_PREFIX_LOCAL_ARTISTS_LETTER = "local_artists_letter"
         private const val MEDIA_ID_PREFIX_LOCAL_ALBUMS_LETTER = "local_albums_letter"
-
-        private const val TITLE_HOME_FAVORITES = "Favourites"
-        private const val TITLE_LOCAL_ALBUMS = "Local Albums"
-        private const val TITLE_LOCAL_ARTISTS = "Local Artists"
-        private const val TITLE_LOCAL_TRACKS = "Local Tracks"
 
         private const val DEFAULT_PAGE_SIZE = 50
         private const val SEARCH_LIMIT = 200

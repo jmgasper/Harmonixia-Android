@@ -38,6 +38,10 @@
     <string name="eq_detail_line_format">%1$s: %2$s</string>
     <string name="eq_detail_filter_line">%1$s | %2$s | Q %3$s</string>
     <string name="section_local_media">رسانه محلی</string>
+    <string name="home_favorites">علاقه‌مندی‌ها</string>
+    <string name="section_local_albums">آلبوم‌های محلی</string>
+    <string name="section_local_artists">هنرمندان محلی</string>
+    <string name="section_local_tracks">قطعه‌های محلی</string>
     <string name="local_media_folder_label">پوشه موسیقی</string>
     <string name="local_media_no_folder_selected">هیچ پوشه‌ای انتخاب نشده است</string>
     <string name="local_media_select_folder">انتخاب پوشه</string>

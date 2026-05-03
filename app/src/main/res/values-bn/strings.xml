@@ -38,6 +38,10 @@
     <string name="eq_detail_line_format">%1$s: %2$s</string>
     <string name="eq_detail_filter_line">%1$s | %2$s | Q %3$s</string>
     <string name="section_local_media">লোকাল মিডিয়া</string>
+    <string name="home_favorites">পছন্দ</string>
+    <string name="section_local_albums">লোকাল অ্যালবাম</string>
+    <string name="section_local_artists">লোকাল শিল্পী</string>
+    <string name="section_local_tracks">লোকাল ট্র্যাক</string>
     <string name="local_media_folder_label">সংগীত ফোল্ডার</string>
     <string name="local_media_no_folder_selected">কোনো ফোল্ডার নির্বাচন করা হয়নি</string>
     <string name="local_media_select_folder">ফোল্ডার নির্বাচন করুন</string>

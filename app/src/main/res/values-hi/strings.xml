@@ -38,6 +38,10 @@
     <string name="eq_detail_line_format">%1$s: %2$s</string>
     <string name="eq_detail_filter_line">%1$s | %2$s | Q %3$s</string>
     <string name="section_local_media">लोकल मीडिया</string>
+    <string name="home_favorites">पसंदीदा</string>
+    <string name="section_local_albums">लोकल एल्बम</string>
+    <string name="section_local_artists">लोकल कलाकार</string>
+    <string name="section_local_tracks">लोकल ट्रैक</string>
     <string name="local_media_folder_label">संगीत फ़ोल्डर</string>
     <string name="local_media_no_folder_selected">कोई फ़ोल्डर चुना नहीं गया</string>
     <string name="local_media_select_folder">फ़ोल्डर चुनें</string>

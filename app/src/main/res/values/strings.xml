@@ -39,6 +39,10 @@
     <string name="eq_detail_filter_line">%1$s | %2$s | Q %3$s</string>
     <!-- Local Media Section -->
     <string name="section_local_media">Local Media</string>
+    <string name="home_favorites">Favourites</string>
+    <string name="section_local_albums">Local Albums</string>
+    <string name="section_local_artists">Local Artists</string>
+    <string name="section_local_tracks">Local Tracks</string>
     <string name="local_media_folder_label">Music Folder</string>
     <string name="local_media_no_folder_selected">No folder selected</string>
     <string name="local_media_available_files">Local files available: %1$d</string>

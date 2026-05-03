@@ -38,6 +38,10 @@
     <string name="eq_detail_line_format">%1$s: %2$s</string>
     <string name="eq_detail_filter_line">%1$s | %2$s | Q %3$s</string>
     <string name="section_local_media">Médias locaux</string>
+    <string name="home_favorites">Favoris</string>
+    <string name="section_local_albums">Albums locaux</string>
+    <string name="section_local_artists">Artistes locaux</string>
+    <string name="section_local_tracks">Pistes locales</string>
     <string name="local_media_folder_label">Dossier musique</string>
     <string name="local_media_no_folder_selected">Aucun dossier sélectionné</string>
     <string name="local_media_select_folder">Sélectionner un dossier</string>

@@ -38,6 +38,10 @@
     <string name="eq_detail_line_format">%1$s: %2$s</string>
     <string name="eq_detail_filter_line">%1$s | %2$s | Q %3$s</string>
     <string name="section_local_media">Lokal media</string>
+    <string name="home_favorites">Favoriter</string>
+    <string name="section_local_albums">Lokala album</string>
+    <string name="section_local_artists">Lokala artister</string>
+    <string name="section_local_tracks">Lokala spår</string>
     <string name="local_media_folder_label">Musikmapp</string>
     <string name="local_media_no_folder_selected">Ingen mapp vald</string>
     <string name="local_media_select_folder">Välj mapp</string>

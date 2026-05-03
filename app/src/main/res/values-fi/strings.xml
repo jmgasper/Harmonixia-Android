@@ -38,6 +38,10 @@
     <string name="eq_detail_line_format">%1$s: %2$s</string>
     <string name="eq_detail_filter_line">%1$s | %2$s | Q %3$s</string>
     <string name="section_local_media">Paikallinen media</string>
+    <string name="home_favorites">Suosikit</string>
+    <string name="section_local_albums">Paikalliset albumit</string>
+    <string name="section_local_artists">Paikalliset artistit</string>
+    <string name="section_local_tracks">Paikalliset kappaleet</string>
     <string name="local_media_folder_label">Musiikkikansio</string>
     <string name="local_media_no_folder_selected">Kansiota ei ole valittu</string>
     <string name="local_media_select_folder">Valitse kansio</string>
