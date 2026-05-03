@@ -768,8 +768,12 @@ class PlaybackViewModel @Inject constructor(
         )
         val needsExpandedSearch = libraryMatch == null ||
             (preferredProviders.isNotEmpty() && libraryMatch.provider !in preferredProviders)
-        if (!needsExpandedSearch && libraryMatch != null) {
-            return@withContext AlbumReference(libraryMatch.itemId, libraryMatch.provider)
+        if (!needsExpandedSearch) {
+            val matchedLibraryAlbum = requireNotNull(libraryMatch)
+            return@withContext AlbumReference(
+                matchedLibraryAlbum.itemId,
+                matchedLibraryAlbum.provider
+            )
         }
         val expandedResult = searchLibraryUseCase(
             albumName,
