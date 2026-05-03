@@ -3,6 +3,7 @@ package com.harmonixia.android.service.playback
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.Context
+import com.harmonixia.android.R
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.session.DefaultMediaNotificationProvider
 import androidx.media3.session.MediaNotification
@@ -23,7 +24,7 @@ class PlaybackNotificationManager(
         if (existing != null) return
         val channel = NotificationChannel(
             NOTIFICATION_CHANNEL_ID,
-            NOTIFICATION_CHANNEL_NAME,
+            context.getString(R.string.playback_notification_channel_name),
             NotificationManager.IMPORTANCE_LOW
         )
         manager.createNotificationChannel(channel)
@@ -31,7 +32,6 @@ class PlaybackNotificationManager(
 
     companion object {
         private const val NOTIFICATION_CHANNEL_ID = "harmonixia_playback"
-        private const val NOTIFICATION_CHANNEL_NAME = "Playback"
         private const val NOTIFICATION_ID = 1001
     }
 }

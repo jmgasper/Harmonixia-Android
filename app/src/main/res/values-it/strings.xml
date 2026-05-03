@@ -303,4 +303,5 @@
     <string name="playback_error_set_volume">Failed to set volume</string>
     <string name="playback_error_unmute_player">Failed to unmute player</string>
     <string name="playback_error_update_mute">Failed to update mute</string>
+    <string name="playback_notification_channel_name">Playback</string>
 </resources>
