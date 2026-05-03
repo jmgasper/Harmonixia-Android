@@ -89,6 +89,7 @@
     <string name="error_username_required">Användarnamn krävs</string>
     <string name="error_password_required">Lösenord krävs</string>
     <string name="error_connection_timeout">Anslutningen tog för lång tid</string>
+    <string name="error_unknown">Unknown error</string>
     <string name="section_authentication">Autentisering</string>
     <string name="label_optional_access_token">Valfritt</string>
     <string name="message_welcome">Harmonixia ansluter till din Music Assistant-server för att hantera uppspelning.</string>

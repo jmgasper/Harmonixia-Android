@@ -89,6 +89,7 @@
     <string name="error_username_required">Käyttäjänimi on pakollinen</string>
     <string name="error_password_required">Salasana on pakollinen</string>
     <string name="error_connection_timeout">Yhteyden aikakatkaisu</string>
+    <string name="error_unknown">Unknown error</string>
     <string name="section_authentication">Todennus</string>
     <string name="label_optional_access_token">Valinnainen</string>
     <string name="message_welcome">Harmonixia yhdistää Music Assistant -palvelimeesi hallitakseen toistoa.</string>

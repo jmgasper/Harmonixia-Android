@@ -89,6 +89,7 @@
     <string name="error_username_required">Benutzername ist erforderlich</string>
     <string name="error_password_required">Passwort ist erforderlich</string>
     <string name="error_connection_timeout">Verbindungszeitüberschreitung</string>
+    <string name="error_unknown">Unknown error</string>
     <string name="section_authentication">Authentifizierung</string>
     <string name="label_optional_access_token">Optional</string>
     <string name="message_welcome">Harmonixia verbindet sich mit Ihrem Music Assistant-Server, um die Wiedergabe zu verwalten.</string>

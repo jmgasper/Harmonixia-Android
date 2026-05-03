@@ -89,6 +89,7 @@
     <string name="error_username_required">Le nom d\'utilisateur est requis</string>
     <string name="error_password_required">Le mot de passe est requis</string>
     <string name="error_connection_timeout">Délai de connexion dépassé</string>
+    <string name="error_unknown">Unknown error</string>
     <string name="section_authentication">Authentification</string>
     <string name="label_optional_access_token">Optionnel</string>
     <string name="message_welcome">Harmonixia se connecte à votre serveur Music Assistant pour gérer la lecture.</string>

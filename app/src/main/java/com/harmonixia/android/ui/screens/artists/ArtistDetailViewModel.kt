@@ -136,7 +136,9 @@ class ArtistDetailViewModel @Inject constructor(
                     ?: libraryAlbumsResult.exceptionOrNull()
                     ?: allAlbumsResult.exceptionOrNull()
                 if (error != null) {
-                    _uiState.value = ArtistDetailUiState.Error(error.message ?: "Unknown error")
+                    _uiState.value = ArtistDetailUiState.Error(
+                        error.message ?: context.getString(R.string.error_unknown)
+                    )
                     return@supervisorScope
                 }
                 val selectedArtist = artistsResult.getOrNull()

@@ -89,6 +89,7 @@
     <string name="error_username_required">ইউজারনেম প্রয়োজন</string>
     <string name="error_password_required">পাসওয়ার্ড প্রয়োজন</string>
     <string name="error_connection_timeout">সংযোগের সময়সীমা শেষ</string>
+    <string name="error_unknown">Unknown error</string>
     <string name="section_authentication">প্রমাণীকরণ</string>
     <string name="label_optional_access_token">ঐচ্ছিক</string>
     <string name="message_welcome">Harmonixia আপনার Music Assistant সার্ভারে সংযোগ করে প্লেব্যাক পরিচালনা করে.</string>
