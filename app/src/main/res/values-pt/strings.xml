@@ -249,6 +249,12 @@
     <string name="playlist_rename_error">Não foi possível renomear a playlist</string>
     <string name="playlist_rename_empty_name">O nome da playlist não pode estar vazio</string>
     <string name="playlist_rename_same_name">O nome da playlist não foi alterado</string>
+    <string name="playlist_validation_not_editable">A playlist não é editável</string>
+    <string name="playlist_validation_id_required">O ID da playlist é obrigatório</string>
+    <string name="playlist_validation_details_required">Os detalhes da playlist são obrigatórios</string>
+    <string name="playlist_validation_name_required">O nome da playlist é obrigatório</string>
+    <string name="playlist_validation_track_uri_required">O URI da faixa é obrigatório</string>
+    <string name="playlist_validation_track_position_required">A posição da faixa é obrigatória</string>
     <string name="track_action_play">Reproduzir</string>
     <string name="track_action_add_to_playlist">Adicionar à playlist</string>
     <string name="track_action_remove_from_playlist">Remover da playlist</string>

@@ -248,6 +248,12 @@
     <string name="playlist_rename_error">Soittolistan nimeäminen epäonnistui</string>
     <string name="playlist_rename_empty_name">Soittolistan nimi ei voi olla tyhjä</string>
     <string name="playlist_rename_same_name">Soittolistan nimi on muuttumaton</string>
+    <string name="playlist_validation_not_editable">Soittolistaa ei voi muokata</string>
+    <string name="playlist_validation_id_required">Soittolistan tunniste vaaditaan</string>
+    <string name="playlist_validation_details_required">Soittolistan tiedot vaaditaan</string>
+    <string name="playlist_validation_name_required">Soittolistan nimi vaaditaan</string>
+    <string name="playlist_validation_track_uri_required">Kappaleen URI vaaditaan</string>
+    <string name="playlist_validation_track_position_required">Kappaleen sijainti vaaditaan</string>
     <string name="track_action_play">Toista</string>
     <string name="track_action_add_to_playlist">Lisää soittolistaan</string>
     <string name="track_action_remove_from_playlist">Poista soittolistasta</string>

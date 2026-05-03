@@ -248,6 +248,12 @@
     <string name="playlist_rename_error">Playlist konnte nicht umbenannt werden</string>
     <string name="playlist_rename_empty_name">Playlist-Name darf nicht leer sein</string>
     <string name="playlist_rename_same_name">Playlist-Name unverändert</string>
+    <string name="playlist_validation_not_editable">Playlist ist nicht bearbeitbar</string>
+    <string name="playlist_validation_id_required">Playlist-ID ist erforderlich</string>
+    <string name="playlist_validation_details_required">Playlist-Details sind erforderlich</string>
+    <string name="playlist_validation_name_required">Playlist-Name ist erforderlich</string>
+    <string name="playlist_validation_track_uri_required">Track-URI ist erforderlich</string>
+    <string name="playlist_validation_track_position_required">Track-Position ist erforderlich</string>
     <string name="track_action_play">Abspielen</string>
     <string name="track_action_add_to_playlist">Zur Playlist hinzufügen</string>
     <string name="track_action_remove_from_playlist">Aus Playlist entfernen</string>

@@ -248,6 +248,12 @@
     <string name="playlist_rename_error">Kunde inte byta namn på spellista</string>
     <string name="playlist_rename_empty_name">Spellistans namn får inte vara tomt</string>
     <string name="playlist_rename_same_name">Spellistans namn är oförändrat</string>
+    <string name="playlist_validation_not_editable">Spellistan är inte redigerbar</string>
+    <string name="playlist_validation_id_required">Spelliste-ID krävs</string>
+    <string name="playlist_validation_details_required">Spellistedetaljer krävs</string>
+    <string name="playlist_validation_name_required">Spellistans namn krävs</string>
+    <string name="playlist_validation_track_uri_required">Spår-URI krävs</string>
+    <string name="playlist_validation_track_position_required">Spårposition krävs</string>
     <string name="track_action_play">Spela</string>
     <string name="track_action_add_to_playlist">Lägg till i spellista</string>
     <string name="track_action_remove_from_playlist">Ta bort från spellista</string>

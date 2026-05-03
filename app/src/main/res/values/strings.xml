@@ -257,6 +257,12 @@
     <string name="playlist_rename_error">Unable to rename playlist</string>
     <string name="playlist_rename_empty_name">Playlist name cannot be empty</string>
     <string name="playlist_rename_same_name">Playlist name is unchanged</string>
+    <string name="playlist_validation_not_editable">Playlist is not editable</string>
+    <string name="playlist_validation_id_required">Playlist id is required</string>
+    <string name="playlist_validation_details_required">Playlist details are required</string>
+    <string name="playlist_validation_name_required">Playlist name is required</string>
+    <string name="playlist_validation_track_uri_required">Track uri is required</string>
+    <string name="playlist_validation_track_position_required">Track position is required</string>
     <string name="track_action_play">Play</string>
     <string name="track_action_add_to_playlist">Add to Playlist</string>
     <string name="track_action_remove_from_playlist">Remove from Playlist</string>

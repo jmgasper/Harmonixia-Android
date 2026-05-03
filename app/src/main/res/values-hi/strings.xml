@@ -248,6 +248,12 @@
     <string name="playlist_rename_error">प्लेलिस्ट का नाम नहीं बदला जा सका</string>
     <string name="playlist_rename_empty_name">प्लेलिस्ट का नाम खाली नहीं हो सकता</string>
     <string name="playlist_rename_same_name">प्लेलिस्ट का नाम बदला नहीं गया</string>
+    <string name="playlist_validation_not_editable">प्लेलिस्ट संपादन योग्य नहीं है</string>
+    <string name="playlist_validation_id_required">प्लेलिस्ट आईडी आवश्यक है</string>
+    <string name="playlist_validation_details_required">प्लेलिस्ट विवरण आवश्यक हैं</string>
+    <string name="playlist_validation_name_required">प्लेलिस्ट नाम आवश्यक है</string>
+    <string name="playlist_validation_track_uri_required">ट्रैक URI आवश्यक है</string>
+    <string name="playlist_validation_track_position_required">ट्रैक स्थिति आवश्यक है</string>
     <string name="track_action_play">चलाएँ</string>
     <string name="track_action_add_to_playlist">प्लेलिस्ट में जोड़ें</string>
     <string name="track_action_remove_from_playlist">प्लेलिस्ट से हटाएँ</string>

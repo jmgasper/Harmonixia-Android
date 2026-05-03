@@ -248,6 +248,12 @@
     <string name="playlist_rename_error">امکان تغییر نام فهرست پخش نیست</string>
     <string name="playlist_rename_empty_name">نام فهرست پخش نمی‌تواند خالی باشد</string>
     <string name="playlist_rename_same_name">نام فهرست پخش تغییری نکرد</string>
+    <string name="playlist_validation_not_editable">فهرست پخش قابل ویرایش نیست</string>
+    <string name="playlist_validation_id_required">شناسه فهرست پخش الزامی است</string>
+    <string name="playlist_validation_details_required">جزئیات فهرست پخش الزامی است</string>
+    <string name="playlist_validation_name_required">نام فهرست پخش الزامی است</string>
+    <string name="playlist_validation_track_uri_required">نشانی URI ترک الزامی است</string>
+    <string name="playlist_validation_track_position_required">موقعیت ترک الزامی است</string>
     <string name="track_action_play">پخش</string>
     <string name="track_action_add_to_playlist">افزودن به فهرست پخش</string>
     <string name="track_action_remove_from_playlist">حذف از فهرست پخش</string>

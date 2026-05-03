@@ -77,14 +77,16 @@ object UseCaseModule {
     @Provides
     @Singleton
     fun provideDeletePlaylistUseCase(
+        @ApplicationContext context: Context,
         repository: MusicAssistantRepository
-    ): DeletePlaylistUseCase = DeletePlaylistUseCase(repository)
+    ): DeletePlaylistUseCase = DeletePlaylistUseCase(context, repository)
 
     @Provides
     @Singleton
     fun provideRenamePlaylistUseCase(
+        @ApplicationContext context: Context,
         repository: MusicAssistantRepository
-    ): RenamePlaylistUseCase = RenamePlaylistUseCase(repository)
+    ): RenamePlaylistUseCase = RenamePlaylistUseCase(context, repository)
 
     @Provides
     @Singleton

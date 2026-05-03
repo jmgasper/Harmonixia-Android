@@ -249,6 +249,12 @@
     <string name="playlist_rename_error">No se pudo renombrar la lista</string>
     <string name="playlist_rename_empty_name">El nombre de la lista no puede estar vacío</string>
     <string name="playlist_rename_same_name">El nombre de la lista no cambió</string>
+    <string name="playlist_validation_not_editable">La lista no es editable</string>
+    <string name="playlist_validation_id_required">Se requiere el ID de la lista</string>
+    <string name="playlist_validation_details_required">Se requieren los detalles de la lista</string>
+    <string name="playlist_validation_name_required">Se requiere el nombre de la lista</string>
+    <string name="playlist_validation_track_uri_required">Se requiere el URI de la pista</string>
+    <string name="playlist_validation_track_position_required">Se requiere la posición de la pista</string>
     <string name="track_action_play">Reproducir</string>
     <string name="track_action_add_to_playlist">Añadir a la lista</string>
     <string name="track_action_remove_from_playlist">Quitar de la lista</string>

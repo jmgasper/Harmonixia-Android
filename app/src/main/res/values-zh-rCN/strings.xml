@@ -247,6 +247,12 @@
     <string name="playlist_rename_error">无法重命名播放列表</string>
     <string name="playlist_rename_empty_name">播放列表名称不能为空</string>
     <string name="playlist_rename_same_name">播放列表名称未更改</string>
+    <string name="playlist_validation_not_editable">播放列表不可编辑</string>
+    <string name="playlist_validation_id_required">需要播放列表 ID</string>
+    <string name="playlist_validation_details_required">需要播放列表详细信息</string>
+    <string name="playlist_validation_name_required">需要播放列表名称</string>
+    <string name="playlist_validation_track_uri_required">需要曲目 URI</string>
+    <string name="playlist_validation_track_position_required">需要曲目位置</string>
     <string name="track_action_play">播放</string>
     <string name="track_action_add_to_playlist">添加到播放列表</string>
     <string name="track_action_remove_from_playlist">从播放列表移除</string>

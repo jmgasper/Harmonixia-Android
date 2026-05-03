@@ -248,6 +248,12 @@
     <string name="playlist_rename_error">Kunne ikke gi nytt navn til spilleliste</string>
     <string name="playlist_rename_empty_name">Spillelistenavnet kan ikke være tomt</string>
     <string name="playlist_rename_same_name">Spillelistenavnet er uendret</string>
+    <string name="playlist_validation_not_editable">Spillelisten kan ikke redigeres</string>
+    <string name="playlist_validation_id_required">Spilleliste-ID er påkrevd</string>
+    <string name="playlist_validation_details_required">Spillelistedetaljer er påkrevd</string>
+    <string name="playlist_validation_name_required">Spillelistenavn er påkrevd</string>
+    <string name="playlist_validation_track_uri_required">Spor-URI er påkrevd</string>
+    <string name="playlist_validation_track_position_required">Sporposisjon er påkrevd</string>
     <string name="track_action_play">Spill</string>
     <string name="track_action_add_to_playlist">Legg til i spilleliste</string>
     <string name="track_action_remove_from_playlist">Fjern fra spilleliste</string>

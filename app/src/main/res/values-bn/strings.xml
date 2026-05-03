@@ -248,6 +248,12 @@
     <string name="playlist_rename_error">প্লেলিস্টের নাম পরিবর্তন করা যায়নি</string>
     <string name="playlist_rename_empty_name">প্লেলিস্টের নাম খালি হতে পারে না</string>
     <string name="playlist_rename_same_name">প্লেলিস্টের নাম অপরিবর্তিত</string>
+    <string name="playlist_validation_not_editable">এই প্লেলিস্টটি সম্পাদনাযোগ্য নয়</string>
+    <string name="playlist_validation_id_required">প্লেলিস্ট আইডি প্রয়োজন</string>
+    <string name="playlist_validation_details_required">প্লেলিস্টের বিবরণ প্রয়োজন</string>
+    <string name="playlist_validation_name_required">প্লেলিস্টের নাম প্রয়োজন</string>
+    <string name="playlist_validation_track_uri_required">ট্র্যাক URI প্রয়োজন</string>
+    <string name="playlist_validation_track_position_required">ট্র্যাকের অবস্থান প্রয়োজন</string>
     <string name="track_action_play">প্লে</string>
     <string name="track_action_add_to_playlist">প্লেলিস্টে যোগ করুন</string>
     <string name="track_action_remove_from_playlist">প্লেলিস্ট থেকে সরান</string>
