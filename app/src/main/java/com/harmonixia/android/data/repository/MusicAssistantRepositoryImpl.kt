@@ -769,10 +769,14 @@ class MusicAssistantRepositoryImpl @Inject constructor(
         }.recoverCatching { error ->
             when (error.toNetworkError()) {
                 is NetworkError.AuthenticationError ->
-                    throw IllegalStateException("Authentication failed. Please update your token.")
+                    throw IllegalStateException(
+                        context.getString(R.string.data_validation_authentication_failed_update_token)
+                    )
                 is NetworkError.ConnectionError,
                 is NetworkError.TimeoutError ->
-                    throw IllegalStateException("Unable to connect to server.")
+                    throw IllegalStateException(
+                        context.getString(R.string.data_validation_unable_to_connect_to_server)
+                    )
                 else -> throw error
             }
         }

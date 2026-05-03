@@ -343,4 +343,6 @@
     <string name="data_validation_unexpected_artist_response">Unexpected artist response</string>
     <string name="data_validation_unexpected_playlist_response">Unexpected playlist response</string>
     <string name="playlist_validation_not_found">Playlist not found</string>
+    <string name="data_validation_authentication_failed_update_token">Authentication failed. Please update your token.</string>
+    <string name="data_validation_unable_to_connect_to_server">Unable to connect to server.</string>
 </resources>
