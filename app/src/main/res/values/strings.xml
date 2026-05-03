@@ -333,4 +333,11 @@
     <string name="eq_validation_opra_presets_empty">OPRA presets are empty</string>
     <string name="eq_validation_opra_download_failed_http">OPRA download failed (HTTP %1$d)</string>
     <string name="eq_validation_opra_response_body_empty">OPRA response body is empty</string>
+    <string name="local_media_scan_validation_folder_uri_blank">Local media folder URI is blank</string>
+    <string name="local_media_scan_validation_folder_uri_invalid">Invalid local media folder URI</string>
+    <string name="local_media_scan_validation_folder_access_failed">Unable to access local media folder</string>
+    <string name="local_media_scan_validation_folder_not_accessible">Local media folder is not accessible</string>
+    <string name="local_media_scan_validation_permission_denied">Permission denied for local media folder</string>
+    <string name="local_media_scan_validation_unknown_error">Unknown scan error</string>
+    <string name="local_media_scan_fallback_unknown_value">Unknown</string>
 </resources>

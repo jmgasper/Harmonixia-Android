@@ -250,10 +250,10 @@
     <string name="playlist_rename_empty_name">Il nome della playlist non può essere vuoto</string>
     <string name="playlist_rename_same_name">Il nome della playlist è invariato</string>
     <string name="playlist_validation_not_editable">La playlist non è modificabile</string>
-    <string name="playlist_validation_id_required">L'ID della playlist è obbligatorio</string>
+    <string name="playlist_validation_id_required">ID playlist obbligatorio</string>
     <string name="playlist_validation_details_required">I dettagli della playlist sono obbligatori</string>
     <string name="playlist_validation_name_required">Il nome della playlist è obbligatorio</string>
-    <string name="playlist_validation_track_uri_required">L'URI della traccia è obbligatorio</string>
+    <string name="playlist_validation_track_uri_required">URI della traccia obbligatorio</string>
     <string name="playlist_validation_track_position_required">La posizione della traccia è obbligatoria</string>
     <string name="track_action_play">Riproduci</string>
     <string name="track_action_add_to_playlist">Aggiungi alla playlist</string>
@@ -329,4 +329,11 @@
     <string name="eq_validation_opra_presets_empty">OPRA presets are empty</string>
     <string name="eq_validation_opra_download_failed_http">OPRA download failed (HTTP %1$d)</string>
     <string name="eq_validation_opra_response_body_empty">OPRA response body is empty</string>
+    <string name="local_media_scan_validation_folder_uri_blank">Local media folder URI is blank</string>
+    <string name="local_media_scan_validation_folder_uri_invalid">Invalid local media folder URI</string>
+    <string name="local_media_scan_validation_folder_access_failed">Unable to access local media folder</string>
+    <string name="local_media_scan_validation_folder_not_accessible">Local media folder is not accessible</string>
+    <string name="local_media_scan_validation_permission_denied">Permission denied for local media folder</string>
+    <string name="local_media_scan_validation_unknown_error">Unknown scan error</string>
+    <string name="local_media_scan_fallback_unknown_value">Unknown</string>
 </resources>

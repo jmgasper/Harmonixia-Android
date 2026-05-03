@@ -249,11 +249,11 @@
     <string name="playlist_rename_error">Impossible de renommer la liste</string>
     <string name="playlist_rename_empty_name">Le nom de la liste ne peut pas être vide</string>
     <string name="playlist_rename_same_name">Le nom de la liste est inchangé</string>
-    <string name="playlist_validation_not_editable">La liste n'est pas modifiable</string>
-    <string name="playlist_validation_id_required">L'identifiant de la liste est requis</string>
+    <string name="playlist_validation_not_editable">Liste non modifiable</string>
+    <string name="playlist_validation_id_required">Identifiant de la liste requis</string>
     <string name="playlist_validation_details_required">Les détails de la liste sont requis</string>
     <string name="playlist_validation_name_required">Le nom de la liste est requis</string>
-    <string name="playlist_validation_track_uri_required">L'URI de la piste est requis</string>
+    <string name="playlist_validation_track_uri_required">URI de la piste requis</string>
     <string name="playlist_validation_track_position_required">La position de la piste est requise</string>
     <string name="track_action_play">Lire</string>
     <string name="track_action_add_to_playlist">Ajouter à la liste</string>
@@ -329,4 +329,11 @@
     <string name="eq_validation_opra_presets_empty">OPRA presets are empty</string>
     <string name="eq_validation_opra_download_failed_http">OPRA download failed (HTTP %1$d)</string>
     <string name="eq_validation_opra_response_body_empty">OPRA response body is empty</string>
+    <string name="local_media_scan_validation_folder_uri_blank">Local media folder URI is blank</string>
+    <string name="local_media_scan_validation_folder_uri_invalid">Invalid local media folder URI</string>
+    <string name="local_media_scan_validation_folder_access_failed">Unable to access local media folder</string>
+    <string name="local_media_scan_validation_folder_not_accessible">Local media folder is not accessible</string>
+    <string name="local_media_scan_validation_permission_denied">Permission denied for local media folder</string>
+    <string name="local_media_scan_validation_unknown_error">Unknown scan error</string>
+    <string name="local_media_scan_fallback_unknown_value">Unknown</string>
 </resources>

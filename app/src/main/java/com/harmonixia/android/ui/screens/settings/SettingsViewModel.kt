@@ -362,7 +362,8 @@ class SettingsViewModel @Inject constructor(
             }.onFailure { error ->
                 val message = context.getString(
                     R.string.local_media_scan_error,
-                    error.message ?: "Unknown error"
+                    error.message
+                        ?: context.getString(R.string.local_media_scan_validation_unknown_error)
                 )
                 emitEvent(message)
             }
