@@ -31,10 +31,22 @@ Run static AGP 9 Phase 2 audit:
 scripts/agp9-phase2-audit.sh
 ```
 
+Run audit option/regression checks:
+
+```bash
+scripts/test-agp9-phase2-audit-options.sh
+```
+
 Run audit plus validation gates:
 
 ```bash
 scripts/agp9-phase2-audit.sh --with-gradle-checks
+```
+
+Run local validation (includes this static audit gate before Gradle compile/test/lint tasks):
+
+```bash
+scripts/validate-local.sh
 ```
 
 Validation gates run by `--with-gradle-checks`:

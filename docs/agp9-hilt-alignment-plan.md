@@ -1,82 +1,185 @@
-# AGP 9 + Hilt Alignment Plan
+# HAR-251 AGP 9 Migration Path (Hilt Warning Unblock)
 
-## Objective
+## Goal
 
-Unblock the build-tooling constraint tracked in `HAR-211` by migrating the Android build stack to Android Gradle Plugin (AGP) 9 and then aligning Hilt plugin/runtime/compiler versions.
+Unblock the Hilt processor warning fix by moving to an AGP 9-compatible toolchain, then aligning Hilt plugin/runtime/compiler to the same version.
 
-## Current Constraint
+## Current Baseline (repo state)
 
-- Current AGP: `8.13.2`
-- Current Hilt Gradle plugin: `2.57.2`
-- Current Hilt runtime/compiler deps: `2.59.2`
-- Attempted Hilt plugin alignment to `2.59.2` failed because that plugin requires AGP `9.0.0+`.
+- AGP plugin: `9.1.1` (`build.gradle.kts`)
+- Gradle wrapper: `9.3.1` (`gradle/wrapper/gradle-wrapper.properties`)
+- Built-in Kotlin model active (no `org.jetbrains.kotlin.android` plugin)
+- Legacy kapt plugin: `com.android.legacy-kapt` at `9.1.1`
+- Hilt Gradle plugin: `2.59.2`
+- Hilt runtime/compiler deps in `:app`: `2.59.2`
+- `compileSdk`/`targetSdk`: `36`
 
-## Scope
+## External Constraints Driving the Plan
 
-In scope:
-- Build toolchain upgrade path
-- Hilt version alignment
-- Validation checklist
-- Rollback strategy
+- Hilt Gradle plugin AGP 9 support starts in Dagger `2.59` (AGP 9 required when using the Hilt Gradle plugin).
+- AGP `9.0.1` requires at least Gradle `9.1.0` and JDK `17`.
+- AGP `9.1.1` requires Gradle `9.3.1` and JDK `17`, and supports API level `37.0` and below.
+- AGP 9 enables built-in Kotlin by default, and `kotlin-android` / `kotlin-kapt` require migration steps unless temporarily opted out.
 
-Out of scope:
-- Feature work unrelated to build tooling
-- Kotlin major-version upgrades beyond AGP compatibility requirements
+## Recommended Delivery Strategy
 
-## Migration Steps
+Use a 2-phase migration so HAR-251 can unblock quickly without forcing all Kotlin/DSL changes in one PR.
 
-1. Create upgrade branch and freeze dependency churn
-- Create a dedicated branch for toolchain migration.
-- Avoid unrelated dependency upgrades during migration.
+## Phase 1 (HAR-251): Fast unblock with compatibility opt-out
 
-2. Upgrade AGP to 9.x baseline
-- Update `com.android.application` plugin in root `build.gradle.kts` to a supported AGP 9 release.
-- Upgrade Gradle wrapper to the AGP 9-required range.
-- Confirm Java runtime/toolchain requirements for AGP 9 are met in CI and local dev.
+1. Upgrade AGP/Gradle to AGP 9 baseline.
+- Preferred: AGP `9.1.1` + Gradle `9.3.1`.
+- Fallback if plugin compatibility is found during trial: AGP `9.0.1` + Gradle `9.1.0`.
 
-3. Resolve AGP 9 API/config changes
-- Update deprecated AGP DSL usage (if any) in module build scripts.
-- Re-run sync and address plugin incompatibilities one-by-one.
+2. Temporarily keep old Kotlin/DSL behavior.
+- Add to `gradle.properties`:
+  - `android.builtInKotlin=false`
+  - `android.newDsl=false`
+- Keep `org.jetbrains.kotlin.android` and `org.jetbrains.kotlin.kapt` during this phase.
 
-4. Align Hilt versions
-- Set `com.google.dagger.hilt.android` plugin version to match runtime/compiler coordinates.
-- Keep `implementation("com.google.dagger:hilt-android:<same>")` and `kapt("com.google.dagger:hilt-compiler:<same>")` aligned.
+3. Align Hilt versions.
+- Update root Hilt plugin to `2.59.2` to match:
+  - `implementation("com.google.dagger:hilt-android:2.59.2")`
+  - `kapt("com.google.dagger:hilt-compiler:2.59.2")`
 
-5. Re-run warning target from HAR-211
-- Execute `:app:testDebugUnitTest` and confirm whether `kaptDebugUnitTestKotlin` unrecognized-option warning is removed.
+4. Run the warning target and core gates.
+- Target task: `:app:kaptDebugUnitTestKotlin --warning-mode=all`
+- Core gates:
+  - `:app:compileDebugKotlin`
+  - `:app:testDebugUnitTest`
+  - `:app:lintDebug`
 
-## Validation Checklist
+Expected Phase 1 outcome:
+- Hilt plugin/runtime/compiler are version-aligned.
+- AGP 9 prerequisite is satisfied.
+- Warning from the HAR-251 target is either resolved or narrowed to a non-version-alignment root cause.
 
-Required gates after migration:
-- `:app:compileDebugKotlin`
-- `:app:testDebugUnitTest`
-- `:app:lintDebug`
-- `scripts/smoke-debug-emulator.sh --avd Medium_Phone`
+## Phase 2 (follow-up): Remove temporary opt-outs
 
-Suggested extra gates:
+1. Migrate to built-in Kotlin.
+- Remove `org.jetbrains.kotlin.android` plugin.
+- Replace `org.jetbrains.kotlin.kapt` with `com.android.legacy-kapt` (same version as AGP), or migrate remaining kapt usage to KSP.
+
+2. Remove compatibility opt-outs.
+- Remove `android.builtInKotlin=false`.
+- Remove `android.newDsl=false`.
+
+3. Re-run full validation including release path.
 - `:app:assembleRelease`
 - `:app:compileReleaseKotlin`
+- `scripts/smoke-debug-emulator.sh --avd Medium_Phone`
 
-## Risk Register
+## Concrete File Change Plan
 
-1. AGP upgrade breaks third-party plugins
-- Mitigation: upgrade in isolation and pin plugin versions explicitly.
+Phase 1 files:
+- `build.gradle.kts`
+  - bump `com.android.application` to AGP 9 target
+  - bump `com.google.dagger.hilt.android` to `2.59.2`
+- `gradle/wrapper/gradle-wrapper.properties`
+  - bump Gradle distribution to AGP-required 9.x
+- `gradle.properties`
+  - add temporary `android.builtInKotlin=false`
+  - add temporary `android.newDsl=false`
 
-2. Gradle wrapper incompatibility
-- Mitigation: upgrade wrapper first, then AGP, and validate with clean builds.
+Phase 2 files:
+- `build.gradle.kts`
+  - remove `org.jetbrains.kotlin.android` plugin declaration (if using built-in Kotlin globally)
+- `app/build.gradle.kts`
+  - remove `id("org.jetbrains.kotlin.android")`
+  - replace `id("org.jetbrains.kotlin.kapt")` with `id("com.android.legacy-kapt")` or complete KSP migration
+- `gradle.properties`
+  - remove temporary opt-out flags
 
-3. Hilt codegen behavior changes
-- Mitigation: run unit tests + smoke test and inspect generated sources tasks.
+## Risks and Mitigations
 
-## Rollback Plan
+1. Third-party plugin incompatibility with AGP 9/new DSL.
+- Mitigation: keep `android.newDsl=false` in Phase 1 and upgrade plugins incrementally.
 
-If migration blocks delivery:
-- Revert AGP/Hilt plugin changes together as one atomic rollback.
-- Keep documentation and findings from migration attempts for future retry.
+2. Kotlin plugin migration blast radius.
+- Mitigation: defer built-in Kotlin migration to Phase 2; unblock Hilt first.
+
+3. Slow/unstable incremental behavior with Hilt on AGP 9.
+- Mitigation: stay on Hilt `2.59.2` (includes AGP 9 follow-up fixes) and run both clean + incremental validation.
+
+## Rollback
+
+If Phase 1 blocks delivery:
+- Revert AGP, Gradle wrapper, Hilt plugin version, and `gradle.properties` opt-out changes together in one rollback commit.
+- Keep captured logs and warning output attached to HAR-251 for the next attempt.
 
 ## Exit Criteria
 
-The migration is complete when:
-- AGP 9 is adopted and stable across local + CI validation gates.
-- Hilt plugin/runtime/compiler are version-aligned.
-- `HAR-211` warning target is either removed or documented with a new root cause.
+HAR-251 is complete when:
+- AGP 9 migration path is documented and approved.
+- Phase 1 changes are applied and validated.
+- Hilt plugin/runtime/compiler version alignment is achieved.
+- HAR-251 warning target has a verified result (fixed or root-caused with evidence).
+
+## HAR-252 Execution Notes (2026-05-02)
+
+### What changed in code
+
+- Root plugins:
+  - removed `org.jetbrains.kotlin.android`
+  - removed `org.jetbrains.kotlin.kapt`
+  - added `com.android.legacy-kapt` at `9.1.1`
+- App plugins:
+  - removed `id("org.jetbrains.kotlin.android")`
+  - replaced `id("org.jetbrains.kotlin.kapt")` with `id("com.android.legacy-kapt")`
+- `gradle.properties`:
+  - removed temporary opt-outs:
+    - `android.builtInKotlin=false`
+    - `android.newDsl=false`
+
+### Why this diverged from the original Phase 1 plan
+
+With AGP `9.1.1`, the compatibility opt-out path was not stable for this repo:
+- keeping the opt-outs allowed configuration, but Hilt processing failed during `kaptDebugKotlin` with:
+  - `Expected @AndroidEntryPoint to have a value. Did you forget to apply the Gradle Plugin?`
+- removing opt-outs while still applying `org.jetbrains.kotlin.android` failed fast at configuration with:
+  - `The 'org.jetbrains.kotlin.android' plugin is no longer required for Kotlin support since AGP 9.0`
+
+This forced early adoption of the Phase 2 built-in Kotlin plugin model to restore Hilt task wiring.
+
+### Validation result
+
+Executed with local `JAVA_HOME` + local Android SDK environment variables:
+- `:app:kaptDebugUnitTestKotlin`
+- `:app:compileDebugKotlin`
+- `:app:testDebugUnitTest`
+- `:app:lintDebug`
+
+Result:
+- `BUILD SUCCESSFUL`
+- Hilt transform/aggregation tasks now run in graph (`hiltSync*`, `hiltAggregateDeps*`, `hiltJavaCompile*`, `transform*ClassesWithAsm`)
+- prior `@AndroidEntryPoint` / `@HiltAndroidApp` failures are resolved
+
+## HAR-255 Phase 2 Execution Checklist (2026-05-02)
+
+Purpose: convert Phase 2 migration state into repeatable, commit-sliced execution guardrails for future check-ins.
+
+1. Preflight environment (required before each Phase 2 change)
+- JDK 17 active (`java -version` reports 17)
+- Android SDK includes:
+  - `platform-tools`
+  - `platforms;android-36`
+  - `build-tools;36.0.0`
+
+2. File-level guardrails
+- Keep `build.gradle.kts` root plugin set aligned:
+  - `com.android.application` `9.1.1`
+  - `com.android.legacy-kapt` `9.1.1`
+  - `com.google.dagger.hilt.android` `2.59.2`
+- Keep app plugin block on built-in Kotlin model:
+  - do not re-introduce `org.jetbrains.kotlin.android`
+  - keep `id("com.android.legacy-kapt")` unless/until explicit KSP migration is finished
+- Keep `gradle/wrapper/gradle-wrapper.properties` on `gradle-9.3.1-bin.zip` unless a coordinated version migration is scoped
+
+3. Minimal validation gates per check-in
+- `./gradlew :app:kaptDebugUnitTestKotlin --warning-mode=all --rerun-tasks`
+- `./gradlew :app:compileDebugKotlin :app:testDebugUnitTest :app:lintDebug --warning-mode=all`
+
+4. Exit signal for each check-in
+- both gates above must end `BUILD SUCCESSFUL`
+- no reappearance of prior Hilt wiring failures
+- document deltas + evidence in the corresponding issue comment
