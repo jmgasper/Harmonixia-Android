@@ -28,6 +28,7 @@ import com.google.common.collect.ImmutableList
 import com.google.common.util.concurrent.Futures
 import com.google.common.util.concurrent.ListenableFuture
 import com.google.common.util.concurrent.SettableFuture
+import com.harmonixia.android.R
 import com.harmonixia.android.domain.model.QueueOption
 import com.harmonixia.android.domain.model.RepeatMode
 import com.harmonixia.android.domain.repository.MusicAssistantRepository
@@ -141,7 +142,7 @@ class PlaybackSessionCallback(
                 .getOrElse {
                     Logger.w(TAG, "Failed to load library root", it)
                     val metadata = MediaMetadata.Builder()
-                        .setTitle("Harmonixia")
+                        .setTitle(context.getString(R.string.app_name))
                         .setIsBrowsable(true)
                         .setIsPlayable(false)
                         .build()
