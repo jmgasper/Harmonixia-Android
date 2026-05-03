@@ -2,6 +2,7 @@ package com.harmonixia.android.service.playback
 
 import android.net.Uri
 import android.os.Bundle
+import androidx.core.net.toUri
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
@@ -17,10 +18,12 @@ import com.harmonixia.android.domain.repository.LocalMediaRepository
 import com.harmonixia.android.domain.repository.MusicAssistantRepository
 import com.harmonixia.android.domain.repository.OFFLINE_PROVIDER
 import com.harmonixia.android.domain.repository.OfflineLibraryRepository
-import com.harmonixia.android.util.mergeWithLocal
-import com.harmonixia.android.util.replaceWithLocalMatches
 import com.harmonixia.android.util.NetworkConnectivityManager
 import com.harmonixia.android.util.Logger
+import com.harmonixia.android.util.mergeWithLocal
+import com.harmonixia.android.util.normalizePlaybackUriOrOriginal
+import com.harmonixia.android.util.replaceWithLocalMatches
+import com.harmonixia.android.util.resolveAutoArtworkUrl
 import java.text.Collator
 import java.text.Normalizer
 import java.util.Locale
@@ -347,7 +350,7 @@ class MediaLibraryBrowser(
         val metadataBuilder = MediaMetadata.Builder()
             .setTitle(title)
             .setSubtitle(subtitle)
-            .setArtworkUri(resolvedArtworkUrl?.let { Uri.parse(it) })
+            .setArtworkUri(resolvedArtworkUrl?.toUri())
             .setIsBrowsable(true)
             .setIsPlayable(false)
         if (mediaType != null) {
@@ -907,28 +910,6 @@ class MediaLibraryBrowser(
         return name?.trim()?.lowercase().orEmpty()
     }
 
-    private fun resolveAutoArtworkUrl(rawUrl: String?): String? {
-        val trimmed = rawUrl?.trim().orEmpty()
-        if (trimmed.isBlank()) return null
-        val uri = runCatching { Uri.parse(trimmed) }.getOrNull() ?: return trimmed
-        val encodedPath = uri.encodedPath ?: return trimmed
-        if (!encodedPath.endsWith("/imageproxy")) return trimmed
-        val pathParam = uri.getQueryParameter("path")?.trim().orEmpty()
-        if (pathParam.isBlank()) return trimmed
-        if (pathParam.startsWith("http://") || pathParam.startsWith("https://")) {
-            return pathParam
-        }
-        val provider = uri.getQueryParameter("provider").orEmpty()
-        if (provider == "builtin") {
-            val base = trimmed.substringBefore("/imageproxy")
-            val normalizedPath = pathParam.trimStart('/')
-            if (normalizedPath.isNotBlank()) {
-                return "$base/$normalizedPath"
-            }
-        }
-        return trimmed
-    }
-
     private fun buildContentStyleExtras(
         browsableContentStyle: Int?,
         playableContentStyle: Int?
@@ -1054,8 +1035,9 @@ class MediaLibraryBrowser(
     }
 
     private suspend fun Track.toPlayableMediaItem(parentMediaId: String? = null): MediaItem {
+        val trackUri = normalizePlaybackUriOrOriginal(uri)
         val localFile = if (provider == OFFLINE_PROVIDER) {
-            val file = File(uri)
+            val file = File(trackUri)
             file.takeIf { it.exists() && it.length() > 0L }
         } else {
             null
@@ -1068,14 +1050,14 @@ class MediaLibraryBrowser(
             .setTitle(title)
             .setArtist(artist)
             .setAlbumTitle(album)
-            .setArtworkUri(resolvedArtworkUrl?.let { Uri.parse(it) })
+            .setArtworkUri(resolvedArtworkUrl?.toUri())
             .setDurationMs(durationMs)
             .setIsBrowsable(false)
             .setIsPlayable(true)
             .build()
         return MediaItem.Builder()
             .setMediaId("$MEDIA_ID_PREFIX_TRACK:$itemId:$provider")
-            .setUri(localFile?.let { Uri.fromFile(it) } ?: Uri.parse(uri))
+            .setUri(localFile?.let { Uri.fromFile(it) } ?: trackUri.toUri())
             .setMediaMetadata(metadata)
             .build()
             .also { cacheMediaItem(it) }
@@ -1097,7 +1079,7 @@ class MediaLibraryBrowser(
             metadataBuilder.setArtist(artistsLabel)
         }
         val metadata = metadataBuilder
-            .setArtworkUri(resolvedArtworkUrl?.let { Uri.parse(it) })
+            .setArtworkUri(resolvedArtworkUrl?.toUri())
             .setMediaType(MediaMetadata.MEDIA_TYPE_ALBUM)
             .setIsBrowsable(true)
             .setIsPlayable(false)
@@ -1123,7 +1105,7 @@ class MediaLibraryBrowser(
             metadataBuilder.setArtist(name)
         }
         val metadata = metadataBuilder
-            .setArtworkUri(resolvedArtworkUrl?.let { Uri.parse(it) })
+            .setArtworkUri(resolvedArtworkUrl?.toUri())
             .setMediaType(MediaMetadata.MEDIA_TYPE_ARTIST)
             .setIsBrowsable(true)
             .setIsPlayable(false)
@@ -1140,7 +1122,7 @@ class MediaLibraryBrowser(
             .setTitle(name)
             .setDisplayTitle(name)
             .setArtist(owner)
-            .setArtworkUri(resolvedArtworkUrl?.let { Uri.parse(it) })
+            .setArtworkUri(resolvedArtworkUrl?.toUri())
             .setMediaType(MediaMetadata.MEDIA_TYPE_PLAYLIST)
             .setIsBrowsable(true)
             .setIsPlayable(false)
