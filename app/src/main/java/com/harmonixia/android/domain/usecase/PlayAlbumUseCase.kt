@@ -1,5 +1,7 @@
 package com.harmonixia.android.domain.usecase
 
+import android.content.Context
+import com.harmonixia.android.R
 import com.harmonixia.android.domain.model.QueueOption
 import com.harmonixia.android.domain.model.Track
 import com.harmonixia.android.domain.repository.MusicAssistantRepository
@@ -8,6 +10,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
 class PlayAlbumUseCase(
+    private val context: Context,
     private val repository: MusicAssistantRepository,
     private val playbackStateManager: PlaybackStateManager
 ) {
@@ -26,12 +29,12 @@ class PlayAlbumUseCase(
             playbackStateManager.reconnectLocalPlayerIfUnavailable()
             val tracks = tracksOverride?.takeIf { it.isNotEmpty() }
             val playerId = playbackStateManager.currentPlayerId
-                ?: throw IllegalStateException("No player selected")
+                ?: throw IllegalStateException(context.getString(R.string.playback_error_no_player_selected))
             val queue = repository.getActiveQueue(playerId, includeItems = false).getOrThrow()
-                ?: throw IllegalStateException("No active queue")
+                ?: throw IllegalStateException(context.getString(R.string.playback_error_no_active_queue))
             val queueId = queue.queueId
             if (tracksOverride != null && tracksOverride.isEmpty()) {
-                throw IllegalStateException("Album has no tracks")
+                throw IllegalStateException(context.getString(R.string.playback_error_album_has_no_tracks))
             }
             val startItemIndex = if (!startItemUri.isNullOrBlank() && !tracks.isNullOrEmpty()) {
                 tracks.indexOfFirst { it.uri == startItemUri }.takeIf { it >= 0 }
@@ -88,7 +91,9 @@ class PlayAlbumUseCase(
                     }
                     val fallbackTracks = tracks ?: repository.getAlbumTracks(albumId, provider).getOrThrow()
                     if (fallbackTracks.isEmpty()) {
-                        return@withContext Result.failure(IllegalStateException("Album has no tracks"))
+                        return@withContext Result.failure(
+                            IllegalStateException(context.getString(R.string.playback_error_album_has_no_tracks))
+                        )
                     }
                     val fallbackIndex = startIndex.coerceIn(0, fallbackTracks.lastIndex)
                     if (tracks == null) {

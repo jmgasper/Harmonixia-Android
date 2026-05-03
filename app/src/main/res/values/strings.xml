@@ -310,4 +310,10 @@
     <string name="playback_notification_channel_name">Playback</string>
     <string name="playback_error_not_connected">Not connected</string>
     <string name="playback_error_queue_id_unavailable">Queue ID unavailable</string>
+    <string name="playback_error_no_player_selected">No player selected</string>
+    <string name="playback_error_no_active_queue">No active queue</string>
+    <string name="playback_error_album_has_no_tracks">Album has no tracks</string>
+    <string name="playback_error_playlist_has_no_tracks">Playlist has no tracks</string>
+    <string name="playback_error_track_uri_required">Track URI is required</string>
+    <string name="playback_error_seek_position_required">Position required for SEEK</string>
 </resources>
