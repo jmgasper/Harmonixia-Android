@@ -46,7 +46,7 @@ class PlaybackService : MediaLibraryService() {
 
     private lateinit var player: ExoPlayer
     private var mediaSession: MediaLibrarySession? = null
-    private var wakeLock: PowerManager.WakeLock? = null
+    private var wakeLockController: PlaybackWakeLockController? = null
     private var lastPlaybackState: Int = Player.STATE_IDLE
     private var lastMediaItemId: String? = null
     private var lastMediaItemDurationSeconds: Int = 0
@@ -66,9 +66,9 @@ class PlaybackService : MediaLibraryService() {
             .setMediaSourceFactory(SilenceMediaSourceFactory())
             .build()
 
-        wakeLock = (getSystemService(Context.POWER_SERVICE) as PowerManager)
-            .newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, WAKE_LOCK_TAG)
-            .apply { setReferenceCounted(false) }
+        wakeLockController = PlaybackWakeLockController.create(
+            getSystemService(Context.POWER_SERVICE) as PowerManager
+        )
 
         player.addListener(
             object : Player.Listener {
@@ -236,17 +236,11 @@ class PlaybackService : MediaLibraryService() {
     }
 
     private fun acquireWakeLock() {
-        val lock = wakeLock ?: return
-        if (!lock.isHeld) {
-            lock.acquire()
-        }
+        wakeLockController?.acquireIfNeeded()
     }
 
     private fun releaseWakeLock() {
-        val lock = wakeLock ?: return
-        if (lock.isHeld) {
-            lock.release()
-        }
+        wakeLockController?.releaseIfHeld()
     }
 
     private fun reportCurrentTrackCompleted(timestamp: Long) {
@@ -362,6 +356,5 @@ class PlaybackService : MediaLibraryService() {
 
     companion object {
         private const val TAG = "PlaybackService"
-        private const val WAKE_LOCK_TAG = "Harmonixia:PlaybackWakeLock"
     }
 }
