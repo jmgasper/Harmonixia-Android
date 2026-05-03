@@ -51,4 +51,40 @@ class EqPresetCacheIntegrationTest {
             cacheDir.deleteRecursively()
         }
     }
+
+    @Test
+    fun downloadDatabase_emptyResponseBody_returnsFailure() {
+        runBlocking {
+            val server = MockWebServer()
+            server.enqueue(MockResponse().setResponseCode(200).setBody(""))
+            server.start()
+
+            val cacheDir = createTempDirectory(prefix = "eqpreset-cache-empty-test-").toFile()
+            val context = mockk<Context>()
+            every { context.cacheDir } returns cacheDir
+
+            val cache = EqPresetCache(
+                context = context,
+                okHttpClient = OkHttpClient(),
+                json = Json { ignoreUnknownKeys = true },
+                databaseUrl = server.url("/opra-empty.jsonl").toString()
+            )
+
+            val result = cache.downloadOpraDatabaseAsync()
+
+            assertTrue("Expected download failure for empty response body", result.isFailure)
+            val message = result.exceptionOrNull()?.message.orEmpty()
+            assertTrue(
+                "Expected empty-body error message, got: $message",
+                message.contains("response body is empty", ignoreCase = true)
+            )
+            assertTrue(
+                "Expected no cache file on failed download",
+                !cache.getCacheFile().exists()
+            )
+
+            server.shutdown()
+            cacheDir.deleteRecursively()
+        }
+    }
 }

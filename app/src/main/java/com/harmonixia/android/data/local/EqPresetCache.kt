@@ -38,10 +38,14 @@ class EqPresetCache @Inject constructor(
                         throw IllegalStateException("OPRA download failed: ${response.code}")
                     }
                     val body = response.body
-                    body.byteStream().use { input ->
+                    val copiedBytes = body.byteStream().use { input ->
                         tempFile.outputStream().use { output ->
                             input.copyTo(output)
                         }
+                    }
+                    if (copiedBytes <= 0L) {
+                        tempFile.delete()
+                        throw IllegalStateException("OPRA response body is empty")
                     }
                 }
                 if (!tempFile.renameTo(cacheFile)) {
