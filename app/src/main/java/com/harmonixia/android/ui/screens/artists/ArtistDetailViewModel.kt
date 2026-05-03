@@ -1,5 +1,7 @@
 package com.harmonixia.android.ui.screens.artists
 
+import android.content.Context
+import android.net.Uri
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -18,8 +20,8 @@ import com.harmonixia.android.service.playback.PlaybackStateManager
 import com.harmonixia.android.util.ImageQualityManager
 import com.harmonixia.android.util.NetworkConnectivityManager
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
-import android.net.Uri
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -46,6 +48,7 @@ class ArtistDetailViewModel @Inject constructor(
     private val playAlbumUseCase: PlayAlbumUseCase,
     private val playbackStateManager: PlaybackStateManager,
     private val networkConnectivityManager: NetworkConnectivityManager,
+    @param:ApplicationContext private val context: Context,
     savedStateHandle: SavedStateHandle,
     val imageQualityManager: ImageQualityManager
 ) : ViewModel() {
@@ -93,7 +96,9 @@ class ArtistDetailViewModel @Inject constructor(
             if (useOfflineLibrary) {
                 val resolvedName = resolveOfflineArtistName()
                 if (resolvedName.isBlank()) {
-                    _uiState.value = ArtistDetailUiState.Error("Artist not found.")
+                    _uiState.value = ArtistDetailUiState.Error(
+                        context.getString(R.string.now_playing_artist_not_found)
+                    )
                     return@launch
                 }
                 val albums = offlineLibraryRepository
@@ -137,7 +142,9 @@ class ArtistDetailViewModel @Inject constructor(
                 val selectedArtist = artistsResult.getOrNull()
                 _artist.value = selectedArtist
                 if (selectedArtist == null) {
-                    _uiState.value = ArtistDetailUiState.Error("Artist not found.")
+                    _uiState.value = ArtistDetailUiState.Error(
+                        context.getString(R.string.now_playing_artist_not_found)
+                    )
                     return@supervisorScope
                 }
                 val libraryAlbums = sortAlbumsByYear(libraryAlbumsResult.getOrDefault(emptyList()))
