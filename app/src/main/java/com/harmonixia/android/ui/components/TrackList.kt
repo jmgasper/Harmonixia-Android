@@ -101,7 +101,6 @@ fun TrackList(
     onReorder: ((Int, Int) -> Unit)? = null
 ) {
     var contextMenuTrackId by remember { mutableStateOf<String?>(null) }
-    var contextMenuIndex by remember { mutableIntStateOf(-1) }
     val resolvedListState = listState ?: rememberLazyListState()
     var lastLoadTriggerIndex by remember { mutableIntStateOf(-1) }
     val reorderEnabled = isReordering && onReorder != null
@@ -135,6 +134,14 @@ fun TrackList(
         if (!reorderEnabled) {
             draggingItemKey = null
             draggingOffsetY = 0f
+        }
+    }
+    LaunchedEffect(tracks, contextMenuTrackId) {
+        val activeContextMenuTrackId = contextMenuTrackId
+        if (activeContextMenuTrackId != null &&
+            tracks.none { track -> track.itemId == activeContextMenuTrackId }
+        ) {
+            contextMenuTrackId = null
         }
     }
     LaunchedEffect(reorderEnabled, trackIndexByKey, draggingItemKey) {
@@ -258,7 +265,6 @@ fun TrackList(
                             onTrackLongClick?.invoke(track, effectiveIndex)
                             if (showContextMenu) {
                                 contextMenuTrackId = track.itemId
-                                contextMenuIndex = effectiveIndex
                             }
                         }
                     )
@@ -374,7 +380,6 @@ fun TrackList(
                             expanded = true,
                             onDismissRequest = {
                                 contextMenuTrackId = null
-                                contextMenuIndex = -1
                             },
                             isEditable = isEditable,
                             onPlay = { onTrackClick(track) },
@@ -383,7 +388,7 @@ fun TrackList(
                             onRemoveFromFavorites = { onRemoveFromFavorites?.invoke(track) },
                             isFavorite = track.isFavorite,
                             onRemoveFromPlaylist = {
-                                onRemoveFromPlaylist?.invoke(track, contextMenuIndex)
+                                onRemoveFromPlaylist?.invoke(track, effectiveIndex)
                             }
                         )
                     }
