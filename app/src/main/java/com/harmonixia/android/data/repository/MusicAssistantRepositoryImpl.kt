@@ -157,27 +157,34 @@ class MusicAssistantRepositoryImpl @Inject constructor(
                         }.getOrNull()
                         when (response.code) {
                             401, 403 ->
-                                throw SecurityException(errorMessage ?: "Invalid username or password")
-                            408, 504 -> throw IOException("Connection timeout. Please check your network.")
-                            500, 502, 503 -> throw IOException("Server error. Please try again later.")
-                            else -> throw IOException(errorMessage ?: "Login failed: ${response.code}")
+                                throw SecurityException(
+                                    errorMessage ?: context.getString(R.string.status_auth_failed)
+                                )
+                            408, 504 ->
+                                throw IOException(context.getString(R.string.error_connection_timeout))
+                            500, 502, 503 ->
+                                throw IOException(context.getString(R.string.error_unknown))
+                            else ->
+                                throw IOException(
+                                    errorMessage ?: context.getString(R.string.status_connection_failed)
+                                )
                         }
                     }
                     if (responseBody.isBlank()) {
-                        throw IOException("Invalid server response")
+                        throw IOException(context.getString(R.string.error_unknown))
                     }
                     val element = runCatching { json.parseToJsonElement(responseBody) }
-                        .getOrElse { throw IOException("Invalid server response", it) }
+                        .getOrElse { throw IOException(context.getString(R.string.error_unknown), it) }
                     val payloadObject = element as? JsonObject
-                        ?: throw IOException("Invalid server response")
+                        ?: throw IOException(context.getString(R.string.error_unknown))
                     val success = payloadObject["success"]?.jsonPrimitive?.booleanOrNull
                     if (success == false) {
                         val message = payloadObject.stringOrNull("error", "message", "detail")
-                            ?: "Invalid username or password"
+                            ?: context.getString(R.string.status_auth_failed)
                         throw SecurityException(message)
                     }
                     val token = payloadObject.stringOrNull("token", "access_token", "auth_token")
-                        ?: throw IOException("Invalid server response")
+                        ?: throw IOException(context.getString(R.string.error_unknown))
                     Logger.i(TAG, "Login successful, token obtained")
                     token
                 }
@@ -185,13 +192,17 @@ class MusicAssistantRepositoryImpl @Inject constructor(
                 when (error) {
                     is SecurityException -> throw error
                     is SocketTimeoutException ->
-                        throw IOException("Connection timeout. Please check your network.", error)
+                        throw IOException(context.getString(R.string.error_connection_timeout), error)
                     is UnknownHostException,
                     is ConnectException,
                     is IllegalArgumentException ->
-                        throw IOException("Cannot connect to server. Please check the URL.", error)
+                        throw IOException(context.getString(R.string.status_connection_failed), error)
                     is IOException -> throw error
-                    else -> throw IOException(error.message ?: "Login failed", error)
+                    else ->
+                        throw IOException(
+                            error.message ?: context.getString(R.string.status_connection_failed),
+                            error
+                        )
                 }
             }.onFailure { error ->
                 Logger.e(TAG, "Login failed: ${error.message}", error)
