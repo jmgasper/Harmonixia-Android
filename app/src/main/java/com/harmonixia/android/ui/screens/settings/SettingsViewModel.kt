@@ -331,7 +331,7 @@ class SettingsViewModel @Inject constructor(
             _localMediaUiState.update { current ->
                 current.copy(folderUri = uri)
             }
-            emitEvent("Local media folder updated")
+            emitEvent(R.string.message_local_media_folder_updated)
             if (uri.isNotBlank() && uri != previousUri) {
                 startLocalMediaScan(uri)
             }
@@ -344,7 +344,7 @@ class SettingsViewModel @Inject constructor(
 
     private fun startLocalMediaScan(folderUri: String) {
         if (folderUri.isBlank()) {
-            emitEvent("Please select a folder first")
+            emitEvent(R.string.message_local_media_select_folder_first)
             return
         }
 

@@ -44,6 +44,8 @@
     <string name="local_media_refresh">Skanna mapp</string>
     <string name="local_media_scan_complete">Skanning klar: %1$d spår, %2$d album, %3$d artister</string>
     <string name="local_media_scan_error">Skanning misslyckades: %1$s</string>
+    <string name="message_local_media_folder_updated">Lokal mediamapp uppdaterad</string>
+    <string name="message_local_media_select_folder_first">Välj en mapp först</string>
     <string name="content_desc_local_media_folder">Sökväg till lokal mediamapp</string>
     <string name="label_server_url">Server-URL</string>
     <string name="label_access_token">Åtkomsttoken</string>

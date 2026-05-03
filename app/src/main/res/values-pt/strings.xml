@@ -44,6 +44,8 @@
     <string name="local_media_refresh">Analisar pasta</string>
     <string name="local_media_scan_complete">Análise concluída: %1$d faixas, %2$d álbuns, %3$d artistas</string>
     <string name="local_media_scan_error">Falha na análise: %1$s</string>
+    <string name="message_local_media_folder_updated">Pasta de mídia local atualizada</string>
+    <string name="message_local_media_select_folder_first">Selecione uma pasta primeiro</string>
     <string name="content_desc_local_media_folder">Caminho da pasta multimédia local</string>
     <string name="label_server_url">URL do servidor</string>
     <string name="label_access_token">Token de acesso</string>

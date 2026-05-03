@@ -44,6 +44,8 @@
     <string name="local_media_refresh">Scansiona cartella</string>
     <string name="local_media_scan_complete">Scansione completata: %1$d brani, %2$d album, %3$d artisti</string>
     <string name="local_media_scan_error">Scansione non riuscita: %1$s</string>
+    <string name="message_local_media_folder_updated">Cartella media locale aggiornata</string>
+    <string name="message_local_media_select_folder_first">Seleziona prima una cartella</string>
     <string name="content_desc_local_media_folder">Percorso cartella media locali</string>
     <string name="label_server_url">URL del server</string>
     <string name="label_access_token">Token di accesso</string>

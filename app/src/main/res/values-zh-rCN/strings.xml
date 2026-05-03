@@ -44,6 +44,8 @@
     <string name="local_media_refresh">扫描文件夹</string>
     <string name="local_media_scan_complete">扫描完成：%1$d 首曲目，%2$d 张专辑，%3$d 位艺术家</string>
     <string name="local_media_scan_error">扫描失败：%1$s</string>
+    <string name="message_local_media_folder_updated">本地媒体文件夹已更新</string>
+    <string name="message_local_media_select_folder_first">请先选择一个文件夹</string>
     <string name="content_desc_local_media_folder">本地媒体文件夹路径</string>
     <string name="label_server_url">服务器 URL</string>
     <string name="label_access_token">访问令牌</string>

@@ -44,6 +44,8 @@
     <string name="local_media_refresh">फ़ोल्डर स्कैन करें</string>
     <string name="local_media_scan_complete">स्कैन पूरा: %1$d ट्रैक, %2$d एल्बम, %3$d कलाकार</string>
     <string name="local_media_scan_error">स्कैन असफल: %1$s</string>
+    <string name="message_local_media_folder_updated">स्थानीय मीडिया फ़ोल्डर अपडेट किया गया</string>
+    <string name="message_local_media_select_folder_first">कृपया पहले एक फ़ोल्डर चुनें</string>
     <string name="content_desc_local_media_folder">लोकल मीडिया फ़ोल्डर पथ</string>
     <string name="label_server_url">सर्वर URL</string>
     <string name="label_access_token">एक्सेस टोकन</string>

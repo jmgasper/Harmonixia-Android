@@ -48,6 +48,8 @@
         name="local_media_scan_complete"
         tools:ignore="PluralsCandidate">Scan complete: %1$d tracks, %2$d albums, %3$d artists</string>
     <string name="local_media_scan_error">Scan failed: %1$s</string>
+    <string name="message_local_media_folder_updated">Local media folder updated</string>
+    <string name="message_local_media_select_folder_first">Please select a folder first</string>
     <string name="content_desc_local_media_folder">Local media folder path</string>
     <string name="label_server_url">Server URL</string>
     <string name="label_access_token">Access Token</string>

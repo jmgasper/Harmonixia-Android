@@ -44,6 +44,8 @@
     <string name="local_media_refresh">Escanear carpeta</string>
     <string name="local_media_scan_complete">Escaneo completo: %1$d pistas, %2$d álbumes, %3$d artistas</string>
     <string name="local_media_scan_error">Error al escanear: %1$s</string>
+    <string name="message_local_media_folder_updated">Carpeta de medios locales actualizada</string>
+    <string name="message_local_media_select_folder_first">Selecciona primero una carpeta</string>
     <string name="content_desc_local_media_folder">Ruta de la carpeta de medios locales</string>
     <string name="label_server_url">URL del servidor</string>
     <string name="label_access_token">Token de acceso</string>

@@ -44,6 +44,8 @@
     <string name="local_media_refresh">Analyser le dossier</string>
     <string name="local_media_scan_complete">Analyse terminée : %1$d pistes, %2$d albums, %3$d artistes</string>
     <string name="local_media_scan_error">Échec de l\'analyse : %1$s</string>
+    <string name="message_local_media_folder_updated">Dossier de médias locaux mis à jour</string>
+    <string name="message_local_media_select_folder_first">Veuillez d\'abord sélectionner un dossier</string>
     <string name="content_desc_local_media_folder">Chemin du dossier de médias locaux</string>
     <string name="label_server_url">URL du serveur</string>
     <string name="label_access_token">Jeton d\'accès</string>

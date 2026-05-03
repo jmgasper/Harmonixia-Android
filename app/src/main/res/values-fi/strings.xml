@@ -44,6 +44,8 @@
     <string name="local_media_refresh">Skannaa kansio</string>
     <string name="local_media_scan_complete">Skannaus valmis: %1$d kappaletta, %2$d albumia, %3$d artistia</string>
     <string name="local_media_scan_error">Skannaus epäonnistui: %1$s</string>
+    <string name="message_local_media_folder_updated">Paikallinen mediakansio päivitetty</string>
+    <string name="message_local_media_select_folder_first">Valitse kansio ensin</string>
     <string name="content_desc_local_media_folder">Paikallisen mediakansion polku</string>
     <string name="label_server_url">Palvelimen URL</string>
     <string name="label_access_token">Käyttötoken</string>

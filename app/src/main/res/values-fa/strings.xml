@@ -44,6 +44,8 @@
     <string name="local_media_refresh">اسکن پوشه</string>
     <string name="local_media_scan_complete">اسکن کامل شد: %1$d آهنگ، %2$d آلبوم، %3$d هنرمند</string>
     <string name="local_media_scan_error">اسکن ناموفق: %1$s</string>
+    <string name="message_local_media_folder_updated">پوشه رسانه محلی به‌روزرسانی شد</string>
+    <string name="message_local_media_select_folder_first">لطفاً ابتدا یک پوشه انتخاب کنید</string>
     <string name="content_desc_local_media_folder">مسیر پوشه رسانه محلی</string>
     <string name="label_server_url">URL سرور</string>
     <string name="label_access_token">توکن دسترسی</string>
