@@ -5,6 +5,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.tooling.preview.Preview
 import com.harmonixia.android.data.remote.ConnectionState
+import com.harmonixia.android.ui.screens.settings.localmedia.LocalMediaSettingsUiState
 import com.harmonixia.android.ui.theme.HarmonixiaTheme
 
 @Preview(showBackground = true)
@@ -21,9 +22,7 @@ fun SettingsScreenPreviewInitial() {
             selectedTab = SettingsTab.CONNECTION,
             onTabSelected = {},
             snackbarHostState = remember { SnackbarHostState() },
-            localMediaFolderUri = "",
-            localMediaTrackCount = 0,
-            localMediaScanState = LocalMediaScanState(),
+            localMediaUiState = LocalMediaSettingsUiState(),
             onNavigateBack = {},
             onNavigateToPerformanceSettings = {},
             onServerUrlChange = {},
@@ -57,9 +56,7 @@ fun SettingsScreenPreviewConnecting() {
             selectedTab = SettingsTab.CONNECTION,
             onTabSelected = {},
             snackbarHostState = remember { SnackbarHostState() },
-            localMediaFolderUri = "",
-            localMediaTrackCount = 0,
-            localMediaScanState = LocalMediaScanState(),
+            localMediaUiState = LocalMediaSettingsUiState(),
             onNavigateBack = {},
             onNavigateToPerformanceSettings = {},
             onServerUrlChange = {},
@@ -93,9 +90,7 @@ fun SettingsScreenPreviewError() {
             selectedTab = SettingsTab.CONNECTION,
             onTabSelected = {},
             snackbarHostState = remember { SnackbarHostState() },
-            localMediaFolderUri = "",
-            localMediaTrackCount = 0,
-            localMediaScanState = LocalMediaScanState(),
+            localMediaUiState = LocalMediaSettingsUiState(),
             onNavigateBack = {},
             onNavigateToPerformanceSettings = {},
             onServerUrlChange = {},
@@ -129,9 +124,7 @@ fun SettingsScreenPreviewSuccess() {
             selectedTab = SettingsTab.CONNECTION,
             onTabSelected = {},
             snackbarHostState = remember { SnackbarHostState() },
-            localMediaFolderUri = "",
-            localMediaTrackCount = 0,
-            localMediaScanState = LocalMediaScanState(),
+            localMediaUiState = LocalMediaSettingsUiState(),
             onNavigateBack = {},
             onNavigateToPerformanceSettings = {},
             onServerUrlChange = {},

@@ -18,6 +18,7 @@ import com.harmonixia.android.domain.usecase.ConnectToServerUseCase
 import com.harmonixia.android.domain.usecase.DisconnectFromServerUseCase
 import com.harmonixia.android.domain.usecase.GetConnectionStateUseCase
 import com.harmonixia.android.ui.navigation.Screen
+import com.harmonixia.android.ui.screens.settings.localmedia.LocalMediaSettingsUiState
 import com.harmonixia.android.util.Logger
 import com.harmonixia.android.util.UrlValidationError
 import com.harmonixia.android.util.ValidationUtils
@@ -63,7 +64,6 @@ class SettingsViewModel @Inject constructor(
             form = loadFormState(),
             connectionState = connectionState.value,
             canDisconnect = false,
-            localMediaScanState = LocalMediaScanState(),
             selectedTab = _selectedTab.value
         )
     )
@@ -84,11 +84,8 @@ class SettingsViewModel @Inject constructor(
     private val _storedPassword = MutableStateFlow("")
     val storedPassword: StateFlow<String> = _storedPassword.asStateFlow()
 
-    private val _localMediaFolderUri = MutableStateFlow("")
-    val localMediaFolderUri: StateFlow<String> = _localMediaFolderUri.asStateFlow()
-
-    private val _localMediaTrackCount = MutableStateFlow(0)
-    val localMediaTrackCount: StateFlow<Int> = _localMediaTrackCount.asStateFlow()
+    private val _localMediaUiState = MutableStateFlow(LocalMediaSettingsUiState())
+    val localMediaUiState: StateFlow<LocalMediaSettingsUiState> = _localMediaUiState.asStateFlow()
 
     private val _events = MutableSharedFlow<SettingsUiEvent>(extraBufferCapacity = 1)
     val events = _events.asSharedFlow()
@@ -152,13 +149,17 @@ class SettingsViewModel @Inject constructor(
 
         viewModelScope.launch {
             settingsDataStore.getLocalMediaFolderUri().collect { uri ->
-                _localMediaFolderUri.value = uri
+                _localMediaUiState.update { current ->
+                    current.copy(folderUri = uri)
+                }
             }
         }
 
         viewModelScope.launch {
             localMediaRepository.getTrackCount().collect { count ->
-                _localMediaTrackCount.value = count
+                _localMediaUiState.update { current ->
+                    current.copy(trackCount = count)
+                }
             }
         }
 
@@ -179,9 +180,9 @@ class SettingsViewModel @Inject constructor(
 
         viewModelScope.launch {
             localMediaScanner.getScanProgress().collect { progress ->
-                _uiState.update { current ->
-                    current.withLocalMediaScanState(
-                        LocalMediaScanState(
+                _localMediaUiState.update { current ->
+                    current.copy(
+                        scanState = LocalMediaScanState(
                             isScanning = progress is LocalMediaScanner.ScanProgress.Scanning,
                             progress = progress
                         )
@@ -325,9 +326,11 @@ class SettingsViewModel @Inject constructor(
 
     fun updateLocalMediaFolder(uri: String) {
         viewModelScope.launch {
-            val previousUri = _localMediaFolderUri.value
+            val previousUri = _localMediaUiState.value.folderUri
             settingsDataStore.saveLocalMediaFolderUri(uri)
-            _localMediaFolderUri.value = uri
+            _localMediaUiState.update { current ->
+                current.copy(folderUri = uri)
+            }
             emitEvent("Local media folder updated")
             if (uri.isNotBlank() && uri != previousUri) {
                 startLocalMediaScan(uri)
@@ -336,7 +339,7 @@ class SettingsViewModel @Inject constructor(
     }
 
     fun scanLocalMedia() {
-        startLocalMediaScan(_localMediaFolderUri.value)
+        startLocalMediaScan(_localMediaUiState.value.folderUri)
     }
 
     private fun startLocalMediaScan(folderUri: String) {
@@ -378,7 +381,6 @@ class SettingsViewModel @Inject constructor(
                 form = form,
                 connectionState = connectionState.value,
                 canDisconnect = connectionState.value !is ConnectionState.Disconnected,
-                localMediaScanState = current.localMediaScanState,
                 selectedTab = current.selectedTab,
                 isTesting = false
             )
@@ -412,7 +414,6 @@ class SettingsViewModel @Inject constructor(
                     form = updatedState.form,
                     connectionState = connectionState.value,
                     canDisconnect = connectionState.value !is ConnectionState.Disconnected,
-                    localMediaScanState = updatedState.localMediaScanState,
                     selectedTab = updatedState.selectedTab,
                     message = context.getString(R.string.status_connected)
                 )
@@ -436,7 +437,6 @@ class SettingsViewModel @Inject constructor(
                 form = form,
                 connectionState = connectionState.value,
                 canDisconnect = connectionState.value !is ConnectionState.Disconnected,
-                localMediaScanState = current.localMediaScanState,
                 selectedTab = current.selectedTab,
                 isTesting = true
             )
@@ -455,7 +455,6 @@ class SettingsViewModel @Inject constructor(
                     form = form,
                     connectionState = connectionState.value,
                     canDisconnect = connectionState.value !is ConnectionState.Disconnected,
-                    localMediaScanState = updatedState.localMediaScanState,
                     selectedTab = updatedState.selectedTab,
                     message = context.getString(R.string.status_connected)
                 )
@@ -516,7 +515,6 @@ class SettingsViewModel @Inject constructor(
                 form = current.form,
                 connectionState = current.connectionState,
                 canDisconnect = current.canDisconnect,
-                localMediaScanState = current.localMediaScanState,
                 selectedTab = current.selectedTab
             )
         }
@@ -528,7 +526,6 @@ class SettingsViewModel @Inject constructor(
             form = current.form,
             connectionState = connectionState.value,
             canDisconnect = connectionState.value !is ConnectionState.Disconnected,
-            localMediaScanState = current.localMediaScanState,
             selectedTab = current.selectedTab
         )
         val validation = ValidationUtils.validateServerUrl(_uiState.value.form.serverUrl)
@@ -548,7 +545,6 @@ class SettingsViewModel @Inject constructor(
                 form = updatedState.form,
                 connectionState = connectionState.value,
                 canDisconnect = connectionState.value !is ConnectionState.Disconnected,
-                localMediaScanState = updatedState.localMediaScanState,
                 selectedTab = updatedState.selectedTab
             )
         }
@@ -574,7 +570,6 @@ class SettingsViewModel @Inject constructor(
                 form = current.form,
                 connectionState = current.connectionState,
                 canDisconnect = current.canDisconnect,
-                localMediaScanState = current.localMediaScanState,
                 selectedTab = current.selectedTab,
                 message = message
             )
