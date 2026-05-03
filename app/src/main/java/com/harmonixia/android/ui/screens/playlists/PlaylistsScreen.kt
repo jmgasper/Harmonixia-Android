@@ -98,12 +98,13 @@ fun PlaylistsScreen(
     val viewMode by viewModel.viewMode.collectAsStateWithLifecycle()
     val resources = LocalResources.current
     val snackbarHostState = remember { SnackbarHostState() }
-    val favoritesPlaylist = remember {
+    val favoritesTitle = stringResource(R.string.home_favorites)
+    val favoritesPlaylist = remember(favoritesTitle) {
         Playlist(
             itemId = "favorites",
             provider = "harmonixia",
             uri = "",
-            name = "Favorites",
+            name = favoritesTitle,
             owner = null,
             isEditable = false,
             imageUrl = null
