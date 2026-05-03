@@ -272,6 +272,7 @@
     <string name="action_pause">مکث</string>
     <string name="action_next_track">قطعه بعدی</string>
     <string name="action_previous_track">قطعه قبلی</string>
+    <string name="action_repeat">تکرار</string>
     <string name="action_repeat_off">تکرار خاموش</string>
     <string name="action_repeat_all">تکرار همه</string>
     <string name="action_repeat_one">تکرار یکی</string>

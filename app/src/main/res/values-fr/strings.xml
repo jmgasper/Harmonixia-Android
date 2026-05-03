@@ -273,6 +273,7 @@
     <string name="action_pause">Pause</string>
     <string name="action_next_track">Piste suivante</string>
     <string name="action_previous_track">Piste précédente</string>
+    <string name="action_repeat">Répéter</string>
     <string name="action_repeat_off">Répétition désactivée</string>
     <string name="action_repeat_all">Répéter tout</string>
     <string name="action_repeat_one">Répéter une</string>

@@ -272,6 +272,7 @@
     <string name="action_pause">Pausa</string>
     <string name="action_next_track">Nästa spår</string>
     <string name="action_previous_track">Föregående spår</string>
+    <string name="action_repeat">Upprepa</string>
     <string name="action_repeat_off">Upprepa av</string>
     <string name="action_repeat_all">Upprepa alla</string>
     <string name="action_repeat_one">Upprepa en</string>

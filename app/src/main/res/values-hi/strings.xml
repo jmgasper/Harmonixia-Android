@@ -272,6 +272,7 @@
     <string name="action_pause">रोकें</string>
     <string name="action_next_track">अगला ट्रैक</string>
     <string name="action_previous_track">पिछला ट्रैक</string>
+    <string name="action_repeat">दोहराएँ</string>
     <string name="action_repeat_off">दोहराव बंद</string>
     <string name="action_repeat_all">सभी दोहराएँ</string>
     <string name="action_repeat_one">एक दोहराएँ</string>

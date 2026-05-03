@@ -272,6 +272,7 @@
     <string name="action_pause">Pause</string>
     <string name="action_next_track">Neste spor</string>
     <string name="action_previous_track">Forrige spor</string>
+    <string name="action_repeat">Gjenta</string>
     <string name="action_repeat_off">Gjenta av</string>
     <string name="action_repeat_all">Gjenta alle</string>
     <string name="action_repeat_one">Gjenta én</string>

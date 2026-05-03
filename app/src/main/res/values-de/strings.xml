@@ -272,6 +272,7 @@
     <string name="action_pause">Pause</string>
     <string name="action_next_track">Nächster Titel</string>
     <string name="action_previous_track">Vorheriger Titel</string>
+    <string name="action_repeat">Wiederholen</string>
     <string name="action_repeat_off">Wiederholen aus</string>
     <string name="action_repeat_all">Alle wiederholen</string>
     <string name="action_repeat_one">Einen wiederholen</string>

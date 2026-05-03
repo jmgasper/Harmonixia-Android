@@ -271,6 +271,7 @@
     <string name="action_pause">暂停</string>
     <string name="action_next_track">下一首</string>
     <string name="action_previous_track">上一首</string>
+    <string name="action_repeat">重复</string>
     <string name="action_repeat_off">重复关闭</string>
     <string name="action_repeat_all">全部重复</string>
     <string name="action_repeat_one">单曲循环</string>

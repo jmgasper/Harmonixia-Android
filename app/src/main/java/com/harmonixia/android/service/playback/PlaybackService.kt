@@ -13,6 +13,7 @@ import androidx.media3.session.CommandButton
 import androidx.media3.session.MediaLibraryService
 import androidx.media3.session.MediaLibraryService.MediaLibrarySession
 import androidx.media3.session.MediaSession
+import com.harmonixia.android.R
 import com.harmonixia.android.domain.model.RepeatMode
 import com.harmonixia.android.domain.model.Track
 import com.harmonixia.android.domain.repository.MusicAssistantRepository
@@ -330,7 +331,7 @@ class PlaybackService : MediaLibraryService() {
         }
         val shuffleButton = CommandButton.Builder(shuffleIcon)
             .setPlayerCommand(Player.COMMAND_SET_SHUFFLE_MODE, !shuffleModeEnabled)
-            .setDisplayName("Shuffle")
+            .setDisplayName(getString(R.string.action_shuffle))
             .build()
 
         val (repeatIcon, nextRepeatMode) = when (repeatMode) {
@@ -340,7 +341,7 @@ class PlaybackService : MediaLibraryService() {
         }
         val repeatButton = CommandButton.Builder(repeatIcon)
             .setPlayerCommand(Player.COMMAND_SET_REPEAT_MODE, nextRepeatMode)
-            .setDisplayName("Repeat")
+            .setDisplayName(getString(R.string.action_repeat))
             .build()
 
         session.setMediaButtonPreferences(listOf(shuffleButton, repeatButton))

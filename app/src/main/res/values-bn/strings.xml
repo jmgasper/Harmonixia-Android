@@ -272,6 +272,7 @@
     <string name="action_pause">পজ</string>
     <string name="action_next_track">পরবর্তী ট্র্যাক</string>
     <string name="action_previous_track">পূর্বের ট্র্যাক</string>
+    <string name="action_repeat">পুনরাবৃত্তি</string>
     <string name="action_repeat_off">পুনরাবৃত্তি বন্ধ</string>
     <string name="action_repeat_all">সব পুনরাবৃত্তি</string>
     <string name="action_repeat_one">একটি পুনরাবৃত্তি</string>

@@ -281,6 +281,7 @@
     <string name="action_pause">Pause</string>
     <string name="action_next_track">Next track</string>
     <string name="action_previous_track">Previous track</string>
+    <string name="action_repeat">Repeat</string>
     <string name="action_repeat_off">Repeat off</string>
     <string name="action_repeat_all">Repeat all</string>
     <string name="action_repeat_one">Repeat one</string>
