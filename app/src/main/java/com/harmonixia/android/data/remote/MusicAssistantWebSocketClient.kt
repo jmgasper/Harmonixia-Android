@@ -401,7 +401,6 @@ open class MusicAssistantWebSocketClient(
                 is JsonPrimitive -> error.content
                 is JsonObject -> error["message"]?.jsonPrimitive?.contentOrNull ?: error.toString()
                 is JsonArray -> error.toString()
-                else -> error.toString()
             }
         }
         return null
