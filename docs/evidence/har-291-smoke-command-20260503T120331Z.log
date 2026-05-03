@@ -1,0 +1,5 @@
+# HAR-291 simulator smoke command
+# utc: 2026-05-03T12:03:31Z
+$ scripts/smoke-debug-emulator.sh --list-avds
+Smoke settings: mode=list-avds
+Medium_Phone

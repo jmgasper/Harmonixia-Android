@@ -1,5 +1,6 @@
 package com.harmonixia.android.service.playback
 
+import android.content.Context
 import android.net.Uri
 import android.os.Bundle
 import androidx.core.net.toUri
@@ -8,6 +9,7 @@ import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.session.MediaConstants
+import com.harmonixia.android.R
 import com.harmonixia.android.data.paging.fetchAllPages
 import com.harmonixia.android.domain.model.Album
 import com.harmonixia.android.domain.model.Artist
@@ -41,6 +43,7 @@ import kotlinx.coroutines.supervisorScope
 
 @UnstableApi
 class MediaLibraryBrowser(
+    private val context: Context,
     private val repository: MusicAssistantRepository,
     private val localMediaRepository: LocalMediaRepository,
     private val offlineLibraryRepository: OfflineLibraryRepository,
@@ -252,7 +255,7 @@ class MediaLibraryBrowser(
 
     private fun buildRootItem(): MediaItem {
         val metadata = MediaMetadata.Builder()
-            .setTitle(ROOT_TITLE)
+            .setTitle(context.getString(R.string.app_name))
             .setIsBrowsable(true)
             .setIsPlayable(false)
             .build()
@@ -274,35 +277,40 @@ class MediaLibraryBrowser(
             MediaConstants.EXTRAS_VALUE_CONTENT_STYLE_LIST_ITEM
         }
         return if (isOfflineMode()) {
-            listOf(buildCategoryItem(MEDIA_ID_LOCAL_MEDIA, TITLE_LOCAL_MEDIA))
+            listOf(
+                buildCategoryItem(
+                    MEDIA_ID_LOCAL_MEDIA,
+                    context.getString(R.string.section_local_media)
+                )
+            )
         } else {
             listOf(
                 buildCategoryItem(
                     MEDIA_ID_HOME,
-                    TITLE_HOME,
+                    context.getString(R.string.nav_home),
                     mediaType = MediaMetadata.MEDIA_TYPE_FOLDER_MIXED
                 ),
                 buildCategoryItem(
                     MEDIA_ID_ALBUMS,
-                    TITLE_ALBUMS,
+                    context.getString(R.string.nav_albums),
                     mediaType = MediaMetadata.MEDIA_TYPE_FOLDER_ALBUMS,
                     browsableContentStyle = albumsStyle
                 ),
                 buildCategoryItem(
                     MEDIA_ID_ARTISTS,
-                    TITLE_ARTISTS,
+                    context.getString(R.string.nav_artists),
                     mediaType = MediaMetadata.MEDIA_TYPE_FOLDER_ARTISTS,
                     browsableContentStyle = letterGridStyle
                 ),
                 buildCategoryItem(
                     MEDIA_ID_PLAYLISTS,
-                    TITLE_PLAYLISTS,
+                    context.getString(R.string.nav_playlists),
                     mediaType = MediaMetadata.MEDIA_TYPE_FOLDER_PLAYLISTS,
                     browsableContentStyle = MediaConstants.EXTRAS_VALUE_CONTENT_STYLE_GRID_ITEM
                 ),
                 buildCategoryItem(
                     MEDIA_ID_LOCAL_MEDIA,
-                    TITLE_LOCAL_MEDIA,
+                    context.getString(R.string.section_local_media),
                     mediaType = MediaMetadata.MEDIA_TYPE_FOLDER_MIXED
                 )
             )
@@ -313,7 +321,7 @@ class MediaLibraryBrowser(
         return listOf(
             buildCategoryItem(
                 MEDIA_ID_HOME_RECENTLY_PLAYED,
-                TITLE_HOME_RECENTLY_PLAYED,
+                context.getString(R.string.home_recently_played),
                 mediaType = MediaMetadata.MEDIA_TYPE_FOLDER_ALBUMS,
                 browsableContentStyle = MediaConstants.EXTRAS_VALUE_CONTENT_STYLE_GRID_ITEM
             ),
@@ -324,13 +332,13 @@ class MediaLibraryBrowser(
             ),
             buildCategoryItem(
                 MEDIA_ID_HOME_NEW_ALBUMS,
-                TITLE_HOME_NEW_ALBUMS,
+                context.getString(R.string.home_recently_added),
                 mediaType = MediaMetadata.MEDIA_TYPE_FOLDER_ALBUMS,
                 browsableContentStyle = MediaConstants.EXTRAS_VALUE_CONTENT_STYLE_GRID_ITEM
             ),
             buildCategoryItem(
                 MEDIA_ID_HOME_PLAYLISTS,
-                TITLE_PLAYLISTS,
+                context.getString(R.string.nav_playlists),
                 mediaType = MediaMetadata.MEDIA_TYPE_FOLDER_PLAYLISTS,
                 browsableContentStyle = MediaConstants.EXTRAS_VALUE_CONTENT_STYLE_GRID_ITEM
             )
@@ -1272,15 +1280,7 @@ class MediaLibraryBrowser(
         private const val MEDIA_ID_PREFIX_LOCAL_ARTISTS_LETTER = "local_artists_letter"
         private const val MEDIA_ID_PREFIX_LOCAL_ALBUMS_LETTER = "local_albums_letter"
 
-        private const val ROOT_TITLE = "Harmonixia"
-        private const val TITLE_HOME = "Home"
-        private const val TITLE_HOME_RECENTLY_PLAYED = "Recently Played"
         private const val TITLE_HOME_FAVORITES = "Favourites"
-        private const val TITLE_HOME_NEW_ALBUMS = "New Albums"
-        private const val TITLE_ALBUMS = "Albums"
-        private const val TITLE_ARTISTS = "Artists"
-        private const val TITLE_PLAYLISTS = "Playlists"
-        private const val TITLE_LOCAL_MEDIA = "Local Media"
         private const val TITLE_LOCAL_ALBUMS = "Local Albums"
         private const val TITLE_LOCAL_ARTISTS = "Local Artists"
         private const val TITLE_LOCAL_TRACKS = "Local Tracks"

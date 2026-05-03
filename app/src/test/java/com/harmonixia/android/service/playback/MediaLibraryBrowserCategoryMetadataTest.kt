@@ -1,5 +1,6 @@
 package com.harmonixia.android.service.playback
 
+import android.content.Context
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
 import com.harmonixia.android.domain.repository.LocalMediaRepository
@@ -18,6 +19,7 @@ class MediaLibraryBrowserCategoryMetadataTest {
     private val localMediaRepository = mockk<LocalMediaRepository>(relaxed = true)
     private val offlineLibraryRepository = mockk<OfflineLibraryRepository>(relaxed = true)
     private val networkConnectivityManager = mockk<NetworkConnectivityManager>()
+    private val context = mockk<Context>(relaxed = true)
 
     private lateinit var browser: MediaLibraryBrowser
 
@@ -25,6 +27,7 @@ class MediaLibraryBrowserCategoryMetadataTest {
     fun setUp() {
         every { networkConnectivityManager.isOfflineMode() } returns false
         browser = MediaLibraryBrowser(
+            context = context,
             repository = repository,
             localMediaRepository = localMediaRepository,
             offlineLibraryRepository = offlineLibraryRepository,
