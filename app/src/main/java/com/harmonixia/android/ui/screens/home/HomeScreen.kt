@@ -1,6 +1,6 @@
 package com.harmonixia.android.ui.screens.home
 
-import android.app.Activity
+import androidx.activity.compose.LocalActivity
 import android.content.res.Configuration
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -40,13 +40,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.harmonixia.android.R
 import com.harmonixia.android.domain.model.Album
@@ -79,7 +78,7 @@ fun HomeScreen(
     val imageQualityManager = viewModel.imageQualityManager
     val onTrackClick = viewModel::playTrack
 
-    val windowSizeClass = calculateWindowSizeClass(activity = LocalContext.current as Activity)
+    val windowSizeClass = calculateWindowSizeClass(activity = checkNotNull(LocalActivity.current))
     val configuration = LocalConfiguration.current
     val windowInfo = LocalWindowInfo.current
     val density = LocalDensity.current

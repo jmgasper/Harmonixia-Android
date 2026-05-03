@@ -1,6 +1,6 @@
 package com.harmonixia.android.ui.screens.albums
 
-import android.app.Activity
+import androidx.activity.compose.LocalActivity
 import android.content.res.Configuration
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -49,6 +49,7 @@ import androidx.compose.ui.graphics.painter.ColorPainter
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
@@ -91,7 +92,7 @@ fun AlbumDetailScreen(
     val playlists by viewModel.playlists.collectAsStateWithLifecycle()
     val isOfflineMode by viewModel.isOfflineMode.collectAsStateWithLifecycle()
     val imageQualityManager = viewModel.imageQualityManager
-    val context = LocalContext.current
+    val resources = LocalResources.current
     val snackbarHostState = remember { SnackbarHostState() }
 
     var showPlaylistPicker by remember { mutableStateOf(false) }
@@ -102,7 +103,7 @@ fun AlbumDetailScreen(
         viewModel.events.collect { event ->
             when (event) {
                 is AlbumDetailUiEvent.ShowMessage -> {
-                    snackbarHostState.showSnackbar(context.getString(event.messageResId))
+                    snackbarHostState.showSnackbar(resources.getString(event.messageResId))
                 }
                 AlbumDetailUiEvent.PlaylistCreated -> {
                     showCreateDialog = false
@@ -115,7 +116,7 @@ fun AlbumDetailScreen(
         }
     }
 
-    val windowSizeClass = calculateWindowSizeClass(activity = LocalContext.current as Activity)
+    val windowSizeClass = calculateWindowSizeClass(activity = checkNotNull(LocalActivity.current))
     val configuration = LocalConfiguration.current
     val windowInfo = LocalWindowInfo.current
     val density = LocalDensity.current

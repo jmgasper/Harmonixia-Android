@@ -20,6 +20,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.LocalActivity
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -43,7 +44,7 @@ fun PerformanceSettingsScreen(
     val entryPoint = remember(context) {
         EntryPointAccessors.fromApplication(context, PerformanceSettingsEntryPoint::class.java)
     }
-    val activity = context as? ComponentActivity
+    val activity = LocalActivity.current as? ComponentActivity
     val playbackViewModel: PlaybackViewModel = if (activity != null) {
         hiltViewModel(activity)
     } else {

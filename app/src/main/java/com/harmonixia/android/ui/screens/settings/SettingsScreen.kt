@@ -116,7 +116,7 @@ fun SettingsScreen(
     val localMediaUiState by viewModel.localMediaUiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     val context = LocalContext.current
-    val activity = context as? ComponentActivity
+    val activity = LocalActivity.current as? ComponentActivity
     val playbackViewModel: PlaybackViewModel = if (activity != null) {
         hiltViewModel(activity)
     } else {

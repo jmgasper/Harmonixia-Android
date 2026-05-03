@@ -1,6 +1,6 @@
 package com.harmonixia.android.ui.screens.albums
 
-import android.app.Activity
+import androidx.activity.compose.LocalActivity
 import android.content.res.Configuration
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.fadeIn
@@ -66,7 +66,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.paging.LoadState
 import androidx.paging.compose.collectAsLazyPagingItems
@@ -108,7 +108,7 @@ fun AlbumsScreen(
     val imageQualityManager = viewModel.imageQualityManager
     val viewMode by viewModel.viewMode.collectAsStateWithLifecycle()
 
-    val windowSizeClass = calculateWindowSizeClass(activity = LocalContext.current as Activity)
+    val windowSizeClass = calculateWindowSizeClass(activity = checkNotNull(LocalActivity.current))
     val configuration = LocalConfiguration.current
     val windowInfo = LocalWindowInfo.current
     val density = LocalDensity.current

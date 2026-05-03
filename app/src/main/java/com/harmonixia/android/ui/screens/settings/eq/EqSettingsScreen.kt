@@ -31,6 +31,7 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.LocalActivity
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -63,7 +64,7 @@ fun EqSettingsScreen(
     val eqSettings by viewModel.eqSettings.collectAsStateWithLifecycle()
     val presetDetails by viewModel.presetDetails.collectAsStateWithLifecycle()
     val context = LocalContext.current
-    val activity = context as? ComponentActivity
+    val activity = LocalActivity.current as? ComponentActivity
     val playbackViewModel: PlaybackViewModel = if (activity != null) {
         hiltViewModel(activity)
     } else {

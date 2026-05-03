@@ -1,6 +1,6 @@
 package com.harmonixia.android.ui.screens.playlists
 
-import android.app.Activity
+import androidx.activity.compose.LocalActivity
 import android.content.res.Configuration
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -57,14 +57,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.paging.LoadState
 import androidx.paging.compose.collectAsLazyPagingItems
@@ -96,7 +96,7 @@ fun PlaylistsScreen(
     val isOfflineMode by viewModel.isOfflineMode.collectAsStateWithLifecycle()
     val imageQualityManager = viewModel.imageQualityManager
     val viewMode by viewModel.viewMode.collectAsStateWithLifecycle()
-    val context = LocalContext.current
+    val resources = LocalResources.current
     val snackbarHostState = remember { SnackbarHostState() }
     val favoritesPlaylist = remember {
         Playlist(
@@ -123,7 +123,7 @@ fun PlaylistsScreen(
         viewModel.events.collect { event ->
             when (event) {
                 is PlaylistsUiEvent.ShowMessage -> {
-                    snackbarHostState.showSnackbar(context.getString(event.messageResId))
+                    snackbarHostState.showSnackbar(resources.getString(event.messageResId))
                 }
                 PlaylistsUiEvent.PlaylistCreated -> {
                     showCreateDialog = false
@@ -142,7 +142,7 @@ fun PlaylistsScreen(
         }
     }
 
-    val windowSizeClass = calculateWindowSizeClass(activity = LocalContext.current as Activity)
+    val windowSizeClass = calculateWindowSizeClass(activity = checkNotNull(LocalActivity.current))
     val configuration = LocalConfiguration.current
     val windowInfo = LocalWindowInfo.current
     val density = LocalDensity.current

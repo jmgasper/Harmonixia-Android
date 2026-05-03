@@ -1,6 +1,6 @@
 package com.harmonixia.android.ui.screens.playlists
 
-import android.app.Activity
+import androidx.activity.compose.LocalActivity
 import android.content.res.Configuration
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -59,6 +59,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
@@ -66,7 +67,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
@@ -109,6 +110,7 @@ fun PlaylistDetailScreen(
     val imageQualityManager = viewModel.imageQualityManager
     val isFavoritesPlaylist = playlist?.itemId == "favorites" && playlist?.provider == "harmonixia"
     val context = LocalContext.current
+    val resources = LocalResources.current
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
 
@@ -128,7 +130,7 @@ fun PlaylistDetailScreen(
         viewModel.events.collect { event ->
             when (event) {
                 is PlaylistDetailUiEvent.ShowMessage -> {
-                    snackbarHostState.showSnackbar(context.getString(event.messageResId))
+                    snackbarHostState.showSnackbar(resources.getString(event.messageResId))
                 }
                 PlaylistDetailUiEvent.PlaylistCreated -> {
                     showCreateDialog = false
@@ -165,7 +167,7 @@ fun PlaylistDetailScreen(
         }
     }
 
-    val windowSizeClass = calculateWindowSizeClass(activity = LocalContext.current as Activity)
+    val windowSizeClass = calculateWindowSizeClass(activity = checkNotNull(LocalActivity.current))
     val configuration = LocalConfiguration.current
     val windowInfo = LocalWindowInfo.current
     val density = LocalDensity.current
@@ -245,7 +247,7 @@ fun PlaylistDetailScreen(
         }
         if (blockReasonResId != null) {
             coroutineScope.launch {
-                snackbarHostState.showSnackbar(context.getString(blockReasonResId))
+                snackbarHostState.showSnackbar(resources.getString(blockReasonResId))
             }
             return@toggleReorder
         }
