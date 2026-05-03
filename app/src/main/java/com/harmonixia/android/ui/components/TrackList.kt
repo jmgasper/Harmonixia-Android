@@ -35,6 +35,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -105,7 +106,7 @@ fun TrackList(
     var lastLoadTriggerIndex by remember { mutableIntStateOf(-1) }
     val reorderEnabled = isReordering && onReorder != null
     var draggingItemKey by remember { mutableStateOf<Any?>(null) }
-    var draggingOffsetY by remember { mutableStateOf(0f) }
+    var draggingOffsetY by remember { mutableFloatStateOf(0f) }
     val resolvedKeyProvider = itemKeyProvider ?: DefaultTrackKeyProvider
     val trackKeys = remember(tracks, resolvedKeyProvider) {
         tracks.mapIndexed { index, track -> resolvedKeyProvider(track, index) }
@@ -132,6 +133,13 @@ fun TrackList(
 
     LaunchedEffect(reorderEnabled) {
         if (!reorderEnabled) {
+            draggingItemKey = null
+            draggingOffsetY = 0f
+        }
+    }
+    LaunchedEffect(reorderEnabled, trackIndexByKey, draggingItemKey) {
+        val activeDragKey = draggingItemKey
+        if (activeDragKey != null && trackIndexByKey[activeDragKey] == null) {
             draggingItemKey = null
             draggingOffsetY = 0f
         }
@@ -166,7 +174,7 @@ fun TrackList(
             val indexByKey = trackIndexByKeyState.value
             val lastVisibleTrackIndex = resolvedListState.layoutInfo.visibleItemsInfo
                 .mapNotNull { info ->
-                    val key = info.key ?: return@mapNotNull null
+                    val key = info.key
                     indexByKey[key]
                 }
                 .maxOrNull() ?: -1
@@ -272,7 +280,7 @@ fun TrackList(
                 }
                 val handleModifier = if (reorderEnabled) {
                     Modifier
-                        .pointerInput(Unit) {
+                        .pointerInput(itemKey, reorderEnabled) {
                             detectDragGestures(
                                 onDragStart = {
                                     draggingItemKey = itemKey
@@ -299,8 +307,7 @@ fun TrackList(
                                         draggedInfo.offset + draggingOffsetY + draggedInfo.size / 2f
                                     val targetInfo = layoutInfo.visibleItemsInfo.firstOrNull { info ->
                                         val key = info.key
-                                        key != null &&
-                                            key != itemKey &&
+                                        key != itemKey &&
                                             key in indexByKey &&
                                             draggedCenter in
                                             info.offset.toFloat()..(info.offset + info.size).toFloat()
@@ -358,9 +365,9 @@ fun TrackList(
                         metadataTextStyle = trackMetadataTextStyle,
                         leadingContent = leadingContent,
                         imageQualityManager = imageQualityManager,
+                        modifier = interactionModifier,
                         showReorderHandle = reorderEnabled,
-                        reorderHandleModifier = handleModifier,
-                        modifier = interactionModifier
+                        reorderHandleModifier = handleModifier
                     )
                     if (showContextMenu && contextMenuTrackId == track.itemId) {
                         TrackContextMenu(
@@ -410,9 +417,9 @@ private fun TrackListItem(
     metadataTextStyle: TextStyle?,
     leadingContent: TrackListLeadingContent,
     imageQualityManager: ImageQualityManager?,
+    modifier: Modifier = Modifier,
     showReorderHandle: Boolean = false,
-    reorderHandleModifier: Modifier = Modifier,
-    modifier: Modifier = Modifier
+    reorderHandleModifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
     val durationText = formatDuration(track.lengthSeconds)
