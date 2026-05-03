@@ -341,4 +341,10 @@
     <string name="local_media_scan_validation_permission_denied">Permission denied for local media folder</string>
     <string name="local_media_scan_validation_unknown_error">Unknown scan error</string>
     <string name="local_media_scan_fallback_unknown_value">Unknown</string>
+    <string name="data_validation_recently_played_albums_load_failed">Failed to load recently played albums.</string>
+    <string name="data_validation_recently_played_playlists_load_failed">Failed to load recently played playlists.</string>
+    <string name="data_validation_unexpected_album_response">Unexpected album response</string>
+    <string name="data_validation_unexpected_artist_response">Unexpected artist response</string>
+    <string name="data_validation_unexpected_playlist_response">Unexpected playlist response</string>
+    <string name="playlist_validation_not_found">Playlist not found</string>
 </resources>

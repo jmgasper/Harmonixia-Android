@@ -269,7 +269,9 @@ class MusicAssistantRepositoryImpl @Inject constructor(
             }
             val trimmed = if (limit > 0) albums.take(limit) else albums
             if (attempted > 0 && trimmed.isEmpty()) {
-                throw lastFailure ?: IllegalStateException("Failed to load recently played albums.")
+                throw lastFailure ?: IllegalStateException(
+                    context.getString(R.string.data_validation_recently_played_albums_load_failed)
+                )
             }
             trimmed
         }
@@ -298,7 +300,9 @@ class MusicAssistantRepositoryImpl @Inject constructor(
             }
             val trimmed = if (limit > 0) playlists.take(limit) else playlists
             if (attempted > 0 && trimmed.isEmpty()) {
-                throw lastFailure ?: IllegalStateException("Failed to load recently played playlists.")
+                throw lastFailure ?: IllegalStateException(
+                    context.getString(R.string.data_validation_recently_played_playlists_load_failed)
+                )
             }
             trimmed
         }
@@ -335,7 +339,9 @@ class MusicAssistantRepositoryImpl @Inject constructor(
             ).getOrThrow()
             val payload = result as? JsonObject ?: run {
                 Logger.w(TAG, "Unexpected album response: $result")
-                throw IllegalStateException("Unexpected album response")
+                throw IllegalStateException(
+                    context.getString(R.string.data_validation_unexpected_album_response)
+                )
             }
             val album = parseAlbum(payload)
             val key = cacheKey(itemId, provider)
@@ -354,7 +360,9 @@ class MusicAssistantRepositoryImpl @Inject constructor(
             ).getOrThrow()
             val payload = result as? JsonObject ?: run {
                 Logger.w(TAG, "Unexpected artist response: $result")
-                throw IllegalStateException("Unexpected artist response")
+                throw IllegalStateException(
+                    context.getString(R.string.data_validation_unexpected_artist_response)
+                )
             }
             parseArtist(payload)
         }
@@ -529,7 +537,9 @@ class MusicAssistantRepositoryImpl @Inject constructor(
                 if (page.size < pageSize) break
                 offset += pageSize
             }
-            throw IllegalStateException("Playlist not found")
+            throw IllegalStateException(
+                context.getString(R.string.playlist_validation_not_found)
+            )
         }
     }
 
@@ -1287,7 +1297,9 @@ class MusicAssistantRepositoryImpl @Inject constructor(
             }
             else -> {
                 Logger.w(TAG, "Unexpected playlist response: $result")
-                throw IllegalStateException("Unexpected playlist response")
+                throw IllegalStateException(
+                    context.getString(R.string.data_validation_unexpected_playlist_response)
+                )
             }
         }
     }
