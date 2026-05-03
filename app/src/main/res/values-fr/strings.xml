@@ -292,4 +292,14 @@
     <string name="action_reconnect">Reconnect</string>
     <string name="artist_detail_section_my_library">My Library</string>
     <string name="artist_detail_section_all">All</string>
+    <string name="playback_error_play">Failed to play</string>
+    <string name="playback_error_pause">Failed to pause</string>
+    <string name="playback_error_skip">Failed to skip</string>
+    <string name="playback_error_seek">Failed to seek</string>
+    <string name="playback_error_repeat_mode">Failed to set repeat mode</string>
+    <string name="playback_error_shuffle_mode">Failed to set shuffle mode</string>
+    <string name="playback_error_not_ready">Playback not ready</string>
+    <string name="playback_error_set_volume">Failed to set volume</string>
+    <string name="playback_error_unmute_player">Failed to unmute player</string>
+    <string name="playback_error_update_mute">Failed to update mute</string>
 </resources>

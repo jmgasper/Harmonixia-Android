@@ -1,5 +1,6 @@
 package com.harmonixia.android.ui.playback
 
+import android.content.Context
 import android.net.Uri
 import android.os.Build
 import android.os.SystemClock
@@ -8,6 +9,7 @@ import androidx.lifecycle.viewModelScope
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.util.UnstableApi
+import com.harmonixia.android.R
 import com.harmonixia.android.data.remote.WebSocketMessage
 import com.harmonixia.android.data.local.SettingsDataStore
 import com.harmonixia.android.data.remote.ConnectionState
@@ -35,6 +37,7 @@ import com.harmonixia.android.util.EXTRA_PARENT_MEDIA_ID
 import com.harmonixia.android.util.EXTRA_PROVIDER_DOMAINS
 import com.harmonixia.android.util.EXTRA_PROVIDER_ID
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -84,6 +87,7 @@ class PlaybackViewModel @Inject constructor(
     private val repository: MusicAssistantRepository,
     private val settingsDataStore: SettingsDataStore,
     private val getConnectionStateUseCase: GetConnectionStateUseCase,
+    @param:ApplicationContext private val context: Context,
     val imageQualityManager: ImageQualityManager
 ) : ViewModel() {
     private val _optimisticPlaybackState = MutableStateFlow<PlaybackState?>(null)
@@ -425,7 +429,7 @@ class PlaybackViewModel @Inject constructor(
             manufacturer.isNotBlank() && model.isNotBlank() -> "$manufacturer $model"
             model.isNotBlank() -> model
             manufacturer.isNotBlank() -> manufacturer
-            else -> "Android Device"
+            else -> context.getString(R.string.player_selection_this_device)
         }
         val placeholder = Player(
             playerId = resolvedId,
@@ -554,14 +558,26 @@ class PlaybackViewModel @Inject constructor(
         _optimisticPlaybackState.value = PlaybackState.PLAYING
         clearOptimisticPlaybackState(PlaybackState.PLAYING, OPTIMISTIC_PLAYBACK_STATE_TIMEOUT_MS)
         playbackServiceConnection.play()
-            .onFailure { _events.tryEmit(PlaybackUiEvent.Error(it.message ?: "Failed to play")) }
+            .onFailure {
+                _events.tryEmit(
+                    PlaybackUiEvent.Error(
+                        it.message ?: context.getString(R.string.playback_error_play)
+                    )
+                )
+            }
     }
 
     fun pause() {
         _optimisticPlaybackState.value = PlaybackState.PAUSED
         clearOptimisticPlaybackState(PlaybackState.PAUSED, OPTIMISTIC_PLAYBACK_STATE_TIMEOUT_MS)
         playbackServiceConnection.pause()
-            .onFailure { _events.tryEmit(PlaybackUiEvent.Error(it.message ?: "Failed to pause")) }
+            .onFailure {
+                _events.tryEmit(
+                    PlaybackUiEvent.Error(
+                        it.message ?: context.getString(R.string.playback_error_pause)
+                    )
+                )
+            }
     }
 
     fun togglePlayPause() {
@@ -577,7 +593,11 @@ class PlaybackViewModel @Inject constructor(
         playbackServiceConnection.next()
             .onFailure {
                 _optimisticMediaItem.value = null
-                _events.tryEmit(PlaybackUiEvent.Error(it.message ?: "Failed to skip"))
+                _events.tryEmit(
+                    PlaybackUiEvent.Error(
+                        it.message ?: context.getString(R.string.playback_error_skip)
+                    )
+                )
             }
     }
 
@@ -590,17 +610,33 @@ class PlaybackViewModel @Inject constructor(
             playbackServiceConnection.previous()
                 .onFailure {
                     _optimisticMediaItem.value = null
-                    _events.tryEmit(PlaybackUiEvent.Error(it.message ?: "Failed to skip"))
+                    _events.tryEmit(
+                        PlaybackUiEvent.Error(
+                            it.message ?: context.getString(R.string.playback_error_skip)
+                        )
+                    )
                 }
         } else {
             playbackServiceConnection.seek(0L)
-                .onFailure { _events.tryEmit(PlaybackUiEvent.Error(it.message ?: "Failed to seek")) }
+                .onFailure {
+                    _events.tryEmit(
+                        PlaybackUiEvent.Error(
+                            it.message ?: context.getString(R.string.playback_error_seek)
+                        )
+                    )
+                }
         }
     }
 
     fun seek(positionMs: Long) {
         playbackServiceConnection.seek(positionMs)
-            .onFailure { _events.tryEmit(PlaybackUiEvent.Error(it.message ?: "Failed to seek")) }
+            .onFailure {
+                _events.tryEmit(
+                    PlaybackUiEvent.Error(
+                        it.message ?: context.getString(R.string.playback_error_seek)
+                    )
+                )
+            }
     }
 
     fun toggleRepeatMode() {
@@ -619,7 +655,8 @@ class PlaybackViewModel @Inject constructor(
                 if (result.isFailure) {
                     _events.tryEmit(
                         PlaybackUiEvent.Error(
-                            result.exceptionOrNull()?.message ?: "Failed to set repeat mode"
+                            result.exceptionOrNull()?.message
+                                ?: context.getString(R.string.playback_error_repeat_mode)
                         )
                     )
                     return@launch
@@ -642,7 +679,8 @@ class PlaybackViewModel @Inject constructor(
                 if (result.isFailure) {
                     _events.tryEmit(
                         PlaybackUiEvent.Error(
-                            result.exceptionOrNull()?.message ?: "Failed to set shuffle mode"
+                            result.exceptionOrNull()?.message
+                                ?: context.getString(R.string.playback_error_shuffle_mode)
                         )
                     )
                     return@launch
@@ -923,13 +961,19 @@ class PlaybackViewModel @Inject constructor(
     fun setVolume(volume: Float) {
         val controller = playbackServiceConnection.mediaController.value
         if (controller == null) {
-            _events.tryEmit(PlaybackUiEvent.Error("Playback not ready"))
+            _events.tryEmit(
+                PlaybackUiEvent.Error(context.getString(R.string.playback_error_not_ready))
+            )
             return
         }
         runCatching {
             controller.volume = volume.coerceIn(0f, 1f)
         }.onFailure {
-            _events.tryEmit(PlaybackUiEvent.Error(it.message ?: "Failed to set volume"))
+            _events.tryEmit(
+                PlaybackUiEvent.Error(
+                    it.message ?: context.getString(R.string.playback_error_set_volume)
+                )
+            )
         }
     }
 
@@ -953,14 +997,23 @@ class PlaybackViewModel @Inject constructor(
         viewModelScope.launch {
             setPlayerVolumeUseCase(player.playerId, safeVolume)
                 .onFailure {
-                    _events.tryEmit(PlaybackUiEvent.Error(it.message ?: "Failed to set volume"))
+                    _events.tryEmit(
+                        PlaybackUiEvent.Error(
+                            it.message ?: context.getString(R.string.playback_error_set_volume)
+                        )
+                    )
                 }
         }
         if (shouldUnmute) {
             viewModelScope.launch {
                 setPlayerMuteUseCase(player.playerId, false)
                     .onFailure {
-                        _events.tryEmit(PlaybackUiEvent.Error(it.message ?: "Failed to unmute player"))
+                        _events.tryEmit(
+                            PlaybackUiEvent.Error(
+                                it.message
+                                    ?: context.getString(R.string.playback_error_unmute_player)
+                            )
+                        )
                     }
             }
         }
@@ -981,7 +1034,11 @@ class PlaybackViewModel @Inject constructor(
         viewModelScope.launch {
             setPlayerMuteUseCase(player.playerId, muted)
                 .onFailure {
-                    _events.tryEmit(PlaybackUiEvent.Error(it.message ?: "Failed to update mute"))
+                    _events.tryEmit(
+                        PlaybackUiEvent.Error(
+                            it.message ?: context.getString(R.string.playback_error_update_mute)
+                        )
+                    )
                 }
         }
     }
