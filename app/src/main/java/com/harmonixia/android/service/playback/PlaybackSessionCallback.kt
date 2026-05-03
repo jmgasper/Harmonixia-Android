@@ -5,6 +5,7 @@ import android.graphics.Bitmap
 import android.net.Uri
 import android.os.Parcel
 import android.util.LruCache
+import androidx.core.graphics.scale
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
@@ -34,6 +35,7 @@ import com.harmonixia.android.util.EXTRA_PARENT_MEDIA_ID
 import com.harmonixia.android.util.EXTRA_STREAM_URI
 import com.harmonixia.android.util.Logger
 import com.harmonixia.android.util.PerformanceMonitor
+import com.harmonixia.android.util.resolvePlaybackStreamUri
 import java.io.ByteArrayOutputStream
 import java.util.concurrent.atomic.AtomicInteger
 import kotlinx.coroutines.CoroutineScope
@@ -395,12 +397,10 @@ class PlaybackSessionCallback(
     }
 
     private fun MediaItem.streamUri(): String? {
-        val streamingUri = mediaMetadata.extras?.getString(EXTRA_STREAM_URI)
-        return if (!streamingUri.isNullOrBlank()) {
-            streamingUri
-        } else {
-            localConfiguration?.uri?.toString()
-        }
+        return resolvePlaybackStreamUri(
+            extrasStreamUri = mediaMetadata.extras?.getString(EXTRA_STREAM_URI),
+            localConfigurationUri = localConfiguration?.uri?.toString()
+        )
     }
 
     private suspend fun resolveRemainingQueue(
@@ -679,9 +679,8 @@ class PlaybackSessionCallback(
         val scale = maxSize / maxDim.toFloat()
         val width = (bitmap.width * scale).toInt().coerceAtLeast(1)
         val height = (bitmap.height * scale).toInt().coerceAtLeast(1)
-        return Bitmap.createScaledBitmap(bitmap, width, height, true)
+        return bitmap.scale(width, height, filter = true)
     }
-
 
     @Suppress("DEPRECATION")
     private fun toBundleForParcelMeasurement(item: MediaItem): android.os.Bundle {

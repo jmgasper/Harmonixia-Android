@@ -48,6 +48,16 @@ class PlaybackUriNormalizerTest {
     }
 
     @Test
+    fun resolvePlaybackStreamUri_blankValues_returnNull() {
+        val resolved = resolvePlaybackStreamUri(
+            extrasStreamUri = "   ",
+            localConfigurationUri = "   "
+        )
+
+        assertNull(resolved)
+    }
+
+    @Test
     fun isSchemeLessPlaybackUri_localUnixPath_returnsTrue() {
         val localPath = isSchemeLessPlaybackUri(" /tmp/music/song.flac ")
 
