@@ -2,7 +2,7 @@ package com.harmonixia.android.di
 
 import android.content.Context
 import android.graphics.Bitmap
-import android.graphics.drawable.ColorDrawable
+import androidx.core.graphics.drawable.toDrawable
 import coil3.ImageLoader
 import coil3.Uri
 import coil3.annotation.ExperimentalCoilApi
@@ -112,8 +112,8 @@ object ImageModule {
             .allowHardware(true)
             .allowRgb565(bitmapConfig == Bitmap.Config.RGB_565)
             .bitmapConfig(bitmapConfig)
-            .placeholder { ColorDrawable(PLACEHOLDER_COLOR).asImage() }
-            .error { ColorDrawable(ERROR_COLOR).asImage() }
+            .placeholder { PLACEHOLDER_COLOR.toDrawable().asImage() }
+            .error { ERROR_COLOR.toDrawable().asImage() }
             .crossfade(150)
             .build()
     }
