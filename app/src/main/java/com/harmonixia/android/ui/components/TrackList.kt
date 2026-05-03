@@ -457,7 +457,7 @@ private fun TrackListItem(
                     if (track.isLocal) {
                         Icon(
                             imageVector = Icons.Filled.Storage,
-                            contentDescription = "Local file",
+                            contentDescription = stringResource(R.string.content_desc_local_file),
                             tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(16.dp)
                         )
