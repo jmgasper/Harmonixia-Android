@@ -1,5 +1,7 @@
 package com.harmonixia.android.data.repository
 
+import android.content.Context
+import com.harmonixia.android.R
 import com.harmonixia.android.data.local.EqDataStore
 import com.harmonixia.android.data.local.EqPresetCache
 import com.harmonixia.android.data.local.EqPresetParser
@@ -7,6 +9,7 @@ import com.harmonixia.android.domain.model.EqPreset
 import com.harmonixia.android.domain.model.EqPresetDetails
 import com.harmonixia.android.domain.repository.EqPresetRepository
 import com.harmonixia.android.util.Logger
+import dagger.hilt.android.qualifiers.ApplicationContext
 import java.util.Locale
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -19,6 +22,7 @@ import kotlinx.coroutines.withContext
 
 @Singleton
 class EqPresetRepositoryImpl @Inject constructor(
+    @param:ApplicationContext private val context: Context,
     private val eqPresetCache: EqPresetCache,
     private val eqPresetParser: EqPresetParser,
     private val eqDataStore: EqDataStore
@@ -53,16 +57,22 @@ class EqPresetRepositoryImpl @Inject constructor(
                 }
 
                 if (!databaseFile.exists()) {
-                    throw IllegalStateException("OPRA cache missing")
+                    throw IllegalStateException(
+                        context.getString(R.string.eq_validation_opra_cache_missing)
+                    )
                 }
 
                 val parsed = eqPresetCache.parseJsonl(databaseFile)
                 if (parsed.eqEntries.isEmpty()) {
-                    throw IllegalStateException("OPRA cache is empty")
+                    throw IllegalStateException(
+                        context.getString(R.string.eq_validation_opra_cache_empty)
+                    )
                 }
                 val presets = eqPresetParser.normalizeOpraDatabase(parsed)
                 if (presets.isEmpty()) {
-                    throw IllegalStateException("OPRA presets are empty")
+                    throw IllegalStateException(
+                        context.getString(R.string.eq_validation_opra_presets_empty)
+                    )
                 }
                 presetsCache = presets
                 ensureSelectedPresetValid(presets)
@@ -103,7 +113,8 @@ class EqPresetRepositoryImpl @Inject constructor(
     }
 
     override fun getPresetDetails(id: String): EqPresetDetails {
-        val preset = getPresetById(id) ?: throw IllegalArgumentException("Preset not found")
+        val preset = getPresetById(id)
+            ?: throw IllegalArgumentException(context.getString(R.string.eq_validation_preset_not_found))
         return eqPresetParser.buildPresetDetails(preset)
     }
 

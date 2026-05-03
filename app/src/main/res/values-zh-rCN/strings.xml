@@ -319,4 +319,9 @@
     <string name="playback_error_no_tracks_to_play">No tracks to play</string>
     <string name="search_validation_query_required">Search query is required</string>
     <string name="eq_validation_preset_not_found">Preset not found</string>
+    <string name="eq_validation_opra_cache_missing">OPRA cache missing</string>
+    <string name="eq_validation_opra_cache_empty">OPRA cache is empty</string>
+    <string name="eq_validation_opra_presets_empty">OPRA presets are empty</string>
+    <string name="eq_validation_opra_download_failed_http">OPRA download failed (HTTP %1$d)</string>
+    <string name="eq_validation_opra_response_body_empty">OPRA response body is empty</string>
 </resources>

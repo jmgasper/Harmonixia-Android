@@ -1,5 +1,6 @@
 package com.harmonixia.android.data.repository
 
+import android.content.Context
 import com.harmonixia.android.data.local.EqDataStore
 import com.harmonixia.android.data.local.EqPresetCache
 import com.harmonixia.android.data.local.EqPresetParser
@@ -29,6 +30,7 @@ class EqPresetRepositoryTest {
         val cache = mockk<EqPresetCache>()
         val parser = mockk<EqPresetParser>()
         val dataStore = mockk<EqDataStore>()
+        val context = mockk<Context>(relaxed = true)
         val preset = EqPreset(
             id = "preset-1",
             name = "Studio",
@@ -49,7 +51,7 @@ class EqPresetRepositoryTest {
         coEvery { dataStore.getEqSettings() } returns flowOf(EqSettings())
         coEvery { dataStore.saveEqSettings(any()) } just runs
 
-        val repository = EqPresetRepositoryImpl(cache, parser, dataStore)
+        val repository = EqPresetRepositoryImpl(context, cache, parser, dataStore)
 
         val result = repository.loadPresets(forceRefresh = false)
 
@@ -64,6 +66,7 @@ class EqPresetRepositoryTest {
         val cache = mockk<EqPresetCache>()
         val parser = mockk<EqPresetParser>()
         val dataStore = mockk<EqDataStore>()
+        val context = mockk<Context>(relaxed = true)
         val preset = EqPreset(
             id = "preset-2",
             name = "Reference",
@@ -82,7 +85,7 @@ class EqPresetRepositoryTest {
         coEvery { dataStore.getEqSettings() } returns flowOf(EqSettings())
         coEvery { dataStore.saveEqSettings(any()) } just runs
 
-        val repository = EqPresetRepositoryImpl(cache, parser, dataStore)
+        val repository = EqPresetRepositoryImpl(context, cache, parser, dataStore)
 
         val result = repository.loadPresets(forceRefresh = false)
 
@@ -96,6 +99,7 @@ class EqPresetRepositoryTest {
         val cache = mockk<EqPresetCache>()
         val parser = mockk<EqPresetParser>()
         val dataStore = mockk<EqDataStore>()
+        val context = mockk<Context>(relaxed = true)
         val preset = EqPreset(
             id = "preset-3",
             name = "Reference",
@@ -115,7 +119,7 @@ class EqPresetRepositoryTest {
         coEvery { dataStore.getEqSettings() } returns flowOf(EqSettings())
         coEvery { dataStore.saveEqSettings(any()) } just runs
 
-        val repository = EqPresetRepositoryImpl(cache, parser, dataStore)
+        val repository = EqPresetRepositoryImpl(context, cache, parser, dataStore)
         repository.loadPresets(forceRefresh = false)
 
         val results = repository.searchPresets("brand z")
@@ -130,6 +134,7 @@ class EqPresetRepositoryTest {
         val cache = mockk<EqPresetCache>()
         val parser = mockk<EqPresetParser>()
         val dataStore = mockk<EqDataStore>()
+        val context = mockk<Context>(relaxed = true)
         val preset = EqPreset(
             id = "preset-4",
             name = "Fallback",
@@ -154,7 +159,7 @@ class EqPresetRepositoryTest {
         coEvery { dataStore.getEqSettings() } returns flowOf(EqSettings())
         coEvery { dataStore.saveEqSettings(any()) } just runs
 
-        val repository = EqPresetRepositoryImpl(cache, parser, dataStore)
+        val repository = EqPresetRepositoryImpl(context, cache, parser, dataStore)
 
         val initial = repository.loadPresets(forceRefresh = false)
         assertTrue(initial.isSuccess)
@@ -175,6 +180,7 @@ class EqPresetRepositoryTest {
         val cache = mockk<EqPresetCache>()
         val parser = mockk<EqPresetParser>()
         val dataStore = mockk<EqDataStore>()
+        val context = mockk<Context>(relaxed = true)
         val preset = EqPreset(
             id = "preset-5",
             name = "Previous",
@@ -195,7 +201,7 @@ class EqPresetRepositoryTest {
         coEvery { dataStore.getEqSettings() } returns flowOf(EqSettings())
         coEvery { dataStore.saveEqSettings(any()) } just runs
 
-        val repository = EqPresetRepositoryImpl(cache, parser, dataStore)
+        val repository = EqPresetRepositoryImpl(context, cache, parser, dataStore)
 
         val initial = repository.loadPresets(forceRefresh = false)
         assertTrue(initial.isSuccess)

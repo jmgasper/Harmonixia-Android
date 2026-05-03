@@ -1,6 +1,7 @@
 package com.harmonixia.android.data.local
 
 import android.content.Context
+import com.harmonixia.android.R
 import io.mockk.every
 import io.mockk.mockk
 import kotlin.io.path.createTempDirectory
@@ -28,7 +29,7 @@ class EqPresetCacheIntegrationTest {
             server.start()
 
             val cacheDir = createTempDirectory(prefix = "eqpreset-cache-test-").toFile()
-            val context = mockk<Context>()
+            val context = mockk<Context>(relaxed = true)
             every { context.cacheDir } returns cacheDir
 
             val cache = EqPresetCache(
@@ -60,8 +61,13 @@ class EqPresetCacheIntegrationTest {
             server.start()
 
             val cacheDir = createTempDirectory(prefix = "eqpreset-cache-empty-test-").toFile()
-            val context = mockk<Context>()
+            val context = mockk<Context>(relaxed = true)
             every { context.cacheDir } returns cacheDir
+            every { context.getString(R.string.eq_validation_opra_response_body_empty) } returns
+                "OPRA response body is empty"
+            every { context.getString(R.string.eq_validation_opra_download_failed_http, any()) } answers {
+                "OPRA download failed (HTTP ${secondArg<Int>()})"
+            }
 
             val cache = EqPresetCache(
                 context = context,

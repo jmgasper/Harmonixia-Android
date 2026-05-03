@@ -1,6 +1,7 @@
 package com.harmonixia.android.data.local
 
 import android.content.Context
+import com.harmonixia.android.R
 import com.harmonixia.android.util.Logger
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.io.File
@@ -35,7 +36,12 @@ class EqPresetCache @Inject constructor(
                 val tempFile = File(cacheFile.parentFile, "${cacheFile.name}.tmp")
                 okHttpClient.newCall(request).execute().use { response ->
                     if (!response.isSuccessful) {
-                        throw IllegalStateException("OPRA download failed: ${response.code}")
+                        throw IllegalStateException(
+                            context.getString(
+                                R.string.eq_validation_opra_download_failed_http,
+                                response.code
+                            )
+                        )
                     }
                     val body = response.body
                     val copiedBytes = body.byteStream().use { input ->
@@ -45,7 +51,9 @@ class EqPresetCache @Inject constructor(
                     }
                     if (copiedBytes <= 0L) {
                         tempFile.delete()
-                        throw IllegalStateException("OPRA response body is empty")
+                        throw IllegalStateException(
+                            context.getString(R.string.eq_validation_opra_response_body_empty)
+                        )
                     }
                 }
                 if (!tempFile.renameTo(cacheFile)) {
