@@ -6,6 +6,7 @@ import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.Rect
+import androidx.core.graphics.createBitmap
 import coil3.BitmapImage
 import coil3.ImageLoader
 import coil3.disk.DiskCache
@@ -46,7 +47,7 @@ class PlaylistCoverGenerator(
         }
         if (bitmaps.isEmpty()) return@withContext null
 
-        val composed = Bitmap.createBitmap(sizePx, sizePx, Bitmap.Config.ARGB_8888)
+        val composed = createBitmap(sizePx, sizePx, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(composed)
         canvas.drawColor(Color.DKGRAY)
         val paint = Paint(Paint.ANTI_ALIAS_FLAG)
@@ -77,7 +78,7 @@ class PlaylistCoverGenerator(
         return if (image is BitmapImage) {
             image.bitmap
         } else {
-            val bitmap = Bitmap.createBitmap(
+            val bitmap = createBitmap(
                 image.width.coerceAtLeast(1),
                 image.height.coerceAtLeast(1),
                 Bitmap.Config.ARGB_8888
