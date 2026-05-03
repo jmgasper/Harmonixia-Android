@@ -9,6 +9,7 @@ import androidx.media3.common.util.UnstableApi
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
 import com.google.common.util.concurrent.ListenableFuture
+import com.harmonixia.android.R
 import com.harmonixia.android.domain.model.PlaybackState
 import com.harmonixia.android.domain.model.RepeatMode
 import com.harmonixia.android.domain.repository.MusicAssistantRepository
@@ -138,33 +139,33 @@ class PlaybackServiceConnection(
     }
 
     fun play(): Result<Unit> {
-        val controller = controllerState.value ?: return Result.failure(IllegalStateException("Not connected"))
+        val controller = controllerState.value ?: return notConnectedFailure()
         setPendingPlaybackState(PlaybackState.PLAYING)
         controller.play()
         return Result.success(Unit)
     }
 
     fun pause(): Result<Unit> {
-        val controller = controllerState.value ?: return Result.failure(IllegalStateException("Not connected"))
+        val controller = controllerState.value ?: return notConnectedFailure()
         setPendingPlaybackState(PlaybackState.PAUSED)
         controller.pause()
         return Result.success(Unit)
     }
 
     fun next(): Result<Unit> {
-        val controller = controllerState.value ?: return Result.failure(IllegalStateException("Not connected"))
+        val controller = controllerState.value ?: return notConnectedFailure()
         controller.seekToNext()
         return Result.success(Unit)
     }
 
     fun previous(): Result<Unit> {
-        val controller = controllerState.value ?: return Result.failure(IllegalStateException("Not connected"))
+        val controller = controllerState.value ?: return notConnectedFailure()
         controller.seekToPrevious()
         return Result.success(Unit)
     }
 
     fun seek(positionMs: Long): Result<Unit> {
-        val controller = controllerState.value ?: return Result.failure(IllegalStateException("Not connected"))
+        val controller = controllerState.value ?: return notConnectedFailure()
         val queueId = playbackStateManager.currentQueueId
         if (queueId != null) {
             playbackStateManager.suppressNextRemoteSeek()
@@ -180,7 +181,7 @@ class PlaybackServiceConnection(
 
     suspend fun setRepeatMode(repeatMode: RepeatMode): Result<Unit> {
         val queueId = playbackStateManager.currentQueueId
-            ?: return Result.failure(IllegalStateException("Queue ID unavailable"))
+            ?: return queueIdUnavailableFailure()
         return withContext(Dispatchers.IO) {
             repository.setRepeatMode(queueId, repeatMode)
         }
@@ -188,7 +189,7 @@ class PlaybackServiceConnection(
 
     suspend fun setShuffleMode(shuffle: Boolean): Result<Unit> {
         val queueId = playbackStateManager.currentQueueId
-            ?: return Result.failure(IllegalStateException("Queue ID unavailable"))
+            ?: return queueIdUnavailableFailure()
         return withContext(Dispatchers.IO) {
             repository.setShuffleMode(queueId, shuffle)
         }
@@ -245,6 +246,12 @@ class PlaybackServiceConnection(
             else -> RepeatMode.OFF
         }
     }
+
+    private fun notConnectedFailure(): Result<Unit> =
+        Result.failure(IllegalStateException(context.getString(R.string.playback_error_not_connected)))
+
+    private fun queueIdUnavailableFailure(): Result<Unit> =
+        Result.failure(IllegalStateException(context.getString(R.string.playback_error_queue_id_unavailable)))
 
     private fun stopPositionUpdates() {
         positionJob?.cancel()
