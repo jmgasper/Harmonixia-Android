@@ -20,7 +20,7 @@ private val productTypes = setOf("product", "device")
 private val eqTypes = setOf("eq", "preset", "equalizer", "filterset")
 
 class EqPresetCache @Inject constructor(
-    @ApplicationContext private val context: Context,
+    @param:ApplicationContext private val context: Context,
     private val okHttpClient: OkHttpClient,
     private val json: Json,
     private val databaseUrl: String = OPRA_DATABASE_URL
@@ -37,7 +37,7 @@ class EqPresetCache @Inject constructor(
                     if (!response.isSuccessful) {
                         throw IllegalStateException("OPRA download failed: ${response.code}")
                     }
-                    val body = response.body ?: throw IllegalStateException("OPRA response body is empty")
+                    val body = response.body
                     body.byteStream().use { input ->
                         tempFile.outputStream().use { output ->
                             input.copyTo(output)

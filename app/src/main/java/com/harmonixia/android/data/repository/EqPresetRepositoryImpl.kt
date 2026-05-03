@@ -33,12 +33,12 @@ class EqPresetRepositoryImpl @Inject constructor(
     }
 
     override suspend fun loadPresets(forceRefresh: Boolean): Result<List<EqPreset>> {
-        val cached = presetsCache
-        if (cached != null && !forceRefresh) {
-            return Result.success(cached)
+        val inMemoryPresets = presetsCache
+        if (inMemoryPresets != null && !forceRefresh) {
+            return Result.success(inMemoryPresets)
         }
 
-        return withContext(Dispatchers.IO) {
+        val loadResult = withContext(Dispatchers.IO) {
             runCatching {
                 val cacheFile = eqPresetCache.getCacheFile()
                 val shouldDownload = forceRefresh || !eqPresetCache.isCacheValid(cacheFile)
@@ -57,15 +57,29 @@ class EqPresetRepositoryImpl @Inject constructor(
                 }
 
                 val parsed = eqPresetCache.parseJsonl(databaseFile)
-                if (!shouldDownload && parsed.eqEntries.isEmpty()) {
+                if (parsed.eqEntries.isEmpty()) {
                     throw IllegalStateException("OPRA cache is empty")
                 }
                 val presets = eqPresetParser.normalizeOpraDatabase(parsed)
+                if (presets.isEmpty()) {
+                    throw IllegalStateException("OPRA presets are empty")
+                }
                 presetsCache = presets
                 ensureSelectedPresetValid(presets)
                 presets
             }
         }
+
+        val loadFailure = loadResult.exceptionOrNull()
+        if (loadFailure != null) {
+            val fallback = inMemoryPresets?.takeIf { it.isNotEmpty() }
+            if (fallback != null) {
+                Logger.w(TAG, "Failed to load OPRA presets; using in-memory cache", loadFailure)
+                return Result.success(fallback)
+            }
+        }
+
+        return loadResult
     }
 
     override fun searchPresets(query: String): List<EqPreset> {
