@@ -42,27 +42,36 @@ fun PresetDetailsCard(
             Spacer(modifier = Modifier.height(8.dp))
 
             preset.manufacturer?.takeIf { it.isNotBlank() }?.let {
-                DetailLine(label = "Manufacturer", value = it)
+                DetailLine(label = stringResource(R.string.eq_detail_manufacturer), value = it)
             }
             preset.model?.takeIf { it.isNotBlank() }?.let {
-                DetailLine(label = "Model", value = it)
+                DetailLine(label = stringResource(R.string.eq_detail_model), value = it)
             }
             preset.creator?.takeIf { it.isNotBlank() }?.let {
-                DetailLine(label = "Creator", value = it)
+                DetailLine(label = stringResource(R.string.eq_detail_creator), value = it)
             }
             preset.description?.takeIf { it.isNotBlank() }?.let {
-                DetailLine(label = "Description", value = it)
+                DetailLine(label = stringResource(R.string.eq_detail_description), value = it)
             }
 
             details?.let {
                 Spacer(modifier = Modifier.height(12.dp))
-                DetailLine(label = "Band count", value = it.filterCount.toString())
-                DetailLine(label = "Supported bands", value = it.supportedBands.toString())
-                DetailLine(label = "Dropped filters", value = it.droppedFilters.toString())
+                DetailLine(
+                    label = stringResource(R.string.eq_detail_band_count),
+                    value = it.filterCount.toString()
+                )
+                DetailLine(
+                    label = stringResource(R.string.eq_detail_supported_bands),
+                    value = it.supportedBands.toString()
+                )
+                DetailLine(
+                    label = stringResource(R.string.eq_detail_dropped_filters),
+                    value = it.droppedFilters.toString()
+                )
                 if (it.droppedFilters > 0) {
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = "Some filters were dropped to fit the device EQ.",
+                        text = stringResource(R.string.eq_detail_dropped_filters_warning),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.error
                     )
@@ -72,13 +81,18 @@ fun PresetDetailsCard(
             if (preset.filters.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(12.dp))
                 Text(
-                    text = "Filters",
+                    text = stringResource(R.string.eq_detail_filters_title),
                     style = MaterialTheme.typography.titleSmall
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 preset.filters.forEach { filter ->
                     Text(
-                        text = "${formatFrequency(filter.frequency)} | ${formatGain(filter.gain)} | Q ${formatQ(filter.q)}",
+                        text = stringResource(
+                            R.string.eq_detail_filter_line,
+                            formatFrequency(filter.frequency),
+                            formatGain(filter.gain),
+                            formatQ(filter.q)
+                        ),
                         style = MaterialTheme.typography.bodySmall
                     )
                 }
@@ -90,7 +104,7 @@ fun PresetDetailsCard(
 @Composable
 private fun DetailLine(label: String, value: String) {
     Text(
-        text = "$label: $value",
+        text = stringResource(R.string.eq_detail_line_format, label, value),
         style = MaterialTheme.typography.bodyMedium
     )
 }

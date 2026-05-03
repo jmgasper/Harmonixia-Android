@@ -26,6 +26,17 @@
     <string name="eq_attribution_title">Kreditering</string>
     <string name="eq_error_load_failed">Kunne ikke laste EQ-forhåndsinnstillinger</string>
     <string name="eq_error_apply_failed">Kunne ikke bruke EQ-forhåndsinnstilling</string>
+    <string name="eq_detail_manufacturer">Manufacturer</string>
+    <string name="eq_detail_model">Model</string>
+    <string name="eq_detail_creator">Creator</string>
+    <string name="eq_detail_description">Description</string>
+    <string name="eq_detail_band_count">Band count</string>
+    <string name="eq_detail_supported_bands">Supported bands</string>
+    <string name="eq_detail_dropped_filters">Dropped filters</string>
+    <string name="eq_detail_dropped_filters_warning">Some filters were dropped to fit the device EQ.</string>
+    <string name="eq_detail_filters_title">Filters</string>
+    <string name="eq_detail_line_format">%1$s: %2$s</string>
+    <string name="eq_detail_filter_line">%1$s | %2$s | Q %3$s</string>
     <string name="section_local_media">Lokale medier</string>
     <string name="local_media_folder_label">Musikkmappe</string>
     <string name="local_media_no_folder_selected">Ingen mappe valgt</string>
