@@ -174,6 +174,7 @@ assert_not_contains "$dry_run_default_output" "Running validate-local option reg
 assert_not_contains "$dry_run_default_output" "Running smoke-debug-emulator option regressions..."
 assert_not_contains "$dry_run_default_output" "Running hardcoded format-template scanner regression..."
 assert_not_contains "$dry_run_default_output" "Running hardcoded UI text-literal scanner regression..."
+assert_not_contains "$dry_run_default_output" "Running hardcoded UI text-literal scanner self-test..."
 
 dry_run_duplicate_flag_output="$(run_expect_exit 0 --dry-run --dry-run)"
 assert_contains "$dry_run_duplicate_flag_output" "Dry run mode enabled."
@@ -252,6 +253,7 @@ assert_not_contains "$runtime_syntax_only_output" "Running validate-local AGP ga
 assert_not_contains "$runtime_syntax_only_output" "Running smoke-debug-emulator option regressions..."
 assert_not_contains "$runtime_syntax_only_output" "Running hardcoded format-template scanner regression..."
 assert_not_contains "$runtime_syntax_only_output" "Running hardcoded UI text-literal scanner regression..."
+assert_not_contains "$runtime_syntax_only_output" "Running hardcoded UI text-literal scanner self-test..."
 assert_not_contains "$runtime_syntax_only_output" "Dry run mode enabled."
 assert_not_contains "$runtime_syntax_only_output" "Dry run summary:"
 
@@ -261,6 +263,7 @@ assert_contains "$runtime_syntax_only_duplicate_flag_output" "Local validation s
 assert_not_contains "$runtime_syntax_only_duplicate_flag_output" "Running validate-local option regressions..."
 assert_not_contains "$runtime_syntax_only_duplicate_flag_output" "Running validate-local AGP gate simulator regressions..."
 assert_not_contains "$runtime_syntax_only_duplicate_flag_output" "Running smoke-debug-emulator option regressions..."
+assert_not_contains "$runtime_syntax_only_duplicate_flag_output" "Running hardcoded UI text-literal scanner self-test..."
 assert_not_contains "$runtime_syntax_only_duplicate_flag_output" "Dry run mode enabled."
 assert_not_contains "$runtime_syntax_only_duplicate_flag_output" "Dry run summary:"
 
@@ -271,6 +274,7 @@ assert_contains "$runtime_behavior_only_output" "Running validate-local AGP gate
 assert_contains "$runtime_behavior_only_output" "Running smoke-debug-emulator option regressions..."
 assert_contains "$runtime_behavior_only_output" "Running hardcoded format-template scanner regression..."
 assert_contains "$runtime_behavior_only_output" "Running hardcoded UI text-literal scanner regression..."
+assert_contains "$runtime_behavior_only_output" "Running hardcoded UI text-literal scanner self-test..."
 assert_contains "$runtime_behavior_only_output" "Local validation behavioral regressions passed."
 assert_not_contains "$runtime_behavior_only_output" "Running shell syntax checks..."
 assert_not_contains "$runtime_behavior_only_output" "Dry run mode enabled."
@@ -283,6 +287,7 @@ assert_contains "$runtime_behavior_only_duplicate_flag_output" "Running validate
 assert_contains "$runtime_behavior_only_duplicate_flag_output" "Running smoke-debug-emulator option regressions..."
 assert_contains "$runtime_behavior_only_duplicate_flag_output" "Running hardcoded format-template scanner regression..."
 assert_contains "$runtime_behavior_only_duplicate_flag_output" "Running hardcoded UI text-literal scanner regression..."
+assert_contains "$runtime_behavior_only_duplicate_flag_output" "Running hardcoded UI text-literal scanner self-test..."
 assert_contains "$runtime_behavior_only_duplicate_flag_output" "Local validation behavioral regressions passed."
 assert_not_contains "$runtime_behavior_only_duplicate_flag_output" "Running shell syntax checks..."
 assert_not_contains "$runtime_behavior_only_duplicate_flag_output" "Dry run mode enabled."
@@ -296,6 +301,7 @@ assert_contains "$runtime_default_output" "Running validate-local AGP gate simul
 assert_contains "$runtime_default_output" "Running smoke-debug-emulator option regressions..."
 assert_contains "$runtime_default_output" "Running hardcoded format-template scanner regression..."
 assert_contains "$runtime_default_output" "Running hardcoded UI text-literal scanner regression..."
+assert_contains "$runtime_default_output" "Running hardcoded UI text-literal scanner self-test..."
 assert_contains "$runtime_default_output" "All local validation option regressions passed."
 assert_not_contains "$runtime_default_output" "Dry run mode enabled."
 assert_not_contains "$runtime_default_output" "Dry run summary:"
