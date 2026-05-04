@@ -343,4 +343,11 @@
     <string name="playlist_validation_not_found">Playlist not found</string>
     <string name="data_validation_authentication_failed_update_token">Authentication failed. Please update your token.</string>
     <string name="data_validation_unable_to_connect_to_server">Unable to connect to server.</string>
+    <string name="connection_validation_server_error_with_code">Server error (%1$d)</string>
+    <string name="recommendation_section_default_title">Recommendations</string>
+    <string name="recommendation_fallback_title">Recommendation</string>
+    <string name="recommendation_fallback_unknown_album_title">Unknown Album</string>
+    <string name="recommendation_fallback_untitled_playlist_title">Untitled Playlist</string>
+    <string name="recommendation_fallback_unknown_artist_title">Unknown Artist</string>
+    <string name="recommendation_fallback_unknown_track_title">Unknown Track</string>
 </resources>

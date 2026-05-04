@@ -405,7 +405,8 @@ open class MusicAssistantWebSocketClient(
     private fun extractErrorMessage(payload: JsonObject): String? {
         val errorCode = payload["error_code"]?.jsonPrimitive?.intOrNull
         if (errorCode != null) {
-            return payload["details"]?.jsonPrimitive?.contentOrNull ?: "Server error ($errorCode)"
+            return payload["details"]?.jsonPrimitive?.contentOrNull
+                ?: context.getString(R.string.connection_validation_server_error_with_code, errorCode)
         }
         val error = payload["error"]
         if (error != null && error !is JsonNull) {

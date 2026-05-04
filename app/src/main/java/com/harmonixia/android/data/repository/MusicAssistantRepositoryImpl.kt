@@ -104,6 +104,24 @@ class MusicAssistantRepositoryImpl @Inject constructor(
     private var providerManifestsCache: Map<String, ProviderManifest>? = null
     private var providerInstancesCache: Map<String, ProviderInstance>? = null
     private val cacheScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val defaultRecommendationSectionTitle: String by lazy(LazyThreadSafetyMode.NONE) {
+        context.getString(R.string.recommendation_section_default_title)
+    }
+    private val fallbackRecommendationTitle: String by lazy(LazyThreadSafetyMode.NONE) {
+        context.getString(R.string.recommendation_fallback_title)
+    }
+    private val fallbackUnknownAlbumTitle: String by lazy(LazyThreadSafetyMode.NONE) {
+        context.getString(R.string.recommendation_fallback_unknown_album_title)
+    }
+    private val fallbackUntitledPlaylistTitle: String by lazy(LazyThreadSafetyMode.NONE) {
+        context.getString(R.string.recommendation_fallback_untitled_playlist_title)
+    }
+    private val fallbackUnknownArtistTitle: String by lazy(LazyThreadSafetyMode.NONE) {
+        context.getString(R.string.recommendation_fallback_unknown_artist_title)
+    }
+    private val fallbackUnknownTrackTitle: String by lazy(LazyThreadSafetyMode.NONE) {
+        context.getString(R.string.recommendation_fallback_unknown_track_title)
+    }
 
     init {
         cacheScope.launch {
@@ -1140,7 +1158,7 @@ class MusicAssistantRepositoryImpl @Inject constructor(
         return folders.mapNotNull { folder ->
             val title = folder.stringOrNull("name", "title").orEmpty().trim()
             val resolvedTitle = if (title.isBlank()) {
-                DEFAULT_RECOMMENDATION_SECTION_TITLE
+                defaultRecommendationSectionTitle
             } else {
                 title
             }
@@ -1160,7 +1178,7 @@ class MusicAssistantRepositoryImpl @Inject constructor(
         return when (rawMediaType) {
             MEDIA_TYPE_ALBUM -> {
                 val album = parseAlbum(item)
-                val title = album.name.ifBlank { fallbackTitle.ifBlank { UNKNOWN_ALBUM_TITLE } }
+                val title = album.name.ifBlank { fallbackTitle.ifBlank { fallbackUnknownAlbumTitle } }
                 val subtitle = album.artists.joinToString(", ")
                 RecommendationItem(
                     mediaType = RecommendationMediaType.ALBUM,
@@ -1173,7 +1191,7 @@ class MusicAssistantRepositoryImpl @Inject constructor(
             MEDIA_TYPE_PLAYLIST -> {
                 val playlist = parsePlaylist(item)
                 val title = playlist.name.ifBlank {
-                    fallbackTitle.ifBlank { UNKNOWN_PLAYLIST_TITLE }
+                    fallbackTitle.ifBlank { fallbackUntitledPlaylistTitle }
                 }
                 val resolvedImageUrl = playlist.imageUrl ?: fallbackImageUrl
                 val resolvedPlaylist = playlist.copy(
@@ -1191,7 +1209,7 @@ class MusicAssistantRepositoryImpl @Inject constructor(
             }
             MEDIA_TYPE_ARTIST -> {
                 val artist = parseArtist(item)
-                val title = artist.name.ifBlank { fallbackTitle.ifBlank { UNKNOWN_ARTIST_TITLE } }
+                val title = artist.name.ifBlank { fallbackTitle.ifBlank { fallbackUnknownArtistTitle } }
                 RecommendationItem(
                     mediaType = RecommendationMediaType.ARTIST,
                     title = title,
@@ -1202,7 +1220,7 @@ class MusicAssistantRepositoryImpl @Inject constructor(
             }
             MEDIA_TYPE_TRACK -> {
                 val track = parseTrack(item)
-                val title = track.title.ifBlank { fallbackTitle.ifBlank { UNKNOWN_TRACK_TITLE } }
+                val title = track.title.ifBlank { fallbackTitle.ifBlank { fallbackUnknownTrackTitle } }
                 RecommendationItem(
                     mediaType = RecommendationMediaType.TRACK,
                     title = title,
@@ -1212,7 +1230,7 @@ class MusicAssistantRepositoryImpl @Inject constructor(
                 )
             }
             else -> {
-                val title = fallbackTitle.ifBlank { UNKNOWN_RECOMMENDATION_TITLE }
+                val title = fallbackTitle.ifBlank { fallbackRecommendationTitle }
                 val subtitle = formatMediaTypeLabel(rawMediaType)
                 RecommendationItem(
                     mediaType = RecommendationMediaType.OTHER,
@@ -1853,11 +1871,5 @@ class MusicAssistantRepositoryImpl @Inject constructor(
         private const val MEDIA_TYPE_ARTIST = "artist"
         private const val MEDIA_TYPE_TRACK = "track"
         private const val MEDIA_TYPE_FOLDER = "folder"
-        private const val DEFAULT_RECOMMENDATION_SECTION_TITLE = "Recommendations"
-        private const val UNKNOWN_RECOMMENDATION_TITLE = "Recommendation"
-        private const val UNKNOWN_ALBUM_TITLE = "Unknown Album"
-        private const val UNKNOWN_PLAYLIST_TITLE = "Untitled Playlist"
-        private const val UNKNOWN_ARTIST_TITLE = "Unknown Artist"
-        private const val UNKNOWN_TRACK_TITLE = "Unknown Track"
     }
 }
