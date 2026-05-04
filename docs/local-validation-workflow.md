@@ -17,7 +17,7 @@ This project includes two local helper scripts:
 
 - Run all option-parsing regression checks:
   - `scripts/test-local-validation-option-regressions.sh`
-  - Includes `bash -n` syntax checks, both option regression suites, and the hardcoded format-template scanner regression.
+  - Includes `bash -n` syntax checks, both option regression suites, the hardcoded format-template scanner regression, and the hardcoded UI text-literal scanner regression.
 - Run option-parsing regression checks for AGP 9 audit scaffold:
   - `scripts/test-agp9-phase2-audit-options.sh`
   - Covers help output, unknown-argument handling, and static-audit baseline execution output.
@@ -28,7 +28,7 @@ This project includes two local helper scripts:
   - Syntax-only mode: `scripts/test-local-validation-option-regressions.sh --syntax-only`
   - Behavior-only mode: `scripts/test-local-validation-option-regressions.sh --behavior-only`
   - Runner-mode self-test: `scripts/test-local-validation-option-regressions-runner.sh` (covers dry-run mode selection, runtime mode summaries, plus conflict and unknown-argument handling).
-  - CI automation: `.github/workflows/option-regressions.yml` runs syntax-only, `agp9-audit-options`, `validate-local-agp-gate-simulator`, behavior-only (including the hardcoded format-template scanner regression), dry-run-preview, runner-self-test, and `validate-local.sh --option-tests` wrapper modes on pushes/PRs to `master` when local-validation workflow/scripts/docs files change.
+  - CI automation: `.github/workflows/option-regressions.yml` runs syntax-only, `agp9-audit-options`, `validate-local-agp-gate-simulator`, behavior-only (including hardcoded format-template and hardcoded UI text-literal scanner regressions), dry-run-preview, runner-self-test, and `validate-local.sh --option-tests` wrapper modes on pushes/PRs to `master` when local-validation workflow/scripts/docs files change.
   - The option-regression matrix is intentionally serialized (`max-parallel: 1`) to keep output ordering predictable and reduce hosted-runner contention.
 - Run option-parsing regression checks via the top-level wrapper:
   - `scripts/validate-local.sh --option-tests`

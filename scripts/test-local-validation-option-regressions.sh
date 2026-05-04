@@ -85,6 +85,7 @@ fi
 
 if [[ "$run_syntax" == "true" ]]; then
     echo "Running shell syntax checks..."
+    bash -n "${script_dir}/check-hardcoded-ui-text-literals.sh"
     bash -n "${script_dir}/check-hardcoded-format-templates.sh"
     bash -n "${script_dir}/agp9-phase2-audit.sh"
     bash -n "${script_dir}/validate-local.sh"
@@ -112,6 +113,9 @@ if [[ "$run_behavior" == "true" ]]; then
 
     echo "Running hardcoded format-template scanner regression..."
     "${script_dir}/check-hardcoded-format-templates.sh"
+
+    echo "Running hardcoded UI text-literal scanner regression..."
+    "${script_dir}/check-hardcoded-ui-text-literals.sh"
 fi
 
 if [[ "$run_syntax" == "true" && "$run_behavior" == "true" ]]; then
