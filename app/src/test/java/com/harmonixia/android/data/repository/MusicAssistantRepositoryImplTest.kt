@@ -379,6 +379,50 @@ class MusicAssistantRepositoryImplTest {
     }
 
     @Test
+    fun getAlbumTracks_resourceizesBitrateQualityLabel() = runBlocking {
+        every { context.getString(R.string.track_quality_kbps_format, 320) } returns "320 kb/s"
+        val resultPayload = buildJsonArray {
+            add(
+                buildJsonObject {
+                    put("item_id", JsonPrimitive("track-1"))
+                    put("provider", JsonPrimitive("test"))
+                    put("uri", JsonPrimitive("test://track-1"))
+                    put("name", JsonPrimitive("Track One"))
+                    put("artist", JsonPrimitive("Artist One"))
+                    put("album", JsonPrimitive("Album One"))
+                    put("duration", JsonPrimitive(180))
+                    put(
+                        "provider_mappings",
+                        buildJsonArray {
+                            add(
+                                buildJsonObject {
+                                    put("quality", JsonPrimitive(80))
+                                    put(
+                                        "audio_format",
+                                        buildJsonObject {
+                                            put("content_type", JsonPrimitive("mp3"))
+                                            put("bit_rate", JsonPrimitive(320))
+                                        }
+                                    )
+                                }
+                            )
+                        }
+                    )
+                }
+            )
+        }
+        val client = FakeMusicAssistantWebSocketClient { command, _ ->
+            assertEquals(ApiCommand.MUSIC_GET_ALBUM_TRACKS, command)
+            Result.success(resultPayload)
+        }
+        val repository = repository(client)
+
+        val tracks = repository.getAlbumTracks("album-1", "test").getOrThrow()
+
+        assertEquals("320 kb/s", tracks.first().quality)
+    }
+
+    @Test
     fun fetchPlayers_returnsPlayers() = runBlocking {
         val resultPayload = buildJsonArray {
             add(

@@ -188,6 +188,7 @@
     <string name="content_desc_artist_image">Immagine artista</string>
     <string name="track_quality_hires">Hi-Res</string>
     <string name="track_quality_lossless">Lossless</string>
+    <string name="track_quality_kbps_format">%1$d kbps</string>
     <string name="album_type_album">Album</string>
     <string name="album_type_single">Singolo</string>
     <string name="album_type_ep">EP</string>

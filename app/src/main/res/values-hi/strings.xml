@@ -187,6 +187,7 @@
     <string name="content_desc_artist_image">कलाकार की छवि</string>
     <string name="track_quality_hires">Hi-Res</string>
     <string name="track_quality_lossless">लॉसलेस</string>
+    <string name="track_quality_kbps_format">%1$d kbps</string>
     <string name="album_type_album">एल्बम</string>
     <string name="album_type_single">सिंगल</string>
     <string name="album_type_ep">EP</string>

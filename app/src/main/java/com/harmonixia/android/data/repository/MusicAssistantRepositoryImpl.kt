@@ -1583,7 +1583,7 @@ class MusicAssistantRepositoryImpl @Inject constructor(
         }
         val bitRate = audioFormat.intOrZero("bit_rate", "bitrate")
         if (bitRate > 0) {
-            return "${bitRate} kbps"
+            return context.getString(R.string.track_quality_kbps_format, bitRate)
         }
         val outputFormat = audioFormat.stringOrNull("output_format_str")
         if (!outputFormat.isNullOrBlank()) {
