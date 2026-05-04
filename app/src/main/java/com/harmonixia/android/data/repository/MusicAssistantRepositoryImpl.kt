@@ -1577,7 +1577,12 @@ class MusicAssistantRepositoryImpl @Inject constructor(
             val bitDepth = audioFormat.intOrZero("bit_depth")
             if (sampleRate > 0 && bitDepth > 0) {
                 val rateText = formatSampleRateKhz(sampleRate)
-                return "$losslessLabel ${rateText}kHz/${bitDepth}-bit"
+                return context.getString(
+                    R.string.track_quality_lossless_detail_format,
+                    losslessLabel,
+                    rateText,
+                    bitDepth
+                )
             }
             return losslessLabel
         }

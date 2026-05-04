@@ -293,6 +293,14 @@ class MusicAssistantRepositoryImplTest {
     @Test
     fun getAlbumTracks_resourceizesDetailedLosslessQualityLabel() = runBlocking {
         every { context.getString(R.string.track_quality_lossless) } returns "Sin pérdida"
+        every {
+            context.getString(
+                R.string.track_quality_lossless_detail_format,
+                "Sin pérdida",
+                "48",
+                24
+            )
+        } returns "Sin pérdida · 48 kHz · 24 bits"
         val resultPayload = buildJsonArray {
             add(
                 buildJsonObject {
@@ -332,7 +340,7 @@ class MusicAssistantRepositoryImplTest {
 
         val tracks = repository.getAlbumTracks("album-1", "test").getOrThrow()
 
-        assertEquals("Sin pérdida 48kHz/24-bit", tracks.first().quality)
+        assertEquals("Sin pérdida · 48 kHz · 24 bits", tracks.first().quality)
     }
 
     @Test

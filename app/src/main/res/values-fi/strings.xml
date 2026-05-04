@@ -187,6 +187,7 @@
     <string name="content_desc_artist_image">Artistikuva</string>
     <string name="track_quality_hires">Hi-Res</string>
     <string name="track_quality_lossless">Häviötön</string>
+    <string name="track_quality_lossless_detail_format">%1$s %2$skHz/%3$d-bit</string>
     <string name="track_quality_kbps_format">%1$d kbps</string>
     <string name="album_type_album">Albumi</string>
     <string name="album_type_single">Single</string>
