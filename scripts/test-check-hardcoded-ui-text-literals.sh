@@ -83,6 +83,20 @@ assert_contains "$content_description_fail_output" "FAIL: hardcoded UI text lite
 assert_contains "$content_description_fail_output" "ContentDescriptionLiteral.kt"
 assert_contains "$content_description_fail_output" "contentDescription = \"Play track\""
 
+content_description_raw_fail_dir="${tmp_dir}/content-description-raw-fail"
+mkdir -p "$content_description_raw_fail_dir"
+cat > "${content_description_raw_fail_dir}/ContentDescriptionRawLiteral.kt" <<'KOTLIN'
+@Composable
+fun FailContentDescriptionRaw() {
+    Icon(imageVector = Icons.Outlined.PlayArrow, contentDescription = """Play track""")
+}
+KOTLIN
+
+content_description_raw_fail_output="$(run_expect_exit 1 "$content_description_raw_fail_dir")"
+assert_contains "$content_description_raw_fail_output" "FAIL: hardcoded UI text literals found in Kotlin UI sources:"
+assert_contains "$content_description_raw_fail_output" "ContentDescriptionRawLiteral.kt"
+assert_contains "$content_description_raw_fail_output" "contentDescription = \"\"\"Play track\"\"\""
+
 semantics_fail_dir="${tmp_dir}/semantics-fail"
 mkdir -p "$semantics_fail_dir"
 cat > "${semantics_fail_dir}/SemanticsContentDescriptionLiteral.kt" <<'KOTLIN'
@@ -96,6 +110,20 @@ semantics_fail_output="$(run_expect_exit 1 "$semantics_fail_dir")"
 assert_contains "$semantics_fail_output" "FAIL: hardcoded UI text literals found in Kotlin UI sources:"
 assert_contains "$semantics_fail_output" "SemanticsContentDescriptionLiteral.kt"
 assert_contains "$semantics_fail_output" "contentDescription = \"Volume control\""
+
+semantics_raw_fail_dir="${tmp_dir}/semantics-raw-fail"
+mkdir -p "$semantics_raw_fail_dir"
+cat > "${semantics_raw_fail_dir}/SemanticsContentDescriptionRawLiteral.kt" <<'KOTLIN'
+@Composable
+fun FailSemanticsContentDescriptionRaw() {
+    Box(modifier = Modifier.semantics { contentDescription = """Volume control""" })
+}
+KOTLIN
+
+semantics_raw_fail_output="$(run_expect_exit 1 "$semantics_raw_fail_dir")"
+assert_contains "$semantics_raw_fail_output" "FAIL: hardcoded UI text literals found in Kotlin UI sources:"
+assert_contains "$semantics_raw_fail_output" "SemanticsContentDescriptionRawLiteral.kt"
+assert_contains "$semantics_raw_fail_output" "contentDescription = \"\"\"Volume control\"\"\""
 
 basic_text_fail_dir="${tmp_dir}/basic-text-fail"
 mkdir -p "$basic_text_fail_dir"
