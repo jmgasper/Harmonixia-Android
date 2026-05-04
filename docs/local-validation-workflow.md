@@ -18,7 +18,7 @@ This project includes two local helper scripts:
 - Run all option-parsing regression checks:
   - `scripts/test-local-validation-option-regressions.sh`
   - Includes `bash -n` syntax checks, both option regression suites, the hardcoded format-template scanner regression, and the hardcoded UI text-literal scanner regression + scanner self-test.
-  - UI literal scanner coverage currently includes literal detection for `Text("...")`, `BasicText("...")`, `text = "..."`, `contentDescription = "..."`, `AnnotatedString("...")`, and `append("...")` inside `buildAnnotatedString { ... }`.
+  - UI literal scanner coverage currently includes literal detection for `Text("...")`, `BasicText("...")`, `text = "..."`, `contentDescription = "..."`, `AnnotatedString("...")`, and `append("...")` / `appendLine("...")` inside `buildAnnotatedString { ... }`.
 - Run option-parsing regression checks for AGP 9 audit scaffold:
   - `scripts/test-agp9-phase2-audit-options.sh`
   - Covers help output, unknown-argument handling, and static-audit baseline execution output.
