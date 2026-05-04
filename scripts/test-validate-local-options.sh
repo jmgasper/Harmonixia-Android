@@ -10,19 +10,24 @@ fail() {
 }
 
 run_expect_exit() {
-    local expected_exit="$1"
-    shift
+    run_script_expect_exit "$validate_script" "$@"
+}
+
+run_script_expect_exit() {
+    local script_path="$1"
+    local expected_exit="$2"
+    shift 2
 
     local output
     local status
     set +e
-    output="$("${validate_script}" "$@" 2>&1)"
+    output="$("${script_path}" "$@" 2>&1)"
     status=$?
     set -e
 
     if [[ "$status" -ne "$expected_exit" ]]; then
         echo "$output" >&2
-        fail "expected exit ${expected_exit}, got ${status} for args: $*"
+        fail "expected exit ${expected_exit}, got ${status} for ${script_path} args: $*"
     fi
 
     printf '%s' "$output"
@@ -96,6 +101,45 @@ assert_contains "$option_tests_avd_conflict_output" "(default: Medium_Phone"
 
 option_tests_agp9_full_path_conflict_output="$(run_expect_exit 1 --option-tests --agp9-full-path)"
 assert_contains "$option_tests_agp9_full_path_conflict_output" "--option-tests cannot be combined with compile/test/lint toggles or smoke execution flags."
+
+option_tests_sim_root="$(mktemp -d /tmp/harmonixia-validate-local-option-tests.XXXXXX)"
+trap 'rm -rf "${option_tests_sim_root}"' EXIT
+
+mkdir -p "${option_tests_sim_root}/scripts"
+cp "$validate_script" "${option_tests_sim_root}/scripts/validate-local.sh"
+chmod +x "${option_tests_sim_root}/scripts/validate-local.sh"
+cat > "${option_tests_sim_root}/scripts/test-local-validation-option-regressions.sh" <<'STUB'
+#!/usr/bin/env bash
+set -euo pipefail
+
+echo "Running shell syntax checks..."
+echo "Shell syntax checks passed."
+echo "Running AGP 9 phase 2 audit option regressions..."
+echo "agp9-phase2-audit option tests passed."
+echo "Running validate-local option regressions..."
+echo "validate-local option tests passed."
+echo "Running validate-local AGP gate simulator regressions..."
+echo "validate-local AGP gate simulator tests passed."
+echo "Running smoke-debug-emulator option regressions..."
+echo "smoke-debug-emulator option tests passed."
+echo "Running hardcoded format-template scanner regression..."
+echo "PASS: no hardcoded Kotlin format templates found in app/src/main/java."
+echo "Running hardcoded UI text-literal scanner regression..."
+echo "PASS: no hardcoded UI text literals found in app/src/main/java/com/harmonixia/android/ui."
+echo "Running hardcoded UI text-literal scanner self-test..."
+echo "check-hardcoded-ui-text-literals tests passed."
+echo "All local validation option regressions passed."
+STUB
+chmod +x "${option_tests_sim_root}/scripts/test-local-validation-option-regressions.sh"
+
+option_tests_success_output="$(run_script_expect_exit "${option_tests_sim_root}/scripts/validate-local.sh" 0 --option-tests)"
+assert_contains "$option_tests_success_output" "Running local validation option regression tests..."
+assert_contains "$option_tests_success_output" "Running AGP 9 phase 2 audit option regressions..."
+assert_contains "$option_tests_success_output" "Running validate-local option regressions..."
+assert_contains "$option_tests_success_output" "Running hardcoded UI text-literal scanner self-test..."
+assert_contains "$option_tests_success_output" "check-hardcoded-ui-text-literals tests passed."
+assert_contains "$option_tests_success_output" "All local validation option regressions passed."
+assert_not_contains "$option_tests_success_output" "Running AGP 9 Phase 2 static audit gate..."
 
 agp9_full_path_smoke_help_conflict_output="$(run_expect_exit 1 --agp9-full-path --smoke-help)"
 assert_contains "$agp9_full_path_smoke_help_conflict_output" "--agp9-full-path cannot be combined with informational smoke-only modes"
