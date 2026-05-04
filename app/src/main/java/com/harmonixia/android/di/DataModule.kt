@@ -156,7 +156,9 @@ abstract class DataModule {
 
         @Provides
         @Singleton
-        fun provideEqPresetParser(): EqPresetParser = EqPresetParser()
+        fun provideEqPresetParser(
+            @ApplicationContext context: Context
+        ): EqPresetParser = EqPresetParser(context)
 
         @Provides
         @Singleton

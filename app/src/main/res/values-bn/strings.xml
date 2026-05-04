@@ -26,6 +26,7 @@
     <string name="eq_attribution_title">স্বীকৃতি</string>
     <string name="eq_error_load_failed">EQ প্রিসেট লোড করা যায়নি</string>
     <string name="eq_error_apply_failed">EQ প্রিসেট প্রয়োগ করা যায়নি</string>
+    <string name="eq_fallback_preset_name">EQ Preset</string>
     <string name="eq_detail_manufacturer">Manufacturer</string>
     <string name="eq_detail_model">Model</string>
     <string name="eq_detail_creator">Creator</string>

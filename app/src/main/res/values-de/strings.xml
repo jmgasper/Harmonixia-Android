@@ -26,6 +26,7 @@
     <string name="eq_attribution_title">Zuordnung</string>
     <string name="eq_error_load_failed">EQ-Presets konnten nicht geladen werden</string>
     <string name="eq_error_apply_failed">EQ-Preset konnte nicht angewendet werden</string>
+    <string name="eq_fallback_preset_name">EQ Preset</string>
     <string name="eq_detail_manufacturer">Manufacturer</string>
     <string name="eq_detail_model">Model</string>
     <string name="eq_detail_creator">Creator</string>
