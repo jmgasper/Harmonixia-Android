@@ -15,7 +15,6 @@ import androidx.compose.ui.unit.dp
 import com.harmonixia.android.domain.model.EqPreset
 import com.harmonixia.android.domain.model.EqPresetDetails
 import com.harmonixia.android.R
-import java.util.Locale
 
 @Composable
 fun PresetDetailsCard(
@@ -85,13 +84,19 @@ fun PresetDetailsCard(
                     style = MaterialTheme.typography.titleSmall
                 )
                 Spacer(modifier = Modifier.height(4.dp))
+                val valueTemplates = EqPresetValueTemplates(
+                    frequencyKhzFormat = stringResource(R.string.eq_value_frequency_khz_format),
+                    frequencyHzFormat = stringResource(R.string.eq_value_frequency_hz_format),
+                    gainDbFormat = stringResource(R.string.eq_value_gain_db_format),
+                    qFormat = stringResource(R.string.eq_value_q_format)
+                )
                 preset.filters.forEach { filter ->
                     Text(
                         text = stringResource(
                             R.string.eq_detail_filter_line,
-                            formatFrequency(filter.frequency),
-                            formatGain(filter.gain),
-                            formatQ(filter.q)
+                            EqPresetValueFormatter.formatFrequency(filter.frequency, valueTemplates),
+                            EqPresetValueFormatter.formatGain(filter.gain, valueTemplates),
+                            EqPresetValueFormatter.formatQ(filter.q, valueTemplates)
                         ),
                         style = MaterialTheme.typography.bodySmall
                     )
@@ -107,22 +112,4 @@ private fun DetailLine(label: String, value: String) {
         text = stringResource(R.string.eq_detail_line_format, label, value),
         style = MaterialTheme.typography.bodyMedium
     )
-}
-
-private fun formatFrequency(frequency: Double): String {
-    return if (frequency >= 1000) {
-        val value = frequency / 1000.0
-        String.format(Locale.US, "%.1f kHz", value)
-    } else {
-        String.format(Locale.US, "%.0f Hz", frequency)
-    }
-}
-
-private fun formatGain(gain: Double): String {
-    val sign = if (gain > 0) "+" else ""
-    return String.format(Locale.US, "%s%.1f dB", sign, gain)
-}
-
-private fun formatQ(q: Double): String {
-    return String.format(Locale.US, "%.2f", q)
 }

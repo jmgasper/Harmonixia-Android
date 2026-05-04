@@ -38,6 +38,10 @@
     <string name="eq_detail_filters_title">Filters</string>
     <string name="eq_detail_line_format">%1$s: %2$s</string>
     <string name="eq_detail_filter_line">%1$s | %2$s | Q %3$s</string>
+    <string name="eq_value_frequency_khz_format">%1$.1f kHz</string>
+    <string name="eq_value_frequency_hz_format">%1$.0f Hz</string>
+    <string name="eq_value_gain_db_format">%1$s%2$.1f dB</string>
+    <string name="eq_value_q_format">%1$.2f</string>
     <string name="section_local_media">Lokale Medien</string>
     <string name="home_favorites">Favoriten</string>
     <string name="section_local_albums">Lokale Alben</string>
