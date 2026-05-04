@@ -52,6 +52,8 @@ fun Pass(title: String) {
     Text(text = buildAnnotatedString {
         append(title)
         appendLine(title)
+        append(text = title)
+        appendLine(text = title)
     })
     Icon(imageVector = Icons.Outlined.PlayArrow, contentDescription = stringResource(R.string.action_play))
     Box(modifier = Modifier.semantics { contentDescription = title })
@@ -150,6 +152,24 @@ assert_contains "$annotated_string_append_fail_output" "FAIL: hardcoded UI text 
 assert_contains "$annotated_string_append_fail_output" "AnnotatedStringAppendLiteral.kt"
 assert_contains "$annotated_string_append_fail_output" "append(\"Now playing\")"
 
+annotated_string_named_arg_append_fail_dir="${tmp_dir}/annotated-string-named-arg-append-fail"
+mkdir -p "$annotated_string_named_arg_append_fail_dir"
+cat > "${annotated_string_named_arg_append_fail_dir}/AnnotatedStringNamedArgAppendLiteral.kt" <<'KOTLIN'
+@Composable
+fun FailAnnotatedStringNamedArgAppend() {
+    Text(
+        text = buildAnnotatedString {
+            append(text = "Now playing")
+        }
+    )
+}
+KOTLIN
+
+annotated_string_named_arg_append_fail_output="$(run_expect_exit 1 "$annotated_string_named_arg_append_fail_dir")"
+assert_contains "$annotated_string_named_arg_append_fail_output" "FAIL: hardcoded UI text literals found in Kotlin UI sources:"
+assert_contains "$annotated_string_named_arg_append_fail_output" "AnnotatedStringNamedArgAppendLiteral.kt"
+assert_contains "$annotated_string_named_arg_append_fail_output" "append(text = \"Now playing\")"
+
 annotated_string_append_line_fail_dir="${tmp_dir}/annotated-string-append-line-fail"
 mkdir -p "$annotated_string_append_line_fail_dir"
 cat > "${annotated_string_append_line_fail_dir}/AnnotatedStringAppendLineLiteral.kt" <<'KOTLIN'
@@ -167,5 +187,23 @@ annotated_string_append_line_fail_output="$(run_expect_exit 1 "$annotated_string
 assert_contains "$annotated_string_append_line_fail_output" "FAIL: hardcoded UI text literals found in Kotlin UI sources:"
 assert_contains "$annotated_string_append_line_fail_output" "AnnotatedStringAppendLineLiteral.kt"
 assert_contains "$annotated_string_append_line_fail_output" "appendLine(\"Now playing\")"
+
+annotated_string_named_arg_append_line_fail_dir="${tmp_dir}/annotated-string-named-arg-append-line-fail"
+mkdir -p "$annotated_string_named_arg_append_line_fail_dir"
+cat > "${annotated_string_named_arg_append_line_fail_dir}/AnnotatedStringNamedArgAppendLineLiteral.kt" <<'KOTLIN'
+@Composable
+fun FailAnnotatedStringNamedArgAppendLine() {
+    Text(
+        text = buildAnnotatedString {
+            appendLine(value = "Now playing")
+        }
+    )
+}
+KOTLIN
+
+annotated_string_named_arg_append_line_fail_output="$(run_expect_exit 1 "$annotated_string_named_arg_append_line_fail_dir")"
+assert_contains "$annotated_string_named_arg_append_line_fail_output" "FAIL: hardcoded UI text literals found in Kotlin UI sources:"
+assert_contains "$annotated_string_named_arg_append_line_fail_output" "AnnotatedStringNamedArgAppendLineLiteral.kt"
+assert_contains "$annotated_string_named_arg_append_line_fail_output" "appendLine(value = \"Now playing\")"
 
 echo "check-hardcoded-ui-text-literals tests passed."

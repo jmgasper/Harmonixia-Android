@@ -50,14 +50,14 @@ while IFS= read -r kotlin_file; do
     }
 
     {
-      if (in_annotated_block == 1 && $0 ~ /append(Line)?[[:space:]]*\([[:space:]]*"[^"$][^"\n]*"/) {
+      if (in_annotated_block == 1 && $0 ~ /append(Line)?[[:space:]]*\([[:space:]]*([[:alpha:]_][[:alnum:]_]*[[:space:]]*=[[:space:]]*)?"[^"$][^"\n]*"/) {
         printf "%s:%d:%s\n", FILENAME, NR, $0
       }
 
       if (in_annotated_block == 0 && $0 ~ /buildAnnotatedString[[:space:]]*\{/) {
         in_annotated_block = 1
         brace_depth = 0
-        if ($0 ~ /append(Line)?[[:space:]]*\([[:space:]]*"[^"$][^"\n]*"/) {
+        if ($0 ~ /append(Line)?[[:space:]]*\([[:space:]]*([[:alpha:]_][[:alnum:]_]*[[:space:]]*=[[:space:]]*)?"[^"$][^"\n]*"/) {
           printf "%s:%d:%s\n", FILENAME, NR, $0
         }
       }
