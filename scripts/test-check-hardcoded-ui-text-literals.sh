@@ -125,6 +125,20 @@ assert_contains "$semantics_raw_fail_output" "FAIL: hardcoded UI text literals f
 assert_contains "$semantics_raw_fail_output" "SemanticsContentDescriptionRawLiteral.kt"
 assert_contains "$semantics_raw_fail_output" "contentDescription = \"\"\"Volume control\"\"\""
 
+text_named_arg_raw_fail_dir="${tmp_dir}/text-named-arg-raw-fail"
+mkdir -p "$text_named_arg_raw_fail_dir"
+cat > "${text_named_arg_raw_fail_dir}/TextNamedArgRawLiteral.kt" <<'KOTLIN'
+@Composable
+fun FailTextNamedArgRaw() {
+    Text(text = """Now playing""")
+}
+KOTLIN
+
+text_named_arg_raw_fail_output="$(run_expect_exit 1 "$text_named_arg_raw_fail_dir")"
+assert_contains "$text_named_arg_raw_fail_output" "FAIL: hardcoded UI text literals found in Kotlin UI sources:"
+assert_contains "$text_named_arg_raw_fail_output" "TextNamedArgRawLiteral.kt"
+assert_contains "$text_named_arg_raw_fail_output" "Text(text = \"\"\"Now playing\"\"\")"
+
 basic_text_fail_dir="${tmp_dir}/basic-text-fail"
 mkdir -p "$basic_text_fail_dir"
 cat > "${basic_text_fail_dir}/BasicTextLiteral.kt" <<'KOTLIN'
