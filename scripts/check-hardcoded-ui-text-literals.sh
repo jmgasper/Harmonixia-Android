@@ -16,12 +16,17 @@ else
 fi
 
 # Conservative literal checks for Compose UI callsites.
-text_call_pattern='Text\(\s*"[^"$][^"\n]*"'
-basic_text_call_pattern='BasicText\(\s*"[^"$][^"\n]*"'
-annotated_string_constructor_pattern='AnnotatedString\(\s*"[^"$][^"\n]*"'
-annotated_string_named_text_pattern='AnnotatedString\([^)]*text\s*=\s*"[^"$][^"\n]*"'
-named_text_pattern='text\s*=\s*"[^"$][^"\n]*"'
-content_description_pattern='contentDescription\s*=\s*"[^"$][^"\n]*"'
+escaped_string_literal_pattern='"[^"$][^"\n]*"'
+raw_string_literal_pattern='"""[^$\n][^"\n]*"""'
+literal_pattern="(${escaped_string_literal_pattern}|${raw_string_literal_pattern})"
+
+text_call_pattern="Text\\(\\s*${literal_pattern}"
+basic_text_call_pattern="BasicText\\(\\s*${literal_pattern}"
+annotated_string_constructor_pattern="AnnotatedString\\(\\s*${literal_pattern}"
+annotated_string_named_text_pattern="AnnotatedString\\([^)]*text\\s*=\\s*${literal_pattern}"
+named_text_pattern="text\\s*=\\s*${literal_pattern}"
+content_description_pattern="contentDescription\\s*=\\s*${literal_pattern}"
+annotated_append_literal_pattern='append(Line)?[[:space:]]*[(][[:space:]]*([[:alpha:]_][[:alnum:]_]*[[:space:]]*=[[:space:]]*)?("[^"$][^"]*"|"""[^$][^"]*""")'
 
 violations_file="$(mktemp)"
 trap 'rm -f "$violations_file"' EXIT
@@ -34,7 +39,7 @@ rg --no-heading --line-number --color never --glob '*.kt' "$named_text_pattern" 
 rg --no-heading --line-number --color never --glob '*.kt' "$content_description_pattern" "${targets[@]}" >>"$violations_file" || true
 
 while IFS= read -r kotlin_file; do
-  awk '
+  awk -v append_pattern="$annotated_append_literal_pattern" '
     function update_brace_depth(source, i, c) {
       for (i = 1; i <= length(source); i++) {
         c = substr(source, i, 1)
@@ -50,14 +55,14 @@ while IFS= read -r kotlin_file; do
     }
 
     {
-      if (in_annotated_block == 1 && $0 ~ /append(Line)?[[:space:]]*\([[:space:]]*([[:alpha:]_][[:alnum:]_]*[[:space:]]*=[[:space:]]*)?"[^"$][^"\n]*"/) {
+      if (in_annotated_block == 1 && $0 ~ append_pattern) {
         printf "%s:%d:%s\n", FILENAME, NR, $0
       }
 
       if (in_annotated_block == 0 && $0 ~ /buildAnnotatedString[[:space:]]*\{/) {
         in_annotated_block = 1
         brace_depth = 0
-        if ($0 ~ /append(Line)?[[:space:]]*\([[:space:]]*([[:alpha:]_][[:alnum:]_]*[[:space:]]*=[[:space:]]*)?"[^"$][^"\n]*"/) {
+        if ($0 ~ append_pattern) {
           printf "%s:%d:%s\n", FILENAME, NR, $0
         }
       }

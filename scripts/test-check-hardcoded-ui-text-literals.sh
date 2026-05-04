@@ -46,15 +46,19 @@ cat > "${pass_dir}/Pass.kt" <<'KOTLIN'
 @Composable
 fun Pass(title: String) {
     Text(text = title)
+    Text(text = """$title""")
     BasicText(text = title)
+    BasicText(text = """$title""")
     BasicText(text = AnnotatedString(title))
     BasicText(text = AnnotatedString(text = title))
+    BasicText(text = AnnotatedString(text = """$title"""))
     Text(text = buildAnnotatedString {
         append(title)
         appendLine(title)
         append(text = title)
         appendLine(text = title)
         appendLine(value = title)
+        appendLine(value = """$title""")
     })
     Icon(imageVector = Icons.Outlined.PlayArrow, contentDescription = stringResource(R.string.action_play))
     Box(modifier = Modifier.semantics { contentDescription = title })
@@ -107,6 +111,20 @@ assert_contains "$basic_text_fail_output" "FAIL: hardcoded UI text literals foun
 assert_contains "$basic_text_fail_output" "BasicTextLiteral.kt"
 assert_contains "$basic_text_fail_output" "BasicText(\"Now playing\")"
 
+basic_text_raw_fail_dir="${tmp_dir}/basic-text-raw-fail"
+mkdir -p "$basic_text_raw_fail_dir"
+cat > "${basic_text_raw_fail_dir}/BasicTextRawLiteral.kt" <<'KOTLIN'
+@Composable
+fun FailBasicTextRaw() {
+    BasicText("""Now playing""")
+}
+KOTLIN
+
+basic_text_raw_fail_output="$(run_expect_exit 1 "$basic_text_raw_fail_dir")"
+assert_contains "$basic_text_raw_fail_output" "FAIL: hardcoded UI text literals found in Kotlin UI sources:"
+assert_contains "$basic_text_raw_fail_output" "BasicTextRawLiteral.kt"
+assert_contains "$basic_text_raw_fail_output" "BasicText(\"\"\"Now playing\"\"\")"
+
 annotated_string_constructor_fail_dir="${tmp_dir}/annotated-string-constructor-fail"
 mkdir -p "$annotated_string_constructor_fail_dir"
 cat > "${annotated_string_constructor_fail_dir}/AnnotatedStringConstructorLiteral.kt" <<'KOTLIN'
@@ -134,6 +152,20 @@ annotated_string_named_arg_fail_output="$(run_expect_exit 1 "$annotated_string_n
 assert_contains "$annotated_string_named_arg_fail_output" "FAIL: hardcoded UI text literals found in Kotlin UI sources:"
 assert_contains "$annotated_string_named_arg_fail_output" "AnnotatedStringNamedArgLiteral.kt"
 assert_contains "$annotated_string_named_arg_fail_output" "AnnotatedString(text = \"Now playing\")"
+
+annotated_string_named_arg_raw_fail_dir="${tmp_dir}/annotated-string-named-arg-raw-fail"
+mkdir -p "$annotated_string_named_arg_raw_fail_dir"
+cat > "${annotated_string_named_arg_raw_fail_dir}/AnnotatedStringNamedArgRawLiteral.kt" <<'KOTLIN'
+@Composable
+fun FailAnnotatedStringNamedArgRaw() {
+    BasicText(text = AnnotatedString(text = """Now playing"""))
+}
+KOTLIN
+
+annotated_string_named_arg_raw_fail_output="$(run_expect_exit 1 "$annotated_string_named_arg_raw_fail_dir")"
+assert_contains "$annotated_string_named_arg_raw_fail_output" "FAIL: hardcoded UI text literals found in Kotlin UI sources:"
+assert_contains "$annotated_string_named_arg_raw_fail_output" "AnnotatedStringNamedArgRawLiteral.kt"
+assert_contains "$annotated_string_named_arg_raw_fail_output" "AnnotatedString(text = \"\"\"Now playing\"\"\")"
 
 annotated_string_append_fail_dir="${tmp_dir}/annotated-string-append-fail"
 mkdir -p "$annotated_string_append_fail_dir"
@@ -198,6 +230,7 @@ fun FailAnnotatedStringNamedArgAppendLine() {
         text = buildAnnotatedString {
             appendLine(text = "Now playing")
             appendLine(value = "Now playing")
+            appendLine(value = """Now playing""")
         }
     )
 }
@@ -208,5 +241,6 @@ assert_contains "$annotated_string_named_arg_append_line_fail_output" "FAIL: har
 assert_contains "$annotated_string_named_arg_append_line_fail_output" "AnnotatedStringNamedArgAppendLineLiteral.kt"
 assert_contains "$annotated_string_named_arg_append_line_fail_output" "appendLine(text = \"Now playing\")"
 assert_contains "$annotated_string_named_arg_append_line_fail_output" "appendLine(value = \"Now playing\")"
+assert_contains "$annotated_string_named_arg_append_line_fail_output" "appendLine(value = \"\"\"Now playing\"\"\")"
 
 echo "check-hardcoded-ui-text-literals tests passed."
