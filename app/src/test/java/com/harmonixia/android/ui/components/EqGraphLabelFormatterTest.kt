@@ -6,6 +6,7 @@ import org.junit.Test
 class EqGraphLabelFormatterTest {
 
     private val templates = EqGraphLabelTemplates(
+        frequencySubKFormat = "%1\$dHzX",
         frequencyIntegerKFormat = "%1\$dkX",
         frequencyDecimalKFormat = "%1$.1fkX",
         gainPositiveFormat = "+%1\$d",
@@ -23,8 +24,8 @@ class EqGraphLabelFormatterTest {
     }
 
     @Test
-    fun formatFrequencyLabel_keepsRawHertzBelow1000() {
-        assertEquals("500", EqGraphLabelFormatter.formatFrequencyLabel(500, templates))
+    fun formatFrequencyLabel_usesSubKTemplateBelow1000() {
+        assertEquals("500HzX", EqGraphLabelFormatter.formatFrequencyLabel(500, templates))
     }
 
     @Test

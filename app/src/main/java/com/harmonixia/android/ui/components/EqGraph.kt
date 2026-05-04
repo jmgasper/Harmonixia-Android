@@ -72,6 +72,7 @@ fun EqGraphCanvas(
     }
     val labelSizePx = with(density) { 10.sp.toPx() }
     val labelTemplates = EqGraphLabelTemplates(
+        frequencySubKFormat = stringResource(R.string.eq_graph_frequency_sub_k_format),
         frequencyIntegerKFormat = stringResource(R.string.eq_graph_frequency_integer_k_format),
         frequencyDecimalKFormat = stringResource(R.string.eq_graph_frequency_decimal_k_format),
         gainPositiveFormat = stringResource(R.string.eq_graph_gain_positive_format),

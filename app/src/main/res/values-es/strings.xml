@@ -44,6 +44,7 @@
     <string name="eq_value_q_format">%1$.2f</string>
     <string name="eq_graph_frequency_integer_k_format">%1$dk</string>
     <string name="eq_graph_frequency_decimal_k_format">%1$.1fk</string>
+    <string name="eq_graph_frequency_sub_k_format">%1$d</string>
     <string name="eq_graph_gain_positive_format">+%1$d</string>
     <string name="eq_graph_gain_default_format">%1$d</string>
     <string name="section_local_media">Medios locales</string>

@@ -3,6 +3,7 @@ package com.harmonixia.android.ui.components
 import java.util.Locale
 
 internal data class EqGraphLabelTemplates(
+    val frequencySubKFormat: String,
     val frequencyIntegerKFormat: String,
     val frequencyDecimalKFormat: String,
     val gainPositiveFormat: String,
@@ -19,7 +20,7 @@ internal object EqGraphLabelFormatter {
                 String.format(Locale.US, templates.frequencyDecimalKFormat, value)
             }
         } else {
-            freq.toString()
+            String.format(Locale.US, templates.frequencySubKFormat, freq)
         }
     }
 
