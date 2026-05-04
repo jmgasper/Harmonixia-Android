@@ -1641,7 +1641,7 @@ class MusicAssistantRepositoryImpl @Inject constructor(
         return if (kotlin.math.abs(rateKhz - rounded) < 0.01) {
             rounded.toInt().toString()
         } else {
-            String.format(Locale.US, "%.1f", rateKhz)
+            context.getString(R.string.track_quality_decimal_one_place_format, rateKhz)
         }
     }
 

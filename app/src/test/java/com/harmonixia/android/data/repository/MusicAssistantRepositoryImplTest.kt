@@ -344,6 +344,60 @@ class MusicAssistantRepositoryImplTest {
     }
 
     @Test
+    fun getAlbumTracks_resourceizesDecimalSampleRateTemplateForLosslessLabel() = runBlocking {
+        every { context.getString(R.string.track_quality_lossless) } returns "Sin pérdida"
+        every { context.getString(R.string.track_quality_decimal_one_place_format, any()) } returns "44.1"
+        every {
+            context.getString(
+                R.string.track_quality_lossless_detail_format,
+                "Sin pérdida",
+                "44.1",
+                16
+            )
+        } returns "Sin pérdida · 44.1 kHz · 16 bits"
+        val resultPayload = buildJsonArray {
+            add(
+                buildJsonObject {
+                    put("item_id", JsonPrimitive("track-1"))
+                    put("provider", JsonPrimitive("test"))
+                    put("uri", JsonPrimitive("test://track-1"))
+                    put("name", JsonPrimitive("Track One"))
+                    put("artist", JsonPrimitive("Artist One"))
+                    put("album", JsonPrimitive("Album One"))
+                    put("duration", JsonPrimitive(180))
+                    put(
+                        "provider_mappings",
+                        buildJsonArray {
+                            add(
+                                buildJsonObject {
+                                    put("quality", JsonPrimitive(100))
+                                    put(
+                                        "audio_format",
+                                        buildJsonObject {
+                                            put("content_type", JsonPrimitive("flac"))
+                                            put("sample_rate", JsonPrimitive(44100))
+                                            put("bit_depth", JsonPrimitive(16))
+                                        }
+                                    )
+                                }
+                            )
+                        }
+                    )
+                }
+            )
+        }
+        val client = FakeMusicAssistantWebSocketClient { command, _ ->
+            assertEquals(ApiCommand.MUSIC_GET_ALBUM_TRACKS, command)
+            Result.success(resultPayload)
+        }
+        val repository = repository(client)
+
+        val tracks = repository.getAlbumTracks("album-1", "test").getOrThrow()
+
+        assertEquals("Sin pérdida · 44.1 kHz · 16 bits", tracks.first().quality)
+    }
+
+    @Test
     fun getAlbumTracks_resourceizesPlainLosslessQualityLabel() = runBlocking {
         every { context.getString(R.string.track_quality_lossless) } returns "Sin pérdida"
         val resultPayload = buildJsonArray {

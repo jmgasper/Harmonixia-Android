@@ -1,0 +1,14 @@
+HAR-334 inline repository sample-rate template scan
+Timestamp(UTC): 20260504T103956Z
+
+-- MusicAssistantRepositoryImpl formatSampleRateKhz path --
+1579:                val rateText = formatSampleRateKhz(sampleRate)
+1581:                    R.string.track_quality_lossless_detail_format,
+1638:    private fun formatSampleRateKhz(sampleRate: Int): String {
+1644:            context.getString(R.string.track_quality_decimal_one_place_format, rateKhz)
+
+-- MusicAssistantRepositoryImplTest decimal sample-rate coverage --
+298:                R.string.track_quality_lossless_detail_format,
+347:    fun getAlbumTracks_resourceizesDecimalSampleRateTemplateForLosslessLabel() = runBlocking {
+349:        every { context.getString(R.string.track_quality_decimal_one_place_format, any()) } returns "44.1"
+352:                R.string.track_quality_lossless_detail_format,
