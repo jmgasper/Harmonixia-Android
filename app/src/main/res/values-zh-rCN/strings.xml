@@ -352,4 +352,8 @@
     <string name="recommendation_fallback_unknown_artist_title">Unknown Artist</string>
     <string name="recommendation_fallback_unknown_track_title">Unknown Track</string>
     <string name="eq_attribution_opra_heading">EQ Presets: OPRA (Open Parametric Room Acoustics)</string>
+    <string name="eq_attribution_opra_license">Licensed under CC BY-SA 4.0</string>
+    <string name="eq_attribution_data_sources">Data sources: AutoEQ, oratory1990, and community contributors</string>
+    <string name="eq_attribution_ladspa_concepts">EQ Implementation: Concepts from pulseaudio-equalizer-ladspa</string>
+    <string name="eq_attribution_ladspa_license">Licensed under GPL-3.0</string>
 </resources>

@@ -1,0 +1,6 @@
+HAR-320 inline literal scan
+timestamp_utc=20260504T041145Z
+file=app/src/main/java/com/harmonixia/android/ui/screens/settings/eq/EqSettingsScreen.kt
+
+No matches for targeted hardcoded attribution literals in EqSettingsScreen
+RESULT: PASS

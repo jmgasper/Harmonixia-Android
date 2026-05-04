@@ -306,12 +306,12 @@ private fun AttributionCard() {
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Text(
-                text = "Licensed under CC BY-SA 4.0",
+                text = stringResource(R.string.eq_attribution_opra_license),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Text(
-                text = "Data sources: AutoEQ, oratory1990, and community contributors",
+                text = stringResource(R.string.eq_attribution_data_sources),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -327,12 +327,12 @@ private fun AttributionCard() {
             )
             Spacer(modifier = Modifier.height(12.dp))
             Text(
-                text = "EQ Implementation: Concepts from pulseaudio-equalizer-ladspa",
+                text = stringResource(R.string.eq_attribution_ladspa_concepts),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Text(
-                text = "Licensed under GPL-3.0",
+                text = stringResource(R.string.eq_attribution_ladspa_license),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )

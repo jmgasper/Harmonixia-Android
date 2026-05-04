@@ -358,4 +358,8 @@
     <string name="data_validation_authentication_failed_update_token">Authentication failed. Please update your token.</string>
     <string name="data_validation_unable_to_connect_to_server">Unable to connect to server.</string>
     <string name="connection_validation_server_error_with_code">Server error (%1$d)</string>
+    <string name="eq_attribution_opra_license">Licensed under CC BY-SA 4.0</string>
+    <string name="eq_attribution_data_sources">Data sources: AutoEQ, oratory1990, and community contributors</string>
+    <string name="eq_attribution_ladspa_concepts">EQ Implementation: Concepts from pulseaudio-equalizer-ladspa</string>
+    <string name="eq_attribution_ladspa_license">Licensed under GPL-3.0</string>
 </resources>
