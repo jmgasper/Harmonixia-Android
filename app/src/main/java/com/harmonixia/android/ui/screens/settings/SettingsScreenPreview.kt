@@ -10,13 +10,15 @@ import com.harmonixia.android.data.remote.ConnectionState
 import com.harmonixia.android.ui.screens.settings.localmedia.LocalMediaSettingsUiState
 import com.harmonixia.android.ui.theme.HarmonixiaTheme
 
+private const val PREVIEW_SERVER_URL = "http://192.168.1.29:8095"
+
 @Preview(showBackground = true)
 @Composable
 fun SettingsScreenPreviewInitial() {
     HarmonixiaTheme {
         SettingsScreenContent(
             uiState = SettingsUiState.Initial(
-                form = SettingsFormState(serverUrl = "http://192.168.1.29:8095"),
+                form = SettingsFormState(serverUrl = PREVIEW_SERVER_URL),
                 connectionState = ConnectionState.Disconnected,
                 canDisconnect = false,
                 selectedTab = SettingsTab.CONNECTION
@@ -49,7 +51,7 @@ fun SettingsScreenPreviewConnecting() {
     HarmonixiaTheme {
         SettingsScreenContent(
             uiState = SettingsUiState.Connecting(
-                form = SettingsFormState(serverUrl = "http://192.168.1.29:8095"),
+                form = SettingsFormState(serverUrl = PREVIEW_SERVER_URL),
                 connectionState = ConnectionState.Connecting,
                 canDisconnect = true,
                 selectedTab = SettingsTab.CONNECTION,
@@ -84,7 +86,7 @@ fun SettingsScreenPreviewError() {
         val connectionFailed = stringResource(R.string.status_connection_failed)
         SettingsScreenContent(
             uiState = SettingsUiState.Error(
-                form = SettingsFormState(serverUrl = "http://192.168.1.29:8095"),
+                form = SettingsFormState(serverUrl = PREVIEW_SERVER_URL),
                 connectionState = ConnectionState.Error(connectionFailed),
                 canDisconnect = false,
                 selectedTab = SettingsTab.CONNECTION,
@@ -119,7 +121,7 @@ fun SettingsScreenPreviewSuccess() {
         val connected = stringResource(R.string.status_connected)
         SettingsScreenContent(
             uiState = SettingsUiState.Success(
-                form = SettingsFormState(serverUrl = "http://192.168.1.29:8095"),
+                form = SettingsFormState(serverUrl = PREVIEW_SERVER_URL),
                 connectionState = ConnectionState.Connected,
                 canDisconnect = true,
                 selectedTab = SettingsTab.CONNECTION,

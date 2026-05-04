@@ -7,6 +7,8 @@ import com.harmonixia.android.R
 import com.harmonixia.android.data.remote.ConnectionState
 import com.harmonixia.android.ui.theme.HarmonixiaTheme
 
+private const val PREVIEW_SERVER_URL = "http://192.168.1.29:8095"
+
 @Preview(showBackground = true)
 @Composable
 fun OnboardingScreenPreviewInitial() {
@@ -31,7 +33,7 @@ fun OnboardingScreenPreviewConnecting() {
     HarmonixiaTheme {
         OnboardingScreenContent(
             uiState = OnboardingUiState.Connecting(
-                OnboardingFormState(serverUrl = "http://192.168.1.29:8095")
+                OnboardingFormState(serverUrl = PREVIEW_SERVER_URL)
             ),
             connectionState = ConnectionState.Connecting,
             onServerUrlChange = {},
@@ -52,7 +54,7 @@ fun OnboardingScreenPreviewError() {
         val connectionFailed = stringResource(R.string.status_connection_failed)
         OnboardingScreenContent(
             uiState = OnboardingUiState.Error(
-                OnboardingFormState(serverUrl = "http://192.168.1.29:8095"),
+                OnboardingFormState(serverUrl = PREVIEW_SERVER_URL),
                 message = connectionFailed
             ),
             connectionState = ConnectionState.Error(connectionFailed),
@@ -73,7 +75,7 @@ fun OnboardingScreenPreviewSuccess() {
     HarmonixiaTheme {
         OnboardingScreenContent(
             uiState = OnboardingUiState.Success(
-                OnboardingFormState(serverUrl = "http://192.168.1.29:8095")
+                OnboardingFormState(serverUrl = PREVIEW_SERVER_URL)
             ),
             connectionState = ConnectionState.Connected,
             onServerUrlChange = {},
