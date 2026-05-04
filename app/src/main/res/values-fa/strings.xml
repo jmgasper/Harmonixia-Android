@@ -215,6 +215,8 @@
     <string name="performance_settings_title">کارایی</string>
     <string name="performance_settings_playback_latency">میانگین تأخیر شروع پخش: %1$d ms</string>
     <string name="performance_settings_metric_unavailable">N/A</string>
+    <string name="performance_settings_size_mb_format">%1$.1f MB</string>
+    <string name="performance_settings_latency_ms_format">%1$d ms</string>
     <string name="performance_settings_playlist_cache_hit_rate">نرخ برخورد کش فهرست پخش: %1$s</string>
     <string name="performance_settings_album_cache_hit_rate">نرخ برخورد کش آلبوم: %1$s</string>
     <string name="performance_settings_playlist_cached_latency">زمان کش شدن فهرست پخش: %1$s</string>

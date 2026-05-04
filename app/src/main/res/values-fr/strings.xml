@@ -216,6 +216,8 @@
     <string name="performance_settings_title">Performance</string>
     <string name="performance_settings_playback_latency">Latence moyenne de démarrage : %1$d ms</string>
     <string name="performance_settings_metric_unavailable">N/A</string>
+    <string name="performance_settings_size_mb_format">%1$.1f MB</string>
+    <string name="performance_settings_latency_ms_format">%1$d ms</string>
     <string name="performance_settings_playlist_cache_hit_rate">Taux de cache des playlists : %1$s</string>
     <string name="performance_settings_album_cache_hit_rate">Taux de cache des albums : %1$s</string>
     <string name="performance_settings_playlist_cached_latency">Temps de mise en cache des playlists : %1$s</string>

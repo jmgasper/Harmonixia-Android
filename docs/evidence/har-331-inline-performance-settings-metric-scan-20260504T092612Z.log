@@ -1,0 +1,58 @@
+HAR-331 inline PerformanceSettings metric formatting scan
+Timestamp(UTC): 20260504T092612Z
+
+-- PerformanceSettingsScreen format callsites --
+59:    val metricTemplates = PerformanceSettingsMetricTemplates(
+60:        sizeMbFormat = stringResource(R.string.performance_settings_size_mb_format),
+61:        latencyMsFormat = stringResource(R.string.performance_settings_latency_ms_format)
+69:    val playlistCachedLatency = formatLatency(
+76:    val playlistFreshLatency = formatLatency(
+83:    val albumCachedLatency = formatLatency(
+90:    val albumFreshLatency = formatLatency(
+105:    val playlistTrackSmall = formatOptionalLatency(playlistTrackLoads.smallMs, unavailableLabel, metricTemplates)
+106:    val playlistTrackMedium = formatOptionalLatency(playlistTrackLoads.mediumMs, unavailableLabel, metricTemplates)
+107:    val playlistTrackLarge = formatOptionalLatency(playlistTrackLoads.largeMs, unavailableLabel, metricTemplates)
+108:    val albumTrackSmall = formatOptionalLatency(albumTrackLoads.smallMs, unavailableLabel, metricTemplates)
+109:    val albumTrackMedium = formatOptionalLatency(albumTrackLoads.mediumMs, unavailableLabel, metricTemplates)
+110:    val albumTrackLarge = formatOptionalLatency(albumTrackLoads.largeMs, unavailableLabel, metricTemplates)
+207:                    formatBytes(imageLoader.memoryCache?.size, metricTemplates),
+208:                    formatBytes(imageLoader.memoryCache?.maxSize, metricTemplates)
+215:                    formatBytes(imageLoader.diskCache?.size, metricTemplates),
+216:                    formatBytes(imageLoader.diskCache?.maxSize, metricTemplates)
+260:private fun formatBytes(value: Long?, templates: PerformanceSettingsMetricTemplates): String {
+261:    return PerformanceSettingsMetricFormatter.formatBytes(value, templates)
+264:private fun formatLatency(
+267:    templates: PerformanceSettingsMetricTemplates
+269:    return PerformanceSettingsMetricFormatter.formatLatency(value, unavailableLabel, templates)
+272:private fun formatOptionalLatency(
+275:    templates: PerformanceSettingsMetricTemplates
+277:    return PerformanceSettingsMetricFormatter.formatOptionalLatency(value, unavailableLabel, templates)
+
+-- Formatter implementation --
+5:internal data class PerformanceSettingsMetricTemplates(
+6:    val sizeMbFormat: String,
+7:    val latencyMsFormat: String
+11:    fun formatBytes(value: Long?, templates: PerformanceSettingsMetricTemplates): String {
+14:        return String.format(Locale.getDefault(), templates.sizeMbFormat, mb)
+20:        templates: PerformanceSettingsMetricTemplates
+22:        return if (value <= 0L) unavailableLabel else String.format(
+24:            templates.latencyMsFormat,
+32:        templates: PerformanceSettingsMetricTemplates
+35:            String.format(Locale.getDefault(), templates.latencyMsFormat, it)
+
+-- Formatter tests --
+6:class PerformanceSettingsMetricFormatterTest {
+9:        sizeMbFormat = "%1$.1f MBX",
+10:        latencyMsFormat = "%1\$d msX"
+14:    fun formatBytes_formatsMegabytesWithSingleDecimal() {
+15:        assertEquals("1.0 MBX", PerformanceSettingsMetricFormatter.formatBytes(1_048_576L, templates))
+16:        assertEquals("0.0 MBX", PerformanceSettingsMetricFormatter.formatBytes(null, templates))
+20:    fun formatLatency_returnsUnavailableForNonPositive() {
+21:        assertEquals("N/A", PerformanceSettingsMetricFormatter.formatLatency(0L, "N/A", templates))
+22:        assertEquals("N/A", PerformanceSettingsMetricFormatter.formatLatency(-3L, "N/A", templates))
+26:    fun formatLatency_usesTemplateForPositiveValues() {
+27:        assertEquals("87 msX", PerformanceSettingsMetricFormatter.formatLatency(87L, "N/A", templates))
+31:    fun formatOptionalLatency_usesTemplateWhenPresent() {
+32:        assertEquals("42 msX", PerformanceSettingsMetricFormatter.formatOptionalLatency(42L, "N/A", templates))
+36:    fun formatOptionalLatency_returnsUnavailableWhenNull() {
+37:        assertEquals("N/A", PerformanceSettingsMetricFormatter.formatOptionalLatency(null, "N/A", templates))

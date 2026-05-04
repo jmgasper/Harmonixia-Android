@@ -12,11 +12,11 @@ import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.IconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.activity.ComponentActivity
@@ -33,7 +33,6 @@ import com.harmonixia.android.ui.playback.PlaybackViewModel
 import com.harmonixia.android.ui.screens.settings.entrypoints.PerformanceSettingsEntryPoint
 import dagger.hilt.android.EntryPointAccessors
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
-import java.util.Locale
 
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
@@ -57,6 +56,10 @@ fun PerformanceSettingsScreen(
 
     val averageLatency = performanceMonitor.getAveragePlaybackLatency()
     val unavailableLabel = stringResource(R.string.performance_settings_metric_unavailable)
+    val metricTemplates = PerformanceSettingsMetricTemplates(
+        sizeMbFormat = stringResource(R.string.performance_settings_size_mb_format),
+        latencyMsFormat = stringResource(R.string.performance_settings_latency_ms_format)
+    )
     val playlistCacheHitRate = performanceMonitor.getCacheHitRate(
         com.harmonixia.android.util.PerformanceMonitor.CacheType.PLAYLIST
     )
@@ -67,25 +70,29 @@ fun PerformanceSettingsScreen(
         performanceMonitor.getAverageDetailCacheLatency(
             com.harmonixia.android.util.PerformanceMonitor.DetailType.PLAYLIST
         ),
-        unavailableLabel
+        unavailableLabel,
+        metricTemplates
     )
     val playlistFreshLatency = formatLatency(
         performanceMonitor.getAverageDetailFreshLatency(
             com.harmonixia.android.util.PerformanceMonitor.DetailType.PLAYLIST
         ),
-        unavailableLabel
+        unavailableLabel,
+        metricTemplates
     )
     val albumCachedLatency = formatLatency(
         performanceMonitor.getAverageDetailCacheLatency(
             com.harmonixia.android.util.PerformanceMonitor.DetailType.ALBUM
         ),
-        unavailableLabel
+        unavailableLabel,
+        metricTemplates
     )
     val albumFreshLatency = formatLatency(
         performanceMonitor.getAverageDetailFreshLatency(
             com.harmonixia.android.util.PerformanceMonitor.DetailType.ALBUM
         ),
-        unavailableLabel
+        unavailableLabel,
+        metricTemplates
     )
     val playlistTrackLoads = performanceMonitor.getTrackLoadAverages(
         com.harmonixia.android.util.PerformanceMonitor.DetailType.PLAYLIST
@@ -95,12 +102,12 @@ fun PerformanceSettingsScreen(
     )
     val playlistHitRateLabel = playlistCacheHitRate?.let { "$it%" } ?: unavailableLabel
     val albumHitRateLabel = albumCacheHitRate?.let { "$it%" } ?: unavailableLabel
-    val playlistTrackSmall = formatOptionalLatency(playlistTrackLoads.smallMs, unavailableLabel)
-    val playlistTrackMedium = formatOptionalLatency(playlistTrackLoads.mediumMs, unavailableLabel)
-    val playlistTrackLarge = formatOptionalLatency(playlistTrackLoads.largeMs, unavailableLabel)
-    val albumTrackSmall = formatOptionalLatency(albumTrackLoads.smallMs, unavailableLabel)
-    val albumTrackMedium = formatOptionalLatency(albumTrackLoads.mediumMs, unavailableLabel)
-    val albumTrackLarge = formatOptionalLatency(albumTrackLoads.largeMs, unavailableLabel)
+    val playlistTrackSmall = formatOptionalLatency(playlistTrackLoads.smallMs, unavailableLabel, metricTemplates)
+    val playlistTrackMedium = formatOptionalLatency(playlistTrackLoads.mediumMs, unavailableLabel, metricTemplates)
+    val playlistTrackLarge = formatOptionalLatency(playlistTrackLoads.largeMs, unavailableLabel, metricTemplates)
+    val albumTrackSmall = formatOptionalLatency(albumTrackLoads.smallMs, unavailableLabel, metricTemplates)
+    val albumTrackMedium = formatOptionalLatency(albumTrackLoads.mediumMs, unavailableLabel, metricTemplates)
+    val albumTrackLarge = formatOptionalLatency(albumTrackLoads.largeMs, unavailableLabel, metricTemplates)
 
     Scaffold(
         topBar = {
@@ -197,16 +204,16 @@ fun PerformanceSettingsScreen(
             Text(
                 text = stringResource(
                     R.string.performance_settings_memory_cache,
-                    formatBytes(imageLoader.memoryCache?.size),
-                    formatBytes(imageLoader.memoryCache?.maxSize)
+                    formatBytes(imageLoader.memoryCache?.size, metricTemplates),
+                    formatBytes(imageLoader.memoryCache?.maxSize, metricTemplates)
                 ),
                 style = MaterialTheme.typography.bodyLarge
             )
             Text(
                 text = stringResource(
                     R.string.performance_settings_disk_cache,
-                    formatBytes(imageLoader.diskCache?.size),
-                    formatBytes(imageLoader.diskCache?.maxSize)
+                    formatBytes(imageLoader.diskCache?.size, metricTemplates),
+                    formatBytes(imageLoader.diskCache?.maxSize, metricTemplates)
                 ),
                 style = MaterialTheme.typography.bodyLarge
             )
@@ -250,16 +257,22 @@ private fun clearImageCaches(imageLoader: ImageLoader) {
     imageLoader.diskCache?.clear()
 }
 
-private fun formatBytes(value: Long?): String {
-    val bytes = value ?: 0L
-    val mb = bytes / (1024f * 1024f)
-    return String.format(Locale.getDefault(), "%.1f MB", mb)
+private fun formatBytes(value: Long?, templates: PerformanceSettingsMetricTemplates): String {
+    return PerformanceSettingsMetricFormatter.formatBytes(value, templates)
 }
 
-private fun formatLatency(value: Long, unavailableLabel: String): String {
-    return if (value <= 0L) unavailableLabel else "${value} ms"
+private fun formatLatency(
+    value: Long,
+    unavailableLabel: String,
+    templates: PerformanceSettingsMetricTemplates
+): String {
+    return PerformanceSettingsMetricFormatter.formatLatency(value, unavailableLabel, templates)
 }
 
-private fun formatOptionalLatency(value: Long?, unavailableLabel: String): String {
-    return value?.let { "${it} ms" } ?: unavailableLabel
+private fun formatOptionalLatency(
+    value: Long?,
+    unavailableLabel: String,
+    templates: PerformanceSettingsMetricTemplates
+): String {
+    return PerformanceSettingsMetricFormatter.formatOptionalLatency(value, unavailableLabel, templates)
 }

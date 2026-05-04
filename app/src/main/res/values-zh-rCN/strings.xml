@@ -214,6 +214,8 @@
     <string name="performance_settings_title">性能</string>
     <string name="performance_settings_playback_latency">平均播放启动延迟：%1$d 毫秒</string>
     <string name="performance_settings_metric_unavailable">N/A</string>
+    <string name="performance_settings_size_mb_format">%1$.1f MB</string>
+    <string name="performance_settings_latency_ms_format">%1$d ms</string>
     <string name="performance_settings_playlist_cache_hit_rate">播放列表缓存命中率：%1$s</string>
     <string name="performance_settings_album_cache_hit_rate">专辑缓存命中率：%1$s</string>
     <string name="performance_settings_playlist_cached_latency">播放列表缓存耗时：%1$s</string>
