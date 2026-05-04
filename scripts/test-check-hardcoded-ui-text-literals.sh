@@ -181,6 +181,20 @@ assert_contains "$annotated_string_constructor_fail_output" "FAIL: hardcoded UI 
 assert_contains "$annotated_string_constructor_fail_output" "AnnotatedStringConstructorLiteral.kt"
 assert_contains "$annotated_string_constructor_fail_output" "AnnotatedString(\"Now playing\")"
 
+annotated_string_constructor_raw_fail_dir="${tmp_dir}/annotated-string-constructor-raw-fail"
+mkdir -p "$annotated_string_constructor_raw_fail_dir"
+cat > "${annotated_string_constructor_raw_fail_dir}/AnnotatedStringConstructorRawLiteral.kt" <<'KOTLIN'
+@Composable
+fun FailAnnotatedStringConstructorRaw() {
+    BasicText(text = AnnotatedString("""Now playing"""))
+}
+KOTLIN
+
+annotated_string_constructor_raw_fail_output="$(run_expect_exit 1 "$annotated_string_constructor_raw_fail_dir")"
+assert_contains "$annotated_string_constructor_raw_fail_output" "FAIL: hardcoded UI text literals found in Kotlin UI sources:"
+assert_contains "$annotated_string_constructor_raw_fail_output" "AnnotatedStringConstructorRawLiteral.kt"
+assert_contains "$annotated_string_constructor_raw_fail_output" "AnnotatedString(\"\"\"Now playing\"\"\")"
+
 annotated_string_named_arg_fail_dir="${tmp_dir}/annotated-string-named-arg-fail"
 mkdir -p "$annotated_string_named_arg_fail_dir"
 cat > "${annotated_string_named_arg_fail_dir}/AnnotatedStringNamedArgLiteral.kt" <<'KOTLIN'
