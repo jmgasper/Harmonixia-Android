@@ -17,6 +17,7 @@ fi
 
 # Conservative literal checks for Compose UI callsites.
 text_call_pattern='Text\(\s*"[^"$][^"\n]*"'
+basic_text_call_pattern='BasicText\(\s*"[^"$][^"\n]*"'
 named_text_pattern='text\s*=\s*"[^"$][^"\n]*"'
 content_description_pattern='contentDescription\s*=\s*"[^"$][^"\n]*"'
 
@@ -24,6 +25,7 @@ violations_file="$(mktemp)"
 trap 'rm -f "$violations_file"' EXIT
 
 rg --no-heading --line-number --color never --glob '*.kt' "$text_call_pattern" "${targets[@]}" >>"$violations_file" || true
+rg --no-heading --line-number --color never --glob '*.kt' "$basic_text_call_pattern" "${targets[@]}" >>"$violations_file" || true
 rg --no-heading --line-number --color never --glob '*.kt' "$named_text_pattern" "${targets[@]}" >>"$violations_file" || true
 rg --no-heading --line-number --color never --glob '*.kt' "$content_description_pattern" "${targets[@]}" >>"$violations_file" || true
 

@@ -46,6 +46,7 @@ cat > "${pass_dir}/Pass.kt" <<'KOTLIN'
 @Composable
 fun Pass(title: String) {
     Text(text = title)
+    BasicText(text = title)
     Icon(imageVector = Icons.Outlined.PlayArrow, contentDescription = stringResource(R.string.action_play))
     Box(modifier = Modifier.semantics { contentDescription = title })
     Icon(imageVector = Icons.Outlined.PlayArrow, contentDescription = "$title")
@@ -82,5 +83,19 @@ semantics_fail_output="$(run_expect_exit 1 "$semantics_fail_dir")"
 assert_contains "$semantics_fail_output" "FAIL: hardcoded UI text literals found in Kotlin UI sources:"
 assert_contains "$semantics_fail_output" "SemanticsContentDescriptionLiteral.kt"
 assert_contains "$semantics_fail_output" "contentDescription = \"Volume control\""
+
+basic_text_fail_dir="${tmp_dir}/basic-text-fail"
+mkdir -p "$basic_text_fail_dir"
+cat > "${basic_text_fail_dir}/BasicTextLiteral.kt" <<'KOTLIN'
+@Composable
+fun FailBasicText() {
+    BasicText("Now playing")
+}
+KOTLIN
+
+basic_text_fail_output="$(run_expect_exit 1 "$basic_text_fail_dir")"
+assert_contains "$basic_text_fail_output" "FAIL: hardcoded UI text literals found in Kotlin UI sources:"
+assert_contains "$basic_text_fail_output" "BasicTextLiteral.kt"
+assert_contains "$basic_text_fail_output" "BasicText(\"Now playing\")"
 
 echo "check-hardcoded-ui-text-literals tests passed."
