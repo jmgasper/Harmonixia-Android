@@ -85,6 +85,7 @@ fi
 
 if [[ "$run_syntax" == "true" ]]; then
     echo "Running shell syntax checks..."
+    bash -n "${script_dir}/check-hardcoded-format-templates.sh"
     bash -n "${script_dir}/agp9-phase2-audit.sh"
     bash -n "${script_dir}/validate-local.sh"
     bash -n "${script_dir}/smoke-debug-emulator.sh"
@@ -108,6 +109,9 @@ if [[ "$run_behavior" == "true" ]]; then
 
     echo "Running smoke-debug-emulator option regressions..."
     "${script_dir}/test-smoke-debug-emulator-options.sh"
+
+    echo "Running hardcoded format-template scanner regression..."
+    "${script_dir}/check-hardcoded-format-templates.sh"
 fi
 
 if [[ "$run_syntax" == "true" && "$run_behavior" == "true" ]]; then
