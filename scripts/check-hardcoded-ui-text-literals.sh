@@ -19,6 +19,7 @@ fi
 text_call_pattern='Text\(\s*"[^"$][^"\n]*"'
 basic_text_call_pattern='BasicText\(\s*"[^"$][^"\n]*"'
 annotated_string_constructor_pattern='AnnotatedString\(\s*"[^"$][^"\n]*"'
+annotated_string_named_text_pattern='AnnotatedString\([^)]*text\s*=\s*"[^"$][^"\n]*"'
 named_text_pattern='text\s*=\s*"[^"$][^"\n]*"'
 content_description_pattern='contentDescription\s*=\s*"[^"$][^"\n]*"'
 
@@ -28,6 +29,7 @@ trap 'rm -f "$violations_file"' EXIT
 rg --no-heading --line-number --color never --glob '*.kt' "$text_call_pattern" "${targets[@]}" >>"$violations_file" || true
 rg --no-heading --line-number --color never --glob '*.kt' "$basic_text_call_pattern" "${targets[@]}" >>"$violations_file" || true
 rg --no-heading --line-number --color never --glob '*.kt' "$annotated_string_constructor_pattern" "${targets[@]}" >>"$violations_file" || true
+rg --no-heading --line-number --color never --glob '*.kt' "$annotated_string_named_text_pattern" "${targets[@]}" >>"$violations_file" || true
 rg --no-heading --line-number --color never --glob '*.kt' "$named_text_pattern" "${targets[@]}" >>"$violations_file" || true
 rg --no-heading --line-number --color never --glob '*.kt' "$content_description_pattern" "${targets[@]}" >>"$violations_file" || true
 
