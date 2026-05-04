@@ -47,6 +47,8 @@ cat > "${pass_dir}/Pass.kt" <<'KOTLIN'
 fun Pass(title: String) {
     Text(text = title)
     BasicText(text = title)
+    BasicText(text = AnnotatedString(title))
+    Text(text = buildAnnotatedString { append(title) })
     Icon(imageVector = Icons.Outlined.PlayArrow, contentDescription = stringResource(R.string.action_play))
     Box(modifier = Modifier.semantics { contentDescription = title })
     Icon(imageVector = Icons.Outlined.PlayArrow, contentDescription = "$title")
@@ -97,5 +99,37 @@ basic_text_fail_output="$(run_expect_exit 1 "$basic_text_fail_dir")"
 assert_contains "$basic_text_fail_output" "FAIL: hardcoded UI text literals found in Kotlin UI sources:"
 assert_contains "$basic_text_fail_output" "BasicTextLiteral.kt"
 assert_contains "$basic_text_fail_output" "BasicText(\"Now playing\")"
+
+annotated_string_constructor_fail_dir="${tmp_dir}/annotated-string-constructor-fail"
+mkdir -p "$annotated_string_constructor_fail_dir"
+cat > "${annotated_string_constructor_fail_dir}/AnnotatedStringConstructorLiteral.kt" <<'KOTLIN'
+@Composable
+fun FailAnnotatedStringConstructor() {
+    BasicText(text = AnnotatedString("Now playing"))
+}
+KOTLIN
+
+annotated_string_constructor_fail_output="$(run_expect_exit 1 "$annotated_string_constructor_fail_dir")"
+assert_contains "$annotated_string_constructor_fail_output" "FAIL: hardcoded UI text literals found in Kotlin UI sources:"
+assert_contains "$annotated_string_constructor_fail_output" "AnnotatedStringConstructorLiteral.kt"
+assert_contains "$annotated_string_constructor_fail_output" "AnnotatedString(\"Now playing\")"
+
+annotated_string_append_fail_dir="${tmp_dir}/annotated-string-append-fail"
+mkdir -p "$annotated_string_append_fail_dir"
+cat > "${annotated_string_append_fail_dir}/AnnotatedStringAppendLiteral.kt" <<'KOTLIN'
+@Composable
+fun FailAnnotatedStringAppend() {
+    Text(
+        text = buildAnnotatedString {
+            append("Now playing")
+        }
+    )
+}
+KOTLIN
+
+annotated_string_append_fail_output="$(run_expect_exit 1 "$annotated_string_append_fail_dir")"
+assert_contains "$annotated_string_append_fail_output" "FAIL: hardcoded UI text literals found in Kotlin UI sources:"
+assert_contains "$annotated_string_append_fail_output" "AnnotatedStringAppendLiteral.kt"
+assert_contains "$annotated_string_append_fail_output" "append(\"Now playing\")"
 
 echo "check-hardcoded-ui-text-literals tests passed."
