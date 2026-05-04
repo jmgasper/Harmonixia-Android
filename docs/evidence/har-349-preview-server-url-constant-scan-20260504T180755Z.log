@@ -1,0 +1,10 @@
+app/src/main/java/com/harmonixia/android/ui/screens/onboarding/OnboardingScreenPreview.kt:8:import com.harmonixia.android.ui.screens.PREVIEW_DEMO_SERVER_URL
+app/src/main/java/com/harmonixia/android/ui/screens/onboarding/OnboardingScreenPreview.kt:35:                OnboardingFormState(serverUrl = PREVIEW_DEMO_SERVER_URL)
+app/src/main/java/com/harmonixia/android/ui/screens/onboarding/OnboardingScreenPreview.kt:56:                OnboardingFormState(serverUrl = PREVIEW_DEMO_SERVER_URL),
+app/src/main/java/com/harmonixia/android/ui/screens/onboarding/OnboardingScreenPreview.kt:77:                OnboardingFormState(serverUrl = PREVIEW_DEMO_SERVER_URL)
+app/src/main/java/com/harmonixia/android/ui/screens/PreviewDefaults.kt:3:const val PREVIEW_DEMO_SERVER_URL = "http://192.168.1.29:8095"
+app/src/main/java/com/harmonixia/android/ui/screens/settings/SettingsScreenPreview.kt:10:import com.harmonixia.android.ui.screens.PREVIEW_DEMO_SERVER_URL
+app/src/main/java/com/harmonixia/android/ui/screens/settings/SettingsScreenPreview.kt:20:                form = SettingsFormState(serverUrl = PREVIEW_DEMO_SERVER_URL),
+app/src/main/java/com/harmonixia/android/ui/screens/settings/SettingsScreenPreview.kt:53:                form = SettingsFormState(serverUrl = PREVIEW_DEMO_SERVER_URL),
+app/src/main/java/com/harmonixia/android/ui/screens/settings/SettingsScreenPreview.kt:88:                form = SettingsFormState(serverUrl = PREVIEW_DEMO_SERVER_URL),
+app/src/main/java/com/harmonixia/android/ui/screens/settings/SettingsScreenPreview.kt:123:                form = SettingsFormState(serverUrl = PREVIEW_DEMO_SERVER_URL),
