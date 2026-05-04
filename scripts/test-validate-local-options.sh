@@ -141,6 +141,22 @@ assert_contains "$option_tests_success_output" "check-hardcoded-ui-text-literals
 assert_contains "$option_tests_success_output" "All local validation option regressions passed."
 assert_not_contains "$option_tests_success_output" "Running AGP 9 Phase 2 static audit gate..."
 
+cat > "${option_tests_sim_root}/scripts/test-local-validation-option-regressions.sh" <<'STUB_FAIL'
+#!/usr/bin/env bash
+set -euo pipefail
+
+echo "Running shell syntax checks..."
+echo "FAIL: simulated option regression failure" >&2
+exit 23
+STUB_FAIL
+chmod +x "${option_tests_sim_root}/scripts/test-local-validation-option-regressions.sh"
+
+option_tests_failure_output="$(run_script_expect_exit "${option_tests_sim_root}/scripts/validate-local.sh" 23 --option-tests)"
+assert_contains "$option_tests_failure_output" "Running local validation option regression tests..."
+assert_contains "$option_tests_failure_output" "Running shell syntax checks..."
+assert_contains "$option_tests_failure_output" "FAIL: simulated option regression failure"
+assert_not_contains "$option_tests_failure_output" "Running AGP 9 Phase 2 static audit gate..."
+
 agp9_full_path_smoke_help_conflict_output="$(run_expect_exit 1 --agp9-full-path --smoke-help)"
 assert_contains "$agp9_full_path_smoke_help_conflict_output" "--agp9-full-path cannot be combined with informational smoke-only modes"
 
