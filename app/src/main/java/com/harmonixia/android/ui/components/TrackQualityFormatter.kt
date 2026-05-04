@@ -128,7 +128,7 @@ private fun parseBitrateKbps(quality: String): Double? {
 }
 
 private fun formatKhz(value: Double, resolveLabel: (Int) -> String): String {
-    val rounded = if (value % 1.0 == 0.0) value.toInt().toString() else String.format(Locale.US, "%.1f", value)
+    val rounded = formatRoundedDecimal(value, resolveLabel)
     val unit = resolveLabel(R.string.track_quality_unit_khz)
     return formatQualityTemplate(
         R.string.track_quality_detail_khz_format,
@@ -139,13 +139,24 @@ private fun formatKhz(value: Double, resolveLabel: (Int) -> String): String {
 }
 
 private fun formatKbps(value: Double, resolveLabel: (Int) -> String): String {
-    val rounded = if (value % 1.0 == 0.0) value.toInt().toString() else String.format(Locale.US, "%.1f", value)
+    val rounded = formatRoundedDecimal(value, resolveLabel)
     val unit = resolveLabel(R.string.track_quality_unit_kbps)
     return formatQualityTemplate(
         R.string.track_quality_detail_kbps_format,
         resolveLabel,
         rounded,
         unit
+    )
+}
+
+private fun formatRoundedDecimal(value: Double, resolveLabel: (Int) -> String): String {
+    if (value % 1.0 == 0.0) {
+        return value.toInt().toString()
+    }
+    return String.format(
+        Locale.US,
+        resolveLabel(R.string.track_quality_decimal_one_place_format),
+        value
     )
 }
 

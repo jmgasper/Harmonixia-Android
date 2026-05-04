@@ -1,0 +1,21 @@
+HAR-333 inline TrackQuality decimal template scan
+Timestamp(UTC): 20260504T103629Z
+
+-- TrackQualityFormatter decimal formatting paths --
+65:        isLosslessQuality(normalized) -> sampleRateDetail ?: bitrateKbps?.let { formatKbps(it, resolveLabel) }
+66:        isLossyQuality(normalized) -> bitrateKbps?.let { formatKbps(it, resolveLabel) } ?: sampleRateDetail
+68:        bitrateKbps != null -> formatKbps(bitrateKbps, resolveLabel)
+83:            formatKhz(sampleRateKhz, resolveLabel),
+87:        sampleRateKhz != null -> formatKhz(sampleRateKhz, resolveLabel)
+130:private fun formatKhz(value: Double, resolveLabel: (Int) -> String): String {
+131:    val rounded = formatRoundedDecimal(value, resolveLabel)
+141:private fun formatKbps(value: Double, resolveLabel: (Int) -> String): String {
+142:    val rounded = formatRoundedDecimal(value, resolveLabel)
+152:private fun formatRoundedDecimal(value: Double, resolveLabel: (Int) -> String): String {
+158:        resolveLabel(R.string.track_quality_decimal_one_place_format),
+
+-- TrackQualityFormatterTest decimal-template coverage --
+53:    fun formatTrackQualityLabel_decimalSampleRate_usesResourceTemplate() {
+64:                    R.string.track_quality_decimal_one_place_format to "d%1\$.1f",
+76:    fun formatTrackQualityLabel_decimalBitrate_usesResourceTemplate() {
+86:                    R.string.track_quality_decimal_one_place_format to "d%1\$.1f",
