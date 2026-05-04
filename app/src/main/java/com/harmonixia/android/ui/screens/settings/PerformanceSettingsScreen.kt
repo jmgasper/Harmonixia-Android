@@ -58,7 +58,8 @@ fun PerformanceSettingsScreen(
     val unavailableLabel = stringResource(R.string.performance_settings_metric_unavailable)
     val metricTemplates = PerformanceSettingsMetricTemplates(
         sizeMbFormat = stringResource(R.string.performance_settings_size_mb_format),
-        latencyMsFormat = stringResource(R.string.performance_settings_latency_ms_format)
+        latencyMsFormat = stringResource(R.string.performance_settings_latency_ms_format),
+        hitRatePercentFormat = stringResource(R.string.performance_settings_hit_rate_percent_format)
     )
     val playlistCacheHitRate = performanceMonitor.getCacheHitRate(
         com.harmonixia.android.util.PerformanceMonitor.CacheType.PLAYLIST
@@ -100,8 +101,16 @@ fun PerformanceSettingsScreen(
     val albumTrackLoads = performanceMonitor.getTrackLoadAverages(
         com.harmonixia.android.util.PerformanceMonitor.DetailType.ALBUM
     )
-    val playlistHitRateLabel = playlistCacheHitRate?.let { "$it%" } ?: unavailableLabel
-    val albumHitRateLabel = albumCacheHitRate?.let { "$it%" } ?: unavailableLabel
+    val playlistHitRateLabel = PerformanceSettingsMetricFormatter.formatHitRate(
+        playlistCacheHitRate,
+        unavailableLabel,
+        metricTemplates
+    )
+    val albumHitRateLabel = PerformanceSettingsMetricFormatter.formatHitRate(
+        albumCacheHitRate,
+        unavailableLabel,
+        metricTemplates
+    )
     val playlistTrackSmall = formatOptionalLatency(playlistTrackLoads.smallMs, unavailableLabel, metricTemplates)
     val playlistTrackMedium = formatOptionalLatency(playlistTrackLoads.mediumMs, unavailableLabel, metricTemplates)
     val playlistTrackLarge = formatOptionalLatency(playlistTrackLoads.largeMs, unavailableLabel, metricTemplates)

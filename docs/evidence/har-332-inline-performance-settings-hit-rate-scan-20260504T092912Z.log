@@ -1,0 +1,22 @@
+HAR-332 inline PerformanceSettings hit-rate template scan
+Timestamp(UTC): 20260504T092912Z
+
+-- Screen callsites --
+62:        hitRatePercentFormat = stringResource(R.string.performance_settings_hit_rate_percent_format)
+104:    val playlistHitRateLabel = PerformanceSettingsMetricFormatter.formatHitRate(
+109:    val albumHitRateLabel = PerformanceSettingsMetricFormatter.formatHitRate(
+
+-- Formatter implementation --
+8:    val hitRatePercentFormat: String
+15:        return String.format(Locale.getDefault(), templates.sizeMbFormat, mb)
+23:        return if (value <= 0L) unavailableLabel else String.format(
+36:            String.format(Locale.getDefault(), templates.latencyMsFormat, it)
+40:    fun formatHitRate(
+46:            String.format(Locale.getDefault(), templates.hitRatePercentFormat, it)
+
+-- Formatter tests --
+11:        hitRatePercentFormat = "%1\$d%%X"
+42:    fun formatHitRate_usesTemplateWhenPresent() {
+43:        assertEquals("73%X", PerformanceSettingsMetricFormatter.formatHitRate(73, "N/A", templates))
+47:    fun formatHitRate_returnsUnavailableWhenNull() {
+48:        assertEquals("N/A", PerformanceSettingsMetricFormatter.formatHitRate(null, "N/A", templates))

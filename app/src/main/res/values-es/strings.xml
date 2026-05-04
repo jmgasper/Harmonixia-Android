@@ -218,6 +218,7 @@
     <string name="performance_settings_metric_unavailable">N/A</string>
     <string name="performance_settings_size_mb_format">%1$.1f MB</string>
     <string name="performance_settings_latency_ms_format">%1$d ms</string>
+    <string name="performance_settings_hit_rate_percent_format">%1$d%%</string>
     <string name="performance_settings_playlist_cache_hit_rate">Tasa de aciertos de caché de listas: %1$s</string>
     <string name="performance_settings_album_cache_hit_rate">Tasa de aciertos de caché de álbumes: %1$s</string>
     <string name="performance_settings_playlist_cached_latency">Tiempo a caché de listas: %1$s</string>

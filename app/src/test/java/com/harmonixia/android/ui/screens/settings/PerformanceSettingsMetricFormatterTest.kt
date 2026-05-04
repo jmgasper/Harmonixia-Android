@@ -7,7 +7,8 @@ class PerformanceSettingsMetricFormatterTest {
 
     private val templates = PerformanceSettingsMetricTemplates(
         sizeMbFormat = "%1$.1f MBX",
-        latencyMsFormat = "%1\$d msX"
+        latencyMsFormat = "%1\$d msX",
+        hitRatePercentFormat = "%1\$d%%X"
     )
 
     @Test
@@ -35,5 +36,15 @@ class PerformanceSettingsMetricFormatterTest {
     @Test
     fun formatOptionalLatency_returnsUnavailableWhenNull() {
         assertEquals("N/A", PerformanceSettingsMetricFormatter.formatOptionalLatency(null, "N/A", templates))
+    }
+
+    @Test
+    fun formatHitRate_usesTemplateWhenPresent() {
+        assertEquals("73%X", PerformanceSettingsMetricFormatter.formatHitRate(73, "N/A", templates))
+    }
+
+    @Test
+    fun formatHitRate_returnsUnavailableWhenNull() {
+        assertEquals("N/A", PerformanceSettingsMetricFormatter.formatHitRate(null, "N/A", templates))
     }
 }
