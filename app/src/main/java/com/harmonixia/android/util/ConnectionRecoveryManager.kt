@@ -1,12 +1,15 @@
 package com.harmonixia.android.util
 
+import android.content.Context
 import android.os.SystemClock
 import androidx.annotation.VisibleForTesting
+import com.harmonixia.android.R
 import com.harmonixia.android.data.local.SettingsDataStore
 import com.harmonixia.android.data.remote.ConnectionState
 import com.harmonixia.android.domain.model.AuthMethod
 import com.harmonixia.android.domain.usecase.ConnectToServerUseCase
 import com.harmonixia.android.domain.usecase.GetConnectionStateUseCase
+import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import javax.inject.Singleton
 import java.util.concurrent.atomic.AtomicBoolean
@@ -20,6 +23,7 @@ import kotlinx.coroutines.launch
 
 @Singleton
 class ConnectionRecoveryManager @Inject constructor(
+    @param:ApplicationContext private val context: Context,
     private val settingsDataStore: SettingsDataStore,
     private val connectToServerUseCase: ConnectToServerUseCase,
     getConnectionStateUseCase: GetConnectionStateUseCase,
@@ -100,7 +104,7 @@ class ConnectionRecoveryManager @Inject constructor(
                 suppressedInvalidServerUrl = null
             }.onFailure { error ->
                 if (error is IllegalArgumentException &&
-                    error.message == INVALID_SERVER_URL_ERROR
+                    error.message == context.getString(R.string.error_invalid_url)
                 ) {
                     suppressedInvalidServerUrl = serverUrl
                     Logger.w(TAG, "Skipping reconnect: persisted server URL is invalid")
@@ -120,7 +124,6 @@ class ConnectionRecoveryManager @Inject constructor(
 
     private companion object {
         private const val TAG = "ConnectionRecovery"
-        private const val INVALID_SERVER_URL_ERROR = "Server URL is invalid"
         private const val MIN_RECONNECT_INTERVAL_MS = 3_000L
         private const val REASON_APP_RESUMED = "app_resumed"
         private const val REASON_NETWORK_AVAILABLE = "network_available"

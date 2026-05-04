@@ -1,5 +1,7 @@
 package com.harmonixia.android.util
 
+import android.content.Context
+import com.harmonixia.android.R
 import com.harmonixia.android.data.local.SettingsDataStore
 import com.harmonixia.android.data.remote.ConnectionState
 import com.harmonixia.android.domain.model.AuthMethod
@@ -17,6 +19,9 @@ import org.junit.Test
 
 class ConnectionRecoveryManagerTest {
 
+    private val context = mockk<Context>(relaxed = true).apply {
+        every { getString(R.string.error_invalid_url) } returns ERROR_INVALID_URL
+    }
     private val settingsDataStore = mockk<SettingsDataStore>()
     private val connectToServerUseCase = mockk<ConnectToServerUseCase>()
     private val getConnectionStateUseCase = mockk<GetConnectionStateUseCase>()
@@ -36,6 +41,7 @@ class ConnectionRecoveryManagerTest {
         every { settingsDataStore.getAuthToken() } returns flowOf("token-123")
 
         manager = ConnectionRecoveryManager(
+            context = context,
             settingsDataStore = settingsDataStore,
             connectToServerUseCase = connectToServerUseCase,
             getConnectionStateUseCase = getConnectionStateUseCase,
@@ -49,7 +55,7 @@ class ConnectionRecoveryManagerTest {
         val invalidUrl = "not-a-valid-url]"
         every { settingsDataStore.getServerUrl() } returns flowOf(invalidUrl)
         coEvery { connectToServerUseCase(any(), any(), any(), any(), any(), any()) } returns
-            Result.failure(IllegalArgumentException("Server URL is invalid"))
+            Result.failure(IllegalArgumentException(ERROR_INVALID_URL))
 
         manager.maybeReconnectForTest("first")
         manager.maybeReconnectForTest("second")
@@ -75,7 +81,7 @@ class ConnectionRecoveryManagerTest {
             if (url == "https://example.com") {
                 Result.success(Unit)
             } else {
-                Result.failure(IllegalArgumentException("Server URL is invalid"))
+                Result.failure(IllegalArgumentException(ERROR_INVALID_URL))
             }
         }
 
@@ -96,5 +102,9 @@ class ConnectionRecoveryManagerTest {
         coVerify(exactly = 2) {
             connectToServerUseCase(any(), any(), any(), any(), any(), false)
         }
+    }
+
+    private companion object {
+        private const val ERROR_INVALID_URL = "Server URL is invalid"
     }
 }
