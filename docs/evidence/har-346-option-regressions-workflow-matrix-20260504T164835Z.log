@@ -1,0 +1,4 @@
+12:      - scripts/check-hardcoded-format-templates.sh
+29:      - scripts/check-hardcoded-format-templates.sh
+72:          - name: format-template-scanner-direct
+73:            command: ./scripts/check-hardcoded-format-templates.sh

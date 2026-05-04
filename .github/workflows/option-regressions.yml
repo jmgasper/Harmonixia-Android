@@ -69,6 +69,8 @@ jobs:
             command: ./scripts/test-validate-local-options.sh
           - name: smoke-options-direct
             command: ./scripts/test-smoke-debug-emulator-options.sh
+          - name: format-template-scanner-direct
+            command: ./scripts/check-hardcoded-format-templates.sh
           - name: ui-literal-scanner-self-test-direct
             command: ./scripts/test-check-hardcoded-ui-text-literals.sh
     steps:
