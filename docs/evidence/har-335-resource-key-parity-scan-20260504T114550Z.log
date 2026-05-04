@@ -1,0 +1,20 @@
+HAR-335 resource key parity scan
+Timestamp(UTC): 20260504T114550Z
+
+PASS app/src/main/res/values-bn/strings.xml
+PASS app/src/main/res/values-de/strings.xml
+PASS app/src/main/res/values-es/strings.xml
+PASS app/src/main/res/values-fa/strings.xml
+PASS app/src/main/res/values-fi/strings.xml
+PASS app/src/main/res/values-fr/strings.xml
+PASS app/src/main/res/values-hi/strings.xml
+PASS app/src/main/res/values-it/strings.xml
+PASS app/src/main/res/values-nb/strings.xml
+PASS app/src/main/res/values-pt/strings.xml
+PASS app/src/main/res/values-sv/strings.xml
+PASS app/src/main/res/values-zh-rCN/strings.xml
+PASS app/src/main/res/values/strings.xml
+
+Total files scanned: 13
+Present: 13
+Missing: 0

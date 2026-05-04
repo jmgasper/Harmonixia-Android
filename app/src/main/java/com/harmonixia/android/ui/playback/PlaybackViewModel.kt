@@ -10,32 +10,33 @@ import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.util.UnstableApi
 import com.harmonixia.android.R
-import com.harmonixia.android.data.remote.WebSocketMessage
 import com.harmonixia.android.data.local.SettingsDataStore
 import com.harmonixia.android.data.remote.ConnectionState
+import com.harmonixia.android.data.remote.WebSocketMessage
 import com.harmonixia.android.domain.model.Album
-import com.harmonixia.android.domain.model.PlaybackState
+import com.harmonixia.android.domain.model.Artist
 import com.harmonixia.android.domain.model.PlaybackContext
+import com.harmonixia.android.domain.model.PlaybackState
 import com.harmonixia.android.domain.model.Player
 import com.harmonixia.android.domain.model.ProviderBadge
 import com.harmonixia.android.domain.model.RepeatMode
-import com.harmonixia.android.domain.model.Artist
 import com.harmonixia.android.domain.repository.LocalMediaRepository
 import com.harmonixia.android.domain.repository.MusicAssistantRepository
 import com.harmonixia.android.domain.repository.OFFLINE_PROVIDER
-import com.harmonixia.android.domain.usecase.GetPlayersUseCase
 import com.harmonixia.android.domain.usecase.GetConnectionStateUseCase
+import com.harmonixia.android.domain.usecase.GetPlayersUseCase
 import com.harmonixia.android.domain.usecase.ResolveProviderBadgeUseCase
 import com.harmonixia.android.domain.usecase.SearchLibraryUseCase
 import com.harmonixia.android.domain.usecase.SetPlayerMuteUseCase
 import com.harmonixia.android.domain.usecase.SetPlayerVolumeUseCase
 import com.harmonixia.android.service.playback.PlaybackServiceConnection
 import com.harmonixia.android.service.playback.PlaybackStateManager
-import com.harmonixia.android.util.ImageQualityManager
-import com.harmonixia.android.util.PlayerSelection
+import com.harmonixia.android.ui.components.TrackDurationFormatter
 import com.harmonixia.android.util.EXTRA_PARENT_MEDIA_ID
 import com.harmonixia.android.util.EXTRA_PROVIDER_DOMAINS
 import com.harmonixia.android.util.EXTRA_PROVIDER_ID
+import com.harmonixia.android.util.ImageQualityManager
+import com.harmonixia.android.util.PlayerSelection
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
@@ -55,9 +56,9 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -1139,9 +1140,9 @@ class PlaybackViewModel @Inject constructor(
 
     private fun formatDuration(milliseconds: Long): String {
         val totalSeconds = (milliseconds / 1000L).coerceAtLeast(0L)
-        val minutes = totalSeconds / 60L
-        val seconds = totalSeconds % 60L
-        return "%d:%02d".format(minutes, seconds)
+        val durationTemplate = context.getString(R.string.track_duration_minutes_seconds_format)
+        val safeSeconds = totalSeconds.coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
+        return TrackDurationFormatter.formatDuration(safeSeconds, durationTemplate)
     }
 }
 
