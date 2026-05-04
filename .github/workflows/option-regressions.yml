@@ -67,6 +67,8 @@ jobs:
             command: ./scripts/test-local-validation-option-regressions-runner.sh
           - name: validate-local-options-direct
             command: ./scripts/test-validate-local-options.sh
+          - name: smoke-options-direct
+            command: ./scripts/test-smoke-debug-emulator-options.sh
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
