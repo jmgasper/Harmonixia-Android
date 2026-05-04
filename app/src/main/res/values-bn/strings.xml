@@ -205,6 +205,7 @@
     <string name="track_quality_unit_khz">kHz</string>
     <string name="track_quality_unit_kbps">kbps</string>
     <string name="track_quality_unit_bit">bit</string>
+    <string name="track_duration_minutes_seconds_format">%1$d:%2$02d</string>
     <string name="album_type_album">অ্যালবাম</string>
     <string name="album_type_single">সিঙ্গেল</string>
     <string name="album_type_ep">EP</string>

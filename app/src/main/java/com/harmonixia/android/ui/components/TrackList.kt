@@ -427,7 +427,10 @@ private fun TrackListItem(
     reorderHandleModifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
-    val durationText = formatDuration(track.lengthSeconds)
+    val durationText = TrackDurationFormatter.formatDuration(
+        track.lengthSeconds,
+        stringResource(R.string.track_duration_minutes_seconds_format)
+    )
     val qualityLabel = formatTrackQualityLabel(
         track.quality,
         context::getString,
@@ -618,13 +621,6 @@ internal fun TrackQualityBadge(
             modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
         )
     }
-}
-
-private fun formatDuration(seconds: Int): String {
-    val safeSeconds = seconds.coerceAtLeast(0)
-    val minutes = safeSeconds / 60
-    val remainingSeconds = safeSeconds % 60
-    return "%d:%02d".format(minutes, remainingSeconds)
 }
 
 enum class TrackListLeadingContent {
