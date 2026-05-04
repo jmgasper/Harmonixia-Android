@@ -1,5 +1,7 @@
 package com.harmonixia.android.domain.usecase
 
+import android.content.Context
+import com.harmonixia.android.R
 import com.harmonixia.android.data.local.EqDataStore
 import com.harmonixia.android.data.local.EqPresetParser
 import com.harmonixia.android.domain.model.EqBandConfig
@@ -24,6 +26,7 @@ class ApplyEqPresetUseCaseTest {
 
     @Test
     fun invoke_appliesPresetAndSavesSettings() = runBlocking {
+        val context = mockk<Context>(relaxed = true)
         val repository = mockk<EqPresetRepository>()
         val dataStore = mockk<EqDataStore>()
         val parser = mockk<EqPresetParser>()
@@ -36,6 +39,7 @@ class ApplyEqPresetUseCaseTest {
         every { playbackServiceConnection.connect() } just runs
         coEvery { repository.getPresetById("preset-1") } returns preset
         coEvery { repository.loadPresets(any()) } returns Result.success(listOf(preset))
+        every { context.getString(R.string.eq_validation_preset_not_found) } returns "Preset not found"
         every { parser.convertToAndroidBands(preset) } returns bands
         every { equalizerManager.applyPreset(bands) } just runs
         every { equalizerManager.setSoftwareEqFilters(any()) } just runs
@@ -44,6 +48,7 @@ class ApplyEqPresetUseCaseTest {
         coEvery { dataStore.saveEqSettings(any()) } just runs
 
         val useCase = ApplyEqPresetUseCase(
+            context,
             repository,
             dataStore,
             parser,
@@ -63,6 +68,7 @@ class ApplyEqPresetUseCaseTest {
 
     @Test
     fun invoke_missingPreset_returnsFailure() = runBlocking {
+        val context = mockk<Context>(relaxed = true)
         val repository = mockk<EqPresetRepository>()
         val dataStore = mockk<EqDataStore>()
         val parser = mockk<EqPresetParser>()
@@ -72,8 +78,10 @@ class ApplyEqPresetUseCaseTest {
         every { playbackServiceConnection.connect() } just runs
         coEvery { repository.getPresetById("missing") } returns null
         coEvery { repository.loadPresets(any()) } returns Result.success(emptyList())
+        every { context.getString(R.string.eq_validation_preset_not_found) } returns "Preset not found"
 
         val useCase = ApplyEqPresetUseCase(
+            context,
             repository,
             dataStore,
             parser,
