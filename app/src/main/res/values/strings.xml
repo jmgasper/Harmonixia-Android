@@ -43,6 +43,10 @@
     <string name="eq_value_frequency_hz_format">%1$.0f Hz</string>
     <string name="eq_value_gain_db_format">%1$s%2$.1f dB</string>
     <string name="eq_value_q_format">%1$.2f</string>
+    <string name="eq_graph_frequency_integer_k_format">%1$dk</string>
+    <string name="eq_graph_frequency_decimal_k_format">%1$.1fk</string>
+    <string name="eq_graph_gain_positive_format">+%1$d</string>
+    <string name="eq_graph_gain_default_format">%1$d</string>
     <!-- Local Media Section -->
     <string name="section_local_media">Local Media</string>
     <string name="home_favorites">Favourites</string>
