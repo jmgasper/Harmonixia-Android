@@ -19,7 +19,12 @@ fun formatTrackQualityLabel(
         qualityDetailLabel(normalized, resolveLabel)
     }
     val resolved = when {
-        label != null && detail != null -> "$label $detail"
+        label != null && detail != null -> formatQualityTemplate(
+            R.string.track_quality_label_with_detail_format,
+            resolveLabel,
+            label,
+            detail
+        )
         label != null -> label
         detail != null -> detail
         else -> null
@@ -72,9 +77,20 @@ private fun formatSampleRateBitDepth(
 ): String? {
     val bitUnit = resolveLabel(R.string.track_quality_unit_bit)
     return when {
-        sampleRateKhz != null && bitDepth != null -> "${formatKhz(sampleRateKhz, resolveLabel)}/${bitDepth}-$bitUnit"
+        sampleRateKhz != null && bitDepth != null -> formatQualityTemplate(
+            R.string.track_quality_detail_sample_rate_bit_depth_format,
+            resolveLabel,
+            formatKhz(sampleRateKhz, resolveLabel),
+            bitDepth,
+            bitUnit
+        )
         sampleRateKhz != null -> formatKhz(sampleRateKhz, resolveLabel)
-        bitDepth != null -> "${bitDepth}-$bitUnit"
+        bitDepth != null -> formatQualityTemplate(
+            R.string.track_quality_detail_bit_depth_format,
+            resolveLabel,
+            bitDepth,
+            bitUnit
+        )
         else -> null
     }
 }
@@ -114,13 +130,31 @@ private fun parseBitrateKbps(quality: String): Double? {
 private fun formatKhz(value: Double, resolveLabel: (Int) -> String): String {
     val rounded = if (value % 1.0 == 0.0) value.toInt().toString() else String.format(Locale.US, "%.1f", value)
     val unit = resolveLabel(R.string.track_quality_unit_khz)
-    return "$rounded$unit"
+    return formatQualityTemplate(
+        R.string.track_quality_detail_khz_format,
+        resolveLabel,
+        rounded,
+        unit
+    )
 }
 
 private fun formatKbps(value: Double, resolveLabel: (Int) -> String): String {
     val rounded = if (value % 1.0 == 0.0) value.toInt().toString() else String.format(Locale.US, "%.1f", value)
     val unit = resolveLabel(R.string.track_quality_unit_kbps)
-    return "$rounded $unit"
+    return formatQualityTemplate(
+        R.string.track_quality_detail_kbps_format,
+        resolveLabel,
+        rounded,
+        unit
+    )
+}
+
+private fun formatQualityTemplate(
+    templateRes: Int,
+    resolveLabel: (Int) -> String,
+    vararg args: Any
+): String {
+    return String.format(Locale.getDefault(), resolveLabel(templateRes), *args)
 }
 
 private fun isHiResQuality(quality: String): Boolean {
