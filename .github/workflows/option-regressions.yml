@@ -65,8 +65,8 @@ jobs:
             command: ./scripts/test-local-validation-option-regressions.sh --dry-run
           - name: runner-self-test
             command: ./scripts/test-local-validation-option-regressions-runner.sh
-          - name: validate-option-tests-wrapper
-            command: ./scripts/validate-local.sh --option-tests
+          - name: validate-local-options-direct
+            command: ./scripts/test-validate-local-options.sh
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
