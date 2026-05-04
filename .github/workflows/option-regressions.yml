@@ -8,6 +8,7 @@ on:
       - .github/workflows/option-regressions.yml
       - scripts/agp9-phase2-audit.sh
       - scripts/check-hardcoded-ui-text-literals.sh
+      - scripts/test-check-hardcoded-ui-text-literals.sh
       - scripts/check-hardcoded-format-templates.sh
       - scripts/test-agp9-phase2-audit-options.sh
       - scripts/validate-local.sh
@@ -24,6 +25,7 @@ on:
       - .github/workflows/option-regressions.yml
       - scripts/agp9-phase2-audit.sh
       - scripts/check-hardcoded-ui-text-literals.sh
+      - scripts/test-check-hardcoded-ui-text-literals.sh
       - scripts/check-hardcoded-format-templates.sh
       - scripts/test-agp9-phase2-audit-options.sh
       - scripts/validate-local.sh
