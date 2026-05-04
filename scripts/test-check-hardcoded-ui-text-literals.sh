@@ -54,6 +54,7 @@ fun Pass(title: String) {
         appendLine(title)
         append(text = title)
         appendLine(text = title)
+        appendLine(value = title)
     })
     Icon(imageVector = Icons.Outlined.PlayArrow, contentDescription = stringResource(R.string.action_play))
     Box(modifier = Modifier.semantics { contentDescription = title })
@@ -195,6 +196,7 @@ cat > "${annotated_string_named_arg_append_line_fail_dir}/AnnotatedStringNamedAr
 fun FailAnnotatedStringNamedArgAppendLine() {
     Text(
         text = buildAnnotatedString {
+            appendLine(text = "Now playing")
             appendLine(value = "Now playing")
         }
     )
@@ -204,6 +206,7 @@ KOTLIN
 annotated_string_named_arg_append_line_fail_output="$(run_expect_exit 1 "$annotated_string_named_arg_append_line_fail_dir")"
 assert_contains "$annotated_string_named_arg_append_line_fail_output" "FAIL: hardcoded UI text literals found in Kotlin UI sources:"
 assert_contains "$annotated_string_named_arg_append_line_fail_output" "AnnotatedStringNamedArgAppendLineLiteral.kt"
+assert_contains "$annotated_string_named_arg_append_line_fail_output" "appendLine(text = \"Now playing\")"
 assert_contains "$annotated_string_named_arg_append_line_fail_output" "appendLine(value = \"Now playing\")"
 
 echo "check-hardcoded-ui-text-literals tests passed."
