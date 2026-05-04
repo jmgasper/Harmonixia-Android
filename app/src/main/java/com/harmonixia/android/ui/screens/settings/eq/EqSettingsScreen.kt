@@ -301,7 +301,7 @@ private fun AttributionCard() {
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text(
-                text = "EQ Presets: OPRA (Open Parametric Room Acoustics)",
+                text = stringResource(R.string.eq_attribution_opra_heading),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )

@@ -351,4 +351,5 @@
     <string name="recommendation_fallback_untitled_playlist_title">Untitled Playlist</string>
     <string name="recommendation_fallback_unknown_artist_title">Unknown Artist</string>
     <string name="recommendation_fallback_unknown_track_title">Unknown Track</string>
+    <string name="eq_attribution_opra_heading">EQ Presets: OPRA (Open Parametric Room Acoustics)</string>
 </resources>

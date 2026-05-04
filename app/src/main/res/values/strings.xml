@@ -24,6 +24,7 @@
     <string name="eq_select_preset_hint">Select a preset to view its EQ curve</string>
     <string name="eq_preset_details_title">Preset Details</string>
     <string name="eq_attribution_title">Attribution</string>
+    <string name="eq_attribution_opra_heading">EQ Presets: OPRA (Open Parametric Room Acoustics)</string>
     <string name="eq_error_load_failed">Failed to load EQ presets</string>
     <string name="eq_error_apply_failed">Failed to apply EQ preset</string>
     <string name="eq_fallback_preset_name">EQ Preset</string>
