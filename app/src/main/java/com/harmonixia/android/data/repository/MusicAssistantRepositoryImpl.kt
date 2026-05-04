@@ -1572,13 +1572,14 @@ class MusicAssistantRepositoryImpl @Inject constructor(
         val contentType = audioFormat["content_type"]
         val isLossless = isLosslessContentType(contentType)
         if (isLossless) {
+            val losslessLabel = context.getString(R.string.track_quality_lossless)
             val sampleRate = audioFormat.intOrZero("sample_rate")
             val bitDepth = audioFormat.intOrZero("bit_depth")
             if (sampleRate > 0 && bitDepth > 0) {
                 val rateText = formatSampleRateKhz(sampleRate)
-                return "Lossless ${rateText}kHz/${bitDepth}-bit"
+                return "$losslessLabel ${rateText}kHz/${bitDepth}-bit"
             }
-            return "Lossless"
+            return losslessLabel
         }
         val bitRate = audioFormat.intOrZero("bit_rate", "bitrate")
         if (bitRate > 0) {
