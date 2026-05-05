@@ -26,7 +26,7 @@ annotated_string_constructor_pattern="AnnotatedString\\(\\s*${literal_pattern}"
 annotated_string_named_text_pattern="AnnotatedString\\([^)]*text\\s*=\\s*${literal_pattern}"
 named_text_pattern="text\\s*=\\s*${literal_pattern}"
 content_description_pattern="contentDescription\\s*=\\s*${literal_pattern}"
-annotated_append_literal_pattern='append(Line)?[[:space:]]*[(][[:space:]]*([[:alpha:]_][[:alnum:]_]*[[:space:]]*=[[:space:]]*)?("[^"$][^"]*"|"""[^$][^"]*""")'
+annotated_append_literal_pattern='append(Line|Range)?[[:space:]]*[(][[:space:]]*([[:alpha:]_][[:alnum:]_]*[[:space:]]*=[[:space:]]*)?("[^"$][^"]*"|"""[^$][^"]*""")'
 
 violations_file="$(mktemp)"
 trap 'rm -f "$violations_file"' EXIT
