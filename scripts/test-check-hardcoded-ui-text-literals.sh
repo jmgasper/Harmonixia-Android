@@ -55,6 +55,10 @@ fun Pass(title: String) {
         """$title"""
     )
     Text(
+        // localized
+        """$title""" // localized
+    )
+    Text(
         text =
             title
     )
@@ -66,6 +70,10 @@ fun Pass(title: String) {
     Text(
         text =
             """$title"""
+    )
+    Text(
+        text =
+            """$title""" // localized
     )
     BasicText(text = title)
     BasicText(text = """$title""")
@@ -303,6 +311,22 @@ assert_contains "$text_multiline_positional_comment_fail_output" "FAIL: hardcode
 assert_contains "$text_multiline_positional_comment_fail_output" "TextMultilinePositionalCommentLiteral.kt"
 assert_contains "$text_multiline_positional_comment_fail_output" "\"Now playing\""
 
+text_multiline_positional_inline_comment_fail_dir="${tmp_dir}/text-multiline-positional-inline-comment-fail"
+mkdir -p "$text_multiline_positional_inline_comment_fail_dir"
+cat > "${text_multiline_positional_inline_comment_fail_dir}/TextMultilinePositionalInlineCommentLiteral.kt" <<'KOTLIN'
+@Composable
+fun FailTextMultilinePositionalInlineComment() {
+    Text(
+        "Now playing" // TODO localize
+    )
+}
+KOTLIN
+
+text_multiline_positional_inline_comment_fail_output="$(run_expect_exit 1 "$text_multiline_positional_inline_comment_fail_dir")"
+assert_contains "$text_multiline_positional_inline_comment_fail_output" "FAIL: hardcoded UI text literals found in Kotlin UI sources:"
+assert_contains "$text_multiline_positional_inline_comment_fail_output" "TextMultilinePositionalInlineCommentLiteral.kt"
+assert_contains "$text_multiline_positional_inline_comment_fail_output" "\"Now playing\" // TODO localize"
+
 basic_text_multiline_positional_fail_dir="${tmp_dir}/basic-text-multiline-positional-fail"
 mkdir -p "$basic_text_multiline_positional_fail_dir"
 cat > "${basic_text_multiline_positional_fail_dir}/BasicTextMultilinePositionalLiteral.kt" <<'KOTLIN'
@@ -358,6 +382,23 @@ text_multiline_named_assignment_comment_fail_output="$(run_expect_exit 1 "$text_
 assert_contains "$text_multiline_named_assignment_comment_fail_output" "FAIL: hardcoded UI text literals found in Kotlin UI sources:"
 assert_contains "$text_multiline_named_assignment_comment_fail_output" "TextMultilineNamedAssignmentCommentLiteral.kt"
 assert_contains "$text_multiline_named_assignment_comment_fail_output" "\"Now playing\""
+
+text_multiline_named_assignment_inline_comment_fail_dir="${tmp_dir}/text-multiline-named-assignment-inline-comment-fail"
+mkdir -p "$text_multiline_named_assignment_inline_comment_fail_dir"
+cat > "${text_multiline_named_assignment_inline_comment_fail_dir}/TextMultilineNamedAssignmentInlineCommentLiteral.kt" <<'KOTLIN'
+@Composable
+fun FailTextMultilineNamedAssignmentInlineComment() {
+    Text(
+        text =
+            "Now playing" // TODO localize
+    )
+}
+KOTLIN
+
+text_multiline_named_assignment_inline_comment_fail_output="$(run_expect_exit 1 "$text_multiline_named_assignment_inline_comment_fail_dir")"
+assert_contains "$text_multiline_named_assignment_inline_comment_fail_output" "FAIL: hardcoded UI text literals found in Kotlin UI sources:"
+assert_contains "$text_multiline_named_assignment_inline_comment_fail_output" "TextMultilineNamedAssignmentInlineCommentLiteral.kt"
+assert_contains "$text_multiline_named_assignment_inline_comment_fail_output" "\"Now playing\" // TODO localize"
 
 basic_text_raw_fail_dir="${tmp_dir}/basic-text-raw-fail"
 mkdir -p "$basic_text_raw_fail_dir"

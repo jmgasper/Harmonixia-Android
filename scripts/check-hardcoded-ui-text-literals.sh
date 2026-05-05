@@ -29,7 +29,7 @@ content_description_pattern="contentDescription\\s*=\\s*${literal_pattern}"
 annotated_append_call_start_pattern='append(Line|Range)?[[:space:]]*[(]'
 annotated_append_literal_pattern='("[^"$][^"]*"|"""[^$][^"]*""")'
 multiline_direct_call_start_pattern='(Text|BasicText|AnnotatedString)[[:space:]]*[(][[:space:]]*$'
-multiline_direct_literal_line_pattern='^[[:space:]]*("[^"$][^"]*"|"""[^$][^"]*""")[[:space:]]*,?[[:space:]]*$'
+multiline_direct_literal_line_pattern='^[[:space:]]*("[^"$][^"]*"|"""[^$][^"]*""")[[:space:]]*,?[[:space:]]*((//.*)|(/[*].*[*]/))?[[:space:]]*$'
 multiline_assignment_start_pattern='(text|contentDescription)[[:space:]]*=[[:space:]]*$'
 
 violations_file="$(mktemp)"
