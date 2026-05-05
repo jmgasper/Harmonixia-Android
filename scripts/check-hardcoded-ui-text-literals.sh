@@ -149,6 +149,10 @@ while IFS= read -r kotlin_file; do
   ' "$kotlin_file" >>"$violations_file"
 done < <(rg --files --glob '*.kt' "${targets[@]}" || true)
 
+# Different regex passes can hit the same source line; normalize to unique
+# violations so output is stable and non-duplicative.
+sort -u "$violations_file" -o "$violations_file"
+
 if [[ -s "$violations_file" ]]; then
   echo "FAIL: hardcoded UI text literals found in Kotlin UI sources:"
   cat "$violations_file"

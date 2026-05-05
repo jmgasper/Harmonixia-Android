@@ -40,6 +40,18 @@ assert_contains() {
     fi
 }
 
+assert_count() {
+    local text="$1"
+    local needle="$2"
+    local expected_count="$3"
+    local actual_count
+    actual_count="$(printf '%s\n' "$text" | grep -F -c "$needle" || true)"
+    if [[ "$actual_count" -ne "$expected_count" ]]; then
+        echo "$text" >&2
+        fail "expected '$needle' count ${expected_count}, got ${actual_count}"
+    fi
+}
+
 pass_dir="${tmp_dir}/pass"
 mkdir -p "$pass_dir"
 cat > "${pass_dir}/Pass.kt" <<'KOTLIN'
@@ -803,6 +815,20 @@ annotated_string_named_arg_fail_output="$(run_expect_exit 1 "$annotated_string_n
 assert_contains "$annotated_string_named_arg_fail_output" "FAIL: hardcoded UI text literals found in Kotlin UI sources:"
 assert_contains "$annotated_string_named_arg_fail_output" "AnnotatedStringNamedArgLiteral.kt"
 assert_contains "$annotated_string_named_arg_fail_output" "AnnotatedString(text = \"Now playing\")"
+
+annotated_string_named_arg_dedup_fail_dir="${tmp_dir}/annotated-string-named-arg-dedup-fail"
+mkdir -p "$annotated_string_named_arg_dedup_fail_dir"
+cat > "${annotated_string_named_arg_dedup_fail_dir}/AnnotatedStringNamedArgDedupLiteral.kt" <<'KOTLIN'
+@Composable
+fun FailAnnotatedStringNamedArgDedup() {
+    BasicText(text = AnnotatedString(text = "Now playing"))
+}
+KOTLIN
+
+annotated_string_named_arg_dedup_fail_output="$(run_expect_exit 1 "$annotated_string_named_arg_dedup_fail_dir")"
+assert_contains "$annotated_string_named_arg_dedup_fail_output" "FAIL: hardcoded UI text literals found in Kotlin UI sources:"
+assert_contains "$annotated_string_named_arg_dedup_fail_output" "AnnotatedStringNamedArgDedupLiteral.kt"
+assert_count "$annotated_string_named_arg_dedup_fail_output" "AnnotatedStringNamedArgDedupLiteral.kt" 1
 
 annotated_string_named_arg_block_comment_inline_fail_dir="${tmp_dir}/annotated-string-named-arg-block-comment-inline-fail"
 mkdir -p "$annotated_string_named_arg_block_comment_inline_fail_dir"
