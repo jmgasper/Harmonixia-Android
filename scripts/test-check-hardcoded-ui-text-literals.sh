@@ -50,6 +50,10 @@ fun Pass(title: String) {
     Text(
         """$title"""
     )
+    Text(
+        text =
+            title
+    )
     BasicText(text = title)
     BasicText(text = """$title""")
     BasicText(
@@ -104,6 +108,11 @@ fun Pass(title: String) {
         appendLine(value = """$title""")
     })
     Icon(imageVector = Icons.Outlined.PlayArrow, contentDescription = stringResource(R.string.action_play))
+    Icon(
+        imageVector = Icons.Outlined.PlayArrow,
+        contentDescription =
+            title
+    )
     Box(modifier = Modifier.semantics { contentDescription = title })
     Icon(imageVector = Icons.Outlined.PlayArrow, contentDescription = "$title")
 }
@@ -125,6 +134,24 @@ content_description_fail_output="$(run_expect_exit 1 "$content_description_fail_
 assert_contains "$content_description_fail_output" "FAIL: hardcoded UI text literals found in Kotlin UI sources:"
 assert_contains "$content_description_fail_output" "ContentDescriptionLiteral.kt"
 assert_contains "$content_description_fail_output" "contentDescription = \"Play track\""
+
+content_description_multiline_fail_dir="${tmp_dir}/content-description-multiline-fail"
+mkdir -p "$content_description_multiline_fail_dir"
+cat > "${content_description_multiline_fail_dir}/ContentDescriptionMultilineLiteral.kt" <<'KOTLIN'
+@Composable
+fun FailContentDescriptionMultiline() {
+    Icon(
+        imageVector = Icons.Outlined.PlayArrow,
+        contentDescription =
+            "Play track"
+    )
+}
+KOTLIN
+
+content_description_multiline_fail_output="$(run_expect_exit 1 "$content_description_multiline_fail_dir")"
+assert_contains "$content_description_multiline_fail_output" "FAIL: hardcoded UI text literals found in Kotlin UI sources:"
+assert_contains "$content_description_multiline_fail_output" "ContentDescriptionMultilineLiteral.kt"
+assert_contains "$content_description_multiline_fail_output" "\"Play track\""
 
 content_description_raw_fail_dir="${tmp_dir}/content-description-raw-fail"
 mkdir -p "$content_description_raw_fail_dir"
@@ -227,6 +254,28 @@ basic_text_multiline_positional_fail_output="$(run_expect_exit 1 "$basic_text_mu
 assert_contains "$basic_text_multiline_positional_fail_output" "FAIL: hardcoded UI text literals found in Kotlin UI sources:"
 assert_contains "$basic_text_multiline_positional_fail_output" "BasicTextMultilinePositionalLiteral.kt"
 assert_contains "$basic_text_multiline_positional_fail_output" "\"Now playing\""
+
+text_multiline_named_assignment_fail_dir="${tmp_dir}/text-multiline-named-assignment-fail"
+mkdir -p "$text_multiline_named_assignment_fail_dir"
+cat > "${text_multiline_named_assignment_fail_dir}/TextMultilineNamedAssignmentLiteral.kt" <<'KOTLIN'
+@Composable
+fun FailTextMultilineNamedAssignment() {
+    Text(
+        text =
+            "Now playing"
+    )
+    Text(
+        text =
+            """Now playing"""
+    )
+}
+KOTLIN
+
+text_multiline_named_assignment_fail_output="$(run_expect_exit 1 "$text_multiline_named_assignment_fail_dir")"
+assert_contains "$text_multiline_named_assignment_fail_output" "FAIL: hardcoded UI text literals found in Kotlin UI sources:"
+assert_contains "$text_multiline_named_assignment_fail_output" "TextMultilineNamedAssignmentLiteral.kt"
+assert_contains "$text_multiline_named_assignment_fail_output" "\"Now playing\""
+assert_contains "$text_multiline_named_assignment_fail_output" "\"\"\"Now playing\"\"\""
 
 basic_text_raw_fail_dir="${tmp_dir}/basic-text-raw-fail"
 mkdir -p "$basic_text_raw_fail_dir"

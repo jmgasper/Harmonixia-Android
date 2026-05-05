@@ -30,6 +30,7 @@ annotated_append_call_start_pattern='append(Line|Range)?[[:space:]]*[(]'
 annotated_append_literal_pattern='("[^"$][^"]*"|"""[^$][^"]*""")'
 multiline_direct_call_start_pattern='(Text|BasicText|AnnotatedString)[[:space:]]*[(][[:space:]]*$'
 multiline_direct_literal_line_pattern='^[[:space:]]*("[^"$][^"]*"|"""[^$][^"]*""")[[:space:]]*,?[[:space:]]*$'
+multiline_assignment_start_pattern='(text|contentDescription)[[:space:]]*=[[:space:]]*$'
 
 violations_file="$(mktemp)"
 trap 'rm -f "$violations_file"' EXIT
@@ -42,7 +43,7 @@ rg --no-heading --line-number --color never --glob '*.kt' "$named_text_pattern" 
 rg --no-heading --line-number --color never --glob '*.kt' "$content_description_pattern" "${targets[@]}" >>"$violations_file" || true
 
 while IFS= read -r kotlin_file; do
-  awk -v append_call_start_pattern="$annotated_append_call_start_pattern" -v append_literal_pattern="$annotated_append_literal_pattern" -v direct_call_start_pattern="$multiline_direct_call_start_pattern" -v direct_literal_line_pattern="$multiline_direct_literal_line_pattern" '
+  awk -v append_call_start_pattern="$annotated_append_call_start_pattern" -v append_literal_pattern="$annotated_append_literal_pattern" -v direct_call_start_pattern="$multiline_direct_call_start_pattern" -v direct_literal_line_pattern="$multiline_direct_literal_line_pattern" -v assignment_start_pattern="$multiline_assignment_start_pattern" '
     function update_brace_depth(source, i, c) {
       for (i = 1; i <= length(source); i++) {
         c = substr(source, i, 1)
@@ -85,6 +86,21 @@ while IFS= read -r kotlin_file; do
 
       if ($0 ~ direct_call_start_pattern) {
         pending_multiline_direct_literal_call = 1
+      }
+
+      if (pending_multiline_assignment_literal == 1) {
+        if ($0 ~ /^[[:space:]]*$/) {
+          # keep waiting through blank lines
+        } else {
+          if ($0 ~ direct_literal_line_pattern) {
+            printf "%s:%d:%s\n", FILENAME, NR, $0
+          }
+          pending_multiline_assignment_literal = 0
+        }
+      }
+
+      if ($0 ~ assignment_start_pattern) {
+        pending_multiline_assignment_literal = 1
       }
 
       if (in_annotated_block == 0 && $0 ~ /buildAnnotatedString[[:space:]]*\{/) {
