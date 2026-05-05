@@ -653,6 +653,26 @@ assert_contains "$basic_text_multiline_positional_fail_output" "FAIL: hardcoded 
 assert_contains "$basic_text_multiline_positional_fail_output" "BasicTextMultilinePositionalLiteral.kt"
 assert_contains "$basic_text_multiline_positional_fail_output" "\"Now playing\""
 
+basic_text_multiline_positional_call_close_block_comment_inline_literal_fail_dir="${tmp_dir}/basic-text-multiline-positional-call-close-block-comment-inline-literal-fail"
+mkdir -p "$basic_text_multiline_positional_call_close_block_comment_inline_literal_fail_dir"
+cat > "${basic_text_multiline_positional_call_close_block_comment_inline_literal_fail_dir}/BasicTextMultilinePositionalCallCloseBlockCommentInlineLiteral.kt" <<'KOTLIN'
+@Composable
+fun FailBasicTextMultilinePositionalCallCloseBlockCommentInlineLiteral() {
+    BasicText( /* TODO localize
+        */ "Now playing"
+    )
+    BasicText( /* TODO localize
+        */ """Now playing"""
+    )
+}
+KOTLIN
+
+basic_text_multiline_positional_call_close_block_comment_inline_literal_fail_output="$(run_expect_exit 1 "$basic_text_multiline_positional_call_close_block_comment_inline_literal_fail_dir")"
+assert_contains "$basic_text_multiline_positional_call_close_block_comment_inline_literal_fail_output" "FAIL: hardcoded UI text literals found in Kotlin UI sources:"
+assert_contains "$basic_text_multiline_positional_call_close_block_comment_inline_literal_fail_output" "BasicTextMultilinePositionalCallCloseBlockCommentInlineLiteral.kt"
+assert_contains "$basic_text_multiline_positional_call_close_block_comment_inline_literal_fail_output" "*/ \"Now playing\""
+assert_contains "$basic_text_multiline_positional_call_close_block_comment_inline_literal_fail_output" "*/ \"\"\"Now playing\"\"\""
+
 text_multiline_named_assignment_fail_dir="${tmp_dir}/text-multiline-named-assignment-fail"
 mkdir -p "$text_multiline_named_assignment_fail_dir"
 cat > "${text_multiline_named_assignment_fail_dir}/TextMultilineNamedAssignmentLiteral.kt" <<'KOTLIN'
