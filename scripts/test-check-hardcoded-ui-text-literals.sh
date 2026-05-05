@@ -47,11 +47,20 @@ cat > "${pass_dir}/Pass.kt" <<'KOTLIN'
 fun Pass(title: String) {
     Text(text = title)
     Text(text = """$title""")
+    Text(
+        """$title"""
+    )
     BasicText(text = title)
     BasicText(text = """$title""")
+    BasicText(
+        """$title"""
+    )
     BasicText(text = AnnotatedString(title))
     BasicText(text = AnnotatedString(text = title))
     BasicText(text = AnnotatedString(text = """$title"""))
+    BasicText(text = AnnotatedString(
+        """$title"""
+    ))
     Text(text = buildAnnotatedString {
         append(title)
         appendLine(title)
@@ -181,6 +190,38 @@ assert_contains "$basic_text_fail_output" "FAIL: hardcoded UI text literals foun
 assert_contains "$basic_text_fail_output" "BasicTextLiteral.kt"
 assert_contains "$basic_text_fail_output" "BasicText(\"Now playing\")"
 
+text_multiline_positional_fail_dir="${tmp_dir}/text-multiline-positional-fail"
+mkdir -p "$text_multiline_positional_fail_dir"
+cat > "${text_multiline_positional_fail_dir}/TextMultilinePositionalLiteral.kt" <<'KOTLIN'
+@Composable
+fun FailTextMultilinePositional() {
+    Text(
+        "Now playing"
+    )
+}
+KOTLIN
+
+text_multiline_positional_fail_output="$(run_expect_exit 1 "$text_multiline_positional_fail_dir")"
+assert_contains "$text_multiline_positional_fail_output" "FAIL: hardcoded UI text literals found in Kotlin UI sources:"
+assert_contains "$text_multiline_positional_fail_output" "TextMultilinePositionalLiteral.kt"
+assert_contains "$text_multiline_positional_fail_output" "\"Now playing\""
+
+basic_text_multiline_positional_fail_dir="${tmp_dir}/basic-text-multiline-positional-fail"
+mkdir -p "$basic_text_multiline_positional_fail_dir"
+cat > "${basic_text_multiline_positional_fail_dir}/BasicTextMultilinePositionalLiteral.kt" <<'KOTLIN'
+@Composable
+fun FailBasicTextMultilinePositional() {
+    BasicText(
+        "Now playing"
+    )
+}
+KOTLIN
+
+basic_text_multiline_positional_fail_output="$(run_expect_exit 1 "$basic_text_multiline_positional_fail_dir")"
+assert_contains "$basic_text_multiline_positional_fail_output" "FAIL: hardcoded UI text literals found in Kotlin UI sources:"
+assert_contains "$basic_text_multiline_positional_fail_output" "BasicTextMultilinePositionalLiteral.kt"
+assert_contains "$basic_text_multiline_positional_fail_output" "\"Now playing\""
+
 basic_text_raw_fail_dir="${tmp_dir}/basic-text-raw-fail"
 mkdir -p "$basic_text_raw_fail_dir"
 cat > "${basic_text_raw_fail_dir}/BasicTextRawLiteral.kt" <<'KOTLIN'
@@ -208,6 +249,22 @@ annotated_string_constructor_fail_output="$(run_expect_exit 1 "$annotated_string
 assert_contains "$annotated_string_constructor_fail_output" "FAIL: hardcoded UI text literals found in Kotlin UI sources:"
 assert_contains "$annotated_string_constructor_fail_output" "AnnotatedStringConstructorLiteral.kt"
 assert_contains "$annotated_string_constructor_fail_output" "AnnotatedString(\"Now playing\")"
+
+annotated_string_constructor_multiline_fail_dir="${tmp_dir}/annotated-string-constructor-multiline-fail"
+mkdir -p "$annotated_string_constructor_multiline_fail_dir"
+cat > "${annotated_string_constructor_multiline_fail_dir}/AnnotatedStringConstructorMultilineLiteral.kt" <<'KOTLIN'
+@Composable
+fun FailAnnotatedStringConstructorMultiline() {
+    BasicText(text = AnnotatedString(
+        "Now playing"
+    ))
+}
+KOTLIN
+
+annotated_string_constructor_multiline_fail_output="$(run_expect_exit 1 "$annotated_string_constructor_multiline_fail_dir")"
+assert_contains "$annotated_string_constructor_multiline_fail_output" "FAIL: hardcoded UI text literals found in Kotlin UI sources:"
+assert_contains "$annotated_string_constructor_multiline_fail_output" "AnnotatedStringConstructorMultilineLiteral.kt"
+assert_contains "$annotated_string_constructor_multiline_fail_output" "\"Now playing\""
 
 annotated_string_constructor_raw_fail_dir="${tmp_dir}/annotated-string-constructor-raw-fail"
 mkdir -p "$annotated_string_constructor_raw_fail_dir"
