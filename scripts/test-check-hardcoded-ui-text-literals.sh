@@ -257,6 +257,25 @@ KOTLIN
 raw_interpolation_nonleading_dollar_pass_output="$(run_expect_exit 0 "$raw_interpolation_nonleading_dollar_pass_dir")"
 assert_contains "$raw_interpolation_nonleading_dollar_pass_output" "PASS: no hardcoded UI text literals found in ${raw_interpolation_nonleading_dollar_pass_dir}."
 
+annotated_string_raw_interpolation_nonleading_dollar_pass_dir="${tmp_dir}/annotated-string-raw-interpolation-nonleading-dollar-pass"
+mkdir -p "$annotated_string_raw_interpolation_nonleading_dollar_pass_dir"
+cat > "${annotated_string_raw_interpolation_nonleading_dollar_pass_dir}/AnnotatedStringRawInterpolationNonleadingDollarPass.kt" <<'KOTLIN'
+@Composable
+fun PassAnnotatedStringRawInterpolationNonleadingDollar(title: String) {
+    BasicText(text = AnnotatedString("""Track: $title"""))
+    BasicText(text = AnnotatedString(text = """Now $title"""))
+    Text(
+        text = buildAnnotatedString {
+            append("""Track: $title""")
+            appendLine(text = """Now $title""")
+        }
+    )
+}
+KOTLIN
+
+annotated_string_raw_interpolation_nonleading_dollar_pass_output="$(run_expect_exit 0 "$annotated_string_raw_interpolation_nonleading_dollar_pass_dir")"
+assert_contains "$annotated_string_raw_interpolation_nonleading_dollar_pass_output" "PASS: no hardcoded UI text literals found in ${annotated_string_raw_interpolation_nonleading_dollar_pass_dir}."
+
 content_description_fail_dir="${tmp_dir}/content-description-fail"
 mkdir -p "$content_description_fail_dir"
 cat > "${content_description_fail_dir}/ContentDescriptionLiteral.kt" <<'KOTLIN'
