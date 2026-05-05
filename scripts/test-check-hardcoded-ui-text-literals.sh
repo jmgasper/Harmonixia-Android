@@ -210,6 +210,34 @@ KOTLIN
 pass_output="$(run_expect_exit 0 "$pass_dir")"
 assert_contains "$pass_output" "PASS: no hardcoded UI text literals found in ${pass_dir}."
 
+interpolated_escaped_quote_pass_dir="${tmp_dir}/interpolated-escaped-quote-pass"
+mkdir -p "$interpolated_escaped_quote_pass_dir"
+cat > "${interpolated_escaped_quote_pass_dir}/InterpolatedEscapedQuotePass.kt" <<'KOTLIN'
+@Composable
+fun PassInterpolatedEscapedQuote(title: String) {
+    Text("He said \"$title\"")
+    Text(text = "Now \"$title\"")
+    Icon(imageVector = Icons.Outlined.PlayArrow, contentDescription = "Play \"$title\"")
+}
+KOTLIN
+
+interpolated_escaped_quote_pass_output="$(run_expect_exit 0 "$interpolated_escaped_quote_pass_dir")"
+assert_contains "$interpolated_escaped_quote_pass_output" "PASS: no hardcoded UI text literals found in ${interpolated_escaped_quote_pass_dir}."
+
+escaped_quote_literal_fail_dir="${tmp_dir}/escaped-quote-literal-fail"
+mkdir -p "$escaped_quote_literal_fail_dir"
+cat > "${escaped_quote_literal_fail_dir}/EscapedQuoteLiteralFail.kt" <<'KOTLIN'
+@Composable
+fun FailEscapedQuoteLiteral() {
+    Text("He said \"Now playing\"")
+}
+KOTLIN
+
+escaped_quote_literal_fail_output="$(run_expect_exit 1 "$escaped_quote_literal_fail_dir")"
+assert_contains "$escaped_quote_literal_fail_output" "FAIL: hardcoded UI text literals found in Kotlin UI sources:"
+assert_contains "$escaped_quote_literal_fail_output" "EscapedQuoteLiteralFail.kt"
+assert_contains "$escaped_quote_literal_fail_output" "Text(\"He said \\\"Now playing\\\"\")"
+
 content_description_fail_dir="${tmp_dir}/content-description-fail"
 mkdir -p "$content_description_fail_dir"
 cat > "${content_description_fail_dir}/ContentDescriptionLiteral.kt" <<'KOTLIN'
