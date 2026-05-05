@@ -850,6 +850,30 @@ assert_contains "$annotated_string_constructor_raw_fail_output" "FAIL: hardcoded
 assert_contains "$annotated_string_constructor_raw_fail_output" "AnnotatedStringConstructorRawLiteral.kt"
 assert_contains "$annotated_string_constructor_raw_fail_output" "AnnotatedString(\"\"\"Now playing\"\"\")"
 
+annotated_string_constructor_close_block_comment_inline_literal_fail_dir="${tmp_dir}/annotated-string-constructor-close-block-comment-inline-literal-fail"
+mkdir -p "$annotated_string_constructor_close_block_comment_inline_literal_fail_dir"
+cat > "${annotated_string_constructor_close_block_comment_inline_literal_fail_dir}/AnnotatedStringConstructorCloseBlockCommentInlineLiteral.kt" <<'KOTLIN'
+@Composable
+fun FailAnnotatedStringConstructorCloseBlockCommentInlineLiteral() {
+    BasicText(
+        text = AnnotatedString( /* TODO localize
+            */ "Now playing"
+        )
+    )
+    BasicText(
+        text = AnnotatedString( /* TODO localize
+            */ """Now playing"""
+        )
+    )
+}
+KOTLIN
+
+annotated_string_constructor_close_block_comment_inline_literal_fail_output="$(run_expect_exit 1 "$annotated_string_constructor_close_block_comment_inline_literal_fail_dir")"
+assert_contains "$annotated_string_constructor_close_block_comment_inline_literal_fail_output" "FAIL: hardcoded UI text literals found in Kotlin UI sources:"
+assert_contains "$annotated_string_constructor_close_block_comment_inline_literal_fail_output" "AnnotatedStringConstructorCloseBlockCommentInlineLiteral.kt"
+assert_contains "$annotated_string_constructor_close_block_comment_inline_literal_fail_output" "*/ \"Now playing\""
+assert_contains "$annotated_string_constructor_close_block_comment_inline_literal_fail_output" "*/ \"\"\"Now playing\"\"\""
+
 annotated_string_named_arg_fail_dir="${tmp_dir}/annotated-string-named-arg-fail"
 mkdir -p "$annotated_string_named_arg_fail_dir"
 cat > "${annotated_string_named_arg_fail_dir}/AnnotatedStringNamedArgLiteral.kt" <<'KOTLIN'
