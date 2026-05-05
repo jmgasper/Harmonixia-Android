@@ -238,6 +238,25 @@ assert_contains "$escaped_quote_literal_fail_output" "FAIL: hardcoded UI text li
 assert_contains "$escaped_quote_literal_fail_output" "EscapedQuoteLiteralFail.kt"
 assert_contains "$escaped_quote_literal_fail_output" "Text(\"He said \\\"Now playing\\\"\")"
 
+raw_interpolation_nonleading_dollar_pass_dir="${tmp_dir}/raw-interpolation-nonleading-dollar-pass"
+mkdir -p "$raw_interpolation_nonleading_dollar_pass_dir"
+cat > "${raw_interpolation_nonleading_dollar_pass_dir}/RawInterpolationNonleadingDollarPass.kt" <<'KOTLIN'
+@Composable
+fun PassRawInterpolationNonleadingDollar(title: String) {
+    Text(text = """Now $title""")
+    BasicText(text = """Track: $title""")
+    Icon(imageVector = Icons.Outlined.PlayArrow, contentDescription = """Play $title""")
+    Text(
+        text = buildAnnotatedString {
+            appendLine("""Now $title""")
+        }
+    )
+}
+KOTLIN
+
+raw_interpolation_nonleading_dollar_pass_output="$(run_expect_exit 0 "$raw_interpolation_nonleading_dollar_pass_dir")"
+assert_contains "$raw_interpolation_nonleading_dollar_pass_output" "PASS: no hardcoded UI text literals found in ${raw_interpolation_nonleading_dollar_pass_dir}."
+
 content_description_fail_dir="${tmp_dir}/content-description-fail"
 mkdir -p "$content_description_fail_dir"
 cat > "${content_description_fail_dir}/ContentDescriptionLiteral.kt" <<'KOTLIN'

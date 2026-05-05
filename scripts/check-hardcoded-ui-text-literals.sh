@@ -17,7 +17,7 @@ fi
 
 # Conservative literal checks for Compose UI callsites.
 escaped_string_literal_pattern='"([^"\\$]|\\.)+"'
-raw_string_literal_pattern='"""[^$\n][^"\n]*"""'
+raw_string_literal_pattern='"""[^$\n][^$"\n]*"""'
 literal_pattern="(${escaped_string_literal_pattern}|${raw_string_literal_pattern})"
 
 text_call_pattern="Text\\(\\s*${literal_pattern}"
