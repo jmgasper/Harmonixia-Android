@@ -122,6 +122,11 @@ fun Pass(title: String) {
         contentDescription =
             """$title"""
     )
+    Icon(
+        imageVector = Icons.Outlined.PlayArrow,
+        contentDescription =
+            """$title"""
+    )
     Box(modifier = Modifier.semantics { contentDescription = title })
     Icon(imageVector = Icons.Outlined.PlayArrow, contentDescription = "$title")
 }
@@ -161,6 +166,24 @@ content_description_multiline_fail_output="$(run_expect_exit 1 "$content_descrip
 assert_contains "$content_description_multiline_fail_output" "FAIL: hardcoded UI text literals found in Kotlin UI sources:"
 assert_contains "$content_description_multiline_fail_output" "ContentDescriptionMultilineLiteral.kt"
 assert_contains "$content_description_multiline_fail_output" "\"Play track\""
+
+content_description_multiline_raw_fail_dir="${tmp_dir}/content-description-multiline-raw-fail"
+mkdir -p "$content_description_multiline_raw_fail_dir"
+cat > "${content_description_multiline_raw_fail_dir}/ContentDescriptionMultilineRawLiteral.kt" <<'KOTLIN'
+@Composable
+fun FailContentDescriptionMultilineRaw() {
+    Icon(
+        imageVector = Icons.Outlined.PlayArrow,
+        contentDescription =
+            """Play track"""
+    )
+}
+KOTLIN
+
+content_description_multiline_raw_fail_output="$(run_expect_exit 1 "$content_description_multiline_raw_fail_dir")"
+assert_contains "$content_description_multiline_raw_fail_output" "FAIL: hardcoded UI text literals found in Kotlin UI sources:"
+assert_contains "$content_description_multiline_raw_fail_output" "ContentDescriptionMultilineRawLiteral.kt"
+assert_contains "$content_description_multiline_raw_fail_output" "\"\"\"Play track\"\"\""
 
 content_description_raw_fail_dir="${tmp_dir}/content-description-raw-fail"
 mkdir -p "$content_description_raw_fail_dir"
