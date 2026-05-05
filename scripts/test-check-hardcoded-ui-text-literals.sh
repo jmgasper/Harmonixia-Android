@@ -250,6 +250,30 @@ assert_contains "$content_description_multiline_start_block_comment_fail_output"
 assert_contains "$content_description_multiline_start_block_comment_fail_output" "ContentDescriptionMultilineStartBlockCommentLiteral.kt"
 assert_contains "$content_description_multiline_start_block_comment_fail_output" "\"Play track\""
 
+content_description_multiline_inline_block_comment_fail_dir="${tmp_dir}/content-description-multiline-inline-block-comment-fail"
+mkdir -p "$content_description_multiline_inline_block_comment_fail_dir"
+cat > "${content_description_multiline_inline_block_comment_fail_dir}/ContentDescriptionMultilineInlineBlockCommentLiteral.kt" <<'KOTLIN'
+@Composable
+fun FailContentDescriptionMultilineInlineBlockComment() {
+    Icon(
+        imageVector = Icons.Outlined.PlayArrow,
+        contentDescription =
+            "Play track" /* TODO localize */
+    )
+    Icon(
+        imageVector = Icons.Outlined.PlayArrow,
+        contentDescription =
+            """Play track""" /* TODO localize */
+    )
+}
+KOTLIN
+
+content_description_multiline_inline_block_comment_fail_output="$(run_expect_exit 1 "$content_description_multiline_inline_block_comment_fail_dir")"
+assert_contains "$content_description_multiline_inline_block_comment_fail_output" "FAIL: hardcoded UI text literals found in Kotlin UI sources:"
+assert_contains "$content_description_multiline_inline_block_comment_fail_output" "ContentDescriptionMultilineInlineBlockCommentLiteral.kt"
+assert_contains "$content_description_multiline_inline_block_comment_fail_output" "\"Play track\" /* TODO localize */"
+assert_contains "$content_description_multiline_inline_block_comment_fail_output" "\"\"\"Play track\"\"\" /* TODO localize */"
+
 content_description_raw_fail_dir="${tmp_dir}/content-description-raw-fail"
 mkdir -p "$content_description_raw_fail_dir"
 cat > "${content_description_raw_fail_dir}/ContentDescriptionRawLiteral.kt" <<'KOTLIN'
