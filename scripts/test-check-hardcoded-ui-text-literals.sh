@@ -225,6 +225,20 @@ assert_contains "$content_description_block_comment_inline_fail_output" "FAIL: h
 assert_contains "$content_description_block_comment_inline_fail_output" "ContentDescriptionBlockCommentInlineLiteral.kt"
 assert_contains "$content_description_block_comment_inline_fail_output" "\"Play track\""
 
+content_description_raw_block_comment_inline_fail_dir="${tmp_dir}/content-description-raw-block-comment-inline-fail"
+mkdir -p "$content_description_raw_block_comment_inline_fail_dir"
+cat > "${content_description_raw_block_comment_inline_fail_dir}/ContentDescriptionRawBlockCommentInlineLiteral.kt" <<'KOTLIN'
+@Composable
+fun FailContentDescriptionRawBlockCommentInline() {
+    Icon(imageVector = Icons.Outlined.PlayArrow, contentDescription = /* TODO localize */ """Play track""")
+}
+KOTLIN
+
+content_description_raw_block_comment_inline_fail_output="$(run_expect_exit 1 "$content_description_raw_block_comment_inline_fail_dir")"
+assert_contains "$content_description_raw_block_comment_inline_fail_output" "FAIL: hardcoded UI text literals found in Kotlin UI sources:"
+assert_contains "$content_description_raw_block_comment_inline_fail_output" "ContentDescriptionRawBlockCommentInlineLiteral.kt"
+assert_contains "$content_description_raw_block_comment_inline_fail_output" "\"\"\"Play track\"\"\""
+
 content_description_multiline_fail_dir="${tmp_dir}/content-description-multiline-fail"
 mkdir -p "$content_description_multiline_fail_dir"
 cat > "${content_description_multiline_fail_dir}/ContentDescriptionMultilineLiteral.kt" <<'KOTLIN'
@@ -398,6 +412,20 @@ text_named_arg_block_comment_inline_fail_output="$(run_expect_exit 1 "$text_name
 assert_contains "$text_named_arg_block_comment_inline_fail_output" "FAIL: hardcoded UI text literals found in Kotlin UI sources:"
 assert_contains "$text_named_arg_block_comment_inline_fail_output" "TextNamedArgBlockCommentInlineLiteral.kt"
 assert_contains "$text_named_arg_block_comment_inline_fail_output" "\"Now playing\""
+
+text_named_arg_raw_block_comment_inline_fail_dir="${tmp_dir}/text-named-arg-raw-block-comment-inline-fail"
+mkdir -p "$text_named_arg_raw_block_comment_inline_fail_dir"
+cat > "${text_named_arg_raw_block_comment_inline_fail_dir}/TextNamedArgRawBlockCommentInlineLiteral.kt" <<'KOTLIN'
+@Composable
+fun FailTextNamedArgRawBlockCommentInline() {
+    Text(text = /* TODO localize */ """Now playing""")
+}
+KOTLIN
+
+text_named_arg_raw_block_comment_inline_fail_output="$(run_expect_exit 1 "$text_named_arg_raw_block_comment_inline_fail_dir")"
+assert_contains "$text_named_arg_raw_block_comment_inline_fail_output" "FAIL: hardcoded UI text literals found in Kotlin UI sources:"
+assert_contains "$text_named_arg_raw_block_comment_inline_fail_output" "TextNamedArgRawBlockCommentInlineLiteral.kt"
+assert_contains "$text_named_arg_raw_block_comment_inline_fail_output" "\"\"\"Now playing\"\"\""
 
 basic_text_fail_dir="${tmp_dir}/basic-text-fail"
 mkdir -p "$basic_text_fail_dir"
@@ -702,6 +730,20 @@ annotated_string_named_arg_block_comment_inline_fail_output="$(run_expect_exit 1
 assert_contains "$annotated_string_named_arg_block_comment_inline_fail_output" "FAIL: hardcoded UI text literals found in Kotlin UI sources:"
 assert_contains "$annotated_string_named_arg_block_comment_inline_fail_output" "AnnotatedStringNamedArgBlockCommentInlineLiteral.kt"
 assert_contains "$annotated_string_named_arg_block_comment_inline_fail_output" "\"Now playing\""
+
+annotated_string_named_arg_raw_block_comment_inline_fail_dir="${tmp_dir}/annotated-string-named-arg-raw-block-comment-inline-fail"
+mkdir -p "$annotated_string_named_arg_raw_block_comment_inline_fail_dir"
+cat > "${annotated_string_named_arg_raw_block_comment_inline_fail_dir}/AnnotatedStringNamedArgRawBlockCommentInlineLiteral.kt" <<'KOTLIN'
+@Composable
+fun FailAnnotatedStringNamedArgRawBlockCommentInline() {
+    BasicText(text = AnnotatedString(text = /* TODO localize */ """Now playing"""))
+}
+KOTLIN
+
+annotated_string_named_arg_raw_block_comment_inline_fail_output="$(run_expect_exit 1 "$annotated_string_named_arg_raw_block_comment_inline_fail_dir")"
+assert_contains "$annotated_string_named_arg_raw_block_comment_inline_fail_output" "FAIL: hardcoded UI text literals found in Kotlin UI sources:"
+assert_contains "$annotated_string_named_arg_raw_block_comment_inline_fail_output" "AnnotatedStringNamedArgRawBlockCommentInlineLiteral.kt"
+assert_contains "$annotated_string_named_arg_raw_block_comment_inline_fail_output" "\"\"\"Now playing\"\"\""
 
 annotated_string_named_arg_raw_fail_dir="${tmp_dir}/annotated-string-named-arg-raw-fail"
 mkdir -p "$annotated_string_named_arg_raw_fail_dir"
