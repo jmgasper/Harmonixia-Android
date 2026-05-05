@@ -301,6 +301,26 @@ assert_contains "$annotated_string_append_range_fail_output" "AnnotatedStringApp
 assert_contains "$annotated_string_append_range_fail_output" "appendRange(\"Now playing\", 0, 3)"
 assert_contains "$annotated_string_append_range_fail_output" "appendRange(text = \"Now playing\", startIndex = 0, endIndex = 3)"
 
+annotated_string_append_range_raw_fail_dir="${tmp_dir}/annotated-string-append-range-raw-fail"
+mkdir -p "$annotated_string_append_range_raw_fail_dir"
+cat > "${annotated_string_append_range_raw_fail_dir}/AnnotatedStringAppendRangeRawLiteral.kt" <<'KOTLIN'
+@Composable
+fun FailAnnotatedStringAppendRangeRaw() {
+    Text(
+        text = buildAnnotatedString {
+            appendRange("""Now playing""", 0, 3)
+            appendRange(text = """Now playing""", startIndex = 0, endIndex = 3)
+        }
+    )
+}
+KOTLIN
+
+annotated_string_append_range_raw_fail_output="$(run_expect_exit 1 "$annotated_string_append_range_raw_fail_dir")"
+assert_contains "$annotated_string_append_range_raw_fail_output" "FAIL: hardcoded UI text literals found in Kotlin UI sources:"
+assert_contains "$annotated_string_append_range_raw_fail_output" "AnnotatedStringAppendRangeRawLiteral.kt"
+assert_contains "$annotated_string_append_range_raw_fail_output" "appendRange(\"\"\"Now playing\"\"\", 0, 3)"
+assert_contains "$annotated_string_append_range_raw_fail_output" "appendRange(text = \"\"\"Now playing\"\"\", startIndex = 0, endIndex = 3)"
+
 annotated_string_append_line_raw_fail_dir="${tmp_dir}/annotated-string-append-line-raw-fail"
 mkdir -p "$annotated_string_append_line_raw_fail_dir"
 cat > "${annotated_string_append_line_raw_fail_dir}/AnnotatedStringAppendLineRawLiteral.kt" <<'KOTLIN'
