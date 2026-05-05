@@ -62,6 +62,7 @@ fun Pass(title: String) {
         appendRange(text = title, startIndex = 0, endIndex = title.length)
         appendRange(text = """$title""", startIndex = 0, endIndex = title.length)
         append(start = 0, end = title.length, text = title)
+        append(start = 0, end = title.length, text = """$title""")
         appendRange(startIndex = 0, endIndex = title.length, text = title)
         appendLine(value = title)
         appendLine(value = """$title""")
