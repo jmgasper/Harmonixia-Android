@@ -66,6 +66,8 @@ fun Pass(title: String) {
         append(end = title.length, text = title, start = 0)
         append(end = title.length, text = """$title""", start = 0)
         appendRange(startIndex = 0, endIndex = title.length, text = title)
+        appendRange(endIndex = title.length, text = title, startIndex = 0)
+        appendRange(endIndex = title.length, text = """$title""", startIndex = 0)
         appendLine(value = title)
         appendLine(value = """$title""")
     })
@@ -361,6 +363,8 @@ fun FailAnnotatedStringAppendRangeReorderedNamedArgs() {
         text = buildAnnotatedString {
             appendRange(startIndex = 0, endIndex = 3, text = "Now playing")
             appendRange(startIndex = 0, endIndex = 3, text = """Now playing""")
+            appendRange(endIndex = 3, text = "Now playing", startIndex = 0)
+            appendRange(endIndex = 3, text = """Now playing""", startIndex = 0)
         }
     )
 }
@@ -371,6 +375,8 @@ assert_contains "$annotated_string_append_range_reordered_named_args_fail_output
 assert_contains "$annotated_string_append_range_reordered_named_args_fail_output" "AnnotatedStringAppendRangeReorderedNamedArgsLiteral.kt"
 assert_contains "$annotated_string_append_range_reordered_named_args_fail_output" "appendRange(startIndex = 0, endIndex = 3, text = \"Now playing\")"
 assert_contains "$annotated_string_append_range_reordered_named_args_fail_output" "appendRange(startIndex = 0, endIndex = 3, text = \"\"\"Now playing\"\"\")"
+assert_contains "$annotated_string_append_range_reordered_named_args_fail_output" "appendRange(endIndex = 3, text = \"Now playing\", startIndex = 0)"
+assert_contains "$annotated_string_append_range_reordered_named_args_fail_output" "appendRange(endIndex = 3, text = \"\"\"Now playing\"\"\", startIndex = 0)"
 
 annotated_string_append_line_raw_fail_dir="${tmp_dir}/annotated-string-append-line-raw-fail"
 mkdir -p "$annotated_string_append_line_raw_fail_dir"
