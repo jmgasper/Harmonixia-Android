@@ -94,6 +94,12 @@ fun Pass(title: String) {
         appendLine(
             value = """$title"""
         )
+        appendLine(
+            title
+        )
+        appendLine(
+            """$title"""
+        )
         appendLine(value = title)
         appendLine(value = """$title""")
     })
@@ -521,6 +527,30 @@ annotated_string_append_line_raw_fail_output="$(run_expect_exit 1 "$annotated_st
 assert_contains "$annotated_string_append_line_raw_fail_output" "FAIL: hardcoded UI text literals found in Kotlin UI sources:"
 assert_contains "$annotated_string_append_line_raw_fail_output" "AnnotatedStringAppendLineRawLiteral.kt"
 assert_contains "$annotated_string_append_line_raw_fail_output" "appendLine(\"\"\"Now playing\"\"\")"
+
+annotated_string_append_line_multiline_positional_fail_dir="${tmp_dir}/annotated-string-append-line-multiline-positional-fail"
+mkdir -p "$annotated_string_append_line_multiline_positional_fail_dir"
+cat > "${annotated_string_append_line_multiline_positional_fail_dir}/AnnotatedStringAppendLineMultilinePositionalLiteral.kt" <<'KOTLIN'
+@Composable
+fun FailAnnotatedStringAppendLineMultilinePositional() {
+    Text(
+        text = buildAnnotatedString {
+            appendLine(
+                "Now playing"
+            )
+            appendLine(
+                """Now playing"""
+            )
+        }
+    )
+}
+KOTLIN
+
+annotated_string_append_line_multiline_positional_fail_output="$(run_expect_exit 1 "$annotated_string_append_line_multiline_positional_fail_dir")"
+assert_contains "$annotated_string_append_line_multiline_positional_fail_output" "FAIL: hardcoded UI text literals found in Kotlin UI sources:"
+assert_contains "$annotated_string_append_line_multiline_positional_fail_output" "AnnotatedStringAppendLineMultilinePositionalLiteral.kt"
+assert_contains "$annotated_string_append_line_multiline_positional_fail_output" "\"Now playing\""
+assert_contains "$annotated_string_append_line_multiline_positional_fail_output" "\"\"\"Now playing\"\"\""
 
 annotated_string_named_arg_append_line_fail_dir="${tmp_dir}/annotated-string-named-arg-append-line-fail"
 mkdir -p "$annotated_string_named_arg_append_line_fail_dir"
