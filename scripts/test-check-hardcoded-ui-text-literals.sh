@@ -1005,6 +1005,28 @@ assert_contains "$annotated_string_append_line_multiline_positional_comment_fail
 assert_contains "$annotated_string_append_line_multiline_positional_comment_fail_output" "\"Now playing\" // TODO localize"
 assert_contains "$annotated_string_append_line_multiline_positional_comment_fail_output" "\"\"\"Now playing\"\"\""
 
+annotated_string_append_line_positional_inline_block_comment_fail_dir="${tmp_dir}/annotated-string-append-line-positional-inline-block-comment-fail"
+mkdir -p "$annotated_string_append_line_positional_inline_block_comment_fail_dir"
+cat > "${annotated_string_append_line_positional_inline_block_comment_fail_dir}/AnnotatedStringAppendLinePositionalInlineBlockCommentLiteral.kt" <<'KOTLIN'
+@Composable
+fun FailAnnotatedStringAppendLinePositionalInlineBlockComment() {
+    Text(
+        text = buildAnnotatedString {
+            appendLine(/* TODO localize */ "Now playing")
+            appendLine(
+                /* TODO localize */ """Now playing"""
+            )
+        }
+    )
+}
+KOTLIN
+
+annotated_string_append_line_positional_inline_block_comment_fail_output="$(run_expect_exit 1 "$annotated_string_append_line_positional_inline_block_comment_fail_dir")"
+assert_contains "$annotated_string_append_line_positional_inline_block_comment_fail_output" "FAIL: hardcoded UI text literals found in Kotlin UI sources:"
+assert_contains "$annotated_string_append_line_positional_inline_block_comment_fail_output" "AnnotatedStringAppendLinePositionalInlineBlockCommentLiteral.kt"
+assert_contains "$annotated_string_append_line_positional_inline_block_comment_fail_output" "appendLine(/* TODO localize */ \"Now playing\")"
+assert_contains "$annotated_string_append_line_positional_inline_block_comment_fail_output" "/* TODO localize */ \"\"\"Now playing\"\"\""
+
 annotated_string_named_arg_append_line_fail_dir="${tmp_dir}/annotated-string-named-arg-append-line-fail"
 mkdir -p "$annotated_string_named_arg_append_line_fail_dir"
 cat > "${annotated_string_named_arg_append_line_fail_dir}/AnnotatedStringNamedArgAppendLineLiteral.kt" <<'KOTLIN'
