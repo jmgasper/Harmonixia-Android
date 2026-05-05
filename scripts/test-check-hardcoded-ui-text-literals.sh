@@ -61,6 +61,7 @@ fun Pass(title: String) {
         appendLine(text = title)
         appendRange(text = title, startIndex = 0, endIndex = title.length)
         appendRange(text = """$title""", startIndex = 0, endIndex = title.length)
+        append(start = 0, end = title.length, text = title)
         appendRange(startIndex = 0, endIndex = title.length, text = title)
         appendLine(value = title)
         appendLine(value = """$title""")
@@ -265,6 +266,26 @@ assert_contains "$annotated_string_named_arg_append_fail_output" "FAIL: hardcode
 assert_contains "$annotated_string_named_arg_append_fail_output" "AnnotatedStringNamedArgAppendLiteral.kt"
 assert_contains "$annotated_string_named_arg_append_fail_output" "append(text = \"Now playing\")"
 assert_contains "$annotated_string_named_arg_append_fail_output" "append(text = \"\"\"Now playing\"\"\")"
+
+annotated_string_named_arg_append_reordered_fail_dir="${tmp_dir}/annotated-string-named-arg-append-reordered-fail"
+mkdir -p "$annotated_string_named_arg_append_reordered_fail_dir"
+cat > "${annotated_string_named_arg_append_reordered_fail_dir}/AnnotatedStringNamedArgAppendReorderedLiteral.kt" <<'KOTLIN'
+@Composable
+fun FailAnnotatedStringNamedArgAppendReordered() {
+    Text(
+        text = buildAnnotatedString {
+            append(start = 0, end = 3, text = "Now playing")
+            append(start = 0, end = 3, text = """Now playing""")
+        }
+    )
+}
+KOTLIN
+
+annotated_string_named_arg_append_reordered_fail_output="$(run_expect_exit 1 "$annotated_string_named_arg_append_reordered_fail_dir")"
+assert_contains "$annotated_string_named_arg_append_reordered_fail_output" "FAIL: hardcoded UI text literals found in Kotlin UI sources:"
+assert_contains "$annotated_string_named_arg_append_reordered_fail_output" "AnnotatedStringNamedArgAppendReorderedLiteral.kt"
+assert_contains "$annotated_string_named_arg_append_reordered_fail_output" "append(start = 0, end = 3, text = \"Now playing\")"
+assert_contains "$annotated_string_named_arg_append_reordered_fail_output" "append(start = 0, end = 3, text = \"\"\"Now playing\"\"\")"
 
 annotated_string_append_line_fail_dir="${tmp_dir}/annotated-string-append-line-fail"
 mkdir -p "$annotated_string_append_line_fail_dir"
