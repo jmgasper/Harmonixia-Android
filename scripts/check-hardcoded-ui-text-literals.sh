@@ -44,6 +44,10 @@ rg --no-heading --line-number --color never --glob '*.kt' "$content_description_
 
 while IFS= read -r kotlin_file; do
   awk -v append_call_start_pattern="$annotated_append_call_start_pattern" -v append_literal_pattern="$annotated_append_literal_pattern" -v direct_call_start_pattern="$multiline_direct_call_start_pattern" -v direct_literal_line_pattern="$multiline_direct_literal_line_pattern" -v assignment_start_pattern="$multiline_assignment_start_pattern" '
+    function is_ignorable_pending_line(source) {
+      return source ~ /^[[:space:]]*$/ || source ~ /^[[:space:]]*\/\// || source ~ /^[[:space:]]*\/\*/ || source ~ /^[[:space:]]*\*/ || source ~ /^[[:space:]]*\*\//
+    }
+
     function update_brace_depth(source, i, c) {
       for (i = 1; i <= length(source); i++) {
         c = substr(source, i, 1)
@@ -74,8 +78,8 @@ while IFS= read -r kotlin_file; do
 
     {
       if (pending_multiline_direct_literal_call == 1) {
-        if ($0 ~ /^[[:space:]]*$/) {
-          # keep waiting through blank lines
+        if (is_ignorable_pending_line($0)) {
+          # keep waiting through blank/comment lines
         } else {
           if ($0 ~ direct_literal_line_pattern) {
             printf "%s:%d:%s\n", FILENAME, NR, $0
@@ -89,8 +93,8 @@ while IFS= read -r kotlin_file; do
       }
 
       if (pending_multiline_assignment_literal == 1) {
-        if ($0 ~ /^[[:space:]]*$/) {
-          # keep waiting through blank lines
+        if (is_ignorable_pending_line($0)) {
+          # keep waiting through blank/comment lines
         } else {
           if ($0 ~ direct_literal_line_pattern) {
             printf "%s:%d:%s\n", FILENAME, NR, $0
