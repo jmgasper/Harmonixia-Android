@@ -769,6 +769,31 @@ assert_contains "$annotated_string_append_line_multiline_positional_fail_output"
 assert_contains "$annotated_string_append_line_multiline_positional_fail_output" "\"Now playing\""
 assert_contains "$annotated_string_append_line_multiline_positional_fail_output" "\"\"\"Now playing\"\"\""
 
+annotated_string_append_line_multiline_positional_comment_fail_dir="${tmp_dir}/annotated-string-append-line-multiline-positional-comment-fail"
+mkdir -p "$annotated_string_append_line_multiline_positional_comment_fail_dir"
+cat > "${annotated_string_append_line_multiline_positional_comment_fail_dir}/AnnotatedStringAppendLineMultilinePositionalCommentLiteral.kt" <<'KOTLIN'
+@Composable
+fun FailAnnotatedStringAppendLineMultilinePositionalComment() {
+    Text(
+        text = buildAnnotatedString {
+            appendLine( // TODO localize
+                "Now playing" // TODO localize
+            )
+            appendLine(
+                // TODO localize
+                """Now playing"""
+            )
+        }
+    )
+}
+KOTLIN
+
+annotated_string_append_line_multiline_positional_comment_fail_output="$(run_expect_exit 1 "$annotated_string_append_line_multiline_positional_comment_fail_dir")"
+assert_contains "$annotated_string_append_line_multiline_positional_comment_fail_output" "FAIL: hardcoded UI text literals found in Kotlin UI sources:"
+assert_contains "$annotated_string_append_line_multiline_positional_comment_fail_output" "AnnotatedStringAppendLineMultilinePositionalCommentLiteral.kt"
+assert_contains "$annotated_string_append_line_multiline_positional_comment_fail_output" "\"Now playing\" // TODO localize"
+assert_contains "$annotated_string_append_line_multiline_positional_comment_fail_output" "\"\"\"Now playing\"\"\""
+
 annotated_string_named_arg_append_line_fail_dir="${tmp_dir}/annotated-string-named-arg-append-line-fail"
 mkdir -p "$annotated_string_named_arg_append_line_fail_dir"
 cat > "${annotated_string_named_arg_append_line_fail_dir}/AnnotatedStringNamedArgAppendLineLiteral.kt" <<'KOTLIN'
