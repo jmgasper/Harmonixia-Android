@@ -858,6 +858,32 @@ assert_contains "$annotated_string_named_arg_raw_block_comment_inline_fail_outpu
 assert_contains "$annotated_string_named_arg_raw_block_comment_inline_fail_output" "AnnotatedStringNamedArgRawBlockCommentInlineLiteral.kt"
 assert_contains "$annotated_string_named_arg_raw_block_comment_inline_fail_output" "\"\"\"Now playing\"\"\""
 
+annotated_string_named_arg_close_block_comment_inline_literal_fail_dir="${tmp_dir}/annotated-string-named-arg-close-block-comment-inline-literal-fail"
+mkdir -p "$annotated_string_named_arg_close_block_comment_inline_literal_fail_dir"
+cat > "${annotated_string_named_arg_close_block_comment_inline_literal_fail_dir}/AnnotatedStringNamedArgCloseBlockCommentInlineLiteral.kt" <<'KOTLIN'
+@Composable
+fun FailAnnotatedStringNamedArgCloseBlockCommentInlineLiteral() {
+    BasicText(
+        text = AnnotatedString(
+            text = /* TODO localize
+                */ "Now playing"
+        )
+    )
+    BasicText(
+        text = AnnotatedString(
+            text = /* TODO localize
+                */ """Now playing"""
+        )
+    )
+}
+KOTLIN
+
+annotated_string_named_arg_close_block_comment_inline_literal_fail_output="$(run_expect_exit 1 "$annotated_string_named_arg_close_block_comment_inline_literal_fail_dir")"
+assert_contains "$annotated_string_named_arg_close_block_comment_inline_literal_fail_output" "FAIL: hardcoded UI text literals found in Kotlin UI sources:"
+assert_contains "$annotated_string_named_arg_close_block_comment_inline_literal_fail_output" "AnnotatedStringNamedArgCloseBlockCommentInlineLiteral.kt"
+assert_contains "$annotated_string_named_arg_close_block_comment_inline_literal_fail_output" "*/ \"Now playing\""
+assert_contains "$annotated_string_named_arg_close_block_comment_inline_literal_fail_output" "*/ \"\"\"Now playing\"\"\""
+
 annotated_string_named_arg_raw_fail_dir="${tmp_dir}/annotated-string-named-arg-raw-fail"
 mkdir -p "$annotated_string_named_arg_raw_fail_dir"
 cat > "${annotated_string_named_arg_raw_fail_dir}/AnnotatedStringNamedArgRawLiteral.kt" <<'KOTLIN'
