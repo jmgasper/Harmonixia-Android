@@ -293,6 +293,30 @@ assert_contains "$content_description_multiline_start_block_comment_fail_output"
 assert_contains "$content_description_multiline_start_block_comment_fail_output" "ContentDescriptionMultilineStartBlockCommentLiteral.kt"
 assert_contains "$content_description_multiline_start_block_comment_fail_output" "\"Play track\""
 
+content_description_multiline_close_block_comment_inline_literal_fail_dir="${tmp_dir}/content-description-multiline-close-block-comment-inline-literal-fail"
+mkdir -p "$content_description_multiline_close_block_comment_inline_literal_fail_dir"
+cat > "${content_description_multiline_close_block_comment_inline_literal_fail_dir}/ContentDescriptionMultilineCloseBlockCommentInlineLiteral.kt" <<'KOTLIN'
+@Composable
+fun FailContentDescriptionMultilineCloseBlockCommentInlineLiteral() {
+    Icon(
+        imageVector = Icons.Outlined.PlayArrow,
+        contentDescription = /* TODO localize
+            */ "Play track"
+    )
+    Icon(
+        imageVector = Icons.Outlined.PlayArrow,
+        contentDescription = /* TODO localize
+            */ """Play track"""
+    )
+}
+KOTLIN
+
+content_description_multiline_close_block_comment_inline_literal_fail_output="$(run_expect_exit 1 "$content_description_multiline_close_block_comment_inline_literal_fail_dir")"
+assert_contains "$content_description_multiline_close_block_comment_inline_literal_fail_output" "FAIL: hardcoded UI text literals found in Kotlin UI sources:"
+assert_contains "$content_description_multiline_close_block_comment_inline_literal_fail_output" "ContentDescriptionMultilineCloseBlockCommentInlineLiteral.kt"
+assert_contains "$content_description_multiline_close_block_comment_inline_literal_fail_output" "*/ \"Play track\""
+assert_contains "$content_description_multiline_close_block_comment_inline_literal_fail_output" "*/ \"\"\"Play track\"\"\""
+
 content_description_multiline_inline_block_comment_fail_dir="${tmp_dir}/content-description-multiline-inline-block-comment-fail"
 mkdir -p "$content_description_multiline_inline_block_comment_fail_dir"
 cat > "${content_description_multiline_inline_block_comment_fail_dir}/ContentDescriptionMultilineInlineBlockCommentLiteral.kt" <<'KOTLIN'
@@ -505,6 +529,26 @@ text_multiline_positional_call_start_block_comment_fail_output="$(run_expect_exi
 assert_contains "$text_multiline_positional_call_start_block_comment_fail_output" "FAIL: hardcoded UI text literals found in Kotlin UI sources:"
 assert_contains "$text_multiline_positional_call_start_block_comment_fail_output" "TextMultilinePositionalCallStartBlockCommentLiteral.kt"
 assert_contains "$text_multiline_positional_call_start_block_comment_fail_output" "\"Now playing\""
+
+text_multiline_positional_call_close_block_comment_inline_literal_fail_dir="${tmp_dir}/text-multiline-positional-call-close-block-comment-inline-literal-fail"
+mkdir -p "$text_multiline_positional_call_close_block_comment_inline_literal_fail_dir"
+cat > "${text_multiline_positional_call_close_block_comment_inline_literal_fail_dir}/TextMultilinePositionalCallCloseBlockCommentInlineLiteral.kt" <<'KOTLIN'
+@Composable
+fun FailTextMultilinePositionalCallCloseBlockCommentInlineLiteral() {
+    Text( /* TODO localize
+        */ "Now playing"
+    )
+    Text( /* TODO localize
+        */ """Now playing"""
+    )
+}
+KOTLIN
+
+text_multiline_positional_call_close_block_comment_inline_literal_fail_output="$(run_expect_exit 1 "$text_multiline_positional_call_close_block_comment_inline_literal_fail_dir")"
+assert_contains "$text_multiline_positional_call_close_block_comment_inline_literal_fail_output" "FAIL: hardcoded UI text literals found in Kotlin UI sources:"
+assert_contains "$text_multiline_positional_call_close_block_comment_inline_literal_fail_output" "TextMultilinePositionalCallCloseBlockCommentInlineLiteral.kt"
+assert_contains "$text_multiline_positional_call_close_block_comment_inline_literal_fail_output" "*/ \"Now playing\""
+assert_contains "$text_multiline_positional_call_close_block_comment_inline_literal_fail_output" "*/ \"\"\"Now playing\"\"\""
 
 text_multiline_positional_literal_prefixed_block_comment_fail_dir="${tmp_dir}/text-multiline-positional-literal-prefixed-block-comment-fail"
 mkdir -p "$text_multiline_positional_literal_prefixed_block_comment_fail_dir"
