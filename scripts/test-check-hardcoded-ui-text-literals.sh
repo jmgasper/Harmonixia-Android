@@ -426,6 +426,32 @@ assert_contains "$semantics_multiline_inline_block_comment_fail_output" "Semanti
 assert_contains "$semantics_multiline_inline_block_comment_fail_output" "\"Volume control\" /* TODO localize */"
 assert_contains "$semantics_multiline_inline_block_comment_fail_output" "\"\"\"Volume control\"\"\" /* TODO localize */"
 
+semantics_multiline_close_block_comment_inline_literal_fail_dir="${tmp_dir}/semantics-multiline-close-block-comment-inline-literal-fail"
+mkdir -p "$semantics_multiline_close_block_comment_inline_literal_fail_dir"
+cat > "${semantics_multiline_close_block_comment_inline_literal_fail_dir}/SemanticsContentDescriptionMultilineCloseBlockCommentInlineLiteral.kt" <<'KOTLIN'
+@Composable
+fun FailSemanticsContentDescriptionMultilineCloseBlockCommentInlineLiteral() {
+    Box(
+        modifier = Modifier.semantics {
+            contentDescription = /* TODO localize
+                */ "Volume control"
+        }
+    )
+    Box(
+        modifier = Modifier.semantics {
+            contentDescription = /* TODO localize
+                */ """Volume control"""
+        }
+    )
+}
+KOTLIN
+
+semantics_multiline_close_block_comment_inline_literal_fail_output="$(run_expect_exit 1 "$semantics_multiline_close_block_comment_inline_literal_fail_dir")"
+assert_contains "$semantics_multiline_close_block_comment_inline_literal_fail_output" "FAIL: hardcoded UI text literals found in Kotlin UI sources:"
+assert_contains "$semantics_multiline_close_block_comment_inline_literal_fail_output" "SemanticsContentDescriptionMultilineCloseBlockCommentInlineLiteral.kt"
+assert_contains "$semantics_multiline_close_block_comment_inline_literal_fail_output" "*/ \"Volume control\""
+assert_contains "$semantics_multiline_close_block_comment_inline_literal_fail_output" "*/ \"\"\"Volume control\"\"\""
+
 text_named_arg_raw_fail_dir="${tmp_dir}/text-named-arg-raw-fail"
 mkdir -p "$text_named_arg_raw_fail_dir"
 cat > "${text_named_arg_raw_fail_dir}/TextNamedArgRawLiteral.kt" <<'KOTLIN'
