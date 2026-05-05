@@ -59,6 +59,7 @@ fun Pass(title: String) {
         appendRange("""$title""", 0, title.length)
         append(text = title)
         appendLine(text = title)
+        appendLine(text = """$title""")
         appendRange(text = title, startIndex = 0, endIndex = title.length)
         appendRange(text = """$title""", startIndex = 0, endIndex = title.length)
         append(start = 0, end = title.length, text = title)
@@ -404,6 +405,7 @@ fun FailAnnotatedStringNamedArgAppendLine() {
     Text(
         text = buildAnnotatedString {
             appendLine(text = "Now playing")
+            appendLine(text = """Now playing""")
             appendLine(value = "Now playing")
             appendLine(value = """Now playing""")
         }
@@ -415,6 +417,7 @@ annotated_string_named_arg_append_line_fail_output="$(run_expect_exit 1 "$annota
 assert_contains "$annotated_string_named_arg_append_line_fail_output" "FAIL: hardcoded UI text literals found in Kotlin UI sources:"
 assert_contains "$annotated_string_named_arg_append_line_fail_output" "AnnotatedStringNamedArgAppendLineLiteral.kt"
 assert_contains "$annotated_string_named_arg_append_line_fail_output" "appendLine(text = \"Now playing\")"
+assert_contains "$annotated_string_named_arg_append_line_fail_output" "appendLine(text = \"\"\"Now playing\"\"\")"
 assert_contains "$annotated_string_named_arg_append_line_fail_output" "appendLine(value = \"Now playing\")"
 assert_contains "$annotated_string_named_arg_append_line_fail_output" "appendLine(value = \"\"\"Now playing\"\"\")"
 
