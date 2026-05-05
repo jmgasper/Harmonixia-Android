@@ -755,6 +755,31 @@ assert_contains "$annotated_string_append_line_multiline_named_args_fail_output"
 assert_contains "$annotated_string_append_line_multiline_named_args_fail_output" "text = \"Now playing\""
 assert_contains "$annotated_string_append_line_multiline_named_args_fail_output" "value = \"\"\"Now playing\"\"\""
 
+annotated_string_append_line_multiline_named_args_comment_fail_dir="${tmp_dir}/annotated-string-append-line-multiline-named-args-comment-fail"
+mkdir -p "$annotated_string_append_line_multiline_named_args_comment_fail_dir"
+cat > "${annotated_string_append_line_multiline_named_args_comment_fail_dir}/AnnotatedStringAppendLineMultilineNamedArgsCommentLiteral.kt" <<'KOTLIN'
+@Composable
+fun FailAnnotatedStringAppendLineMultilineNamedArgsComment() {
+    Text(
+        text = buildAnnotatedString {
+            appendLine( /* TODO localize
+                text = "Now playing"
+            )
+            appendLine(
+                // TODO localize
+                value = """Now playing""" // TODO localize
+            )
+        }
+    )
+}
+KOTLIN
+
+annotated_string_append_line_multiline_named_args_comment_fail_output="$(run_expect_exit 1 "$annotated_string_append_line_multiline_named_args_comment_fail_dir")"
+assert_contains "$annotated_string_append_line_multiline_named_args_comment_fail_output" "FAIL: hardcoded UI text literals found in Kotlin UI sources:"
+assert_contains "$annotated_string_append_line_multiline_named_args_comment_fail_output" "AnnotatedStringAppendLineMultilineNamedArgsCommentLiteral.kt"
+assert_contains "$annotated_string_append_line_multiline_named_args_comment_fail_output" "text = \"Now playing\""
+assert_contains "$annotated_string_append_line_multiline_named_args_comment_fail_output" "value = \"\"\"Now playing\"\"\" // TODO localize"
+
 annotated_string_append_line_raw_fail_dir="${tmp_dir}/annotated-string-append-line-raw-fail"
 mkdir -p "$annotated_string_append_line_raw_fail_dir"
 cat > "${annotated_string_append_line_raw_fail_dir}/AnnotatedStringAppendLineRawLiteral.kt" <<'KOTLIN'
