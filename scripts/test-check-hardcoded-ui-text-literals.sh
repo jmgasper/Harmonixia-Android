@@ -189,6 +189,7 @@ fun Pass(title: String) {
             """$title"""
     )
     Box(modifier = Modifier.semantics { contentDescription = title })
+    Box(modifier = Modifier.semantics { contentDescription = /* localized */ title })
     Icon(imageVector = Icons.Outlined.PlayArrow, contentDescription = "$title")
     Icon(imageVector = Icons.Outlined.PlayArrow, contentDescription = /* localized */ "$title")
 }
@@ -382,6 +383,22 @@ semantics_raw_fail_output="$(run_expect_exit 1 "$semantics_raw_fail_dir")"
 assert_contains "$semantics_raw_fail_output" "FAIL: hardcoded UI text literals found in Kotlin UI sources:"
 assert_contains "$semantics_raw_fail_output" "SemanticsContentDescriptionRawLiteral.kt"
 assert_contains "$semantics_raw_fail_output" "contentDescription = \"\"\"Volume control\"\"\""
+
+semantics_inline_block_comment_fail_dir="${tmp_dir}/semantics-inline-block-comment-fail"
+mkdir -p "$semantics_inline_block_comment_fail_dir"
+cat > "${semantics_inline_block_comment_fail_dir}/SemanticsContentDescriptionInlineBlockCommentLiteral.kt" <<'KOTLIN'
+@Composable
+fun FailSemanticsContentDescriptionInlineBlockComment() {
+    Box(modifier = Modifier.semantics { contentDescription = /* TODO localize */ "Volume control" })
+    Box(modifier = Modifier.semantics { contentDescription = /* TODO localize */ """Volume control""" })
+}
+KOTLIN
+
+semantics_inline_block_comment_fail_output="$(run_expect_exit 1 "$semantics_inline_block_comment_fail_dir")"
+assert_contains "$semantics_inline_block_comment_fail_output" "FAIL: hardcoded UI text literals found in Kotlin UI sources:"
+assert_contains "$semantics_inline_block_comment_fail_output" "SemanticsContentDescriptionInlineBlockCommentLiteral.kt"
+assert_contains "$semantics_inline_block_comment_fail_output" "\"Volume control\""
+assert_contains "$semantics_inline_block_comment_fail_output" "\"\"\"Volume control\"\"\""
 
 semantics_multiline_inline_block_comment_fail_dir="${tmp_dir}/semantics-multiline-inline-block-comment-fail"
 mkdir -p "$semantics_multiline_inline_block_comment_fail_dir"
