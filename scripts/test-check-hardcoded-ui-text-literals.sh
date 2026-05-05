@@ -57,6 +57,9 @@ fun Pass(title: String) {
     Text( // localized
         """$title"""
     )
+    Text( /* localized
+        """$title"""
+    )
     Text(
         // localized
         """$title""" // localized
@@ -80,6 +83,10 @@ fun Pass(title: String) {
     )
     Text(
         text = /* localized */
+            """$title"""
+    )
+    Text(
+        text = /* localized
             """$title"""
     )
     BasicText(text = title)
@@ -155,6 +162,11 @@ fun Pass(title: String) {
     Icon(
         imageVector = Icons.Outlined.PlayArrow,
         contentDescription = /* localized */
+            title
+    )
+    Icon(
+        imageVector = Icons.Outlined.PlayArrow,
+        contentDescription = /* localized
             title
     )
     Icon(
@@ -338,6 +350,22 @@ text_multiline_positional_call_start_inline_comment_fail_output="$(run_expect_ex
 assert_contains "$text_multiline_positional_call_start_inline_comment_fail_output" "FAIL: hardcoded UI text literals found in Kotlin UI sources:"
 assert_contains "$text_multiline_positional_call_start_inline_comment_fail_output" "TextMultilinePositionalCallStartInlineCommentLiteral.kt"
 assert_contains "$text_multiline_positional_call_start_inline_comment_fail_output" "\"Now playing\""
+
+text_multiline_positional_call_start_block_comment_fail_dir="${tmp_dir}/text-multiline-positional-call-start-block-comment-fail"
+mkdir -p "$text_multiline_positional_call_start_block_comment_fail_dir"
+cat > "${text_multiline_positional_call_start_block_comment_fail_dir}/TextMultilinePositionalCallStartBlockCommentLiteral.kt" <<'KOTLIN'
+@Composable
+fun FailTextMultilinePositionalCallStartBlockComment() {
+    Text( /* TODO localize
+        "Now playing"
+    )
+}
+KOTLIN
+
+text_multiline_positional_call_start_block_comment_fail_output="$(run_expect_exit 1 "$text_multiline_positional_call_start_block_comment_fail_dir")"
+assert_contains "$text_multiline_positional_call_start_block_comment_fail_output" "FAIL: hardcoded UI text literals found in Kotlin UI sources:"
+assert_contains "$text_multiline_positional_call_start_block_comment_fail_output" "TextMultilinePositionalCallStartBlockCommentLiteral.kt"
+assert_contains "$text_multiline_positional_call_start_block_comment_fail_output" "\"Now playing\""
 
 text_multiline_positional_inline_comment_fail_dir="${tmp_dir}/text-multiline-positional-inline-comment-fail"
 mkdir -p "$text_multiline_positional_inline_comment_fail_dir"
