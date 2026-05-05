@@ -61,6 +61,7 @@ fun Pass(title: String) {
         appendLine(text = title)
         appendRange(text = title, startIndex = 0, endIndex = title.length)
         appendRange(text = """$title""", startIndex = 0, endIndex = title.length)
+        appendRange(startIndex = 0, endIndex = title.length, text = title)
         appendLine(value = title)
         appendLine(value = """$title""")
     })
@@ -322,6 +323,26 @@ assert_contains "$annotated_string_append_range_raw_fail_output" "FAIL: hardcode
 assert_contains "$annotated_string_append_range_raw_fail_output" "AnnotatedStringAppendRangeRawLiteral.kt"
 assert_contains "$annotated_string_append_range_raw_fail_output" "appendRange(\"\"\"Now playing\"\"\", 0, 3)"
 assert_contains "$annotated_string_append_range_raw_fail_output" "appendRange(text = \"\"\"Now playing\"\"\", startIndex = 0, endIndex = 3)"
+
+annotated_string_append_range_reordered_named_args_fail_dir="${tmp_dir}/annotated-string-append-range-reordered-named-args-fail"
+mkdir -p "$annotated_string_append_range_reordered_named_args_fail_dir"
+cat > "${annotated_string_append_range_reordered_named_args_fail_dir}/AnnotatedStringAppendRangeReorderedNamedArgsLiteral.kt" <<'KOTLIN'
+@Composable
+fun FailAnnotatedStringAppendRangeReorderedNamedArgs() {
+    Text(
+        text = buildAnnotatedString {
+            appendRange(startIndex = 0, endIndex = 3, text = "Now playing")
+            appendRange(startIndex = 0, endIndex = 3, text = """Now playing""")
+        }
+    )
+}
+KOTLIN
+
+annotated_string_append_range_reordered_named_args_fail_output="$(run_expect_exit 1 "$annotated_string_append_range_reordered_named_args_fail_dir")"
+assert_contains "$annotated_string_append_range_reordered_named_args_fail_output" "FAIL: hardcoded UI text literals found in Kotlin UI sources:"
+assert_contains "$annotated_string_append_range_reordered_named_args_fail_output" "AnnotatedStringAppendRangeReorderedNamedArgsLiteral.kt"
+assert_contains "$annotated_string_append_range_reordered_named_args_fail_output" "appendRange(startIndex = 0, endIndex = 3, text = \"Now playing\")"
+assert_contains "$annotated_string_append_range_reordered_named_args_fail_output" "appendRange(startIndex = 0, endIndex = 3, text = \"\"\"Now playing\"\"\")"
 
 annotated_string_append_line_raw_fail_dir="${tmp_dir}/annotated-string-append-line-raw-fail"
 mkdir -p "$annotated_string_append_line_raw_fail_dir"
