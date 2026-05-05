@@ -54,6 +54,10 @@ fun Pass(title: String) {
         text =
             title
     )
+    Text(
+        text =
+            """$title"""
+    )
     BasicText(text = title)
     BasicText(text = """$title""")
     BasicText(
@@ -112,6 +116,11 @@ fun Pass(title: String) {
         imageVector = Icons.Outlined.PlayArrow,
         contentDescription =
             title
+    )
+    Icon(
+        imageVector = Icons.Outlined.PlayArrow,
+        contentDescription =
+            """$title"""
     )
     Box(modifier = Modifier.semantics { contentDescription = title })
     Icon(imageVector = Icons.Outlined.PlayArrow, contentDescription = "$title")
