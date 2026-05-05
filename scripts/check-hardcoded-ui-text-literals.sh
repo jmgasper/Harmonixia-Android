@@ -26,7 +26,8 @@ annotated_string_constructor_pattern="AnnotatedString\\(\\s*${literal_pattern}"
 annotated_string_named_text_pattern="AnnotatedString\\([^)]*text\\s*=\\s*${literal_pattern}"
 named_text_pattern="text\\s*=\\s*${literal_pattern}"
 content_description_pattern="contentDescription\\s*=\\s*${literal_pattern}"
-annotated_append_literal_pattern='append(Line|Range)?[[:space:]]*[(][^)]*("[^"$][^"]*"|"""[^$][^"]*""")'
+annotated_append_call_start_pattern='append(Line|Range)?[[:space:]]*[(]'
+annotated_append_literal_pattern='("[^"$][^"]*"|"""[^$][^"]*""")'
 
 violations_file="$(mktemp)"
 trap 'rm -f "$violations_file"' EXIT
@@ -39,7 +40,7 @@ rg --no-heading --line-number --color never --glob '*.kt' "$named_text_pattern" 
 rg --no-heading --line-number --color never --glob '*.kt' "$content_description_pattern" "${targets[@]}" >>"$violations_file" || true
 
 while IFS= read -r kotlin_file; do
-  awk -v append_pattern="$annotated_append_literal_pattern" '
+  awk -v append_call_start_pattern="$annotated_append_call_start_pattern" -v append_literal_pattern="$annotated_append_literal_pattern" '
     function update_brace_depth(source, i, c) {
       for (i = 1; i <= length(source); i++) {
         c = substr(source, i, 1)
@@ -54,24 +55,57 @@ while IFS= read -r kotlin_file; do
       }
     }
 
-    {
-      if (in_annotated_block == 1 && $0 ~ append_pattern) {
-        printf "%s:%d:%s\n", FILENAME, NR, $0
+    function update_append_paren_depth(source, i, c) {
+      for (i = 1; i <= length(source); i++) {
+        c = substr(source, i, 1)
+        if (c == "(") {
+          append_paren_depth++
+        } else if (c == ")") {
+          append_paren_depth--
+        }
       }
+      if (append_paren_depth < 0) {
+        append_paren_depth = 0
+      }
+    }
 
+    {
       if (in_annotated_block == 0 && $0 ~ /buildAnnotatedString[[:space:]]*\{/) {
         in_annotated_block = 1
         brace_depth = 0
-        if ($0 ~ append_pattern) {
-          printf "%s:%d:%s\n", FILENAME, NR, $0
-        }
       }
 
       if (in_annotated_block == 1) {
+        if (in_append_call == 1) {
+          if ($0 ~ append_literal_pattern) {
+            printf "%s:%d:%s\n", FILENAME, NR, $0
+          }
+          update_append_paren_depth($0)
+          if (append_paren_depth <= 0) {
+            in_append_call = 0
+            append_paren_depth = 0
+          }
+        }
+
+        if (in_append_call == 0 && $0 ~ append_call_start_pattern) {
+          in_append_call = 1
+          append_paren_depth = 0
+          if ($0 ~ append_literal_pattern) {
+            printf "%s:%d:%s\n", FILENAME, NR, $0
+          }
+          update_append_paren_depth($0)
+          if (append_paren_depth <= 0) {
+            in_append_call = 0
+            append_paren_depth = 0
+          }
+        }
+
         update_brace_depth($0)
         if (brace_depth <= 0) {
           in_annotated_block = 0
           brace_depth = 0
+          in_append_call = 0
+          append_paren_depth = 0
         }
       }
     }

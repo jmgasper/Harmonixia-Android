@@ -69,6 +69,16 @@ fun Pass(title: String) {
         appendRange(startIndex = 0, endIndex = title.length, text = title)
         appendRange(endIndex = title.length, text = title, startIndex = 0)
         appendRange(endIndex = title.length, text = """$title""", startIndex = 0)
+        appendRange(
+            endIndex = title.length,
+            text = title,
+            startIndex = 0
+        )
+        append(
+            end = title.length,
+            text = """$title""",
+            start = 0
+        )
         appendLine(value = title)
         appendLine(value = """$title""")
     })
@@ -378,6 +388,34 @@ assert_contains "$annotated_string_append_range_reordered_named_args_fail_output
 assert_contains "$annotated_string_append_range_reordered_named_args_fail_output" "appendRange(startIndex = 0, endIndex = 3, text = \"\"\"Now playing\"\"\")"
 assert_contains "$annotated_string_append_range_reordered_named_args_fail_output" "appendRange(endIndex = 3, text = \"Now playing\", startIndex = 0)"
 assert_contains "$annotated_string_append_range_reordered_named_args_fail_output" "appendRange(endIndex = 3, text = \"\"\"Now playing\"\"\", startIndex = 0)"
+
+annotated_string_append_multiline_reordered_named_args_fail_dir="${tmp_dir}/annotated-string-append-multiline-reordered-named-args-fail"
+mkdir -p "$annotated_string_append_multiline_reordered_named_args_fail_dir"
+cat > "${annotated_string_append_multiline_reordered_named_args_fail_dir}/AnnotatedStringAppendMultilineReorderedNamedArgsLiteral.kt" <<'KOTLIN'
+@Composable
+fun FailAnnotatedStringAppendMultilineReorderedNamedArgs() {
+    Text(
+        text = buildAnnotatedString {
+            appendRange(
+                endIndex = 3,
+                text = "Now playing",
+                startIndex = 0
+            )
+            append(
+                end = 3,
+                text = """Now playing""",
+                start = 0
+            )
+        }
+    )
+}
+KOTLIN
+
+annotated_string_append_multiline_reordered_named_args_fail_output="$(run_expect_exit 1 "$annotated_string_append_multiline_reordered_named_args_fail_dir")"
+assert_contains "$annotated_string_append_multiline_reordered_named_args_fail_output" "FAIL: hardcoded UI text literals found in Kotlin UI sources:"
+assert_contains "$annotated_string_append_multiline_reordered_named_args_fail_output" "AnnotatedStringAppendMultilineReorderedNamedArgsLiteral.kt"
+assert_contains "$annotated_string_append_multiline_reordered_named_args_fail_output" "text = \"Now playing\""
+assert_contains "$annotated_string_append_multiline_reordered_named_args_fail_output" "text = \"\"\"Now playing\"\"\""
 
 annotated_string_append_line_raw_fail_dir="${tmp_dir}/annotated-string-append-line-raw-fail"
 mkdir -p "$annotated_string_append_line_raw_fail_dir"
