@@ -61,6 +61,9 @@ fun Pass(title: String) {
         """$title"""
     )
     Text(
+        /* localized */ """$title"""
+    )
+    Text(
         // localized
         """$title""" // localized
     )
@@ -88,6 +91,10 @@ fun Pass(title: String) {
     Text(
         text = /* localized
             """$title"""
+    )
+    Text(
+        text =
+            /* localized */ """$title"""
     )
     BasicText(text = title)
     BasicText(text = """$title""")
@@ -168,6 +175,11 @@ fun Pass(title: String) {
         imageVector = Icons.Outlined.PlayArrow,
         contentDescription = /* localized
             title
+    )
+    Icon(
+        imageVector = Icons.Outlined.PlayArrow,
+        contentDescription =
+            /* localized */ title
     )
     Icon(
         imageVector = Icons.Outlined.PlayArrow,
@@ -409,6 +421,22 @@ assert_contains "$text_multiline_positional_call_start_block_comment_fail_output
 assert_contains "$text_multiline_positional_call_start_block_comment_fail_output" "TextMultilinePositionalCallStartBlockCommentLiteral.kt"
 assert_contains "$text_multiline_positional_call_start_block_comment_fail_output" "\"Now playing\""
 
+text_multiline_positional_literal_prefixed_block_comment_fail_dir="${tmp_dir}/text-multiline-positional-literal-prefixed-block-comment-fail"
+mkdir -p "$text_multiline_positional_literal_prefixed_block_comment_fail_dir"
+cat > "${text_multiline_positional_literal_prefixed_block_comment_fail_dir}/TextMultilinePositionalLiteralPrefixedBlockComment.kt" <<'KOTLIN'
+@Composable
+fun FailTextMultilinePositionalLiteralPrefixedBlockComment() {
+    Text(
+        /* TODO localize */ "Now playing"
+    )
+}
+KOTLIN
+
+text_multiline_positional_literal_prefixed_block_comment_fail_output="$(run_expect_exit 1 "$text_multiline_positional_literal_prefixed_block_comment_fail_dir")"
+assert_contains "$text_multiline_positional_literal_prefixed_block_comment_fail_output" "FAIL: hardcoded UI text literals found in Kotlin UI sources:"
+assert_contains "$text_multiline_positional_literal_prefixed_block_comment_fail_output" "TextMultilinePositionalLiteralPrefixedBlockComment.kt"
+assert_contains "$text_multiline_positional_literal_prefixed_block_comment_fail_output" "\"Now playing\""
+
 text_multiline_positional_inline_comment_fail_dir="${tmp_dir}/text-multiline-positional-inline-comment-fail"
 mkdir -p "$text_multiline_positional_inline_comment_fail_dir"
 cat > "${text_multiline_positional_inline_comment_fail_dir}/TextMultilinePositionalInlineCommentLiteral.kt" <<'KOTLIN'
@@ -497,6 +525,23 @@ text_multiline_named_assignment_start_inline_comment_fail_output="$(run_expect_e
 assert_contains "$text_multiline_named_assignment_start_inline_comment_fail_output" "FAIL: hardcoded UI text literals found in Kotlin UI sources:"
 assert_contains "$text_multiline_named_assignment_start_inline_comment_fail_output" "TextMultilineNamedAssignmentStartInlineCommentLiteral.kt"
 assert_contains "$text_multiline_named_assignment_start_inline_comment_fail_output" "\"Now playing\""
+
+text_multiline_named_assignment_literal_prefixed_block_comment_fail_dir="${tmp_dir}/text-multiline-named-assignment-literal-prefixed-block-comment-fail"
+mkdir -p "$text_multiline_named_assignment_literal_prefixed_block_comment_fail_dir"
+cat > "${text_multiline_named_assignment_literal_prefixed_block_comment_fail_dir}/TextMultilineNamedAssignmentLiteralPrefixedBlockComment.kt" <<'KOTLIN'
+@Composable
+fun FailTextMultilineNamedAssignmentLiteralPrefixedBlockComment() {
+    Text(
+        text =
+            /* TODO localize */ "Now playing"
+    )
+}
+KOTLIN
+
+text_multiline_named_assignment_literal_prefixed_block_comment_fail_output="$(run_expect_exit 1 "$text_multiline_named_assignment_literal_prefixed_block_comment_fail_dir")"
+assert_contains "$text_multiline_named_assignment_literal_prefixed_block_comment_fail_output" "FAIL: hardcoded UI text literals found in Kotlin UI sources:"
+assert_contains "$text_multiline_named_assignment_literal_prefixed_block_comment_fail_output" "TextMultilineNamedAssignmentLiteralPrefixedBlockComment.kt"
+assert_contains "$text_multiline_named_assignment_literal_prefixed_block_comment_fail_output" "\"Now playing\""
 
 text_multiline_named_assignment_inline_comment_fail_dir="${tmp_dir}/text-multiline-named-assignment-inline-comment-fail"
 mkdir -p "$text_multiline_named_assignment_inline_comment_fail_dir"

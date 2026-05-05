@@ -29,7 +29,7 @@ content_description_pattern="contentDescription\\s*=\\s*${literal_pattern}"
 annotated_append_call_start_pattern='append(Line|Range)?[[:space:]]*[(]'
 annotated_append_literal_pattern='("[^"$][^"]*"|"""[^$][^"]*""")'
 multiline_direct_call_start_pattern='(Text|BasicText|AnnotatedString)[[:space:]]*[(][[:space:]]*((//.*)|(/[*].*))?[[:space:]]*$'
-multiline_direct_literal_line_pattern='^[[:space:]]*("[^"$][^"]*"|"""[^$][^"]*""")[[:space:]]*,?[[:space:]]*((//.*)|(/[*].*))?[[:space:]]*$'
+multiline_direct_literal_line_pattern='^[[:space:]]*(/[*].*[*]/[[:space:]]*)*("[^"$][^"]*"|"""[^$][^"]*""")[[:space:]]*,?[[:space:]]*((//.*)|(/[*].*))?[[:space:]]*$'
 multiline_assignment_start_pattern='(text|contentDescription)[[:space:]]*=[[:space:]]*((//.*)|(/[*].*))?[[:space:]]*$'
 
 violations_file="$(mktemp)"
@@ -78,12 +78,12 @@ while IFS= read -r kotlin_file; do
 
     {
       if (pending_multiline_direct_literal_call == 1) {
-        if (is_ignorable_pending_line($0)) {
+        if ($0 ~ direct_literal_line_pattern) {
+          printf "%s:%d:%s\n", FILENAME, NR, $0
+          pending_multiline_direct_literal_call = 0
+        } else if (is_ignorable_pending_line($0)) {
           # keep waiting through blank/comment lines
         } else {
-          if ($0 ~ direct_literal_line_pattern) {
-            printf "%s:%d:%s\n", FILENAME, NR, $0
-          }
           pending_multiline_direct_literal_call = 0
         }
       }
@@ -93,12 +93,12 @@ while IFS= read -r kotlin_file; do
       }
 
       if (pending_multiline_assignment_literal == 1) {
-        if (is_ignorable_pending_line($0)) {
+        if ($0 ~ direct_literal_line_pattern) {
+          printf "%s:%d:%s\n", FILENAME, NR, $0
+          pending_multiline_assignment_literal = 0
+        } else if (is_ignorable_pending_line($0)) {
           # keep waiting through blank/comment lines
         } else {
-          if ($0 ~ direct_literal_line_pattern) {
-            printf "%s:%d:%s\n", FILENAME, NR, $0
-          }
           pending_multiline_assignment_literal = 0
         }
       }
