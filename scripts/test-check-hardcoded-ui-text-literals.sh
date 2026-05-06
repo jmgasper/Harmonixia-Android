@@ -582,6 +582,34 @@ assert_contains "$escaped_dollar_positional_append_paths_fail_output" "appendRan
 assert_contains "$escaped_dollar_positional_append_paths_fail_output" "appendRange(\"Price \\\$5\" /* TODO localize */, 0, 3)"
 assert_contains "$escaped_dollar_positional_append_paths_fail_output" "appendRange(/* TODO localize */ \"Price \\\$5\", 0, 3)"
 
+escaped_dollar_raw_positional_append_paths_fail_dir="${tmp_dir}/escaped-dollar-raw-positional-append-paths-fail"
+mkdir -p "$escaped_dollar_raw_positional_append_paths_fail_dir"
+cat > "${escaped_dollar_raw_positional_append_paths_fail_dir}/EscapedDollarRawPositionalAppendPathsFail.kt" <<'KOTLIN'
+@Composable
+fun FailEscapedDollarRawPositionalAppendPaths() {
+    Text(
+        text = buildAnnotatedString {
+            append("""Price \$5""")
+            append("""Price \$5""" /* TODO localize */)
+            append(/* TODO localize */ """Price \$5""")
+            appendRange("""Price \$5""", 0, 3)
+            appendRange("""Price \$5""" /* TODO localize */, 0, 3)
+            appendRange(/* TODO localize */ """Price \$5""", 0, 3)
+        }
+    )
+}
+KOTLIN
+
+escaped_dollar_raw_positional_append_paths_fail_output="$(run_expect_exit 1 "$escaped_dollar_raw_positional_append_paths_fail_dir")"
+assert_contains "$escaped_dollar_raw_positional_append_paths_fail_output" "FAIL: hardcoded UI text literals found in Kotlin UI sources:"
+assert_contains "$escaped_dollar_raw_positional_append_paths_fail_output" "EscapedDollarRawPositionalAppendPathsFail.kt"
+assert_contains "$escaped_dollar_raw_positional_append_paths_fail_output" "append(\"\"\"Price \\\$5\"\"\")"
+assert_contains "$escaped_dollar_raw_positional_append_paths_fail_output" "append(\"\"\"Price \\\$5\"\"\" /* TODO localize */)"
+assert_contains "$escaped_dollar_raw_positional_append_paths_fail_output" "append(/* TODO localize */ \"\"\"Price \\\$5\"\"\")"
+assert_contains "$escaped_dollar_raw_positional_append_paths_fail_output" "appendRange(\"\"\"Price \\\$5\"\"\", 0, 3)"
+assert_contains "$escaped_dollar_raw_positional_append_paths_fail_output" "appendRange(\"\"\"Price \\\$5\"\"\" /* TODO localize */, 0, 3)"
+assert_contains "$escaped_dollar_raw_positional_append_paths_fail_output" "appendRange(/* TODO localize */ \"\"\"Price \\\$5\"\"\", 0, 3)"
+
 escaped_dollar_append_range_close_block_comment_fail_dir="${tmp_dir}/escaped-dollar-append-range-close-block-comment-fail"
 mkdir -p "$escaped_dollar_append_range_close_block_comment_fail_dir"
 cat > "${escaped_dollar_append_range_close_block_comment_fail_dir}/EscapedDollarAppendRangeCloseBlockCommentFail.kt" <<'KOTLIN'
