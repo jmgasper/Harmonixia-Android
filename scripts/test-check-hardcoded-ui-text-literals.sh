@@ -146,6 +146,12 @@ fun Pass(title: String) {
         )
         appendRange(
             endIndex = title.length,
+            text = /* localized
+                */ """$title""",
+            startIndex = 0
+        )
+        appendRange(
+            endIndex = title.length,
             text = title,
             startIndex = 0
         )
@@ -160,12 +166,22 @@ fun Pass(title: String) {
                 */ title,
             start = 0
         )
+        append(
+            end = title.length,
+            text = /* localized
+                */ """$title""",
+            start = 0
+        )
         appendLine(
             text = title
         )
         appendLine(
             text = /* localized
                 */ title
+        )
+        appendLine(
+            text = /* localized
+                */ """$title"""
         )
         appendLine(
             value = """$title"""
