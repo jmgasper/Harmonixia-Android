@@ -1297,6 +1297,26 @@ assert_contains "$annotated_string_named_arg_append_reordered_fail_output" "appe
 assert_contains "$annotated_string_named_arg_append_reordered_fail_output" "append(end = 3, text = \"Now playing\", start = 0)"
 assert_contains "$annotated_string_named_arg_append_reordered_fail_output" "append(end = 3, text = \"\"\"Now playing\"\"\", start = 0)"
 
+annotated_string_named_arg_append_reordered_trailing_inline_block_comment_fail_dir="${tmp_dir}/annotated-string-named-arg-append-reordered-trailing-inline-block-comment-fail"
+mkdir -p "$annotated_string_named_arg_append_reordered_trailing_inline_block_comment_fail_dir"
+cat > "${annotated_string_named_arg_append_reordered_trailing_inline_block_comment_fail_dir}/AnnotatedStringNamedArgAppendReorderedTrailingInlineBlockCommentLiteral.kt" <<'KOTLIN'
+@Composable
+fun FailAnnotatedStringNamedArgAppendReorderedTrailingInlineBlockCommentLiteral() {
+    Text(
+        text = buildAnnotatedString {
+            append(end = 3, text = "Now playing" /* TODO localize */, start = 0)
+            append(end = 3, text = """Now playing""" /* TODO localize */, start = 0)
+        }
+    )
+}
+KOTLIN
+
+annotated_string_named_arg_append_reordered_trailing_inline_block_comment_fail_output="$(run_expect_exit 1 "$annotated_string_named_arg_append_reordered_trailing_inline_block_comment_fail_dir")"
+assert_contains "$annotated_string_named_arg_append_reordered_trailing_inline_block_comment_fail_output" "FAIL: hardcoded UI text literals found in Kotlin UI sources:"
+assert_contains "$annotated_string_named_arg_append_reordered_trailing_inline_block_comment_fail_output" "AnnotatedStringNamedArgAppendReorderedTrailingInlineBlockCommentLiteral.kt"
+assert_contains "$annotated_string_named_arg_append_reordered_trailing_inline_block_comment_fail_output" "end = 3, text = \"Now playing\" /* TODO localize */, start = 0"
+assert_contains "$annotated_string_named_arg_append_reordered_trailing_inline_block_comment_fail_output" "end = 3, text = \"\"\"Now playing\"\"\" /* TODO localize */, start = 0"
+
 annotated_string_named_arg_append_reordered_close_block_comment_inline_literal_fail_dir="${tmp_dir}/annotated-string-named-arg-append-reordered-close-block-comment-inline-literal-fail"
 mkdir -p "$annotated_string_named_arg_append_reordered_close_block_comment_inline_literal_fail_dir"
 cat > "${annotated_string_named_arg_append_reordered_close_block_comment_inline_literal_fail_dir}/AnnotatedStringNamedArgAppendReorderedCloseBlockCommentInlineLiteral.kt" <<'KOTLIN'
