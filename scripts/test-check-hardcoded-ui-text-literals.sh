@@ -59,7 +59,10 @@ cat > "${pass_dir}/Pass.kt" <<'KOTLIN'
 fun Pass(title: String) {
     Text(text = title)
     Text(text = /* localized */ "$title")
+    Text(text = "Now ${title}")
+    Text(text = "Now ${title.uppercase()}")
     Text(text = """$title""")
+    Text(text = """Now ${title}""")
     Text(
         """$title"""
     )
@@ -120,7 +123,9 @@ fun Pass(title: String) {
             /* localized */ """$title"""
     )
     BasicText(text = title)
+    BasicText(text = "Track: ${title}")
     BasicText(text = """$title""")
+    BasicText(text = """Track: ${title}""")
     BasicText(
         """$title"""
     )
@@ -150,7 +155,9 @@ fun Pass(title: String) {
         appendRange("Now \"$title\"" /* localized */, 0, title.length)
         append(text = title)
         appendLine(text = title)
+        appendLine(text = "Now ${title}")
         appendLine(text = """$title""")
+        appendLine(text = """Now ${title}""")
         appendLine(text = "Now \"$title\"" /* localized */)
         appendRange(text = title, startIndex = 0, endIndex = title.length)
         appendRange(text = """$title""", startIndex = 0, endIndex = title.length)
@@ -239,6 +246,7 @@ fun Pass(title: String) {
         appendLine(value = """$title""")
     })
     Icon(imageVector = Icons.Outlined.PlayArrow, contentDescription = stringResource(R.string.action_play))
+    Icon(imageVector = Icons.Outlined.PlayArrow, contentDescription = "Play ${title}")
     Icon(
         imageVector = Icons.Outlined.PlayArrow,
         contentDescription =
