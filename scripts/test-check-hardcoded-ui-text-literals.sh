@@ -441,6 +441,11 @@ fun FailEscapedDollarNamedArgPaths() {
         text = buildAnnotatedString {
             appendLine(text = "Price \$5")
             appendLine(value = "Price \$5")
+            appendLine(value = /* TODO localize */ "Price \$5")
+            appendLine(
+                value = /* TODO localize
+                    */ "Price \$5"
+            )
         }
     )
 }
@@ -452,6 +457,8 @@ assert_contains "$escaped_dollar_named_arg_paths_fail_output" "EscapedDollarName
 assert_contains "$escaped_dollar_named_arg_paths_fail_output" "AnnotatedString(text = \"Price \\\$5\")"
 assert_contains "$escaped_dollar_named_arg_paths_fail_output" "appendLine(text = \"Price \\\$5\")"
 assert_contains "$escaped_dollar_named_arg_paths_fail_output" "appendLine(value = \"Price \\\$5\")"
+assert_contains "$escaped_dollar_named_arg_paths_fail_output" "value = /* TODO localize */ \"Price \\\$5\""
+assert_contains "$escaped_dollar_named_arg_paths_fail_output" "*/ \"Price \\\$5\""
 
 raw_interpolation_nonleading_dollar_pass_dir="${tmp_dir}/raw-interpolation-nonleading-dollar-pass"
 mkdir -p "$raw_interpolation_nonleading_dollar_pass_dir"
