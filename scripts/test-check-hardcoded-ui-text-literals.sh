@@ -446,6 +446,32 @@ fun FailEscapedDollarNamedArgPaths() {
                 value = /* TODO localize
                     */ "Price \$5"
             )
+            appendRange(text = "Price \$5", startIndex = 0, endIndex = 3)
+            appendRange(endIndex = 3, text = "Price \$5", startIndex = 0)
+            appendRange(
+                text = /* TODO localize */ "Price \$5",
+                startIndex = 0,
+                endIndex = 3
+            )
+            appendRange(
+                endIndex = 3,
+                text = /* TODO localize
+                    */ "Price \$5",
+                startIndex = 0
+            )
+            append(start = 0, end = 3, text = "Price \$5")
+            append(end = 3, text = "Price \$5", start = 0)
+            append(
+                start = 0,
+                end = 3,
+                text = /* TODO localize */ "Price \$5"
+            )
+            append(
+                end = 3,
+                text = /* TODO localize
+                    */ "Price \$5",
+                start = 0
+            )
         }
     )
 }
@@ -459,6 +485,11 @@ assert_contains "$escaped_dollar_named_arg_paths_fail_output" "appendLine(text =
 assert_contains "$escaped_dollar_named_arg_paths_fail_output" "appendLine(value = \"Price \\\$5\")"
 assert_contains "$escaped_dollar_named_arg_paths_fail_output" "value = /* TODO localize */ \"Price \\\$5\""
 assert_contains "$escaped_dollar_named_arg_paths_fail_output" "*/ \"Price \\\$5\""
+assert_contains "$escaped_dollar_named_arg_paths_fail_output" "appendRange(text = \"Price \\\$5\", startIndex = 0, endIndex = 3)"
+assert_contains "$escaped_dollar_named_arg_paths_fail_output" "appendRange(endIndex = 3, text = \"Price \\\$5\", startIndex = 0)"
+assert_contains "$escaped_dollar_named_arg_paths_fail_output" "text = /* TODO localize */ \"Price \\\$5\""
+assert_contains "$escaped_dollar_named_arg_paths_fail_output" "append(start = 0, end = 3, text = \"Price \\\$5\")"
+assert_contains "$escaped_dollar_named_arg_paths_fail_output" "append(end = 3, text = \"Price \\\$5\", start = 0)"
 
 raw_interpolation_nonleading_dollar_pass_dir="${tmp_dir}/raw-interpolation-nonleading-dollar-pass"
 mkdir -p "$raw_interpolation_nonleading_dollar_pass_dir"
