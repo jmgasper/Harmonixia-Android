@@ -145,6 +145,8 @@ fun Pass(title: String) {
     BasicText(text = AnnotatedString(text = /* localized */ "$title"))
     BasicText(text = AnnotatedString(text = "Now ${title}"))
     BasicText(text = AnnotatedString(text = "Now ${title}" /* localized */))
+    BasicText(text = AnnotatedString(text = "Now ${title} costs \$5"))
+    BasicText(text = AnnotatedString(text = "Now ${title} costs \$5" /* localized */))
     BasicText(text = AnnotatedString(text = """$title"""))
     BasicText(text = AnnotatedString(text = /* localized
         */ """$title"""))
@@ -271,9 +273,15 @@ fun Pass(title: String) {
         appendLine(value = """$title""")
         appendLine(value = "Now ${title}")
         appendLine(value = "Now ${title}" /* localized */)
+        appendLine(value = "Now ${title} costs \$5")
+        appendLine(value = "Now ${title} costs \$5" /* localized */)
         appendLine(
             value = /* localized
                 */ "Now ${title}"
+        )
+        appendLine(
+            value = /* localized
+                */ "Now ${title} costs \$5"
         )
         appendLine(
             value = """Now ${title}""" /* localized */
