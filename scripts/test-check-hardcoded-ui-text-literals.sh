@@ -1703,6 +1703,36 @@ assert_contains "$annotated_string_append_range_positional_multiline_inline_bloc
 assert_contains "$annotated_string_append_range_positional_multiline_inline_block_comment_fail_output" "/* TODO localize */ \"Now playing\","
 assert_contains "$annotated_string_append_range_positional_multiline_inline_block_comment_fail_output" "/* TODO localize */ \"\"\"Now playing\"\"\","
 
+annotated_string_append_range_positional_multiline_close_block_comment_inline_literal_fail_dir="${tmp_dir}/annotated-string-append-range-positional-multiline-close-block-comment-inline-literal-fail"
+mkdir -p "$annotated_string_append_range_positional_multiline_close_block_comment_inline_literal_fail_dir"
+cat > "${annotated_string_append_range_positional_multiline_close_block_comment_inline_literal_fail_dir}/AnnotatedStringAppendRangePositionalMultilineCloseBlockCommentInlineLiteral.kt" <<'KOTLIN'
+@Composable
+fun FailAnnotatedStringAppendRangePositionalMultilineCloseBlockCommentInlineLiteral() {
+    Text(
+        text = buildAnnotatedString {
+            appendRange(
+                /* TODO localize
+                    */ "Now playing",
+                0,
+                3
+            )
+            appendRange(
+                /* TODO localize
+                    */ """Now playing""",
+                0,
+                3
+            )
+        }
+    )
+}
+KOTLIN
+
+annotated_string_append_range_positional_multiline_close_block_comment_inline_literal_fail_output="$(run_expect_exit 1 "$annotated_string_append_range_positional_multiline_close_block_comment_inline_literal_fail_dir")"
+assert_contains "$annotated_string_append_range_positional_multiline_close_block_comment_inline_literal_fail_output" "FAIL: hardcoded UI text literals found in Kotlin UI sources:"
+assert_contains "$annotated_string_append_range_positional_multiline_close_block_comment_inline_literal_fail_output" "AnnotatedStringAppendRangePositionalMultilineCloseBlockCommentInlineLiteral.kt"
+assert_contains "$annotated_string_append_range_positional_multiline_close_block_comment_inline_literal_fail_output" "*/ \"Now playing\","
+assert_contains "$annotated_string_append_range_positional_multiline_close_block_comment_inline_literal_fail_output" "*/ \"\"\"Now playing\"\"\","
+
 annotated_string_append_range_positional_trailing_inline_block_comment_fail_dir="${tmp_dir}/annotated-string-append-range-positional-trailing-inline-block-comment-fail"
 mkdir -p "$annotated_string_append_range_positional_trailing_inline_block_comment_fail_dir"
 cat > "${annotated_string_append_range_positional_trailing_inline_block_comment_fail_dir}/AnnotatedStringAppendRangePositionalTrailingInlineBlockCommentLiteral.kt" <<'KOTLIN'
