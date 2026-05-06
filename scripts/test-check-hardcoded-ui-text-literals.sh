@@ -1540,6 +1540,28 @@ assert_contains "$annotated_string_named_arg_append_line_fail_output" "appendLin
 assert_contains "$annotated_string_named_arg_append_line_fail_output" "appendLine(value = \"Now playing\")"
 assert_contains "$annotated_string_named_arg_append_line_fail_output" "appendLine(value = \"\"\"Now playing\"\"\")"
 
+annotated_string_named_arg_append_line_inline_block_comment_fail_dir="${tmp_dir}/annotated-string-named-arg-append-line-inline-block-comment-fail"
+mkdir -p "$annotated_string_named_arg_append_line_inline_block_comment_fail_dir"
+cat > "${annotated_string_named_arg_append_line_inline_block_comment_fail_dir}/AnnotatedStringNamedArgAppendLineInlineBlockCommentLiteral.kt" <<'KOTLIN'
+@Composable
+fun FailAnnotatedStringNamedArgAppendLineInlineBlockCommentLiteral() {
+    Text(
+        text = buildAnnotatedString {
+            appendLine(text = /* TODO localize */ "Now playing")
+            appendLine(
+                value = /* TODO localize */ """Now playing"""
+            )
+        }
+    )
+}
+KOTLIN
+
+annotated_string_named_arg_append_line_inline_block_comment_fail_output="$(run_expect_exit 1 "$annotated_string_named_arg_append_line_inline_block_comment_fail_dir")"
+assert_contains "$annotated_string_named_arg_append_line_inline_block_comment_fail_output" "FAIL: hardcoded UI text literals found in Kotlin UI sources:"
+assert_contains "$annotated_string_named_arg_append_line_inline_block_comment_fail_output" "AnnotatedStringNamedArgAppendLineInlineBlockCommentLiteral.kt"
+assert_contains "$annotated_string_named_arg_append_line_inline_block_comment_fail_output" "text = /* TODO localize */ \"Now playing\""
+assert_contains "$annotated_string_named_arg_append_line_inline_block_comment_fail_output" "value = /* TODO localize */ \"\"\"Now playing\"\"\""
+
 annotated_string_named_arg_append_line_close_block_comment_inline_literal_fail_dir="${tmp_dir}/annotated-string-named-arg-append-line-close-block-comment-inline-literal-fail"
 mkdir -p "$annotated_string_named_arg_append_line_close_block_comment_inline_literal_fail_dir"
 cat > "${annotated_string_named_arg_append_line_close_block_comment_inline_literal_fail_dir}/AnnotatedStringNamedArgAppendLineCloseBlockCommentInlineLiteral.kt" <<'KOTLIN'
