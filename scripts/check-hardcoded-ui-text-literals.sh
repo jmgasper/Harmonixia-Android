@@ -48,8 +48,10 @@ while IFS= read -r kotlin_file; do
       return source ~ /^[[:space:]]*$/ || source ~ /^[[:space:]]*\/\// || source ~ /^[[:space:]]*\/\*/ || source ~ /^[[:space:]]*\*/ || source ~ /^[[:space:]]*\*\//
     }
 
-    function has_dollar_sign(source) {
-      return source ~ /[$]/
+    function has_kotlin_interpolation_marker(source) {
+      # Interpolation markers are `$name` or `${...}`. A dollar escaped in
+      # regular strings (`\$`) should still be treated as literal text.
+      return source ~ /(^|[^\\])[$][A-Za-z_{]/ || source ~ /"""[^"]*\\[$][A-Za-z_{][^"]*"""/
     }
 
     function update_brace_depth(source, i, c) {
@@ -82,7 +84,7 @@ while IFS= read -r kotlin_file; do
 
     {
       if (pending_multiline_direct_literal_call == 1) {
-        if ($0 ~ direct_literal_line_pattern && !has_dollar_sign($0)) {
+        if ($0 ~ direct_literal_line_pattern && !has_kotlin_interpolation_marker($0)) {
           printf "%s:%d:%s\n", FILENAME, NR, $0
           pending_multiline_direct_literal_call = 0
         } else if (is_ignorable_pending_line($0)) {
@@ -97,7 +99,7 @@ while IFS= read -r kotlin_file; do
       }
 
       if (pending_multiline_assignment_literal == 1) {
-        if ($0 ~ direct_literal_line_pattern && !has_dollar_sign($0)) {
+        if ($0 ~ direct_literal_line_pattern && !has_kotlin_interpolation_marker($0)) {
           printf "%s:%d:%s\n", FILENAME, NR, $0
           pending_multiline_assignment_literal = 0
         } else if (is_ignorable_pending_line($0)) {
@@ -118,7 +120,7 @@ while IFS= read -r kotlin_file; do
 
       if (in_annotated_block == 1) {
         if (in_append_call == 1) {
-          if ($0 ~ append_literal_pattern && !has_dollar_sign($0)) {
+          if ($0 ~ append_literal_pattern && !has_kotlin_interpolation_marker($0)) {
             printf "%s:%d:%s\n", FILENAME, NR, $0
           }
           update_append_paren_depth($0)
@@ -131,7 +133,7 @@ while IFS= read -r kotlin_file; do
         if (in_append_call == 0 && $0 ~ append_call_start_pattern) {
           in_append_call = 1
           append_paren_depth = 0
-          if ($0 ~ append_literal_pattern && !has_dollar_sign($0)) {
+          if ($0 ~ append_literal_pattern && !has_kotlin_interpolation_marker($0)) {
             printf "%s:%d:%s\n", FILENAME, NR, $0
           }
           update_append_paren_depth($0)

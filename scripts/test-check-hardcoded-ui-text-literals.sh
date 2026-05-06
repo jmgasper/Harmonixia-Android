@@ -323,6 +323,58 @@ assert_contains "$escaped_quote_literal_fail_output" "FAIL: hardcoded UI text li
 assert_contains "$escaped_quote_literal_fail_output" "EscapedQuoteLiteralFail.kt"
 assert_contains "$escaped_quote_literal_fail_output" "Text(\"He said \\\"Now playing\\\"\")"
 
+escaped_dollar_interpolation_pass_dir="${tmp_dir}/escaped-dollar-interpolation-pass"
+mkdir -p "$escaped_dollar_interpolation_pass_dir"
+cat > "${escaped_dollar_interpolation_pass_dir}/EscapedDollarInterpolationPass.kt" <<'KOTLIN'
+@Composable
+fun PassEscapedDollarInterpolation(title: String) {
+    Text(text = "Now $title costs \$5")
+    Icon(imageVector = Icons.Outlined.PlayArrow, contentDescription = "Play $title for \$5")
+    Text(
+        text = buildAnnotatedString {
+            appendLine(text = "Now $title costs \$5")
+        }
+    )
+}
+KOTLIN
+
+escaped_dollar_interpolation_pass_output="$(run_expect_exit 0 "$escaped_dollar_interpolation_pass_dir")"
+assert_contains "$escaped_dollar_interpolation_pass_output" "PASS: no hardcoded UI text literals found in ${escaped_dollar_interpolation_pass_dir}."
+
+escaped_dollar_literal_fail_dir="${tmp_dir}/escaped-dollar-literal-fail"
+mkdir -p "$escaped_dollar_literal_fail_dir"
+cat > "${escaped_dollar_literal_fail_dir}/EscapedDollarLiteralFail.kt" <<'KOTLIN'
+@Composable
+fun FailEscapedDollarLiteral() {
+    Text(text = "Price \$5")
+    Icon(imageVector = Icons.Outlined.PlayArrow, contentDescription = "Play for \$5")
+}
+KOTLIN
+
+escaped_dollar_literal_fail_output="$(run_expect_exit 1 "$escaped_dollar_literal_fail_dir")"
+assert_contains "$escaped_dollar_literal_fail_output" "FAIL: hardcoded UI text literals found in Kotlin UI sources:"
+assert_contains "$escaped_dollar_literal_fail_output" "EscapedDollarLiteralFail.kt"
+assert_contains "$escaped_dollar_literal_fail_output" "Text(text = \"Price \\\$5\")"
+assert_contains "$escaped_dollar_literal_fail_output" "contentDescription = \"Play for \\\$5\""
+
+escaped_dollar_annotated_append_fail_dir="${tmp_dir}/escaped-dollar-annotated-append-fail"
+mkdir -p "$escaped_dollar_annotated_append_fail_dir"
+cat > "${escaped_dollar_annotated_append_fail_dir}/EscapedDollarAnnotatedAppendFail.kt" <<'KOTLIN'
+@Composable
+fun FailEscapedDollarAnnotatedAppend() {
+    Text(
+        text = buildAnnotatedString {
+            appendLine(text = "Price \$5")
+        }
+    )
+}
+KOTLIN
+
+escaped_dollar_annotated_append_fail_output="$(run_expect_exit 1 "$escaped_dollar_annotated_append_fail_dir")"
+assert_contains "$escaped_dollar_annotated_append_fail_output" "FAIL: hardcoded UI text literals found in Kotlin UI sources:"
+assert_contains "$escaped_dollar_annotated_append_fail_output" "EscapedDollarAnnotatedAppendFail.kt"
+assert_contains "$escaped_dollar_annotated_append_fail_output" "appendLine(text = \"Price \\\$5\")"
+
 raw_interpolation_nonleading_dollar_pass_dir="${tmp_dir}/raw-interpolation-nonleading-dollar-pass"
 mkdir -p "$raw_interpolation_nonleading_dollar_pass_dir"
 cat > "${raw_interpolation_nonleading_dollar_pass_dir}/RawInterpolationNonleadingDollarPass.kt" <<'KOTLIN'
