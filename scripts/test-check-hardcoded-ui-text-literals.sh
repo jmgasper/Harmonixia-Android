@@ -73,6 +73,9 @@ fun Pass(title: String) {
     Text( /* localized
         """$title"""
     )
+    Text( /* localized
+        */ """$title"""
+    )
     Text(
         /* localized */ """$title"""
     )
@@ -118,6 +121,9 @@ fun Pass(title: String) {
     BasicText(
         """$title"""
     )
+    BasicText( /* localized
+        */ """$title"""
+    )
     BasicText(text = AnnotatedString(title))
     BasicText(text = AnnotatedString(text = title))
     BasicText(text = AnnotatedString(text = /* localized */ "$title"))
@@ -126,6 +132,9 @@ fun Pass(title: String) {
         */ """$title"""))
     BasicText(text = AnnotatedString(
         """$title"""
+    ))
+    BasicText(text = AnnotatedString( /* localized
+        */ """$title"""
     ))
     Text(text = buildAnnotatedString {
         append(title)
