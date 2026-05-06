@@ -119,6 +119,10 @@ fun Pass(title: String) {
             */ """$title"""
     )
     Text(
+        text = /* localized
+            */ "Now ${title}"
+    )
+    Text(
         text =
             /* localized */ """$title"""
     )
@@ -192,6 +196,12 @@ fun Pass(title: String) {
         )
         appendRange(
             endIndex = title.length,
+            text = /* localized
+                */ "Now ${title}",
+            startIndex = 0
+        )
+        appendRange(
+            endIndex = title.length,
             text = title,
             startIndex = 0
         )
@@ -218,6 +228,12 @@ fun Pass(title: String) {
                 */ "Now \"$title\"",
             start = 0
         )
+        append(
+            end = title.length,
+            text = /* localized
+                */ "Now ${title}",
+            start = 0
+        )
         appendLine(
             text = title
         )
@@ -232,6 +248,10 @@ fun Pass(title: String) {
         appendLine(
             text = /* localized
                 */ "Now \"$title\""
+        )
+        appendLine(
+            text = /* localized
+                */ "Now ${title}"
         )
         appendLine(
             value = """$title"""
@@ -282,6 +302,11 @@ fun Pass(title: String) {
         imageVector = Icons.Outlined.PlayArrow,
         contentDescription = /* localized
             */ "Now \"$title\""
+    )
+    Icon(
+        imageVector = Icons.Outlined.PlayArrow,
+        contentDescription = /* localized
+            */ "Play ${title}"
     )
     Icon(
         imageVector = Icons.Outlined.PlayArrow,
