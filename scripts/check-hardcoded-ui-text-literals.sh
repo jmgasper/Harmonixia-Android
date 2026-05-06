@@ -20,6 +20,12 @@ escaped_string_literal_pattern='"([^"\\$]|\\.)+"'
 raw_string_literal_pattern='"""[^$\n][^$"\n]*"""'
 literal_pattern="(${escaped_string_literal_pattern}|${raw_string_literal_pattern})"
 
+# AWK consumes escape sequences in `-v` assignments, so the regexes used in
+# the AWK pass need additional escaping to preserve `\\.` and `\n` semantics.
+awk_escaped_string_literal_pattern='"([^"\\\\$]|\\\\.)+"'
+awk_raw_string_literal_pattern='"""[^$\\n][^$"\\n]*"""'
+awk_literal_pattern="(${awk_escaped_string_literal_pattern}|${awk_raw_string_literal_pattern})"
+
 text_call_pattern="Text\\(\\s*${literal_pattern}"
 basic_text_call_pattern="BasicText\\(\\s*${literal_pattern}"
 annotated_string_constructor_pattern="AnnotatedString\\(\\s*${literal_pattern}"
@@ -28,9 +34,9 @@ annotated_append_line_named_value_pattern="appendLine\\([^)]*value\\s*=\\s*(/[*]
 named_text_pattern="text\\s*=\\s*(/[*].*[*]/\\s*)?${literal_pattern}"
 content_description_pattern="contentDescription\\s*=\\s*(/[*].*[*]/\\s*)?${literal_pattern}"
 annotated_append_call_start_pattern='append(Line|Range)?[[:space:]]*[(]'
-annotated_append_literal_pattern="${literal_pattern}"
+annotated_append_literal_pattern="${awk_literal_pattern}"
 multiline_direct_call_start_pattern='(Text|BasicText|AnnotatedString)[[:space:]]*[(][[:space:]]*((//.*)|(/[*].*))?[[:space:]]*$'
-multiline_direct_literal_line_pattern="^[[:space:]]*((/[*].*[*]/|[*]/)[[:space:]]*)*${literal_pattern}[[:space:]]*,?[[:space:]]*((//.*)|(/[*].*))?[[:space:]]*$"
+multiline_direct_literal_line_pattern="^[[:space:]]*((/[*].*[*]/|[*]/)[[:space:]]*)*${awk_literal_pattern}[[:space:]]*,?[[:space:]]*((//.*)|(/[*].*))?[[:space:]]*$"
 multiline_assignment_start_pattern='(text|contentDescription)[[:space:]]*=[[:space:]]*((//.*)|(/[*].*))?[[:space:]]*$'
 
 violations_file="$(mktemp)"

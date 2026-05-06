@@ -491,6 +491,45 @@ assert_contains "$escaped_dollar_named_arg_paths_fail_output" "text = /* TODO lo
 assert_contains "$escaped_dollar_named_arg_paths_fail_output" "append(start = 0, end = 3, text = \"Price \\\$5\")"
 assert_contains "$escaped_dollar_named_arg_paths_fail_output" "append(end = 3, text = \"Price \\\$5\", start = 0)"
 
+escaped_dollar_positional_append_paths_fail_dir="${tmp_dir}/escaped-dollar-positional-append-paths-fail"
+mkdir -p "$escaped_dollar_positional_append_paths_fail_dir"
+cat > "${escaped_dollar_positional_append_paths_fail_dir}/EscapedDollarPositionalAppendPathsFail.kt" <<'KOTLIN'
+@Composable
+fun FailEscapedDollarPositionalAppendPaths() {
+    Text(
+        text = buildAnnotatedString {
+            append("Price \$5")
+            append("Price \$5" /* TODO localize */)
+            append(/* TODO localize */ "Price \$5")
+            append(
+                /* TODO localize
+                    */ "Price \$5"
+            )
+            appendRange("Price \$5", 0, 3)
+            appendRange("Price \$5" /* TODO localize */, 0, 3)
+            appendRange(/* TODO localize */ "Price \$5", 0, 3)
+            appendRange(
+                /* TODO localize
+                    */ "Price \$5",
+                0,
+                3
+            )
+        }
+    )
+}
+KOTLIN
+
+escaped_dollar_positional_append_paths_fail_output="$(run_expect_exit 1 "$escaped_dollar_positional_append_paths_fail_dir")"
+assert_contains "$escaped_dollar_positional_append_paths_fail_output" "FAIL: hardcoded UI text literals found in Kotlin UI sources:"
+assert_contains "$escaped_dollar_positional_append_paths_fail_output" "EscapedDollarPositionalAppendPathsFail.kt"
+assert_contains "$escaped_dollar_positional_append_paths_fail_output" "append(\"Price \\\$5\")"
+assert_contains "$escaped_dollar_positional_append_paths_fail_output" "append(\"Price \\\$5\" /* TODO localize */)"
+assert_contains "$escaped_dollar_positional_append_paths_fail_output" "append(/* TODO localize */ \"Price \\\$5\")"
+assert_contains "$escaped_dollar_positional_append_paths_fail_output" "*/ \"Price \\\$5\""
+assert_contains "$escaped_dollar_positional_append_paths_fail_output" "appendRange(\"Price \\\$5\", 0, 3)"
+assert_contains "$escaped_dollar_positional_append_paths_fail_output" "appendRange(\"Price \\\$5\" /* TODO localize */, 0, 3)"
+assert_contains "$escaped_dollar_positional_append_paths_fail_output" "appendRange(/* TODO localize */ \"Price \\\$5\", 0, 3)"
+
 raw_interpolation_nonleading_dollar_pass_dir="${tmp_dir}/raw-interpolation-nonleading-dollar-pass"
 mkdir -p "$raw_interpolation_nonleading_dollar_pass_dir"
 cat > "${raw_interpolation_nonleading_dollar_pass_dir}/RawInterpolationNonleadingDollarPass.kt" <<'KOTLIN'
