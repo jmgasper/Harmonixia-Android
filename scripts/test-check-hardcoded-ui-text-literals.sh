@@ -511,6 +511,38 @@ assert_contains "$escaped_dollar_named_arg_paths_fail_output" "text = /* TODO lo
 assert_contains "$escaped_dollar_named_arg_paths_fail_output" "append(start = 0, end = 3, text = \"Price \\\$5\")"
 assert_contains "$escaped_dollar_named_arg_paths_fail_output" "append(end = 3, text = \"Price \\\$5\", start = 0)"
 
+escaped_dollar_raw_named_arg_paths_fail_dir="${tmp_dir}/escaped-dollar-raw-named-arg-paths-fail"
+mkdir -p "$escaped_dollar_raw_named_arg_paths_fail_dir"
+cat > "${escaped_dollar_raw_named_arg_paths_fail_dir}/EscapedDollarRawNamedArgPathsFail.kt" <<'KOTLIN'
+@Composable
+fun FailEscapedDollarRawNamedArgPaths() {
+    Text(
+        text = buildAnnotatedString {
+            appendLine(text = """Price \$5""")
+            appendLine(value = """Price \$5""")
+            appendLine(value = /* TODO localize */ """Price \$5""")
+            appendRange(text = """Price \$5""", startIndex = 0, endIndex = 3)
+            appendRange(endIndex = 3, text = """Price \$5""", startIndex = 0)
+            appendRange(text = /* TODO localize */ """Price \$5""", startIndex = 0, endIndex = 3)
+            append(start = 0, end = 3, text = """Price \$5""")
+            append(end = 3, text = """Price \$5""", start = 0)
+            append(start = 0, end = 3, text = /* TODO localize */ """Price \$5""")
+        }
+    )
+}
+KOTLIN
+
+escaped_dollar_raw_named_arg_paths_fail_output="$(run_expect_exit 1 "$escaped_dollar_raw_named_arg_paths_fail_dir")"
+assert_contains "$escaped_dollar_raw_named_arg_paths_fail_output" "FAIL: hardcoded UI text literals found in Kotlin UI sources:"
+assert_contains "$escaped_dollar_raw_named_arg_paths_fail_output" "EscapedDollarRawNamedArgPathsFail.kt"
+assert_contains "$escaped_dollar_raw_named_arg_paths_fail_output" "appendLine(text = \"\"\"Price \\\$5\"\"\")"
+assert_contains "$escaped_dollar_raw_named_arg_paths_fail_output" "appendLine(value = \"\"\"Price \\\$5\"\"\")"
+assert_contains "$escaped_dollar_raw_named_arg_paths_fail_output" "value = /* TODO localize */ \"\"\"Price \\\$5\"\"\""
+assert_contains "$escaped_dollar_raw_named_arg_paths_fail_output" "appendRange(text = \"\"\"Price \\\$5\"\"\", startIndex = 0, endIndex = 3)"
+assert_contains "$escaped_dollar_raw_named_arg_paths_fail_output" "appendRange(endIndex = 3, text = \"\"\"Price \\\$5\"\"\", startIndex = 0)"
+assert_contains "$escaped_dollar_raw_named_arg_paths_fail_output" "append(start = 0, end = 3, text = \"\"\"Price \\\$5\"\"\")"
+assert_contains "$escaped_dollar_raw_named_arg_paths_fail_output" "append(end = 3, text = \"\"\"Price \\\$5\"\"\", start = 0)"
+
 escaped_dollar_positional_append_paths_fail_dir="${tmp_dir}/escaped-dollar-positional-append-paths-fail"
 mkdir -p "$escaped_dollar_positional_append_paths_fail_dir"
 cat > "${escaped_dollar_positional_append_paths_fail_dir}/EscapedDollarPositionalAppendPathsFail.kt" <<'KOTLIN'
