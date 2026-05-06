@@ -1133,6 +1133,26 @@ assert_contains "$annotated_string_append_fail_output" "FAIL: hardcoded UI text 
 assert_contains "$annotated_string_append_fail_output" "AnnotatedStringAppendLiteral.kt"
 assert_contains "$annotated_string_append_fail_output" "append(\"Now playing\")"
 
+annotated_string_append_trailing_inline_block_comment_fail_dir="${tmp_dir}/annotated-string-append-trailing-inline-block-comment-fail"
+mkdir -p "$annotated_string_append_trailing_inline_block_comment_fail_dir"
+cat > "${annotated_string_append_trailing_inline_block_comment_fail_dir}/AnnotatedStringAppendTrailingInlineBlockCommentLiteral.kt" <<'KOTLIN'
+@Composable
+fun FailAnnotatedStringAppendTrailingInlineBlockCommentLiteral() {
+    Text(
+        text = buildAnnotatedString {
+            append("Now playing" /* TODO localize */)
+            append("""Now playing""" /* TODO localize */)
+        }
+    )
+}
+KOTLIN
+
+annotated_string_append_trailing_inline_block_comment_fail_output="$(run_expect_exit 1 "$annotated_string_append_trailing_inline_block_comment_fail_dir")"
+assert_contains "$annotated_string_append_trailing_inline_block_comment_fail_output" "FAIL: hardcoded UI text literals found in Kotlin UI sources:"
+assert_contains "$annotated_string_append_trailing_inline_block_comment_fail_output" "AnnotatedStringAppendTrailingInlineBlockCommentLiteral.kt"
+assert_contains "$annotated_string_append_trailing_inline_block_comment_fail_output" "\"Now playing\" /* TODO localize */"
+assert_contains "$annotated_string_append_trailing_inline_block_comment_fail_output" "\"\"\"Now playing\"\"\" /* TODO localize */"
+
 annotated_string_named_arg_append_fail_dir="${tmp_dir}/annotated-string-named-arg-append-fail"
 mkdir -p "$annotated_string_named_arg_append_fail_dir"
 cat > "${annotated_string_named_arg_append_fail_dir}/AnnotatedStringNamedArgAppendLiteral.kt" <<'KOTLIN'
