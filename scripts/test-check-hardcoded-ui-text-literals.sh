@@ -530,6 +530,35 @@ assert_contains "$escaped_dollar_positional_append_paths_fail_output" "appendRan
 assert_contains "$escaped_dollar_positional_append_paths_fail_output" "appendRange(\"Price \\\$5\" /* TODO localize */, 0, 3)"
 assert_contains "$escaped_dollar_positional_append_paths_fail_output" "appendRange(/* TODO localize */ \"Price \\\$5\", 0, 3)"
 
+escaped_dollar_append_range_close_block_comment_fail_dir="${tmp_dir}/escaped-dollar-append-range-close-block-comment-fail"
+mkdir -p "$escaped_dollar_append_range_close_block_comment_fail_dir"
+cat > "${escaped_dollar_append_range_close_block_comment_fail_dir}/EscapedDollarAppendRangeCloseBlockCommentFail.kt" <<'KOTLIN'
+@Composable
+fun FailEscapedDollarAppendRangeCloseBlockComment() {
+    Text(
+        text = buildAnnotatedString {
+            appendRange(
+                /* TODO localize
+                    */ "Price \$5",
+                0,
+                3
+            )
+            appendRange(
+                endIndex = 3,
+                text = /* TODO localize
+                    */ "Price \$5",
+                startIndex = 0
+            )
+        }
+    )
+}
+KOTLIN
+
+escaped_dollar_append_range_close_block_comment_fail_output="$(run_expect_exit 1 "$escaped_dollar_append_range_close_block_comment_fail_dir")"
+assert_contains "$escaped_dollar_append_range_close_block_comment_fail_output" "FAIL: hardcoded UI text literals found in Kotlin UI sources:"
+assert_contains "$escaped_dollar_append_range_close_block_comment_fail_output" "EscapedDollarAppendRangeCloseBlockCommentFail.kt"
+assert_contains "$escaped_dollar_append_range_close_block_comment_fail_output" "*/ \"Price \\\$5\","
+
 raw_interpolation_nonleading_dollar_pass_dir="${tmp_dir}/raw-interpolation-nonleading-dollar-pass"
 mkdir -p "$raw_interpolation_nonleading_dollar_pass_dir"
 cat > "${raw_interpolation_nonleading_dollar_pass_dir}/RawInterpolationNonleadingDollarPass.kt" <<'KOTLIN'
