@@ -271,6 +271,13 @@ fun Pass(title: String) {
         appendLine(value = """$title""")
         appendLine(value = "Now ${title}")
         appendLine(value = "Now ${title}" /* localized */)
+        appendLine(
+            value = /* localized
+                */ "Now ${title}"
+        )
+        appendLine(
+            value = """Now ${title}""" /* localized */
+        )
     })
     Icon(imageVector = Icons.Outlined.PlayArrow, contentDescription = stringResource(R.string.action_play))
     Icon(imageVector = Icons.Outlined.PlayArrow, contentDescription = "Play ${title}")
