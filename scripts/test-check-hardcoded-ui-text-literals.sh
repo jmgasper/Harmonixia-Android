@@ -425,6 +425,7 @@ fun FailEscapedDollarNamedArgPaths() {
     Text(
         text = buildAnnotatedString {
             appendLine(text = "Price \$5")
+            appendLine(value = "Price \$5")
         }
     )
 }
@@ -435,6 +436,7 @@ assert_contains "$escaped_dollar_named_arg_paths_fail_output" "FAIL: hardcoded U
 assert_contains "$escaped_dollar_named_arg_paths_fail_output" "EscapedDollarNamedArgPathsFail.kt"
 assert_contains "$escaped_dollar_named_arg_paths_fail_output" "AnnotatedString(text = \"Price \\\$5\")"
 assert_contains "$escaped_dollar_named_arg_paths_fail_output" "appendLine(text = \"Price \\\$5\")"
+assert_contains "$escaped_dollar_named_arg_paths_fail_output" "appendLine(value = \"Price \\\$5\")"
 
 raw_interpolation_nonleading_dollar_pass_dir="${tmp_dir}/raw-interpolation-nonleading-dollar-pass"
 mkdir -p "$raw_interpolation_nonleading_dollar_pass_dir"

@@ -24,6 +24,7 @@ text_call_pattern="Text\\(\\s*${literal_pattern}"
 basic_text_call_pattern="BasicText\\(\\s*${literal_pattern}"
 annotated_string_constructor_pattern="AnnotatedString\\(\\s*${literal_pattern}"
 annotated_string_named_text_pattern="AnnotatedString\\([^)]*text\\s*=\\s*(/[*].*[*]/\\s*)?${literal_pattern}"
+annotated_append_line_named_value_pattern="appendLine\\([^)]*value\\s*=\\s*(/[*].*[*]/\\s*)?${literal_pattern}"
 named_text_pattern="text\\s*=\\s*(/[*].*[*]/\\s*)?${literal_pattern}"
 content_description_pattern="contentDescription\\s*=\\s*(/[*].*[*]/\\s*)?${literal_pattern}"
 annotated_append_call_start_pattern='append(Line|Range)?[[:space:]]*[(]'
@@ -39,6 +40,7 @@ rg --no-heading --line-number --color never --glob '*.kt' "$text_call_pattern" "
 rg --no-heading --line-number --color never --glob '*.kt' "$basic_text_call_pattern" "${targets[@]}" >>"$violations_file" || true
 rg --no-heading --line-number --color never --glob '*.kt' "$annotated_string_constructor_pattern" "${targets[@]}" >>"$violations_file" || true
 rg --no-heading --line-number --color never --glob '*.kt' "$annotated_string_named_text_pattern" "${targets[@]}" >>"$violations_file" || true
+rg --no-heading --line-number --color never --glob '*.kt' "$annotated_append_line_named_value_pattern" "${targets[@]}" >>"$violations_file" || true
 rg --no-heading --line-number --color never --glob '*.kt' "$named_text_pattern" "${targets[@]}" >>"$violations_file" || true
 rg --no-heading --line-number --color never --glob '*.kt' "$content_description_pattern" "${targets[@]}" >>"$violations_file" || true
 
