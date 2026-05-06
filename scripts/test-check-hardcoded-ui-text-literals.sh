@@ -416,6 +416,26 @@ assert_contains "$escaped_dollar_annotated_append_fail_output" "FAIL: hardcoded 
 assert_contains "$escaped_dollar_annotated_append_fail_output" "EscapedDollarAnnotatedAppendFail.kt"
 assert_contains "$escaped_dollar_annotated_append_fail_output" "appendLine(text = \"Price \\\$5\")"
 
+escaped_dollar_named_arg_paths_fail_dir="${tmp_dir}/escaped-dollar-named-arg-paths-fail"
+mkdir -p "$escaped_dollar_named_arg_paths_fail_dir"
+cat > "${escaped_dollar_named_arg_paths_fail_dir}/EscapedDollarNamedArgPathsFail.kt" <<'KOTLIN'
+@Composable
+fun FailEscapedDollarNamedArgPaths() {
+    BasicText(text = AnnotatedString(text = "Price \$5"))
+    Text(
+        text = buildAnnotatedString {
+            appendLine(text = "Price \$5")
+        }
+    )
+}
+KOTLIN
+
+escaped_dollar_named_arg_paths_fail_output="$(run_expect_exit 1 "$escaped_dollar_named_arg_paths_fail_dir")"
+assert_contains "$escaped_dollar_named_arg_paths_fail_output" "FAIL: hardcoded UI text literals found in Kotlin UI sources:"
+assert_contains "$escaped_dollar_named_arg_paths_fail_output" "EscapedDollarNamedArgPathsFail.kt"
+assert_contains "$escaped_dollar_named_arg_paths_fail_output" "AnnotatedString(text = \"Price \\\$5\")"
+assert_contains "$escaped_dollar_named_arg_paths_fail_output" "appendLine(text = \"Price \\\$5\")"
+
 raw_interpolation_nonleading_dollar_pass_dir="${tmp_dir}/raw-interpolation-nonleading-dollar-pass"
 mkdir -p "$raw_interpolation_nonleading_dollar_pass_dir"
 cat > "${raw_interpolation_nonleading_dollar_pass_dir}/RawInterpolationNonleadingDollarPass.kt" <<'KOTLIN'
@@ -1501,6 +1521,26 @@ assert_contains "$annotated_string_append_range_fail_output" "FAIL: hardcoded UI
 assert_contains "$annotated_string_append_range_fail_output" "AnnotatedStringAppendRangeLiteral.kt"
 assert_contains "$annotated_string_append_range_fail_output" "appendRange(\"Now playing\", 0, 3)"
 assert_contains "$annotated_string_append_range_fail_output" "appendRange(text = \"Now playing\", startIndex = 0, endIndex = 3)"
+
+annotated_string_append_range_named_args_inline_block_comment_fail_dir="${tmp_dir}/annotated-string-append-range-named-args-inline-block-comment-fail"
+mkdir -p "$annotated_string_append_range_named_args_inline_block_comment_fail_dir"
+cat > "${annotated_string_append_range_named_args_inline_block_comment_fail_dir}/AnnotatedStringAppendRangeNamedArgsInlineBlockCommentLiteral.kt" <<'KOTLIN'
+@Composable
+fun FailAnnotatedStringAppendRangeNamedArgsInlineBlockCommentLiteral() {
+    Text(
+        text = buildAnnotatedString {
+            appendRange(text = /* TODO localize */ "Now playing", startIndex = 0, endIndex = 3)
+            appendRange(text = /* TODO localize */ """Now playing""", startIndex = 0, endIndex = 3)
+        }
+    )
+}
+KOTLIN
+
+annotated_string_append_range_named_args_inline_block_comment_fail_output="$(run_expect_exit 1 "$annotated_string_append_range_named_args_inline_block_comment_fail_dir")"
+assert_contains "$annotated_string_append_range_named_args_inline_block_comment_fail_output" "FAIL: hardcoded UI text literals found in Kotlin UI sources:"
+assert_contains "$annotated_string_append_range_named_args_inline_block_comment_fail_output" "AnnotatedStringAppendRangeNamedArgsInlineBlockCommentLiteral.kt"
+assert_contains "$annotated_string_append_range_named_args_inline_block_comment_fail_output" "text = /* TODO localize */ \"Now playing\", startIndex = 0, endIndex = 3"
+assert_contains "$annotated_string_append_range_named_args_inline_block_comment_fail_output" "text = /* TODO localize */ \"\"\"Now playing\"\"\", startIndex = 0, endIndex = 3"
 
 annotated_string_append_range_positional_trailing_inline_block_comment_fail_dir="${tmp_dir}/annotated-string-append-range-positional-trailing-inline-block-comment-fail"
 mkdir -p "$annotated_string_append_range_positional_trailing_inline_block_comment_fail_dir"
