@@ -159,9 +159,12 @@ fun Pass(title: String) {
         append(start = 0, end = title.length, text = """$title""")
         append(end = title.length, text = title, start = 0)
         append(end = title.length, text = """$title""", start = 0)
+        append(end = title.length, text = "Now \"$title\"" /* localized */, start = 0)
         appendRange(startIndex = 0, endIndex = title.length, text = title)
         appendRange(endIndex = title.length, text = title, startIndex = 0)
         appendRange(endIndex = title.length, text = """$title""", startIndex = 0)
+        appendRange(endIndex = title.length, text = "Now \"$title\"" /* localized */, startIndex = 0)
+        appendRange(endIndex = title.length, text = """Now $title""" /* localized */, startIndex = 0)
         appendRange(
             endIndex = title.length,
             text = /* localized
