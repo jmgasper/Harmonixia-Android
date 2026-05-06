@@ -106,6 +106,10 @@ fun Pass(title: String) {
             """$title"""
     )
     Text(
+        text = /* localized
+            */ """$title"""
+    )
+    Text(
         text =
             /* localized */ """$title"""
     )
@@ -118,6 +122,8 @@ fun Pass(title: String) {
     BasicText(text = AnnotatedString(text = title))
     BasicText(text = AnnotatedString(text = /* localized */ "$title"))
     BasicText(text = AnnotatedString(text = """$title"""))
+    BasicText(text = AnnotatedString(text = /* localized
+        */ """$title"""))
     BasicText(text = AnnotatedString(
         """$title"""
     ))
@@ -221,6 +227,11 @@ fun Pass(title: String) {
         imageVector = Icons.Outlined.PlayArrow,
         contentDescription = /* localized
             title
+    )
+    Icon(
+        imageVector = Icons.Outlined.PlayArrow,
+        contentDescription = /* localized
+            */ """$title"""
     )
     Icon(
         imageVector = Icons.Outlined.PlayArrow,
