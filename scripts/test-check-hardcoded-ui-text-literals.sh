@@ -143,6 +143,8 @@ fun Pass(title: String) {
     BasicText(text = AnnotatedString(title))
     BasicText(text = AnnotatedString(text = title))
     BasicText(text = AnnotatedString(text = /* localized */ "$title"))
+    BasicText(text = AnnotatedString(text = "Now ${title}"))
+    BasicText(text = AnnotatedString(text = "Now ${title}" /* localized */))
     BasicText(text = AnnotatedString(text = """$title"""))
     BasicText(text = AnnotatedString(text = /* localized
         */ """$title"""))
@@ -267,6 +269,8 @@ fun Pass(title: String) {
         )
         appendLine(value = title)
         appendLine(value = """$title""")
+        appendLine(value = "Now ${title}")
+        appendLine(value = "Now ${title}" /* localized */)
     })
     Icon(imageVector = Icons.Outlined.PlayArrow, contentDescription = stringResource(R.string.action_play))
     Icon(imageVector = Icons.Outlined.PlayArrow, contentDescription = "Play ${title}")
