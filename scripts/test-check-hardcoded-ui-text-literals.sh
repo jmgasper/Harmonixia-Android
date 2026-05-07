@@ -649,6 +649,37 @@ assert_contains "$escaped_dollar_raw_positional_append_paths_fail_output" "appen
 assert_contains "$escaped_dollar_raw_positional_append_paths_fail_output" "appendRange(\"\"\"Price \\\$5\"\"\" /* TODO localize */, 0, 3)"
 assert_contains "$escaped_dollar_raw_positional_append_paths_fail_output" "appendRange(/* TODO localize */ \"\"\"Price \\\$5\"\"\", 0, 3)"
 
+escaped_dollar_raw_positional_close_block_comment_fail_dir="${tmp_dir}/escaped-dollar-raw-positional-close-block-comment-fail"
+mkdir -p "$escaped_dollar_raw_positional_close_block_comment_fail_dir"
+cat > "${escaped_dollar_raw_positional_close_block_comment_fail_dir}/EscapedDollarRawPositionalCloseBlockCommentFail.kt" <<'KOTLIN'
+@Composable
+fun FailEscapedDollarRawPositionalCloseBlockComment() {
+    Text(
+        text = buildAnnotatedString {
+            appendLine(
+                /* TODO localize
+                    */ """Price \$5"""
+            )
+            append(
+                /* TODO localize
+                    */ """Price \$5"""
+            )
+            appendRange(
+                /* TODO localize
+                    */ """Price \$5""",
+                0,
+                3
+            )
+        }
+    )
+}
+KOTLIN
+
+escaped_dollar_raw_positional_close_block_comment_fail_output="$(run_expect_exit 1 "$escaped_dollar_raw_positional_close_block_comment_fail_dir")"
+assert_contains "$escaped_dollar_raw_positional_close_block_comment_fail_output" "FAIL: hardcoded UI text literals found in Kotlin UI sources:"
+assert_contains "$escaped_dollar_raw_positional_close_block_comment_fail_output" "EscapedDollarRawPositionalCloseBlockCommentFail.kt"
+assert_contains "$escaped_dollar_raw_positional_close_block_comment_fail_output" "*/ \"\"\"Price \\\$5\"\"\""
+
 escaped_dollar_positional_append_paths_fail_dir="${tmp_dir}/escaped-dollar-positional-append-paths-fail"
 mkdir -p "$escaped_dollar_positional_append_paths_fail_dir"
 cat > "${escaped_dollar_positional_append_paths_fail_dir}/EscapedDollarPositionalAppendPathsFail.kt" <<'KOTLIN'
