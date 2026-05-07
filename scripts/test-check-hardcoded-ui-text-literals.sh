@@ -604,6 +604,12 @@ fun FailEscapedDollarRawNamedArgPaths() {
     BasicText(text = AnnotatedString("""Price \$5"""))
     BasicText(text = AnnotatedString(text = """Price \$5"""))
     BasicText(text = AnnotatedString(text = /* TODO localize */ """Price \$5"""))
+    BasicText(
+        text = AnnotatedString(
+            text = /* TODO localize
+                */ """Price \$5"""
+        )
+    )
     Text(
         text = buildAnnotatedString {
             appendLine(text = """Price \$5""")
@@ -626,6 +632,7 @@ assert_contains "$escaped_dollar_raw_named_arg_paths_fail_output" "EscapedDollar
 assert_contains "$escaped_dollar_raw_named_arg_paths_fail_output" "AnnotatedString(\"\"\"Price \\\$5\"\"\")"
 assert_contains "$escaped_dollar_raw_named_arg_paths_fail_output" "AnnotatedString(text = \"\"\"Price \\\$5\"\"\")"
 assert_contains "$escaped_dollar_raw_named_arg_paths_fail_output" "text = /* TODO localize */ \"\"\"Price \\\$5\"\"\""
+assert_contains "$escaped_dollar_raw_named_arg_paths_fail_output" "*/ \"\"\"Price \\\$5\"\"\""
 assert_contains "$escaped_dollar_raw_named_arg_paths_fail_output" "appendLine(text = \"\"\"Price \\\$5\"\"\")"
 assert_contains "$escaped_dollar_raw_named_arg_paths_fail_output" "appendLine(value = \"\"\"Price \\\$5\"\"\")"
 assert_contains "$escaped_dollar_raw_named_arg_paths_fail_output" "value = /* TODO localize */ \"\"\"Price \\\$5\"\"\""
