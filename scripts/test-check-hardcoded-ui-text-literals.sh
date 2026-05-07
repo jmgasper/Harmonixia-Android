@@ -349,6 +349,8 @@ fun Pass(title: String) {
     Icon(imageVector = Icons.Outlined.PlayArrow, contentDescription = stringResource(R.string.action_play))
     Icon(imageVector = Icons.Outlined.PlayArrow, contentDescription = "Play ${title}")
     Icon(imageVector = Icons.Outlined.PlayArrow, contentDescription = "Play ${title}" /* localized */)
+    Icon(imageVector = Icons.Outlined.PlayArrow, contentDescription = """Play ${title} for \$5""")
+    Icon(imageVector = Icons.Outlined.PlayArrow, contentDescription = """Play ${title} for \$5""" /* localized */)
     Icon(
         imageVector = Icons.Outlined.PlayArrow,
         contentDescription =
@@ -389,6 +391,11 @@ fun Pass(title: String) {
         imageVector = Icons.Outlined.PlayArrow,
         contentDescription = /* localized
             */ "Play ${title}"
+    )
+    Icon(
+        imageVector = Icons.Outlined.PlayArrow,
+        contentDescription = /* localized
+            */ """Play ${title} for \$5"""
     )
     Icon(
         imageVector = Icons.Outlined.PlayArrow,
