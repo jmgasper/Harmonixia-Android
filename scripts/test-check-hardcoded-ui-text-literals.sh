@@ -351,6 +351,10 @@ fun Pass(title: String) {
                 */ """Now ${title} costs \$5"""
         )
         appendLine(
+            text = /* localized
+                */ "Now ${title} costs \$5"
+        )
+        appendLine(
             value = """$title"""
         )
         appendLine(
