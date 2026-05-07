@@ -743,6 +743,28 @@ assert_contains "$escaped_dollar_raw_reordered_named_arg_trailing_inline_comment
 assert_contains "$escaped_dollar_raw_reordered_named_arg_trailing_inline_comment_fail_output" "endIndex = 3, text = \"\"\"Price \\\$5\"\"\" /* TODO localize */, startIndex = 0"
 assert_contains "$escaped_dollar_raw_reordered_named_arg_trailing_inline_comment_fail_output" "end = 3, text = \"\"\"Price \\\$5\"\"\" /* TODO localize */, start = 0"
 
+escaped_dollar_raw_reordered_named_arg_trailing_line_comment_fail_dir="${tmp_dir}/escaped-dollar-raw-reordered-named-arg-trailing-line-comment-fail"
+mkdir -p "$escaped_dollar_raw_reordered_named_arg_trailing_line_comment_fail_dir"
+cat > "${escaped_dollar_raw_reordered_named_arg_trailing_line_comment_fail_dir}/EscapedDollarRawReorderedNamedArgTrailingLineCommentFail.kt" <<'KOTLIN'
+@Composable
+fun FailEscapedDollarRawReorderedNamedArgTrailingLineComment() {
+    Text(
+        text = buildAnnotatedString {
+            appendRange(endIndex = 3, text = """Price \$5""", // TODO localize
+                startIndex = 0)
+            append(end = 3, text = """Price \$5""", // TODO localize
+                start = 0)
+        }
+    )
+}
+KOTLIN
+
+escaped_dollar_raw_reordered_named_arg_trailing_line_comment_fail_output="$(run_expect_exit 1 "$escaped_dollar_raw_reordered_named_arg_trailing_line_comment_fail_dir")"
+assert_contains "$escaped_dollar_raw_reordered_named_arg_trailing_line_comment_fail_output" "FAIL: hardcoded UI text literals found in Kotlin UI sources:"
+assert_contains "$escaped_dollar_raw_reordered_named_arg_trailing_line_comment_fail_output" "EscapedDollarRawReorderedNamedArgTrailingLineCommentFail.kt"
+assert_contains "$escaped_dollar_raw_reordered_named_arg_trailing_line_comment_fail_output" "endIndex = 3, text = \"\"\"Price \\\$5\"\"\", // TODO localize"
+assert_contains "$escaped_dollar_raw_reordered_named_arg_trailing_line_comment_fail_output" "end = 3, text = \"\"\"Price \\\$5\"\"\", // TODO localize"
+
 escaped_dollar_raw_reordered_named_arg_multiline_trailing_inline_comment_fail_dir="${tmp_dir}/escaped-dollar-raw-reordered-named-arg-multiline-trailing-inline-comment-fail"
 mkdir -p "$escaped_dollar_raw_reordered_named_arg_multiline_trailing_inline_comment_fail_dir"
 cat > "${escaped_dollar_raw_reordered_named_arg_multiline_trailing_inline_comment_fail_dir}/EscapedDollarRawReorderedNamedArgMultilineTrailingInlineCommentFail.kt" <<'KOTLIN'
