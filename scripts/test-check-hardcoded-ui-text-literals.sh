@@ -899,6 +899,28 @@ assert_contains "$escaped_dollar_raw_reordered_named_arg_close_block_comment_fai
 assert_contains "$escaped_dollar_raw_reordered_named_arg_close_block_comment_fail_output" "*/ \"\"\"Price \\\$5\"\"\","
 assert_count "$escaped_dollar_raw_reordered_named_arg_close_block_comment_fail_output" "*/ \"\"\"Price \\\$5\"\"\"," 2
 
+escaped_dollar_raw_reordered_named_arg_compact_close_block_comment_fail_dir="${tmp_dir}/escaped-dollar-raw-reordered-named-arg-compact-close-block-comment-fail"
+mkdir -p "$escaped_dollar_raw_reordered_named_arg_compact_close_block_comment_fail_dir"
+cat > "${escaped_dollar_raw_reordered_named_arg_compact_close_block_comment_fail_dir}/EscapedDollarRawReorderedNamedArgCompactCloseBlockCommentFail.kt" <<'KOTLIN'
+@Composable
+fun FailEscapedDollarRawReorderedNamedArgCompactCloseBlockComment() {
+    Text(
+        text = buildAnnotatedString {
+            appendRange(endIndex = 3, text = /* TODO localize
+                    */ """Price \$5""", startIndex = 0)
+            append(end = 3, text = /* TODO localize
+                    */ """Price \$5""", start = 0)
+        }
+    )
+}
+KOTLIN
+
+escaped_dollar_raw_reordered_named_arg_compact_close_block_comment_fail_output="$(run_expect_exit 1 "$escaped_dollar_raw_reordered_named_arg_compact_close_block_comment_fail_dir")"
+assert_contains "$escaped_dollar_raw_reordered_named_arg_compact_close_block_comment_fail_output" "FAIL: hardcoded UI text literals found in Kotlin UI sources:"
+assert_contains "$escaped_dollar_raw_reordered_named_arg_compact_close_block_comment_fail_output" "EscapedDollarRawReorderedNamedArgCompactCloseBlockCommentFail.kt"
+assert_contains "$escaped_dollar_raw_reordered_named_arg_compact_close_block_comment_fail_output" "*/ \"\"\"Price \\\$5\"\"\", startIndex = 0)"
+assert_contains "$escaped_dollar_raw_reordered_named_arg_compact_close_block_comment_fail_output" "*/ \"\"\"Price \\\$5\"\"\", start = 0)"
+
 escaped_dollar_raw_positional_append_paths_fail_dir="${tmp_dir}/escaped-dollar-raw-positional-append-paths-fail"
 mkdir -p "$escaped_dollar_raw_positional_append_paths_fail_dir"
 cat > "${escaped_dollar_raw_positional_append_paths_fail_dir}/EscapedDollarRawPositionalAppendPathsFail.kt" <<'KOTLIN'
