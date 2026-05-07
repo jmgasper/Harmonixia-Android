@@ -17,13 +17,17 @@ fi
 
 # Conservative literal checks for Compose UI callsites.
 escaped_string_literal_pattern='"([^"\\$]|\\.)+"'
-raw_string_literal_pattern='"""[^$\n][^$"\n]*"""'
+# Raw string literal matcher:
+# - allows normal raw text with no interpolation markers
+# - allows escaped-dollar text like `\$5`
+# - rejects interpolation markers (`$name`, `${...}`)
+raw_string_literal_pattern='"""([^$"\n]|\\[$][^A-Za-z_{])+"""'
 literal_pattern="(${escaped_string_literal_pattern}|${raw_string_literal_pattern})"
 
 # AWK consumes escape sequences in `-v` assignments, so the regexes used in
 # the AWK pass need additional escaping to preserve `\\.` and `\n` semantics.
 awk_escaped_string_literal_pattern='"([^"\\\\$]|\\\\.)+"'
-awk_raw_string_literal_pattern='"""[^$\\n][^$"\\n]*"""'
+awk_raw_string_literal_pattern='"""([^$\\n"]|\\\\[$][^A-Za-z_{])+"""'
 awk_literal_pattern="(${awk_escaped_string_literal_pattern}|${awk_raw_string_literal_pattern})"
 
 text_call_pattern="Text\\(\\s*${literal_pattern}"
