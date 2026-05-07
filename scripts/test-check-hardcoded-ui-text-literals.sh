@@ -495,7 +495,9 @@ cat > "${escaped_dollar_semantics_fail_dir}/EscapedDollarSemanticsFail.kt" <<'KO
 @Composable
 fun FailEscapedDollarSemantics() {
     Box(modifier = Modifier.semantics { contentDescription = "Volume \$5" })
+    Box(modifier = Modifier.semantics { contentDescription = "Volume \$5" /* TODO localize */ })
     Box(modifier = Modifier.semantics { contentDescription = """Volume \$5""" })
+    Box(modifier = Modifier.semantics { contentDescription = """Volume \$5""" /* TODO localize */ })
     Box(modifier = Modifier.semantics { contentDescription = /* TODO localize */ """Volume \$5""" })
     Box(
         modifier = Modifier.semantics {
@@ -510,7 +512,9 @@ escaped_dollar_semantics_fail_output="$(run_expect_exit 1 "$escaped_dollar_seman
 assert_contains "$escaped_dollar_semantics_fail_output" "FAIL: hardcoded UI text literals found in Kotlin UI sources:"
 assert_contains "$escaped_dollar_semantics_fail_output" "EscapedDollarSemanticsFail.kt"
 assert_contains "$escaped_dollar_semantics_fail_output" "contentDescription = \"Volume \\\$5\""
+assert_contains "$escaped_dollar_semantics_fail_output" "contentDescription = \"Volume \\\$5\" /* TODO localize */"
 assert_contains "$escaped_dollar_semantics_fail_output" "contentDescription = \"\"\"Volume \\\$5\"\"\""
+assert_contains "$escaped_dollar_semantics_fail_output" "contentDescription = \"\"\"Volume \\\$5\"\"\" /* TODO localize */"
 assert_contains "$escaped_dollar_semantics_fail_output" "contentDescription = /* TODO localize */ \"\"\"Volume \\\$5\"\"\""
 assert_contains "$escaped_dollar_semantics_fail_output" "*/ \"\"\"Volume \\\$5\"\"\""
 
