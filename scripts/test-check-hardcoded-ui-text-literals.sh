@@ -164,6 +164,8 @@ fun Pass(title: String) {
         appendRange("Now \"$title\"" /* localized */, 0, title.length)
         append("Now ${title} costs \$5")
         append("Now ${title} costs \$5" /* localized */)
+        append("""Now ${title} costs \$5""")
+        append("""Now ${title} costs \$5""" /* localized */)
         append(text = title)
         appendLine(text = title)
         appendLine(text = "Now ${title}")
@@ -176,6 +178,8 @@ fun Pass(title: String) {
         appendRange(text = """Now $title""" /* localized */, startIndex = 0, endIndex = title.length)
         appendRange(text = "Now ${title} costs \$5", startIndex = 0, endIndex = title.length)
         appendRange(text = "Now ${title} costs \$5" /* localized */, startIndex = 0, endIndex = title.length)
+        appendRange(text = """Now ${title} costs \$5""", startIndex = 0, endIndex = title.length)
+        appendRange(text = """Now ${title} costs \$5""" /* localized */, startIndex = 0, endIndex = title.length)
         append(start = 0, end = title.length, text = title)
         append(start = 0, end = title.length, text = """$title""")
         append(end = title.length, text = title, start = 0)
@@ -183,6 +187,8 @@ fun Pass(title: String) {
         append(end = title.length, text = "Now \"$title\"" /* localized */, start = 0)
         append(end = title.length, text = "Now ${title} costs \$5", start = 0)
         append(end = title.length, text = "Now ${title} costs \$5" /* localized */, start = 0)
+        append(end = title.length, text = """Now ${title} costs \$5""", start = 0)
+        append(end = title.length, text = """Now ${title} costs \$5""" /* localized */, start = 0)
         appendRange(startIndex = 0, endIndex = title.length, text = title)
         appendRange(endIndex = title.length, text = title, startIndex = 0)
         appendRange(endIndex = title.length, text = """$title""", startIndex = 0)
@@ -191,6 +197,8 @@ fun Pass(title: String) {
         appendRange(endIndex = title.length, text = """Now $title""" /* localized */, startIndex = 0)
         appendRange(endIndex = title.length, text = "Now ${title} costs \$5", startIndex = 0)
         appendRange(endIndex = title.length, text = "Now ${title} costs \$5" /* localized */, startIndex = 0)
+        appendRange(endIndex = title.length, text = """Now ${title} costs \$5""", startIndex = 0)
+        appendRange(endIndex = title.length, text = """Now ${title} costs \$5""" /* localized */, startIndex = 0)
         appendRange(
             endIndex = title.length,
             text = /* localized
@@ -219,6 +227,12 @@ fun Pass(title: String) {
             endIndex = title.length,
             text = /* localized
                 */ "Now ${title} costs \$5",
+            startIndex = 0
+        )
+        appendRange(
+            endIndex = title.length,
+            text = /* localized
+                */ """Now ${title} costs \$5""",
             startIndex = 0
         )
         appendRange(
@@ -259,6 +273,12 @@ fun Pass(title: String) {
             end = title.length,
             text = /* localized
                 */ "Now ${title} costs \$5",
+            start = 0
+        )
+        append(
+            end = title.length,
+            text = /* localized
+                */ """Now ${title} costs \$5""",
             start = 0
         )
         appendLine(
