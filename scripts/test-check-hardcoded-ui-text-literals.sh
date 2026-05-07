@@ -735,6 +735,34 @@ assert_contains "$escaped_dollar_raw_reordered_named_arg_inline_block_comment_fa
 assert_contains "$escaped_dollar_raw_reordered_named_arg_inline_block_comment_fail_output" "endIndex = 3, text = /* TODO localize */ \"\"\"Price \\\$5\"\"\", startIndex = 0"
 assert_contains "$escaped_dollar_raw_reordered_named_arg_inline_block_comment_fail_output" "end = 3, text = /* TODO localize */ \"\"\"Price \\\$5\"\"\", start = 0"
 
+escaped_dollar_raw_reordered_named_arg_multiline_inline_block_comment_fail_dir="${tmp_dir}/escaped-dollar-raw-reordered-named-arg-multiline-inline-block-comment-fail"
+mkdir -p "$escaped_dollar_raw_reordered_named_arg_multiline_inline_block_comment_fail_dir"
+cat > "${escaped_dollar_raw_reordered_named_arg_multiline_inline_block_comment_fail_dir}/EscapedDollarRawReorderedNamedArgMultilineInlineBlockCommentFail.kt" <<'KOTLIN'
+@Composable
+fun FailEscapedDollarRawReorderedNamedArgMultilineInlineBlockComment() {
+    Text(
+        text = buildAnnotatedString {
+            appendRange(
+                endIndex = 3,
+                text = /* TODO localize */ """Price \$5""",
+                startIndex = 0
+            )
+            append(
+                end = 3,
+                text = /* TODO localize */ """Price \$5""",
+                start = 0
+            )
+        }
+    )
+}
+KOTLIN
+
+escaped_dollar_raw_reordered_named_arg_multiline_inline_block_comment_fail_output="$(run_expect_exit 1 "$escaped_dollar_raw_reordered_named_arg_multiline_inline_block_comment_fail_dir")"
+assert_contains "$escaped_dollar_raw_reordered_named_arg_multiline_inline_block_comment_fail_output" "FAIL: hardcoded UI text literals found in Kotlin UI sources:"
+assert_contains "$escaped_dollar_raw_reordered_named_arg_multiline_inline_block_comment_fail_output" "EscapedDollarRawReorderedNamedArgMultilineInlineBlockCommentFail.kt"
+assert_contains "$escaped_dollar_raw_reordered_named_arg_multiline_inline_block_comment_fail_output" "text = /* TODO localize */ \"\"\"Price \\\$5\"\"\","
+assert_count "$escaped_dollar_raw_reordered_named_arg_multiline_inline_block_comment_fail_output" "text = /* TODO localize */ \"\"\"Price \\\$5\"\"\"," 2
+
 escaped_dollar_raw_reordered_named_arg_close_block_comment_fail_dir="${tmp_dir}/escaped-dollar-raw-reordered-named-arg-close-block-comment-fail"
 mkdir -p "$escaped_dollar_raw_reordered_named_arg_close_block_comment_fail_dir"
 cat > "${escaped_dollar_raw_reordered_named_arg_close_block_comment_fail_dir}/EscapedDollarRawReorderedNamedArgCloseBlockCommentFail.kt" <<'KOTLIN'
