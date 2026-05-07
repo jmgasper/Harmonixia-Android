@@ -256,6 +256,12 @@ fun Pass(title: String) {
         )
         appendRange(
             endIndex = title.length,
+            text = /* localized
+                    */ """Now ${title} costs \$5""",
+            startIndex = 0
+        )
+        appendRange(
+            endIndex = title.length,
             text = title,
             startIndex = 0
         )
@@ -298,6 +304,12 @@ fun Pass(title: String) {
             end = title.length,
             text = /* localized
                 */ """Now ${title} costs \$5""",
+            start = 0
+        )
+        append(
+            end = title.length,
+            text = /* localized
+                    */ """Now ${title} costs \$5""",
             start = 0
         )
         appendLine(
@@ -366,6 +378,10 @@ fun Pass(title: String) {
         appendLine(
             value = /* localized
                 */ """Now ${title} costs \$5"""
+        )
+        appendLine(
+            value = /* localized
+                    */ """Now ${title} costs \$5"""
         )
         appendLine(
             value = """Now ${title}""" /* localized */
