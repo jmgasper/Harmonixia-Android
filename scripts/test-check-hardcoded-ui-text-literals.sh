@@ -301,6 +301,16 @@ fun Pass(title: String) {
                 */ "Now ${title}"
         )
         appendLine(
+            text = """Now ${title} costs \$5"""
+        )
+        appendLine(
+            text = """Now ${title} costs \$5""" /* localized */
+        )
+        appendLine(
+            text = /* localized
+                */ """Now ${title} costs \$5"""
+        )
+        appendLine(
             value = """$title"""
         )
         appendLine(
@@ -309,12 +319,17 @@ fun Pass(title: String) {
         appendLine(
             """$title"""
         )
+        appendLine(
+            """Now ${title} costs \$5"""
+        )
         appendLine(value = title)
         appendLine(value = """$title""")
         appendLine(value = "Now ${title}")
         appendLine(value = "Now ${title}" /* localized */)
         appendLine(value = "Now ${title} costs \$5")
         appendLine(value = "Now ${title} costs \$5" /* localized */)
+        appendLine(value = """Now ${title} costs \$5""")
+        appendLine(value = """Now ${title} costs \$5""" /* localized */)
         appendLine(
             value = /* localized
                 */ "Now ${title}"
@@ -322,6 +337,10 @@ fun Pass(title: String) {
         appendLine(
             value = /* localized
                 */ "Now ${title} costs \$5"
+        )
+        appendLine(
+            value = /* localized
+                */ """Now ${title} costs \$5"""
         )
         appendLine(
             value = """Now ${title}""" /* localized */
