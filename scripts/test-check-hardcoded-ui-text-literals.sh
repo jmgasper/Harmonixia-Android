@@ -622,6 +622,27 @@ assert_contains "$escaped_dollar_raw_named_arg_close_block_comment_fail_output" 
 assert_contains "$escaped_dollar_raw_named_arg_close_block_comment_fail_output" "EscapedDollarRawNamedArgCloseBlockCommentFail.kt"
 assert_contains "$escaped_dollar_raw_named_arg_close_block_comment_fail_output" "*/ \"\"\"Price \\\$5\"\"\""
 
+escaped_dollar_raw_named_arg_trailing_inline_comment_fail_dir="${tmp_dir}/escaped-dollar-raw-named-arg-trailing-inline-comment-fail"
+mkdir -p "$escaped_dollar_raw_named_arg_trailing_inline_comment_fail_dir"
+cat > "${escaped_dollar_raw_named_arg_trailing_inline_comment_fail_dir}/EscapedDollarRawNamedArgTrailingInlineCommentFail.kt" <<'KOTLIN'
+@Composable
+fun FailEscapedDollarRawNamedArgTrailingInlineComment() {
+    Text(
+        text = buildAnnotatedString {
+            appendLine(value = """Price \$5""" /* TODO localize */)
+            appendRange(text = """Price \$5""" /* TODO localize */, startIndex = 0, endIndex = 3)
+            append(end = 3, text = """Price \$5""" /* TODO localize */, start = 0)
+        }
+    )
+}
+KOTLIN
+
+escaped_dollar_raw_named_arg_trailing_inline_comment_fail_output="$(run_expect_exit 1 "$escaped_dollar_raw_named_arg_trailing_inline_comment_fail_dir")"
+assert_contains "$escaped_dollar_raw_named_arg_trailing_inline_comment_fail_output" "FAIL: hardcoded UI text literals found in Kotlin UI sources:"
+assert_contains "$escaped_dollar_raw_named_arg_trailing_inline_comment_fail_output" "EscapedDollarRawNamedArgTrailingInlineCommentFail.kt"
+assert_contains "$escaped_dollar_raw_named_arg_trailing_inline_comment_fail_output" "value = \"\"\"Price \\\$5\"\"\" /* TODO localize */"
+assert_contains "$escaped_dollar_raw_named_arg_trailing_inline_comment_fail_output" "text = \"\"\"Price \\\$5\"\"\" /* TODO localize */"
+
 escaped_dollar_raw_positional_append_paths_fail_dir="${tmp_dir}/escaped-dollar-raw-positional-append-paths-fail"
 mkdir -p "$escaped_dollar_raw_positional_append_paths_fail_dir"
 cat > "${escaped_dollar_raw_positional_append_paths_fail_dir}/EscapedDollarRawPositionalAppendPathsFail.kt" <<'KOTLIN'
