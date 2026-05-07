@@ -601,6 +601,9 @@ mkdir -p "$escaped_dollar_raw_named_arg_paths_fail_dir"
 cat > "${escaped_dollar_raw_named_arg_paths_fail_dir}/EscapedDollarRawNamedArgPathsFail.kt" <<'KOTLIN'
 @Composable
 fun FailEscapedDollarRawNamedArgPaths() {
+    BasicText(text = AnnotatedString("""Price \$5"""))
+    BasicText(text = AnnotatedString(text = """Price \$5"""))
+    BasicText(text = AnnotatedString(text = /* TODO localize */ """Price \$5"""))
     Text(
         text = buildAnnotatedString {
             appendLine(text = """Price \$5""")
@@ -620,6 +623,9 @@ KOTLIN
 escaped_dollar_raw_named_arg_paths_fail_output="$(run_expect_exit 1 "$escaped_dollar_raw_named_arg_paths_fail_dir")"
 assert_contains "$escaped_dollar_raw_named_arg_paths_fail_output" "FAIL: hardcoded UI text literals found in Kotlin UI sources:"
 assert_contains "$escaped_dollar_raw_named_arg_paths_fail_output" "EscapedDollarRawNamedArgPathsFail.kt"
+assert_contains "$escaped_dollar_raw_named_arg_paths_fail_output" "AnnotatedString(\"\"\"Price \\\$5\"\"\")"
+assert_contains "$escaped_dollar_raw_named_arg_paths_fail_output" "AnnotatedString(text = \"\"\"Price \\\$5\"\"\")"
+assert_contains "$escaped_dollar_raw_named_arg_paths_fail_output" "text = /* TODO localize */ \"\"\"Price \\\$5\"\"\""
 assert_contains "$escaped_dollar_raw_named_arg_paths_fail_output" "appendLine(text = \"\"\"Price \\\$5\"\"\")"
 assert_contains "$escaped_dollar_raw_named_arg_paths_fail_output" "appendLine(value = \"\"\"Price \\\$5\"\"\")"
 assert_contains "$escaped_dollar_raw_named_arg_paths_fail_output" "value = /* TODO localize */ \"\"\"Price \\\$5\"\"\""
