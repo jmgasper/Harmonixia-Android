@@ -816,6 +816,22 @@ assert_contains "$escaped_dollar_raw_constructor_positional_multiline_trailing_i
 assert_contains "$escaped_dollar_raw_constructor_positional_multiline_trailing_inline_comment_fail_output" "EscapedDollarRawConstructorPositionalMultilineTrailingInlineCommentFail.kt"
 assert_contains "$escaped_dollar_raw_constructor_positional_multiline_trailing_inline_comment_fail_output" "\"\"\"Price \\\$5\"\"\" /* TODO localize */"
 
+escaped_dollar_raw_constructor_positional_multiline_trailing_line_comment_fail_dir="${tmp_dir}/escaped-dollar-raw-constructor-positional-multiline-trailing-line-comment-fail"
+mkdir -p "$escaped_dollar_raw_constructor_positional_multiline_trailing_line_comment_fail_dir"
+cat > "${escaped_dollar_raw_constructor_positional_multiline_trailing_line_comment_fail_dir}/EscapedDollarRawConstructorPositionalMultilineTrailingLineCommentFail.kt" <<'KOTLIN'
+@Composable
+fun FailEscapedDollarRawConstructorPositionalMultilineTrailingLineComment() {
+    BasicText(text = AnnotatedString(
+        """Price \$5""" // TODO localize
+    ))
+}
+KOTLIN
+
+escaped_dollar_raw_constructor_positional_multiline_trailing_line_comment_fail_output="$(run_expect_exit 1 "$escaped_dollar_raw_constructor_positional_multiline_trailing_line_comment_fail_dir")"
+assert_contains "$escaped_dollar_raw_constructor_positional_multiline_trailing_line_comment_fail_output" "FAIL: hardcoded UI text literals found in Kotlin UI sources:"
+assert_contains "$escaped_dollar_raw_constructor_positional_multiline_trailing_line_comment_fail_output" "EscapedDollarRawConstructorPositionalMultilineTrailingLineCommentFail.kt"
+assert_contains "$escaped_dollar_raw_constructor_positional_multiline_trailing_line_comment_fail_output" "\"\"\"Price \\\$5\"\"\" // TODO localize"
+
 escaped_dollar_raw_constructor_line_comment_fail_dir="${tmp_dir}/escaped-dollar-raw-constructor-line-comment-fail"
 mkdir -p "$escaped_dollar_raw_constructor_line_comment_fail_dir"
 cat > "${escaped_dollar_raw_constructor_line_comment_fail_dir}/EscapedDollarRawConstructorLineCommentFail.kt" <<'KOTLIN'
