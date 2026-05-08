@@ -535,6 +535,11 @@ fun Pass(title: String) {
     Icon(
         imageVector = Icons.Outlined.PlayArrow,
         contentDescription = /* localized
+                    */ "Play ${title} for \$5"
+    )
+    Icon(
+        imageVector = Icons.Outlined.PlayArrow,
+        contentDescription = /* localized
             */ """Play ${title} for \$5"""
     )
     Icon(
