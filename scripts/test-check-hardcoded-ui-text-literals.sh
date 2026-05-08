@@ -207,6 +207,10 @@ fun Pass(title: String) {
     BasicText(text = AnnotatedString(
         text = """Now ${title} costs \$5""" // localized
     ))
+    BasicText(text = AnnotatedString(
+        text =
+            """Now ${title} costs \$5""" // localized
+    ))
     BasicText(text = AnnotatedString( /* localized
         */ "Now ${title} costs \$5"
     ))
