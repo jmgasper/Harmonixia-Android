@@ -762,6 +762,23 @@ assert_contains "$escaped_dollar_raw_constructor_compact_named_inline_block_comm
 assert_contains "$escaped_dollar_raw_constructor_compact_named_inline_block_comment_fail_output" "EscapedDollarRawConstructorCompactNamedInlineBlockCommentFail.kt"
 assert_contains "$escaped_dollar_raw_constructor_compact_named_inline_block_comment_fail_output" "AnnotatedString(text = /* TODO localize */ \"\"\"Price \\\$5\"\"\")"
 
+escaped_dollar_raw_constructor_compact_named_close_block_comment_fail_dir="${tmp_dir}/escaped-dollar-raw-constructor-compact-named-close-block-comment-fail"
+mkdir -p "$escaped_dollar_raw_constructor_compact_named_close_block_comment_fail_dir"
+cat > "${escaped_dollar_raw_constructor_compact_named_close_block_comment_fail_dir}/EscapedDollarRawConstructorCompactNamedCloseBlockCommentFail.kt" <<'KOTLIN'
+@Composable
+fun FailEscapedDollarRawConstructorCompactNamedCloseBlockComment() {
+    BasicText(text = AnnotatedString(
+        text = /* TODO localize
+            */ """Price \$5"""
+    ))
+}
+KOTLIN
+
+escaped_dollar_raw_constructor_compact_named_close_block_comment_fail_output="$(run_expect_exit 1 "$escaped_dollar_raw_constructor_compact_named_close_block_comment_fail_dir")"
+assert_contains "$escaped_dollar_raw_constructor_compact_named_close_block_comment_fail_output" "FAIL: hardcoded UI text literals found in Kotlin UI sources:"
+assert_contains "$escaped_dollar_raw_constructor_compact_named_close_block_comment_fail_output" "EscapedDollarRawConstructorCompactNamedCloseBlockCommentFail.kt"
+assert_contains "$escaped_dollar_raw_constructor_compact_named_close_block_comment_fail_output" "*/ \"\"\"Price \\\$5\"\"\""
+
 escaped_dollar_raw_named_arg_close_block_comment_fail_dir="${tmp_dir}/escaped-dollar-raw-named-arg-close-block-comment-fail"
 mkdir -p "$escaped_dollar_raw_named_arg_close_block_comment_fail_dir"
 cat > "${escaped_dollar_raw_named_arg_close_block_comment_fail_dir}/EscapedDollarRawNamedArgCloseBlockCommentFail.kt" <<'KOTLIN'
