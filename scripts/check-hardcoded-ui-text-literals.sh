@@ -32,7 +32,7 @@ awk_literal_pattern="(${awk_escaped_string_literal_pattern}|${awk_raw_string_lit
 
 text_call_pattern="Text\\(\\s*${literal_pattern}"
 basic_text_call_pattern="BasicText\\(\\s*${literal_pattern}"
-annotated_string_constructor_pattern="AnnotatedString\\(\\s*${literal_pattern}"
+annotated_string_constructor_pattern="AnnotatedString\\(\\s*(/[*].*[*]/\\s*)?${literal_pattern}"
 annotated_string_named_text_pattern="AnnotatedString\\([^)]*text\\s*=\\s*(/[*].*[*]/\\s*)?${literal_pattern}"
 annotated_append_line_named_value_pattern="appendLine\\([^)]*value\\s*=\\s*(/[*].*[*]/\\s*)?${literal_pattern}"
 named_text_pattern="text\\s*=\\s*(/[*].*[*]/\\s*)?${literal_pattern}"
