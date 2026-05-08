@@ -571,6 +571,12 @@ fun Pass(title: String) {
                 */ """Volume ${title} costs \$5"""
         }
     )
+    Box(
+        modifier = Modifier.semantics {
+            contentDescription = /* localized
+                    */ """Volume ${title} costs \$5"""
+        }
+    )
     Icon(imageVector = Icons.Outlined.PlayArrow, contentDescription = "$title")
     Icon(imageVector = Icons.Outlined.PlayArrow, contentDescription = /* localized */ "$title")
 }
