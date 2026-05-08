@@ -251,6 +251,12 @@ fun Pass(title: String) {
         appendRange(
             endIndex = title.length,
             text = /* localized
+                    */ "Now ${title} costs \$5",
+            startIndex = 0
+        )
+        appendRange(
+            endIndex = title.length,
+            text = /* localized
                 */ """Now ${title} costs \$5""",
             startIndex = 0
         )
