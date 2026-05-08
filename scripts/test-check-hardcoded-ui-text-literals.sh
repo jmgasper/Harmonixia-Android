@@ -778,6 +778,23 @@ assert_contains "$escaped_dollar_raw_constructor_positional_multiline_inline_blo
 assert_contains "$escaped_dollar_raw_constructor_positional_multiline_inline_block_comment_fail_output" "EscapedDollarRawConstructorPositionalMultilineInlineBlockCommentFail.kt"
 assert_contains "$escaped_dollar_raw_constructor_positional_multiline_inline_block_comment_fail_output" "/* TODO localize */ \"\"\"Price \\\$5\"\"\""
 
+escaped_dollar_raw_constructor_positional_multiline_trailing_block_comment_fail_dir="${tmp_dir}/escaped-dollar-raw-constructor-positional-multiline-trailing-block-comment-fail"
+mkdir -p "$escaped_dollar_raw_constructor_positional_multiline_trailing_block_comment_fail_dir"
+cat > "${escaped_dollar_raw_constructor_positional_multiline_trailing_block_comment_fail_dir}/EscapedDollarRawConstructorPositionalMultilineTrailingBlockCommentFail.kt" <<'KOTLIN'
+@Composable
+fun FailEscapedDollarRawConstructorPositionalMultilineTrailingBlockComment() {
+    BasicText(text = AnnotatedString(
+        """Price \$5""" /* TODO localize
+            */
+    ))
+}
+KOTLIN
+
+escaped_dollar_raw_constructor_positional_multiline_trailing_block_comment_fail_output="$(run_expect_exit 1 "$escaped_dollar_raw_constructor_positional_multiline_trailing_block_comment_fail_dir")"
+assert_contains "$escaped_dollar_raw_constructor_positional_multiline_trailing_block_comment_fail_output" "FAIL: hardcoded UI text literals found in Kotlin UI sources:"
+assert_contains "$escaped_dollar_raw_constructor_positional_multiline_trailing_block_comment_fail_output" "EscapedDollarRawConstructorPositionalMultilineTrailingBlockCommentFail.kt"
+assert_contains "$escaped_dollar_raw_constructor_positional_multiline_trailing_block_comment_fail_output" "\"\"\"Price \\\$5\"\"\" /* TODO localize"
+
 escaped_dollar_raw_constructor_line_comment_fail_dir="${tmp_dir}/escaped-dollar-raw-constructor-line-comment-fail"
 mkdir -p "$escaped_dollar_raw_constructor_line_comment_fail_dir"
 cat > "${escaped_dollar_raw_constructor_line_comment_fail_dir}/EscapedDollarRawConstructorLineCommentFail.kt" <<'KOTLIN'
