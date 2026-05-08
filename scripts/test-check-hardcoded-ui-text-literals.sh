@@ -309,6 +309,12 @@ fun Pass(title: String) {
         append(
             end = title.length,
             text = /* localized
+                    */ "Now ${title} costs \$5",
+            start = 0
+        )
+        append(
+            end = title.length,
+            text = /* localized
                 */ """Now ${title} costs \$5""",
             start = 0
         )
