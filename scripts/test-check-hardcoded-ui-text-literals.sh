@@ -534,6 +534,8 @@ fun Pass(title: String) {
     Box(modifier = Modifier.semantics { contentDescription = "Volume ${title}" })
     Box(modifier = Modifier.semantics { contentDescription = "Volume ${title}" /* localized */ })
     Box(modifier = Modifier.semantics { contentDescription = "Volume ${title} costs \$5" })
+    Box(modifier = Modifier.semantics { contentDescription = "Volume ${title} costs \$5" // localized
+    })
     Box(modifier = Modifier.semantics { contentDescription = "Volume ${title} costs \$5" /* localized */ })
     Box(modifier = Modifier.semantics { contentDescription = """Volume ${title} costs \$5""" })
     Box(modifier = Modifier.semantics { contentDescription = """Volume ${title} costs \$5""" // localized
