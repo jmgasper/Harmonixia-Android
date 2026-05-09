@@ -17,6 +17,12 @@ Extended pass-fixture coverage for raw reordered named `Icon(...)` with plain in
 ## Result
 Both commands passed.
 
+## Revalidation
+- Re-ran both scanner checks on the current HAR-501 checkout to confirm the fixture still passes after subsequent fixture-matrix updates.
+- Revalidation timestamp (UTC): `20260509T232952Z`
+
 ## Evidence Logs
 - `docs/evidence/har-501-test-check-hardcoded-ui-text-literals-20260509T232717Z.log`
 - `docs/evidence/har-501-check-hardcoded-ui-text-literals-20260509T232717Z.log`
+- `docs/evidence/har-501-test-check-hardcoded-ui-text-literals-20260509T232952Z.log`
+- `docs/evidence/har-501-check-hardcoded-ui-text-literals-20260509T232952Z.log`
