@@ -29,3 +29,22 @@ All commands passed.
 - `docs/evidence/har-489-gradlew-app-compileDebugKotlin-20260509T183739Z.log`
 - `docs/evidence/har-489-emulator-list-avds-20260509T183739Z.log`
 - `docs/evidence/har-489-smoke-debug-emulator-installDebug-20260509T183739Z.log`
+
+## Follow-up Matrix Audit (2026-05-10)
+- Audited escaped reordered named `Icon(contentDescription = ..., imageVector = ...)` pass fixtures across compact single-line and multiline layouts.
+- Uncovered before this follow-up: compact single-line no-comment escaped reordered named variant.
+
+### Follow-up Code Change
+- Updated `scripts/test-check-hardcoded-ui-text-literals.sh` pass fixtures with:
+  - `Icon(contentDescription = "Play ${title} for \$5", imageVector = Icons.Outlined.PlayArrow)`
+
+### Follow-up Validation Commands
+1. `./scripts/test-check-hardcoded-ui-text-literals.sh`
+2. `./scripts/check-hardcoded-ui-text-literals.sh`
+
+### Follow-up Result
+Both commands passed.
+
+### Follow-up Evidence Logs
+- `docs/evidence/har-489-test-check-hardcoded-ui-text-literals-20260509T194815Z.log`
+- `docs/evidence/har-489-check-hardcoded-ui-text-literals-20260509T194815Z.log`
