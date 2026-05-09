@@ -26,3 +26,22 @@ All commands passed.
 - `docs/evidence/har-486-compile-debug-kotlin-20260509T150752Z.log`
 - `docs/evidence/har-486-smoke-debug-emulator-list-avds-20260509T150752Z.log`
 - `docs/evidence/har-486-smoke-debug-emulator-install-debug-20260509T150752Z.log`
+
+## Follow-up Matrix Audit (2026-05-10)
+- Audited raw reordered named `Icon(contentDescription = ..., imageVector = ...)` pass fixtures across comment styles and call-layout variants.
+- Uncovered before this follow-up: compact single-line no-comment raw reordered named variant.
+
+### Follow-up Code Change
+- Updated `scripts/test-check-hardcoded-ui-text-literals.sh` pass fixtures with:
+  - `Icon(contentDescription = """Play ${title} for \$5""", imageVector = Icons.Outlined.PlayArrow)`
+
+### Follow-up Validation Commands
+1. `./scripts/test-check-hardcoded-ui-text-literals.sh`
+2. `./scripts/check-hardcoded-ui-text-literals.sh`
+
+### Follow-up Result
+Both commands passed.
+
+### Follow-up Evidence Logs
+- `docs/evidence/har-486-test-check-hardcoded-ui-text-literals-20260509T162523Z.log`
+- `docs/evidence/har-486-check-hardcoded-ui-text-literals-20260509T162523Z.log`
