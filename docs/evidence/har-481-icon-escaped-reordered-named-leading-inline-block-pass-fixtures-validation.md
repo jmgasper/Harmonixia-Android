@@ -26,3 +26,17 @@ All commands passed.
 - `docs/evidence/har-481-compile-debug-kotlin-20260509T102444Z.log`
 - `docs/evidence/har-481-smoke-debug-emulator-list-avds-20260509T102444Z.log`
 - `docs/evidence/har-481-smoke-debug-emulator-install-debug-20260509T102444Z.log`
+
+## Follow-up Matrix Audit (2026-05-09)
+- Audited escaped reordered named `Icon(contentDescription = ..., imageVector = ...)` pass fixtures and confirmed trailing-line, trailing-inline-block, leading-inline-block, and close-block variants were present.
+- Added the next uncovered variant: compact close-block indentation for escaped reordered named `contentDescription`.
+  - `contentDescription = /* localized ... */ "Play ${title} for \$5"` (with compact close-line indentation) before `imageVector`.
+
+### Follow-up Validation Command
+1. `./scripts/test-check-hardcoded-ui-text-literals.sh`
+
+### Follow-up Result
+Command passed.
+
+### Follow-up Evidence Log
+- `docs/evidence/har-481-test-check-hardcoded-ui-text-literals-20260509T135542Z.log`
