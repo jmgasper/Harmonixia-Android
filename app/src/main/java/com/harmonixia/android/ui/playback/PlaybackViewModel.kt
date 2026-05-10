@@ -1,5 +1,6 @@
 package com.harmonixia.android.ui.playback
 
+import android.content.Context
 import android.net.Uri
 import android.os.Build
 import android.os.SystemClock
@@ -8,34 +9,38 @@ import androidx.lifecycle.viewModelScope
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.util.UnstableApi
-import com.harmonixia.android.data.remote.WebSocketMessage
+import com.harmonixia.android.R
 import com.harmonixia.android.data.local.SettingsDataStore
 import com.harmonixia.android.data.remote.ConnectionState
+import com.harmonixia.android.data.remote.WebSocketMessage
 import com.harmonixia.android.domain.model.Album
-import com.harmonixia.android.domain.model.PlaybackState
+import com.harmonixia.android.domain.model.Artist
 import com.harmonixia.android.domain.model.PlaybackContext
+import com.harmonixia.android.domain.model.PlaybackState
 import com.harmonixia.android.domain.model.Player
 import com.harmonixia.android.domain.model.ProviderBadge
 import com.harmonixia.android.domain.model.RepeatMode
-import com.harmonixia.android.domain.model.Artist
 import com.harmonixia.android.domain.repository.LocalMediaRepository
 import com.harmonixia.android.domain.repository.MusicAssistantRepository
 import com.harmonixia.android.domain.repository.OFFLINE_PROVIDER
-import com.harmonixia.android.domain.usecase.GetPlayersUseCase
 import com.harmonixia.android.domain.usecase.GetConnectionStateUseCase
+import com.harmonixia.android.domain.usecase.GetPlayersUseCase
 import com.harmonixia.android.domain.usecase.ResolveProviderBadgeUseCase
 import com.harmonixia.android.domain.usecase.SearchLibraryUseCase
 import com.harmonixia.android.domain.usecase.SetPlayerMuteUseCase
 import com.harmonixia.android.domain.usecase.SetPlayerVolumeUseCase
 import com.harmonixia.android.service.playback.PlaybackServiceConnection
 import com.harmonixia.android.service.playback.PlaybackStateManager
-import com.harmonixia.android.util.ImageQualityManager
-import com.harmonixia.android.util.PlayerSelection
+import com.harmonixia.android.ui.components.TrackDurationFormatter
 import com.harmonixia.android.util.EXTRA_PARENT_MEDIA_ID
 import com.harmonixia.android.util.EXTRA_PROVIDER_DOMAINS
 import com.harmonixia.android.util.EXTRA_PROVIDER_ID
+import com.harmonixia.android.util.ImageQualityManager
+import com.harmonixia.android.util.PlayerSelection
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -51,9 +56,9 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -69,6 +74,7 @@ data class AlbumReference(
 )
 
 @UnstableApi
+@OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class PlaybackViewModel @Inject constructor(
     private val playbackServiceConnection: PlaybackServiceConnection,
@@ -82,6 +88,7 @@ class PlaybackViewModel @Inject constructor(
     private val repository: MusicAssistantRepository,
     private val settingsDataStore: SettingsDataStore,
     private val getConnectionStateUseCase: GetConnectionStateUseCase,
+    @param:ApplicationContext private val context: Context,
     val imageQualityManager: ImageQualityManager
 ) : ViewModel() {
     private val _optimisticPlaybackState = MutableStateFlow<PlaybackState?>(null)
@@ -423,7 +430,7 @@ class PlaybackViewModel @Inject constructor(
             manufacturer.isNotBlank() && model.isNotBlank() -> "$manufacturer $model"
             model.isNotBlank() -> model
             manufacturer.isNotBlank() -> manufacturer
-            else -> "Android Device"
+            else -> context.getString(R.string.player_selection_this_device)
         }
         val placeholder = Player(
             playerId = resolvedId,
@@ -552,14 +559,26 @@ class PlaybackViewModel @Inject constructor(
         _optimisticPlaybackState.value = PlaybackState.PLAYING
         clearOptimisticPlaybackState(PlaybackState.PLAYING, OPTIMISTIC_PLAYBACK_STATE_TIMEOUT_MS)
         playbackServiceConnection.play()
-            .onFailure { _events.tryEmit(PlaybackUiEvent.Error(it.message ?: "Failed to play")) }
+            .onFailure {
+                _events.tryEmit(
+                    PlaybackUiEvent.Error(
+                        it.message ?: context.getString(R.string.playback_error_play)
+                    )
+                )
+            }
     }
 
     fun pause() {
         _optimisticPlaybackState.value = PlaybackState.PAUSED
         clearOptimisticPlaybackState(PlaybackState.PAUSED, OPTIMISTIC_PLAYBACK_STATE_TIMEOUT_MS)
         playbackServiceConnection.pause()
-            .onFailure { _events.tryEmit(PlaybackUiEvent.Error(it.message ?: "Failed to pause")) }
+            .onFailure {
+                _events.tryEmit(
+                    PlaybackUiEvent.Error(
+                        it.message ?: context.getString(R.string.playback_error_pause)
+                    )
+                )
+            }
     }
 
     fun togglePlayPause() {
@@ -575,7 +594,11 @@ class PlaybackViewModel @Inject constructor(
         playbackServiceConnection.next()
             .onFailure {
                 _optimisticMediaItem.value = null
-                _events.tryEmit(PlaybackUiEvent.Error(it.message ?: "Failed to skip"))
+                _events.tryEmit(
+                    PlaybackUiEvent.Error(
+                        it.message ?: context.getString(R.string.playback_error_skip)
+                    )
+                )
             }
     }
 
@@ -588,17 +611,33 @@ class PlaybackViewModel @Inject constructor(
             playbackServiceConnection.previous()
                 .onFailure {
                     _optimisticMediaItem.value = null
-                    _events.tryEmit(PlaybackUiEvent.Error(it.message ?: "Failed to skip"))
+                    _events.tryEmit(
+                        PlaybackUiEvent.Error(
+                            it.message ?: context.getString(R.string.playback_error_skip)
+                        )
+                    )
                 }
         } else {
             playbackServiceConnection.seek(0L)
-                .onFailure { _events.tryEmit(PlaybackUiEvent.Error(it.message ?: "Failed to seek")) }
+                .onFailure {
+                    _events.tryEmit(
+                        PlaybackUiEvent.Error(
+                            it.message ?: context.getString(R.string.playback_error_seek)
+                        )
+                    )
+                }
         }
     }
 
     fun seek(positionMs: Long) {
         playbackServiceConnection.seek(positionMs)
-            .onFailure { _events.tryEmit(PlaybackUiEvent.Error(it.message ?: "Failed to seek")) }
+            .onFailure {
+                _events.tryEmit(
+                    PlaybackUiEvent.Error(
+                        it.message ?: context.getString(R.string.playback_error_seek)
+                    )
+                )
+            }
     }
 
     fun toggleRepeatMode() {
@@ -617,7 +656,8 @@ class PlaybackViewModel @Inject constructor(
                 if (result.isFailure) {
                     _events.tryEmit(
                         PlaybackUiEvent.Error(
-                            result.exceptionOrNull()?.message ?: "Failed to set repeat mode"
+                            result.exceptionOrNull()?.message
+                                ?: context.getString(R.string.playback_error_repeat_mode)
                         )
                     )
                     return@launch
@@ -640,7 +680,8 @@ class PlaybackViewModel @Inject constructor(
                 if (result.isFailure) {
                     _events.tryEmit(
                         PlaybackUiEvent.Error(
-                            result.exceptionOrNull()?.message ?: "Failed to set shuffle mode"
+                            result.exceptionOrNull()?.message
+                                ?: context.getString(R.string.playback_error_shuffle_mode)
                         )
                     )
                     return@launch
@@ -766,8 +807,12 @@ class PlaybackViewModel @Inject constructor(
         )
         val needsExpandedSearch = libraryMatch == null ||
             (preferredProviders.isNotEmpty() && libraryMatch.provider !in preferredProviders)
-        if (!needsExpandedSearch && libraryMatch != null) {
-            return@withContext AlbumReference(libraryMatch.itemId, libraryMatch.provider)
+        if (!needsExpandedSearch) {
+            val matchedLibraryAlbum = requireNotNull(libraryMatch)
+            return@withContext AlbumReference(
+                matchedLibraryAlbum.itemId,
+                matchedLibraryAlbum.provider
+            )
         }
         val expandedResult = searchLibraryUseCase(
             albumName,
@@ -917,13 +962,19 @@ class PlaybackViewModel @Inject constructor(
     fun setVolume(volume: Float) {
         val controller = playbackServiceConnection.mediaController.value
         if (controller == null) {
-            _events.tryEmit(PlaybackUiEvent.Error("Playback not ready"))
+            _events.tryEmit(
+                PlaybackUiEvent.Error(context.getString(R.string.playback_error_not_ready))
+            )
             return
         }
         runCatching {
             controller.volume = volume.coerceIn(0f, 1f)
         }.onFailure {
-            _events.tryEmit(PlaybackUiEvent.Error(it.message ?: "Failed to set volume"))
+            _events.tryEmit(
+                PlaybackUiEvent.Error(
+                    it.message ?: context.getString(R.string.playback_error_set_volume)
+                )
+            )
         }
     }
 
@@ -947,14 +998,23 @@ class PlaybackViewModel @Inject constructor(
         viewModelScope.launch {
             setPlayerVolumeUseCase(player.playerId, safeVolume)
                 .onFailure {
-                    _events.tryEmit(PlaybackUiEvent.Error(it.message ?: "Failed to set volume"))
+                    _events.tryEmit(
+                        PlaybackUiEvent.Error(
+                            it.message ?: context.getString(R.string.playback_error_set_volume)
+                        )
+                    )
                 }
         }
         if (shouldUnmute) {
             viewModelScope.launch {
                 setPlayerMuteUseCase(player.playerId, false)
                     .onFailure {
-                        _events.tryEmit(PlaybackUiEvent.Error(it.message ?: "Failed to unmute player"))
+                        _events.tryEmit(
+                            PlaybackUiEvent.Error(
+                                it.message
+                                    ?: context.getString(R.string.playback_error_unmute_player)
+                            )
+                        )
                     }
             }
         }
@@ -975,7 +1035,11 @@ class PlaybackViewModel @Inject constructor(
         viewModelScope.launch {
             setPlayerMuteUseCase(player.playerId, muted)
                 .onFailure {
-                    _events.tryEmit(PlaybackUiEvent.Error(it.message ?: "Failed to update mute"))
+                    _events.tryEmit(
+                        PlaybackUiEvent.Error(
+                            it.message ?: context.getString(R.string.playback_error_update_mute)
+                        )
+                    )
                 }
         }
     }
@@ -1076,9 +1140,9 @@ class PlaybackViewModel @Inject constructor(
 
     private fun formatDuration(milliseconds: Long): String {
         val totalSeconds = (milliseconds / 1000L).coerceAtLeast(0L)
-        val minutes = totalSeconds / 60L
-        val seconds = totalSeconds % 60L
-        return "%d:%02d".format(minutes, seconds)
+        val durationTemplate = context.getString(R.string.track_duration_minutes_seconds_format)
+        val safeSeconds = totalSeconds.coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
+        return TrackDurationFormatter.formatDuration(safeSeconds, durationTemplate)
     }
 }
 

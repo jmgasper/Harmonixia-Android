@@ -5,6 +5,7 @@ import android.graphics.Bitmap
 import android.net.Uri
 import android.os.Parcel
 import android.util.LruCache
+import androidx.core.graphics.scale
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
@@ -27,6 +28,7 @@ import com.google.common.collect.ImmutableList
 import com.google.common.util.concurrent.Futures
 import com.google.common.util.concurrent.ListenableFuture
 import com.google.common.util.concurrent.SettableFuture
+import com.harmonixia.android.R
 import com.harmonixia.android.domain.model.QueueOption
 import com.harmonixia.android.domain.model.RepeatMode
 import com.harmonixia.android.domain.repository.MusicAssistantRepository
@@ -34,6 +36,7 @@ import com.harmonixia.android.util.EXTRA_PARENT_MEDIA_ID
 import com.harmonixia.android.util.EXTRA_STREAM_URI
 import com.harmonixia.android.util.Logger
 import com.harmonixia.android.util.PerformanceMonitor
+import com.harmonixia.android.util.resolvePlaybackStreamUri
 import java.io.ByteArrayOutputStream
 import java.util.concurrent.atomic.AtomicInteger
 import kotlinx.coroutines.CoroutineScope
@@ -101,20 +104,31 @@ class PlaybackSessionCallback(
         player.addListener(playerListener)
     }
 
+    @Suppress("OVERRIDE_DEPRECATION")
     override fun onPlayerCommandRequest(
         session: MediaSession,
         controller: MediaSession.ControllerInfo,
         @Player.Command playerCommand: Int
     ): Int {
-        when (playerCommand) {
+        return when (playerCommand) {
             Player.COMMAND_PLAY_PAUSE -> {
                 if (player.isPlaying) handlePause() else handlePlay()
+                SessionResult.RESULT_SUCCESS
             }
-            Player.COMMAND_STOP -> handleStop()
-            Player.COMMAND_SEEK_TO_NEXT -> handleNext()
-            Player.COMMAND_SEEK_TO_PREVIOUS -> handlePrevious()
+            Player.COMMAND_STOP -> {
+                handleStop()
+                SessionResult.RESULT_SUCCESS
+            }
+            Player.COMMAND_SEEK_TO_NEXT -> {
+                handleNext()
+                SessionResult.RESULT_SUCCESS
+            }
+            Player.COMMAND_SEEK_TO_PREVIOUS -> {
+                handlePrevious()
+                SessionResult.RESULT_SUCCESS
+            }
+            else -> SessionResult.RESULT_ERROR_NOT_SUPPORTED
         }
-        return SessionResult.RESULT_SUCCESS
     }
 
     override fun onGetLibraryRoot(
@@ -128,7 +142,7 @@ class PlaybackSessionCallback(
                 .getOrElse {
                     Logger.w(TAG, "Failed to load library root", it)
                     val metadata = MediaMetadata.Builder()
-                        .setTitle("Harmonixia")
+                        .setTitle(context.getString(R.string.app_name))
                         .setIsBrowsable(true)
                         .setIsPlayable(false)
                         .build()
@@ -171,7 +185,7 @@ class PlaybackSessionCallback(
                     val parcel = Parcel.obtain()
                     val bundles = ArrayList<android.os.Bundle>(resolvedChildren.size)
                     for (item in resolvedChildren) {
-                        bundles.add(item.toBundle())
+                        bundles.add(toBundleForParcelMeasurement(item))
                     }
                     parcel.writeTypedList(bundles)
                     val size = parcel.dataSize()
@@ -384,12 +398,10 @@ class PlaybackSessionCallback(
     }
 
     private fun MediaItem.streamUri(): String? {
-        val streamingUri = mediaMetadata.extras?.getString(EXTRA_STREAM_URI)
-        return if (!streamingUri.isNullOrBlank()) {
-            streamingUri
-        } else {
-            localConfiguration?.uri?.toString()
-        }
+        return resolvePlaybackStreamUri(
+            extrasStreamUri = mediaMetadata.extras?.getString(EXTRA_STREAM_URI),
+            localConfigurationUri = localConfiguration?.uri?.toString()
+        )
     }
 
     private suspend fun resolveRemainingQueue(
@@ -668,7 +680,13 @@ class PlaybackSessionCallback(
         val scale = maxSize / maxDim.toFloat()
         val width = (bitmap.width * scale).toInt().coerceAtLeast(1)
         val height = (bitmap.height * scale).toInt().coerceAtLeast(1)
-        return Bitmap.createScaledBitmap(bitmap, width, height, true)
+        return bitmap.scale(width, height, filter = true)
+    }
+
+    @Suppress("DEPRECATION")
+    private fun toBundleForParcelMeasurement(item: MediaItem): android.os.Bundle {
+        // Media3 currently only exposes deprecated bundle serialization for MediaItem.
+        return item.toBundle()
     }
 
     private fun encodeBitmap(bitmap: Bitmap): ByteArray? {

@@ -156,14 +156,17 @@ abstract class DataModule {
 
         @Provides
         @Singleton
-        fun provideEqPresetParser(): EqPresetParser = EqPresetParser()
+        fun provideEqPresetParser(
+            @ApplicationContext context: Context
+        ): EqPresetParser = EqPresetParser(context)
 
         @Provides
         @Singleton
         fun provideMusicAssistantWebSocketClient(
+            @ApplicationContext context: Context,
             okHttpClient: OkHttpClient,
             json: Json
-        ): MusicAssistantWebSocketClient = MusicAssistantWebSocketClient(okHttpClient, json)
+        ): MusicAssistantWebSocketClient = MusicAssistantWebSocketClient(context, okHttpClient, json)
 
         @Provides
         @Singleton

@@ -45,9 +45,9 @@ fun SeekBar(
     currentPosition: Long,
     duration: Long,
     onSeek: (Long) -> Unit,
+    modifier: Modifier = Modifier,
     enabled: Boolean = true,
-    centerContent: (@Composable () -> Unit)? = null,
-    modifier: Modifier = Modifier
+    centerContent: (@Composable () -> Unit)? = null
 ) {
     val safeDuration = duration.coerceAtLeast(0L)
     val isEnabled = enabled && safeDuration > 0L

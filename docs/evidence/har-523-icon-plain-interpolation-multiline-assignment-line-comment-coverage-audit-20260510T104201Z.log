@@ -1,0 +1,8 @@
+# HAR-523 line-comment coverage audit
+timestamp_utc=20260510T104201Z
+
+Command: multiline matrix exact-snippet check
+escaped leading: present at line 703
+escaped trailing: present at line 698
+raw leading: MISSING
+raw trailing: present at line 840

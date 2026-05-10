@@ -1,5 +1,7 @@
 package com.harmonixia.android.data.repository
 
+import android.content.Context
+import com.harmonixia.android.R
 import com.harmonixia.android.data.remote.ApiCommand
 import com.harmonixia.android.data.remote.ConnectionState
 import com.harmonixia.android.data.remote.MusicAssistantWebSocketClient
@@ -25,6 +27,7 @@ import com.harmonixia.android.util.Logger
 import com.harmonixia.android.util.NetworkError
 import com.harmonixia.android.util.PerformanceMonitor
 import com.harmonixia.android.util.toNetworkError
+import dagger.hilt.android.qualifiers.ApplicationContext
 import java.io.IOException
 import java.net.ConnectException
 import java.net.SocketTimeoutException
@@ -59,6 +62,7 @@ import okhttp3.RequestBody.Companion.toRequestBody
 
 @Singleton
 class MusicAssistantRepositoryImpl @Inject constructor(
+    @param:ApplicationContext private val context: Context,
     private val webSocketClient: MusicAssistantWebSocketClient,
     private val okHttpClient: OkHttpClient,
     private val json: Json,
@@ -100,6 +104,24 @@ class MusicAssistantRepositoryImpl @Inject constructor(
     private var providerManifestsCache: Map<String, ProviderManifest>? = null
     private var providerInstancesCache: Map<String, ProviderInstance>? = null
     private val cacheScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val defaultRecommendationSectionTitle: String by lazy(LazyThreadSafetyMode.NONE) {
+        context.getString(R.string.recommendation_section_default_title)
+    }
+    private val fallbackRecommendationTitle: String by lazy(LazyThreadSafetyMode.NONE) {
+        context.getString(R.string.recommendation_fallback_title)
+    }
+    private val fallbackUnknownAlbumTitle: String by lazy(LazyThreadSafetyMode.NONE) {
+        context.getString(R.string.recommendation_fallback_unknown_album_title)
+    }
+    private val fallbackUntitledPlaylistTitle: String by lazy(LazyThreadSafetyMode.NONE) {
+        context.getString(R.string.recommendation_fallback_untitled_playlist_title)
+    }
+    private val fallbackUnknownArtistTitle: String by lazy(LazyThreadSafetyMode.NONE) {
+        context.getString(R.string.recommendation_fallback_unknown_artist_title)
+    }
+    private val fallbackUnknownTrackTitle: String by lazy(LazyThreadSafetyMode.NONE) {
+        context.getString(R.string.recommendation_fallback_unknown_track_title)
+    }
 
     init {
         cacheScope.launch {
@@ -144,7 +166,7 @@ class MusicAssistantRepositoryImpl @Inject constructor(
                     .post(requestBody)
                     .build()
                 okHttpClient.newCall(request).execute().use { response ->
-                    val responseBody = response.body?.string().orEmpty()
+                    val responseBody = response.body.string().orEmpty()
                     if (!response.isSuccessful) {
                         val errorMessage = runCatching {
                             val element = json.parseToJsonElement(responseBody)
@@ -153,27 +175,34 @@ class MusicAssistantRepositoryImpl @Inject constructor(
                         }.getOrNull()
                         when (response.code) {
                             401, 403 ->
-                                throw SecurityException(errorMessage ?: "Invalid username or password")
-                            408, 504 -> throw IOException("Connection timeout. Please check your network.")
-                            500, 502, 503 -> throw IOException("Server error. Please try again later.")
-                            else -> throw IOException(errorMessage ?: "Login failed: ${response.code}")
+                                throw SecurityException(
+                                    errorMessage ?: context.getString(R.string.status_auth_failed)
+                                )
+                            408, 504 ->
+                                throw IOException(context.getString(R.string.error_connection_timeout))
+                            500, 502, 503 ->
+                                throw IOException(context.getString(R.string.error_unknown))
+                            else ->
+                                throw IOException(
+                                    errorMessage ?: context.getString(R.string.status_connection_failed)
+                                )
                         }
                     }
                     if (responseBody.isBlank()) {
-                        throw IOException("Invalid server response")
+                        throw IOException(context.getString(R.string.error_unknown))
                     }
                     val element = runCatching { json.parseToJsonElement(responseBody) }
-                        .getOrElse { throw IOException("Invalid server response", it) }
+                        .getOrElse { throw IOException(context.getString(R.string.error_unknown), it) }
                     val payloadObject = element as? JsonObject
-                        ?: throw IOException("Invalid server response")
+                        ?: throw IOException(context.getString(R.string.error_unknown))
                     val success = payloadObject["success"]?.jsonPrimitive?.booleanOrNull
                     if (success == false) {
                         val message = payloadObject.stringOrNull("error", "message", "detail")
-                            ?: "Invalid username or password"
+                            ?: context.getString(R.string.status_auth_failed)
                         throw SecurityException(message)
                     }
                     val token = payloadObject.stringOrNull("token", "access_token", "auth_token")
-                        ?: throw IOException("Invalid server response")
+                        ?: throw IOException(context.getString(R.string.error_unknown))
                     Logger.i(TAG, "Login successful, token obtained")
                     token
                 }
@@ -181,13 +210,17 @@ class MusicAssistantRepositoryImpl @Inject constructor(
                 when (error) {
                     is SecurityException -> throw error
                     is SocketTimeoutException ->
-                        throw IOException("Connection timeout. Please check your network.", error)
+                        throw IOException(context.getString(R.string.error_connection_timeout), error)
                     is UnknownHostException,
                     is ConnectException,
                     is IllegalArgumentException ->
-                        throw IOException("Cannot connect to server. Please check the URL.", error)
+                        throw IOException(context.getString(R.string.status_connection_failed), error)
                     is IOException -> throw error
-                    else -> throw IOException(error.message ?: "Login failed", error)
+                    else ->
+                        throw IOException(
+                            error.message ?: context.getString(R.string.status_connection_failed),
+                            error
+                        )
                 }
             }.onFailure { error ->
                 Logger.e(TAG, "Login failed: ${error.message}", error)
@@ -254,7 +287,9 @@ class MusicAssistantRepositoryImpl @Inject constructor(
             }
             val trimmed = if (limit > 0) albums.take(limit) else albums
             if (attempted > 0 && trimmed.isEmpty()) {
-                throw lastFailure ?: IllegalStateException("Failed to load recently played albums.")
+                throw lastFailure ?: IllegalStateException(
+                    context.getString(R.string.data_validation_recently_played_albums_load_failed)
+                )
             }
             trimmed
         }
@@ -283,7 +318,9 @@ class MusicAssistantRepositoryImpl @Inject constructor(
             }
             val trimmed = if (limit > 0) playlists.take(limit) else playlists
             if (attempted > 0 && trimmed.isEmpty()) {
-                throw lastFailure ?: IllegalStateException("Failed to load recently played playlists.")
+                throw lastFailure ?: IllegalStateException(
+                    context.getString(R.string.data_validation_recently_played_playlists_load_failed)
+                )
             }
             trimmed
         }
@@ -320,7 +357,9 @@ class MusicAssistantRepositoryImpl @Inject constructor(
             ).getOrThrow()
             val payload = result as? JsonObject ?: run {
                 Logger.w(TAG, "Unexpected album response: $result")
-                throw IllegalStateException("Unexpected album response")
+                throw IllegalStateException(
+                    context.getString(R.string.data_validation_unexpected_album_response)
+                )
             }
             val album = parseAlbum(payload)
             val key = cacheKey(itemId, provider)
@@ -339,7 +378,9 @@ class MusicAssistantRepositoryImpl @Inject constructor(
             ).getOrThrow()
             val payload = result as? JsonObject ?: run {
                 Logger.w(TAG, "Unexpected artist response: $result")
-                throw IllegalStateException("Unexpected artist response")
+                throw IllegalStateException(
+                    context.getString(R.string.data_validation_unexpected_artist_response)
+                )
             }
             parseArtist(payload)
         }
@@ -489,7 +530,9 @@ class MusicAssistantRepositoryImpl @Inject constructor(
     override suspend fun getPlaylist(playlistId: String, provider: String): Result<Playlist> {
         return runCatching {
             if (playlistId.isBlank() || provider.isBlank()) {
-                throw IllegalArgumentException("Playlist details are required")
+                throw IllegalArgumentException(
+                    context.getString(R.string.playlist_validation_details_required)
+                )
             }
             var offset = 0
             val pageSize = DEFAULT_PAGE_SIZE
@@ -512,7 +555,9 @@ class MusicAssistantRepositoryImpl @Inject constructor(
                 if (page.size < pageSize) break
                 offset += pageSize
             }
-            throw IllegalStateException("Playlist not found")
+            throw IllegalStateException(
+                context.getString(R.string.playlist_validation_not_found)
+            )
         }
     }
 
@@ -570,7 +615,9 @@ class MusicAssistantRepositoryImpl @Inject constructor(
     ): Result<Unit> {
         val trimmedMedia = media.trim()
         if (trimmedMedia.isBlank()) {
-            return Result.failure(IllegalArgumentException("Media URI is required"))
+            return Result.failure(
+                IllegalArgumentException(context.getString(R.string.playback_error_track_uri_required))
+            )
         }
         val params = buildMap {
             put("queue_id", queueId)
@@ -631,7 +678,9 @@ class MusicAssistantRepositoryImpl @Inject constructor(
         positionSeconds: Int
     ): Result<Unit> {
         val mediaItem = buildTrackPayload(track)
-            ?: return Result.failure(IllegalArgumentException("Missing track metadata for playback reporting"))
+            ?: return Result.failure(
+                IllegalArgumentException(context.getString(R.string.track_validation_metadata_required))
+            )
         val result = sendMarkPlayed(
             mediaItem = mediaItem,
             queueId = queueId,
@@ -656,7 +705,9 @@ class MusicAssistantRepositoryImpl @Inject constructor(
         durationSeconds: Int
     ): Result<Unit> {
         val mediaItem = buildTrackPayload(track)
-            ?: return Result.failure(IllegalArgumentException("Missing track metadata for playback reporting"))
+            ?: return Result.failure(
+                IllegalArgumentException(context.getString(R.string.track_validation_metadata_required))
+            )
         val result = sendMarkPlayed(
             mediaItem = mediaItem,
             queueId = queueId,
@@ -724,7 +775,9 @@ class MusicAssistantRepositoryImpl @Inject constructor(
     override suspend fun deletePlaylist(playlistId: String): Result<Unit> {
         return runCatching {
             if (playlistId.isBlank()) {
-                throw IllegalArgumentException("Playlist id is required")
+                throw IllegalArgumentException(
+                    context.getString(R.string.playlist_validation_id_required)
+                )
             }
             webSocketClient.sendRequest(
                 ApiCommand.MUSIC_DELETE_PLAYLIST,
@@ -734,10 +787,14 @@ class MusicAssistantRepositoryImpl @Inject constructor(
         }.recoverCatching { error ->
             when (error.toNetworkError()) {
                 is NetworkError.AuthenticationError ->
-                    throw IllegalStateException("Authentication failed. Please update your token.")
+                    throw IllegalStateException(
+                        context.getString(R.string.data_validation_authentication_failed_update_token)
+                    )
                 is NetworkError.ConnectionError,
                 is NetworkError.TimeoutError ->
-                    throw IllegalStateException("Unable to connect to server.")
+                    throw IllegalStateException(
+                        context.getString(R.string.data_validation_unable_to_connect_to_server)
+                    )
                 else -> throw error
             }
         }
@@ -766,7 +823,7 @@ class MusicAssistantRepositoryImpl @Inject constructor(
     override suspend fun addToFavorites(track: Track): Result<Unit> {
         val item = buildTrackPayload(track)
             ?: return Result.failure(
-                IllegalArgumentException("Missing track metadata for favorites")
+                IllegalArgumentException(context.getString(R.string.track_validation_metadata_required))
             )
         return sendCommand(
             ApiCommand.MUSIC_FAVORITES_ADD_ITEM,
@@ -777,7 +834,9 @@ class MusicAssistantRepositoryImpl @Inject constructor(
     override suspend fun removeFromFavorites(track: Track): Result<Unit> {
         val itemId = track.itemId
         if (itemId.isBlank()) {
-            return Result.failure(IllegalArgumentException("Track item id is required"))
+            return Result.failure(
+                IllegalArgumentException(context.getString(R.string.track_validation_item_id_required))
+            )
         }
         return sendCommand(
             ApiCommand.MUSIC_FAVORITES_REMOVE_ITEM,
@@ -1099,7 +1158,7 @@ class MusicAssistantRepositoryImpl @Inject constructor(
         return folders.mapNotNull { folder ->
             val title = folder.stringOrNull("name", "title").orEmpty().trim()
             val resolvedTitle = if (title.isBlank()) {
-                DEFAULT_RECOMMENDATION_SECTION_TITLE
+                defaultRecommendationSectionTitle
             } else {
                 title
             }
@@ -1119,7 +1178,7 @@ class MusicAssistantRepositoryImpl @Inject constructor(
         return when (rawMediaType) {
             MEDIA_TYPE_ALBUM -> {
                 val album = parseAlbum(item)
-                val title = album.name.ifBlank { fallbackTitle.ifBlank { UNKNOWN_ALBUM_TITLE } }
+                val title = album.name.ifBlank { fallbackTitle.ifBlank { fallbackUnknownAlbumTitle } }
                 val subtitle = album.artists.joinToString(", ")
                 RecommendationItem(
                     mediaType = RecommendationMediaType.ALBUM,
@@ -1132,7 +1191,7 @@ class MusicAssistantRepositoryImpl @Inject constructor(
             MEDIA_TYPE_PLAYLIST -> {
                 val playlist = parsePlaylist(item)
                 val title = playlist.name.ifBlank {
-                    fallbackTitle.ifBlank { UNKNOWN_PLAYLIST_TITLE }
+                    fallbackTitle.ifBlank { fallbackUntitledPlaylistTitle }
                 }
                 val resolvedImageUrl = playlist.imageUrl ?: fallbackImageUrl
                 val resolvedPlaylist = playlist.copy(
@@ -1150,7 +1209,7 @@ class MusicAssistantRepositoryImpl @Inject constructor(
             }
             MEDIA_TYPE_ARTIST -> {
                 val artist = parseArtist(item)
-                val title = artist.name.ifBlank { fallbackTitle.ifBlank { UNKNOWN_ARTIST_TITLE } }
+                val title = artist.name.ifBlank { fallbackTitle.ifBlank { fallbackUnknownArtistTitle } }
                 RecommendationItem(
                     mediaType = RecommendationMediaType.ARTIST,
                     title = title,
@@ -1161,7 +1220,7 @@ class MusicAssistantRepositoryImpl @Inject constructor(
             }
             MEDIA_TYPE_TRACK -> {
                 val track = parseTrack(item)
-                val title = track.title.ifBlank { fallbackTitle.ifBlank { UNKNOWN_TRACK_TITLE } }
+                val title = track.title.ifBlank { fallbackTitle.ifBlank { fallbackUnknownTrackTitle } }
                 RecommendationItem(
                     mediaType = RecommendationMediaType.TRACK,
                     title = title,
@@ -1171,7 +1230,7 @@ class MusicAssistantRepositoryImpl @Inject constructor(
                 )
             }
             else -> {
-                val title = fallbackTitle.ifBlank { UNKNOWN_RECOMMENDATION_TITLE }
+                val title = fallbackTitle.ifBlank { fallbackRecommendationTitle }
                 val subtitle = formatMediaTypeLabel(rawMediaType)
                 RecommendationItem(
                     mediaType = RecommendationMediaType.OTHER,
@@ -1260,7 +1319,9 @@ class MusicAssistantRepositoryImpl @Inject constructor(
             }
             else -> {
                 Logger.w(TAG, "Unexpected playlist response: $result")
-                throw IllegalStateException("Unexpected playlist response")
+                throw IllegalStateException(
+                    context.getString(R.string.data_validation_unexpected_playlist_response)
+                )
             }
         }
     }
@@ -1511,17 +1572,23 @@ class MusicAssistantRepositoryImpl @Inject constructor(
         val contentType = audioFormat["content_type"]
         val isLossless = isLosslessContentType(contentType)
         if (isLossless) {
+            val losslessLabel = context.getString(R.string.track_quality_lossless)
             val sampleRate = audioFormat.intOrZero("sample_rate")
             val bitDepth = audioFormat.intOrZero("bit_depth")
             if (sampleRate > 0 && bitDepth > 0) {
                 val rateText = formatSampleRateKhz(sampleRate)
-                return "Lossless ${rateText}kHz/${bitDepth}-bit"
+                return context.getString(
+                    R.string.track_quality_lossless_detail_format,
+                    losslessLabel,
+                    rateText,
+                    bitDepth
+                )
             }
-            return "Lossless"
+            return losslessLabel
         }
         val bitRate = audioFormat.intOrZero("bit_rate", "bitrate")
         if (bitRate > 0) {
-            return "${bitRate} kbps"
+            return context.getString(R.string.track_quality_kbps_format, bitRate)
         }
         val outputFormat = audioFormat.stringOrNull("output_format_str")
         if (!outputFormat.isNullOrBlank()) {
@@ -1574,7 +1641,7 @@ class MusicAssistantRepositoryImpl @Inject constructor(
         return if (kotlin.math.abs(rateKhz - rounded) < 0.01) {
             rounded.toInt().toString()
         } else {
-            String.format(Locale.US, "%.1f", rateKhz)
+            context.getString(R.string.track_quality_decimal_one_place_format, rateKhz)
         }
     }
 
@@ -1810,11 +1877,5 @@ class MusicAssistantRepositoryImpl @Inject constructor(
         private const val MEDIA_TYPE_ARTIST = "artist"
         private const val MEDIA_TYPE_TRACK = "track"
         private const val MEDIA_TYPE_FOLDER = "folder"
-        private const val DEFAULT_RECOMMENDATION_SECTION_TITLE = "Recommendations"
-        private const val UNKNOWN_RECOMMENDATION_TITLE = "Recommendation"
-        private const val UNKNOWN_ALBUM_TITLE = "Unknown Album"
-        private const val UNKNOWN_PLAYLIST_TITLE = "Untitled Playlist"
-        private const val UNKNOWN_ARTIST_TITLE = "Unknown Artist"
-        private const val UNKNOWN_TRACK_TITLE = "Unknown Track"
     }
 }

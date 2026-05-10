@@ -68,7 +68,7 @@ class PlaylistDetailViewModel @Inject constructor(
     private val playbackStateManager: PlaybackStateManager,
     private val networkConnectivityManager: NetworkConnectivityManager,
     private val performanceMonitor: PerformanceMonitor,
-    @ApplicationContext private val context: Context,
+    @param:ApplicationContext private val context: Context,
     savedStateHandle: SavedStateHandle,
     val imageQualityManager: ImageQualityManager
 ) : ViewModel() {
@@ -156,7 +156,7 @@ class PlaylistDetailViewModel @Inject constructor(
                 itemId = "favorites",
                 provider = "harmonixia",
                 uri = "",
-                name = "Favorites",
+                name = context.getString(R.string.home_favorites),
                 owner = null,
                 isEditable = false,
                 imageUrl = null
@@ -164,7 +164,7 @@ class PlaylistDetailViewModel @Inject constructor(
             if (isOfflineMode.value) {
                 _playlist.value = favoritesPlaylist
                 _uiState.value = PlaylistDetailUiState.Error(
-                    "Favorites require an online connection."
+                    context.getString(R.string.playlists_offline_unavailable)
                 )
                 return@launch
             }
@@ -178,7 +178,7 @@ class PlaylistDetailViewModel @Inject constructor(
                 _uiState.value = PlaylistDetailUiState.Success(mergedTracks)
                 handleTrackDetailsRetry()
             }.onFailure { error ->
-                _uiState.value = PlaylistDetailUiState.Error(error.message ?: "Unknown error")
+                _uiState.value = PlaylistDetailUiState.Error(error.message ?: playlistsErrorMessage())
             }
             _playlist.value = favoritesPlaylist
         }
@@ -216,7 +216,7 @@ class PlaylistDetailViewModel @Inject constructor(
     ) {
         cancelTrackDetailsRetry()
         if (playlistId.isBlank() || provider.isBlank()) {
-            _uiState.value = PlaylistDetailUiState.Error("Missing playlist details.")
+            _uiState.value = PlaylistDetailUiState.Error(playlistsErrorMessage())
             return
         }
         if (provider == OFFLINE_PROVIDER) {
@@ -294,7 +294,7 @@ class PlaylistDetailViewModel @Inject constructor(
             if (tracksError != null) {
                 if (cachedForDisplay == null) {
                     _uiState.value = PlaylistDetailUiState.Error(
-                        tracksError.message ?: "Unknown error"
+                        tracksError.message ?: playlistsErrorMessage()
                     )
                 }
                 return@supervisorScope
@@ -512,6 +512,8 @@ class PlaylistDetailViewModel @Inject constructor(
         val title = _playlist.value?.name?.trim()
         return title?.takeIf { it.isNotBlank() }
     }
+
+    private fun playlistsErrorMessage(): String = context.getString(R.string.playlists_error)
 
     fun playPlaylist(
         startIndex: Int = 0,

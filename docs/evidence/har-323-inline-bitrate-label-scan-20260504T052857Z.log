@@ -1,0 +1,5 @@
+HAR-323 inline repository scan
+timestamp_utc=20260504T052857Z
+
+1586:            return context.getString(R.string.track_quality_kbps_format, bitRate)
+RESULT: PASS

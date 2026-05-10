@@ -1,6 +1,7 @@
 package com.harmonixia.android.data.local
 
 import android.content.Context
+import com.harmonixia.android.R
 import com.harmonixia.android.util.Logger
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.io.File
@@ -20,7 +21,7 @@ private val productTypes = setOf("product", "device")
 private val eqTypes = setOf("eq", "preset", "equalizer", "filterset")
 
 class EqPresetCache @Inject constructor(
-    @ApplicationContext private val context: Context,
+    @param:ApplicationContext private val context: Context,
     private val okHttpClient: OkHttpClient,
     private val json: Json,
     private val databaseUrl: String = OPRA_DATABASE_URL
@@ -35,13 +36,24 @@ class EqPresetCache @Inject constructor(
                 val tempFile = File(cacheFile.parentFile, "${cacheFile.name}.tmp")
                 okHttpClient.newCall(request).execute().use { response ->
                     if (!response.isSuccessful) {
-                        throw IllegalStateException("OPRA download failed: ${response.code}")
+                        throw IllegalStateException(
+                            context.getString(
+                                R.string.eq_validation_opra_download_failed_http,
+                                response.code
+                            )
+                        )
                     }
-                    val body = response.body ?: throw IllegalStateException("OPRA response body is empty")
-                    body.byteStream().use { input ->
+                    val body = response.body
+                    val copiedBytes = body.byteStream().use { input ->
                         tempFile.outputStream().use { output ->
                             input.copyTo(output)
                         }
+                    }
+                    if (copiedBytes <= 0L) {
+                        tempFile.delete()
+                        throw IllegalStateException(
+                            context.getString(R.string.eq_validation_opra_response_body_empty)
+                        )
                     }
                 }
                 if (!tempFile.renameTo(cacheFile)) {

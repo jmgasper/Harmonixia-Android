@@ -51,51 +51,45 @@ sealed class SettingsUiState(
     open val form: SettingsFormState,
     open val connectionState: ConnectionState,
     open val canDisconnect: Boolean,
-    open val localMediaScanState: LocalMediaScanState,
     open val selectedTab: SettingsTab
 ) {
     data class Initial(
         override val form: SettingsFormState,
         override val connectionState: ConnectionState,
         override val canDisconnect: Boolean,
-        override val localMediaScanState: LocalMediaScanState = LocalMediaScanState(),
         override val selectedTab: SettingsTab
-    ) : SettingsUiState(form, connectionState, canDisconnect, localMediaScanState, selectedTab)
+    ) : SettingsUiState(form, connectionState, canDisconnect, selectedTab)
 
     data class Validating(
         override val form: SettingsFormState,
         override val connectionState: ConnectionState,
         override val canDisconnect: Boolean,
-        override val localMediaScanState: LocalMediaScanState = LocalMediaScanState(),
         override val selectedTab: SettingsTab
-    ) : SettingsUiState(form, connectionState, canDisconnect, localMediaScanState, selectedTab)
+    ) : SettingsUiState(form, connectionState, canDisconnect, selectedTab)
 
     data class Connecting(
         override val form: SettingsFormState,
         override val connectionState: ConnectionState,
         override val canDisconnect: Boolean,
-        override val localMediaScanState: LocalMediaScanState = LocalMediaScanState(),
         override val selectedTab: SettingsTab,
         val isTesting: Boolean
-    ) : SettingsUiState(form, connectionState, canDisconnect, localMediaScanState, selectedTab)
+    ) : SettingsUiState(form, connectionState, canDisconnect, selectedTab)
 
     data class Success(
         override val form: SettingsFormState,
         override val connectionState: ConnectionState,
         override val canDisconnect: Boolean,
-        override val localMediaScanState: LocalMediaScanState = LocalMediaScanState(),
         override val selectedTab: SettingsTab,
         val message: String
-    ) : SettingsUiState(form, connectionState, canDisconnect, localMediaScanState, selectedTab)
+    ) : SettingsUiState(form, connectionState, canDisconnect, selectedTab)
 
     data class Error(
         override val form: SettingsFormState,
         override val connectionState: ConnectionState,
         override val canDisconnect: Boolean,
-        override val localMediaScanState: LocalMediaScanState = LocalMediaScanState(),
         override val selectedTab: SettingsTab,
         val message: String
-    ) : SettingsUiState(form, connectionState, canDisconnect, localMediaScanState, selectedTab)
+    ) : SettingsUiState(form, connectionState, canDisconnect, selectedTab)
 }
 
 fun SettingsUiState.withConnectionState(
@@ -103,43 +97,11 @@ fun SettingsUiState.withConnectionState(
     canDisconnect: Boolean
 ): SettingsUiState {
     return when (this) {
-        is SettingsUiState.Initial -> copy(
-            connectionState = state,
-            canDisconnect = canDisconnect,
-            localMediaScanState = localMediaScanState
-        )
-        is SettingsUiState.Validating -> copy(
-            connectionState = state,
-            canDisconnect = canDisconnect,
-            localMediaScanState = localMediaScanState
-        )
-        is SettingsUiState.Connecting -> copy(
-            connectionState = state,
-            canDisconnect = canDisconnect,
-            localMediaScanState = localMediaScanState
-        )
-        is SettingsUiState.Success -> copy(
-            connectionState = state,
-            canDisconnect = canDisconnect,
-            localMediaScanState = localMediaScanState
-        )
-        is SettingsUiState.Error -> copy(
-            connectionState = state,
-            canDisconnect = canDisconnect,
-            localMediaScanState = localMediaScanState
-        )
-    }
-}
-
-fun SettingsUiState.withLocalMediaScanState(
-    scanState: LocalMediaScanState
-): SettingsUiState {
-    return when (this) {
-        is SettingsUiState.Initial -> copy(localMediaScanState = scanState)
-        is SettingsUiState.Validating -> copy(localMediaScanState = scanState)
-        is SettingsUiState.Connecting -> copy(localMediaScanState = scanState)
-        is SettingsUiState.Success -> copy(localMediaScanState = scanState)
-        is SettingsUiState.Error -> copy(localMediaScanState = scanState)
+        is SettingsUiState.Initial -> copy(connectionState = state, canDisconnect = canDisconnect)
+        is SettingsUiState.Validating -> copy(connectionState = state, canDisconnect = canDisconnect)
+        is SettingsUiState.Connecting -> copy(connectionState = state, canDisconnect = canDisconnect)
+        is SettingsUiState.Success -> copy(connectionState = state, canDisconnect = canDisconnect)
+        is SettingsUiState.Error -> copy(connectionState = state, canDisconnect = canDisconnect)
     }
 }
 

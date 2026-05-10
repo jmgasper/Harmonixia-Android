@@ -1,0 +1,4 @@
+Dry run mode enabled.
+Would run shell syntax checks.
+Would run behavioral option regressions.
+Dry run summary: syntax and behavioral regressions.

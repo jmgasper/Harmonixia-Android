@@ -1,0 +1,73 @@
+# HAR-526 non-dollar multiline-assignment comment-matrix audit
+# Generated: 20260510T105443Z
+
+## Non-dollar escaped/plain interpolation candidates
+   620	        imageVector = Icons.Outlined.PlayArrow
+   621	    )
+   622	    Icon(contentDescription = /* localized */ "Play \"$title\"", imageVector = Icons.Outlined.PlayArrow)
+   623	    Icon(contentDescription = "Play ${title}" /* localized */, imageVector = Icons.Outlined.PlayArrow)
+   624	    Icon(contentDescription = /* localized */ "Play ${title}", imageVector = Icons.Outlined.PlayArrow)
+   625	    Icon(
+   626	        contentDescription = /* localized
+   627	            */ "Play ${title}",
+   628	        imageVector = Icons.Outlined.PlayArrow
+   629	    )
+   630	    Icon(
+   631	        contentDescription = /* localized
+   632	                    */ "Play ${title}",
+   633	        imageVector = Icons.Outlined.PlayArrow
+   634	    )
+   635	    Icon(
+   636	        contentDescription = "Play ${title}", // localized
+   637	        imageVector = Icons.Outlined.PlayArrow
+   638	    )
+   639	    Icon(
+   640	        contentDescription =
+   641	            "Play ${title}",
+   642	        imageVector = Icons.Outlined.PlayArrow
+   643	    )
+   644	    Icon(
+   645	        contentDescription =
+   646	            "Play ${title}", // localized
+   647	        imageVector = Icons.Outlined.PlayArrow
+   648	    )
+   649	    Icon(
+   650	        contentDescription =
+   651	            // localized
+   652	            "Play ${title}",
+   653	        imageVector = Icons.Outlined.PlayArrow
+   654	    )
+   655	    Icon(
+   656	        imageVector = Icons.Outlined.PlayArrow,
+   657	        contentDescription = /* localized
+   658	                    */ "Play ${title} for \$5"
+   659	    )
+   660	    Icon(imageVector = Icons.Outlined.PlayArrow, contentDescription = /* localized */ "Play ${title} for \$5")
+
+## Non-dollar raw/plain interpolation candidates
+   800	    Icon(
+   801	        contentDescription = """Play "$title"""", // localized
+   802	        imageVector = Icons.Outlined.PlayArrow
+   803	    )
+   804	    Icon(contentDescription = """Play ${title}""" /* localized */, imageVector = Icons.Outlined.PlayArrow)
+   805	    Icon(contentDescription = /* localized */ """Play ${title}""", imageVector = Icons.Outlined.PlayArrow)
+   806	    Icon(
+   807	        contentDescription = /* localized
+   808	            */ """Play ${title}""",
+   809	        imageVector = Icons.Outlined.PlayArrow
+   810	    )
+   811	    Icon(
+   812	        contentDescription = /* localized
+   813	                    */ """Play ${title}""",
+   814	        imageVector = Icons.Outlined.PlayArrow
+   815	    )
+   816	    Icon(
+   817	        contentDescription = """Play ${title}""", // localized
+   818	        imageVector = Icons.Outlined.PlayArrow
+   819	    )
+   820	    Icon(
+   821	        contentDescription = """Play ${title} for \$5""", // localized
+   822	        imageVector = Icons.Outlined.PlayArrow
+   823	    )
+   824	    Icon(
+   825	        contentDescription = /* localized */ """Play ${title} for \$5""",

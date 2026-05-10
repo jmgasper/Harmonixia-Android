@@ -32,11 +32,13 @@ set APP_HOME=%DIRNAME%
 set DEFAULT_JVM_OPTS="-Xmx64m" "-Xms64m"
 
 @rem Find java.exe
+set JAVA_HOME_WAS_SET=0
+if defined JAVA_HOME set JAVA_HOME_WAS_SET=1
 if defined JAVA_HOME goto findJavaFromJavaHome
 
 set JAVA_EXE=java.exe
 %JAVA_EXE% -version >nul 2>&1
-if "%ERRORLEVEL%" == "0" goto execute
+if "%ERRORLEVEL%" == "0" goto validateJava
 
 echo.
 echo ERROR: JAVA_HOME is not set and no 'java' command could be found in your PATH.
@@ -50,7 +52,7 @@ goto fail
 set JAVA_HOME=%JAVA_HOME:"=%
 set JAVA_EXE=%JAVA_HOME%\bin\java.exe
 
-if exist "%JAVA_EXE%" goto execute
+if exist "%JAVA_EXE%" goto validateJava
 
 echo.
 echo ERROR: JAVA_HOME is set to an invalid directory: %JAVA_HOME%
@@ -58,6 +60,28 @@ echo.
 echo Please set the JAVA_HOME variable in your environment to match the
  echo location of your Java installation.
 
+goto fail
+
+:validateJava
+call :resolveJavaMajor
+if "%JAVA_MAJOR%"=="17" goto execute
+
+if "%JAVA_HOME_WAS_SET%"=="0" call :trySetJavaHome "%HARMONIXIA_JAVA_HOME%"
+if "%JAVA_MAJOR%"=="17" goto execute
+if "%JAVA_HOME_WAS_SET%"=="0" call :trySetJavaHome "%JAVA17_HOME%"
+if "%JAVA_MAJOR%"=="17" goto execute
+if "%JAVA_HOME_WAS_SET%"=="0" call :trySetJavaHome "%JDK17_HOME%"
+if "%JAVA_MAJOR%"=="17" goto execute
+if "%JAVA_HOME_WAS_SET%"=="0" call :trySetJavaHome "%JAVA_HOME_17_X64%"
+if "%JAVA_MAJOR%"=="17" goto execute
+
+echo.
+echo ERROR: Harmonixia requires JDK 17 for local Gradle builds.
+if not "%JAVA_VERSION_TOKEN%" == "" echo Detected Java runtime: %JAVA_VERSION_TOKEN%
+echo.
+echo Set JAVA_HOME to a JDK 17 installation and retry.
+echo If JAVA_HOME is unset, this wrapper checks HARMONIXIA_JAVA_HOME, JAVA17_HOME, JDK17_HOME, and JAVA_HOME_17_X64.
+echo.
 goto fail
 
 :execute
@@ -84,3 +108,25 @@ if "%EXIT_CODE%" == "0" set EXIT_CODE=1
 @rem ##########################################################################
 
 exit /b %EXIT_CODE%
+
+:resolveJavaMajor
+set JAVA_VERSION_TOKEN=
+set JAVA_MAJOR=
+for /f "tokens=3" %%A in ('"%JAVA_EXE%" -version 2^>^&1 ^| findstr /i "version"') do (
+    set JAVA_VERSION_TOKEN=%%~A
+    goto resolveJavaMajorFound
+)
+:resolveJavaMajorFound
+set JAVA_VERSION_TOKEN=%JAVA_VERSION_TOKEN:"=%
+for /f "tokens=1 delims=." %%A in ("%JAVA_VERSION_TOKEN%") do set JAVA_MAJOR=%%A
+if "%JAVA_MAJOR%"=="1" for /f "tokens=2 delims=." %%A in ("%JAVA_VERSION_TOKEN%") do set JAVA_MAJOR=%%A
+goto :eof
+
+:trySetJavaHome
+set CANDIDATE_HOME=%~1
+if "%CANDIDATE_HOME%"=="" goto :eof
+if not exist "%CANDIDATE_HOME%\bin\java.exe" goto :eof
+set JAVA_HOME=%CANDIDATE_HOME%
+set JAVA_EXE=%JAVA_HOME%\bin\java.exe
+call :resolveJavaMajor
+goto :eof

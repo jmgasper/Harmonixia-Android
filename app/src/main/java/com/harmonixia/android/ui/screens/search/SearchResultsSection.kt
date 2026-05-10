@@ -1,6 +1,6 @@
 package com.harmonixia.android.ui.screens.search
 
-import android.app.Activity
+import androidx.activity.compose.LocalActivity
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -22,7 +22,6 @@ import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.harmonixia.android.R
@@ -35,7 +34,7 @@ fun SearchResultsSection(
     onToggleExpanded: () -> Unit,
     content: @Composable () -> Unit
 ) {
-    val windowSizeClass = calculateWindowSizeClass(activity = LocalContext.current as Activity)
+    val windowSizeClass = calculateWindowSizeClass(activity = checkNotNull(LocalActivity.current))
     val headerPadding = when (windowSizeClass.widthSizeClass) {
         WindowWidthSizeClass.Compact -> 12.dp
         WindowWidthSizeClass.Medium -> 16.dp

@@ -1,0 +1,8 @@
+HAR-328 inline EqGraph label scan
+timestamp_utc=20260504T080422Z
+
+75:        frequencyIntegerKFormat = stringResource(R.string.eq_graph_frequency_integer_k_format),
+76:        frequencyDecimalKFormat = stringResource(R.string.eq_graph_frequency_decimal_k_format),
+77:        gainPositiveFormat = stringResource(R.string.eq_graph_gain_positive_format),
+78:        gainDefaultFormat = stringResource(R.string.eq_graph_gain_default_format)
+RESULT: PASS

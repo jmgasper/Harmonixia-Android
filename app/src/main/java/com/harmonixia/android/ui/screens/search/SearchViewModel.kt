@@ -25,6 +25,7 @@ import com.harmonixia.android.util.mergeWithLocal
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
+import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -36,6 +37,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.launch
 
+@OptIn(FlowPreview::class)
 @HiltViewModel
 class SearchViewModel @Inject constructor(
     private val searchLibraryUseCase: SearchLibraryUseCase,
@@ -46,7 +48,7 @@ class SearchViewModel @Inject constructor(
     private val playbackStateManager: PlaybackStateManager,
     getConnectionStateUseCase: GetConnectionStateUseCase,
     private val savedStateHandle: SavedStateHandle,
-    @ApplicationContext private val context: Context,
+    @param:ApplicationContext private val context: Context,
     private val imageLoader: ImageLoader,
     private val networkConnectivityManager: NetworkConnectivityManager,
     val imageQualityManager: ImageQualityManager

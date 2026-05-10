@@ -10,10 +10,10 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.VolumeDown
-import androidx.compose.material.icons.filled.VolumeMute
-import androidx.compose.material.icons.filled.VolumeOff
-import androidx.compose.material.icons.filled.VolumeUp
+import androidx.compose.material.icons.automirrored.filled.VolumeDown
+import androidx.compose.material.icons.automirrored.filled.VolumeMute
+import androidx.compose.material.icons.automirrored.filled.VolumeOff
+import androidx.compose.material.icons.automirrored.filled.VolumeUp
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -38,16 +38,16 @@ import com.harmonixia.android.R
 fun VolumeControl(
     volume: Float,
     onVolumeChange: (Float) -> Unit,
-    enabled: Boolean = true,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true
 ) {
     var isExpanded by remember { mutableStateOf(true) }
     val haptic = LocalHapticFeedback.current
     val volumeIcon = when {
-        volume <= 0f -> Icons.Filled.VolumeOff
-        volume < 0.33f -> Icons.Filled.VolumeMute
-        volume < 0.66f -> Icons.Filled.VolumeDown
-        else -> Icons.Filled.VolumeUp
+        volume <= 0f -> Icons.AutoMirrored.Filled.VolumeOff
+        volume < 0.33f -> Icons.AutoMirrored.Filled.VolumeMute
+        volume < 0.66f -> Icons.AutoMirrored.Filled.VolumeDown
+        else -> Icons.AutoMirrored.Filled.VolumeUp
     }
     val volumeLabel = stringResource(R.string.label_volume)
 

@@ -1,8 +1,10 @@
 package com.harmonixia.android.data.local
 
 import android.content.Context
+import com.harmonixia.android.R
 import com.harmonixia.android.domain.model.EqFilter
 import com.harmonixia.android.domain.model.EqPreset
+import io.mockk.every
 import io.mockk.mockk
 import java.io.File
 import kotlinx.serialization.json.Json
@@ -17,13 +19,16 @@ import org.junit.Test
 
 class EqPresetParserTest {
 
-    private val parser = EqPresetParser()
+    private val parserContext = mockk<Context>(relaxed = true).apply {
+        every { getString(R.string.eq_fallback_preset_name) } returns "EQ Preset"
+    }
+    private val parser = EqPresetParser(parserContext)
 
     @Test
     fun parseJsonl_readsVendorProductAndEqEntries() {
-        val context = mockk<Context>(relaxed = true)
+        val cacheContext = mockk<Context>(relaxed = true)
         val json = Json { ignoreUnknownKeys = true }
-        val cache = EqPresetCache(context, OkHttpClient(), json)
+        val cache = EqPresetCache(cacheContext, OkHttpClient(), json)
         val file = File.createTempFile("opra", ".jsonl")
         file.writeText(
             """
@@ -155,5 +160,33 @@ class EqPresetParserTest {
         assertEquals(1, bands.size)
         assertTrue(bands.first().gain <= 12.0)
         assertTrue(bands.first().bandwidth >= 1.0)
+    }
+
+    @Test
+    fun normalizeOpraDatabaseEntry_usesResourceFallbackNameWhenMissing() {
+        val parserContext = mockk<Context>(relaxed = true).apply {
+            every { getString(R.string.eq_fallback_preset_name) } returns "Localized EQ Preset"
+        }
+        val parser = EqPresetParser(parserContext)
+        val entry = buildJsonObject {
+            put(
+                "filters",
+                buildJsonArray {
+                    add(
+                        buildJsonObject {
+                            put("frequency", JsonPrimitive(1000))
+                            put("gain", JsonPrimitive(3.0))
+                            put("q", JsonPrimitive(1.2))
+                        }
+                    )
+                }
+            )
+        }
+
+        val preset = parser.normalizeOpraDatabaseEntry(entry, emptyMap(), emptyMap())
+
+        assertNotNull(preset)
+        assertEquals("Localized EQ Preset", preset?.name)
+        assertEquals("Localized EQ Preset", preset?.displayName)
     }
 }

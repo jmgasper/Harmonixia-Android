@@ -1,10 +1,14 @@
 package com.harmonixia.android.data.repository
 
+import android.content.Context
+import com.harmonixia.android.R
 import com.harmonixia.android.data.remote.ApiCommand
 import com.harmonixia.android.data.remote.ConnectionState
 import com.harmonixia.android.data.remote.MusicAssistantWebSocketClient
 import com.harmonixia.android.domain.model.QueueOption
 import com.harmonixia.android.util.PerformanceMonitor
+import io.mockk.every
+import io.mockk.mockk
 import java.util.concurrent.atomic.AtomicInteger
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -25,6 +29,7 @@ class MusicAssistantRepositoryImplTest {
     private val json = Json { ignoreUnknownKeys = true }
     private val okHttpClient = OkHttpClient()
     private val performanceMonitor = PerformanceMonitor()
+    private val context = mockk<Context>(relaxed = true)
 
     @Test
     fun fetchAlbums_returnsAlbums() = runBlocking {
@@ -53,7 +58,7 @@ class MusicAssistantRepositoryImplTest {
             assertEquals(ApiCommand.MUSIC_GET_LIBRARY_ALBUMS, command)
             Result.success(resultPayload)
         }
-        val repository = MusicAssistantRepositoryImpl(client, okHttpClient, json, performanceMonitor)
+        val repository = repository(client)
 
         val result = repository.fetchAlbums(200, 0)
 
@@ -84,7 +89,7 @@ class MusicAssistantRepositoryImplTest {
             assertEquals(ApiCommand.MUSIC_GET_LIBRARY_ARTISTS, command)
             Result.success(resultPayload)
         }
-        val repository = MusicAssistantRepositoryImpl(client, okHttpClient, json, performanceMonitor)
+        val repository = repository(client)
 
         val result = repository.fetchArtists(200, 0)
 
@@ -116,7 +121,7 @@ class MusicAssistantRepositoryImplTest {
             assertEquals(ApiCommand.MUSIC_GET_LIBRARY_PLAYLISTS, command)
             Result.success(resultPayload)
         }
-        val repository = MusicAssistantRepositoryImpl(client, okHttpClient, json, performanceMonitor)
+        val repository = repository(client)
 
         val result = repository.fetchPlaylists(200, 0)
 
@@ -152,7 +157,7 @@ class MusicAssistantRepositoryImplTest {
             calls.incrementAndGet()
             Result.success(buildJsonObject { put("items", JsonArray(items)) })
         }
-        val repository = MusicAssistantRepositoryImpl(client, okHttpClient, json, performanceMonitor)
+        val repository = repository(client)
 
         val result = repository.fetchAlbums(200, 0)
 
@@ -227,7 +232,7 @@ class MusicAssistantRepositoryImplTest {
             assertEquals(true, params["library_only"])
             Result.success(resultPayload)
         }
-        val repository = MusicAssistantRepositoryImpl(client, okHttpClient, json, performanceMonitor)
+        val repository = repository(client)
 
         val result = repository.searchLibrary("query", 25)
 
@@ -247,7 +252,7 @@ class MusicAssistantRepositoryImplTest {
             assertEquals(false, params["library_only"])
             Result.success(buildJsonObject { })
         }
-        val repository = MusicAssistantRepositoryImpl(client, okHttpClient, json, performanceMonitor)
+        val repository = repository(client)
 
         val result = repository.searchLibrary("query", 10, libraryOnly = false)
 
@@ -275,7 +280,7 @@ class MusicAssistantRepositoryImplTest {
             assertEquals("test", params["provider_instance_id_or_domain"])
             Result.success(resultPayload)
         }
-        val repository = MusicAssistantRepositoryImpl(client, okHttpClient, json, performanceMonitor)
+        val repository = repository(client)
 
         val result = repository.getAlbumTracks("album-1", "test")
 
@@ -283,6 +288,200 @@ class MusicAssistantRepositoryImplTest {
         val tracks = result.getOrThrow()
         assertEquals(1, tracks.size)
         assertEquals("Track One", tracks.first().title)
+    }
+
+    @Test
+    fun getAlbumTracks_resourceizesDetailedLosslessQualityLabel() = runBlocking {
+        every { context.getString(R.string.track_quality_lossless) } returns "Sin pérdida"
+        every {
+            context.getString(
+                R.string.track_quality_lossless_detail_format,
+                "Sin pérdida",
+                "48",
+                24
+            )
+        } returns "Sin pérdida · 48 kHz · 24 bits"
+        val resultPayload = buildJsonArray {
+            add(
+                buildJsonObject {
+                    put("item_id", JsonPrimitive("track-1"))
+                    put("provider", JsonPrimitive("test"))
+                    put("uri", JsonPrimitive("test://track-1"))
+                    put("name", JsonPrimitive("Track One"))
+                    put("artist", JsonPrimitive("Artist One"))
+                    put("album", JsonPrimitive("Album One"))
+                    put("duration", JsonPrimitive(180))
+                    put(
+                        "provider_mappings",
+                        buildJsonArray {
+                            add(
+                                buildJsonObject {
+                                    put("quality", JsonPrimitive(100))
+                                    put(
+                                        "audio_format",
+                                        buildJsonObject {
+                                            put("content_type", JsonPrimitive("flac"))
+                                            put("sample_rate", JsonPrimitive(48000))
+                                            put("bit_depth", JsonPrimitive(24))
+                                        }
+                                    )
+                                }
+                            )
+                        }
+                    )
+                }
+            )
+        }
+        val client = FakeMusicAssistantWebSocketClient { command, _ ->
+            assertEquals(ApiCommand.MUSIC_GET_ALBUM_TRACKS, command)
+            Result.success(resultPayload)
+        }
+        val repository = repository(client)
+
+        val tracks = repository.getAlbumTracks("album-1", "test").getOrThrow()
+
+        assertEquals("Sin pérdida · 48 kHz · 24 bits", tracks.first().quality)
+    }
+
+    @Test
+    fun getAlbumTracks_resourceizesDecimalSampleRateTemplateForLosslessLabel() = runBlocking {
+        every { context.getString(R.string.track_quality_lossless) } returns "Sin pérdida"
+        every { context.getString(R.string.track_quality_decimal_one_place_format, any()) } returns "44.1"
+        every {
+            context.getString(
+                R.string.track_quality_lossless_detail_format,
+                "Sin pérdida",
+                "44.1",
+                16
+            )
+        } returns "Sin pérdida · 44.1 kHz · 16 bits"
+        val resultPayload = buildJsonArray {
+            add(
+                buildJsonObject {
+                    put("item_id", JsonPrimitive("track-1"))
+                    put("provider", JsonPrimitive("test"))
+                    put("uri", JsonPrimitive("test://track-1"))
+                    put("name", JsonPrimitive("Track One"))
+                    put("artist", JsonPrimitive("Artist One"))
+                    put("album", JsonPrimitive("Album One"))
+                    put("duration", JsonPrimitive(180))
+                    put(
+                        "provider_mappings",
+                        buildJsonArray {
+                            add(
+                                buildJsonObject {
+                                    put("quality", JsonPrimitive(100))
+                                    put(
+                                        "audio_format",
+                                        buildJsonObject {
+                                            put("content_type", JsonPrimitive("flac"))
+                                            put("sample_rate", JsonPrimitive(44100))
+                                            put("bit_depth", JsonPrimitive(16))
+                                        }
+                                    )
+                                }
+                            )
+                        }
+                    )
+                }
+            )
+        }
+        val client = FakeMusicAssistantWebSocketClient { command, _ ->
+            assertEquals(ApiCommand.MUSIC_GET_ALBUM_TRACKS, command)
+            Result.success(resultPayload)
+        }
+        val repository = repository(client)
+
+        val tracks = repository.getAlbumTracks("album-1", "test").getOrThrow()
+
+        assertEquals("Sin pérdida · 44.1 kHz · 16 bits", tracks.first().quality)
+    }
+
+    @Test
+    fun getAlbumTracks_resourceizesPlainLosslessQualityLabel() = runBlocking {
+        every { context.getString(R.string.track_quality_lossless) } returns "Sin pérdida"
+        val resultPayload = buildJsonArray {
+            add(
+                buildJsonObject {
+                    put("item_id", JsonPrimitive("track-1"))
+                    put("provider", JsonPrimitive("test"))
+                    put("uri", JsonPrimitive("test://track-1"))
+                    put("name", JsonPrimitive("Track One"))
+                    put("artist", JsonPrimitive("Artist One"))
+                    put("album", JsonPrimitive("Album One"))
+                    put("duration", JsonPrimitive(180))
+                    put(
+                        "provider_mappings",
+                        buildJsonArray {
+                            add(
+                                buildJsonObject {
+                                    put("quality", JsonPrimitive(100))
+                                    put(
+                                        "audio_format",
+                                        buildJsonObject {
+                                            put("content_type", JsonPrimitive("flac"))
+                                        }
+                                    )
+                                }
+                            )
+                        }
+                    )
+                }
+            )
+        }
+        val client = FakeMusicAssistantWebSocketClient { command, _ ->
+            assertEquals(ApiCommand.MUSIC_GET_ALBUM_TRACKS, command)
+            Result.success(resultPayload)
+        }
+        val repository = repository(client)
+
+        val tracks = repository.getAlbumTracks("album-1", "test").getOrThrow()
+
+        assertEquals("Sin pérdida", tracks.first().quality)
+    }
+
+    @Test
+    fun getAlbumTracks_resourceizesBitrateQualityLabel() = runBlocking {
+        every { context.getString(R.string.track_quality_kbps_format, 320) } returns "320 kb/s"
+        val resultPayload = buildJsonArray {
+            add(
+                buildJsonObject {
+                    put("item_id", JsonPrimitive("track-1"))
+                    put("provider", JsonPrimitive("test"))
+                    put("uri", JsonPrimitive("test://track-1"))
+                    put("name", JsonPrimitive("Track One"))
+                    put("artist", JsonPrimitive("Artist One"))
+                    put("album", JsonPrimitive("Album One"))
+                    put("duration", JsonPrimitive(180))
+                    put(
+                        "provider_mappings",
+                        buildJsonArray {
+                            add(
+                                buildJsonObject {
+                                    put("quality", JsonPrimitive(80))
+                                    put(
+                                        "audio_format",
+                                        buildJsonObject {
+                                            put("content_type", JsonPrimitive("mp3"))
+                                            put("bit_rate", JsonPrimitive(320))
+                                        }
+                                    )
+                                }
+                            )
+                        }
+                    )
+                }
+            )
+        }
+        val client = FakeMusicAssistantWebSocketClient { command, _ ->
+            assertEquals(ApiCommand.MUSIC_GET_ALBUM_TRACKS, command)
+            Result.success(resultPayload)
+        }
+        val repository = repository(client)
+
+        val tracks = repository.getAlbumTracks("album-1", "test").getOrThrow()
+
+        assertEquals("320 kb/s", tracks.first().quality)
     }
 
     @Test
@@ -302,7 +501,7 @@ class MusicAssistantRepositoryImplTest {
             assertEquals(ApiCommand.PLAYERS_FETCH_STATE, command)
             Result.success(resultPayload)
         }
-        val repository = MusicAssistantRepositoryImpl(client, okHttpClient, json, performanceMonitor)
+        val repository = repository(client)
 
         val result = repository.fetchPlayers()
 
@@ -348,7 +547,7 @@ class MusicAssistantRepositoryImplTest {
                 else -> Result.failure(IllegalStateException("Unexpected command"))
             }
         }
-        val repository = MusicAssistantRepositoryImpl(client, okHttpClient, json, performanceMonitor)
+        val repository = repository(client)
 
         val result = repository.getActiveQueue("player-1")
 
@@ -363,7 +562,7 @@ class MusicAssistantRepositoryImplTest {
         val client = FakeMusicAssistantWebSocketClient { _, _ ->
             Result.failure(IllegalStateException("Network error"))
         }
-        val repository = MusicAssistantRepositoryImpl(client, okHttpClient, json, performanceMonitor)
+        val repository = repository(client)
 
         val result = repository.fetchArtists(200, 0)
 
@@ -376,16 +575,23 @@ class MusicAssistantRepositoryImplTest {
             assertEquals(ApiCommand.PLAYER_QUEUES_PLAY_MEDIA, command)
             Result.failure(IllegalStateException("Server error"))
         }
-        val repository = MusicAssistantRepositoryImpl(client, okHttpClient, json, performanceMonitor)
+        val repository = repository(client)
 
         val result = repository.playMedia("queue-1", listOf("test://track-1"), QueueOption.REPLACE)
 
         assertTrue(result.isFailure)
     }
 
+    private fun repository(client: MusicAssistantWebSocketClient): MusicAssistantRepositoryImpl =
+        MusicAssistantRepositoryImpl(context, client, okHttpClient, json, performanceMonitor)
+
     private class FakeMusicAssistantWebSocketClient(
         private val handler: (String, Map<String, Any?>) -> Result<JsonElement>
-    ) : MusicAssistantWebSocketClient(OkHttpClient(), Json { ignoreUnknownKeys = true }) {
+    ) : MusicAssistantWebSocketClient(
+        mockk(relaxed = true),
+        OkHttpClient(),
+        Json { ignoreUnknownKeys = true }
+    ) {
         private val state = MutableStateFlow<ConnectionState>(ConnectionState.Connected)
 
         override val connectionState: StateFlow<ConnectionState> = state

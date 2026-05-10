@@ -3,8 +3,12 @@ package com.harmonixia.android.ui.screens.settings
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
+import com.harmonixia.android.R
 import com.harmonixia.android.data.remote.ConnectionState
+import com.harmonixia.android.ui.screens.PREVIEW_DEMO_SERVER_URL
+import com.harmonixia.android.ui.screens.settings.localmedia.LocalMediaSettingsUiState
 import com.harmonixia.android.ui.theme.HarmonixiaTheme
 
 @Preview(showBackground = true)
@@ -13,7 +17,7 @@ fun SettingsScreenPreviewInitial() {
     HarmonixiaTheme {
         SettingsScreenContent(
             uiState = SettingsUiState.Initial(
-                form = SettingsFormState(serverUrl = "http://192.168.1.29:8095"),
+                form = SettingsFormState(serverUrl = PREVIEW_DEMO_SERVER_URL),
                 connectionState = ConnectionState.Disconnected,
                 canDisconnect = false,
                 selectedTab = SettingsTab.CONNECTION
@@ -21,9 +25,7 @@ fun SettingsScreenPreviewInitial() {
             selectedTab = SettingsTab.CONNECTION,
             onTabSelected = {},
             snackbarHostState = remember { SnackbarHostState() },
-            localMediaFolderUri = "",
-            localMediaTrackCount = 0,
-            localMediaScanState = LocalMediaScanState(),
+            localMediaUiState = LocalMediaSettingsUiState(),
             onNavigateBack = {},
             onNavigateToPerformanceSettings = {},
             onServerUrlChange = {},
@@ -48,7 +50,7 @@ fun SettingsScreenPreviewConnecting() {
     HarmonixiaTheme {
         SettingsScreenContent(
             uiState = SettingsUiState.Connecting(
-                form = SettingsFormState(serverUrl = "http://192.168.1.29:8095"),
+                form = SettingsFormState(serverUrl = PREVIEW_DEMO_SERVER_URL),
                 connectionState = ConnectionState.Connecting,
                 canDisconnect = true,
                 selectedTab = SettingsTab.CONNECTION,
@@ -57,9 +59,7 @@ fun SettingsScreenPreviewConnecting() {
             selectedTab = SettingsTab.CONNECTION,
             onTabSelected = {},
             snackbarHostState = remember { SnackbarHostState() },
-            localMediaFolderUri = "",
-            localMediaTrackCount = 0,
-            localMediaScanState = LocalMediaScanState(),
+            localMediaUiState = LocalMediaSettingsUiState(),
             onNavigateBack = {},
             onNavigateToPerformanceSettings = {},
             onServerUrlChange = {},
@@ -82,20 +82,19 @@ fun SettingsScreenPreviewConnecting() {
 @Composable
 fun SettingsScreenPreviewError() {
     HarmonixiaTheme {
+        val connectionFailed = stringResource(R.string.status_connection_failed)
         SettingsScreenContent(
             uiState = SettingsUiState.Error(
-                form = SettingsFormState(serverUrl = "http://192.168.1.29:8095"),
-                connectionState = ConnectionState.Error("Connection failed"),
+                form = SettingsFormState(serverUrl = PREVIEW_DEMO_SERVER_URL),
+                connectionState = ConnectionState.Error(connectionFailed),
                 canDisconnect = false,
                 selectedTab = SettingsTab.CONNECTION,
-                message = "Connection failed"
+                message = connectionFailed
             ),
             selectedTab = SettingsTab.CONNECTION,
             onTabSelected = {},
             snackbarHostState = remember { SnackbarHostState() },
-            localMediaFolderUri = "",
-            localMediaTrackCount = 0,
-            localMediaScanState = LocalMediaScanState(),
+            localMediaUiState = LocalMediaSettingsUiState(),
             onNavigateBack = {},
             onNavigateToPerformanceSettings = {},
             onServerUrlChange = {},
@@ -118,20 +117,19 @@ fun SettingsScreenPreviewError() {
 @Composable
 fun SettingsScreenPreviewSuccess() {
     HarmonixiaTheme {
+        val connected = stringResource(R.string.status_connected)
         SettingsScreenContent(
             uiState = SettingsUiState.Success(
-                form = SettingsFormState(serverUrl = "http://192.168.1.29:8095"),
+                form = SettingsFormState(serverUrl = PREVIEW_DEMO_SERVER_URL),
                 connectionState = ConnectionState.Connected,
                 canDisconnect = true,
                 selectedTab = SettingsTab.CONNECTION,
-                message = "Connected successfully"
+                message = connected
             ),
             selectedTab = SettingsTab.CONNECTION,
             onTabSelected = {},
             snackbarHostState = remember { SnackbarHostState() },
-            localMediaFolderUri = "",
-            localMediaTrackCount = 0,
-            localMediaScanState = LocalMediaScanState(),
+            localMediaUiState = LocalMediaSettingsUiState(),
             onNavigateBack = {},
             onNavigateToPerformanceSettings = {},
             onServerUrlChange = {},

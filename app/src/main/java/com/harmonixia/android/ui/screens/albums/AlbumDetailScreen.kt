@@ -1,6 +1,6 @@
 package com.harmonixia.android.ui.screens.albums
 
-import android.app.Activity
+import androidx.activity.compose.LocalActivity
 import android.content.res.Configuration
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -49,6 +49,8 @@ import androidx.compose.ui.graphics.painter.ColorPainter
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalResources
+import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextAlign
@@ -58,7 +60,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.layout.ContentScale
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -90,7 +92,7 @@ fun AlbumDetailScreen(
     val playlists by viewModel.playlists.collectAsStateWithLifecycle()
     val isOfflineMode by viewModel.isOfflineMode.collectAsStateWithLifecycle()
     val imageQualityManager = viewModel.imageQualityManager
-    val context = LocalContext.current
+    val resources = LocalResources.current
     val snackbarHostState = remember { SnackbarHostState() }
 
     var showPlaylistPicker by remember { mutableStateOf(false) }
@@ -101,7 +103,7 @@ fun AlbumDetailScreen(
         viewModel.events.collect { event ->
             when (event) {
                 is AlbumDetailUiEvent.ShowMessage -> {
-                    snackbarHostState.showSnackbar(context.getString(event.messageResId))
+                    snackbarHostState.showSnackbar(resources.getString(event.messageResId))
                 }
                 AlbumDetailUiEvent.PlaylistCreated -> {
                     showCreateDialog = false
@@ -114,8 +116,10 @@ fun AlbumDetailScreen(
         }
     }
 
-    val windowSizeClass = calculateWindowSizeClass(activity = LocalContext.current as Activity)
+    val windowSizeClass = calculateWindowSizeClass(activity = checkNotNull(LocalActivity.current))
     val configuration = LocalConfiguration.current
+    val windowInfo = LocalWindowInfo.current
+    val density = LocalDensity.current
     val spacing = rememberAdaptiveSpacing()
     val isExpanded = windowSizeClass.widthSizeClass == WindowWidthSizeClass.Expanded
     val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
@@ -131,13 +135,14 @@ fun AlbumDetailScreen(
         }
     }
     val artworkSize = if (isLandscape) baseArtworkSize * 0.8f else baseArtworkSize
-    val useWideLayout by remember(windowSizeClass, configuration) {
+    val containerWidthDp = with(density) { windowInfo.containerSize.width.toDp() }
+    val useWideLayout by remember(windowSizeClass, containerWidthDp) {
         derivedStateOf {
             windowSizeClass.widthSizeClass == WindowWidthSizeClass.Expanded &&
-                configuration.screenWidthDp >= 800
+                containerWidthDp >= 800.dp
         }
     }
-    val isVeryWide = configuration.screenWidthDp > 1200
+    val isVeryWide = containerWidthDp > 1200.dp
     val sectionHeaderStyle = if (isExpanded) {
         MaterialTheme.typography.headlineSmall
     } else {
@@ -163,7 +168,6 @@ fun AlbumDetailScreen(
     } else {
         null
     }
-    val density = LocalDensity.current
     val listState = rememberLazyListState()
     val appBarArtworkSize = 24.dp
     val appBarRevealThresholdPx = with(density) {
@@ -591,12 +595,12 @@ fun AlbumDetailScreen(
 private fun AlbumArtwork(
     album: Album?,
     displaySize: Dp,
-    requestSize: Dp = displaySize,
     cornerRadius: Dp,
-    useOptimizedDisplaySize: Boolean = requestSize == displaySize,
     isOfflineMode: Boolean,
     imageQualityManager: ImageQualityManager,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    requestSize: Dp = displaySize,
+    useOptimizedDisplaySize: Boolean = requestSize == displaySize
 ) {
     val placeholder = ColorPainter(MaterialTheme.colorScheme.surfaceVariant)
     val context = LocalContext.current

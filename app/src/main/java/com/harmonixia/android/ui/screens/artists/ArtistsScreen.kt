@@ -1,6 +1,6 @@
 package com.harmonixia.android.ui.screens.artists
 
-import android.app.Activity
+import androidx.activity.compose.LocalActivity
 import android.content.res.Configuration
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.fadeIn
@@ -63,11 +63,12 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.paging.LoadState
 import androidx.paging.compose.collectAsLazyPagingItems
@@ -104,7 +105,7 @@ fun ArtistsScreen(
     val isArtistCacheComplete by viewModel.isArtistCacheComplete.collectAsStateWithLifecycle()
     val imageQualityManager = viewModel.imageQualityManager
 
-    val windowSizeClass = calculateWindowSizeClass(activity = LocalContext.current as Activity)
+    val windowSizeClass = calculateWindowSizeClass(activity = checkNotNull(LocalActivity.current))
     val configuration = LocalConfiguration.current
     val spacing = rememberAdaptiveSpacing()
     val isExpanded = windowSizeClass.widthSizeClass == WindowWidthSizeClass.Expanded
@@ -133,7 +134,7 @@ fun ArtistsScreen(
             if (snapshot.placeholdersBefore != 0 || snapshot.placeholdersAfter != 0) {
                 return@derivedStateOf emptyList()
             }
-            val endReached = lazyPagingItems?.loadState?.append?.endOfPaginationReached == true
+            val endReached = lazyPagingItems.loadState.append.endOfPaginationReached
             if (!endReached) {
                 return@derivedStateOf emptyList()
             }
@@ -170,7 +171,7 @@ fun ArtistsScreen(
             } else {
                 val endReached =
                     lazyPagingItems?.loadState?.append?.endOfPaginationReached == true
-                endReached && lazyPagingItems?.itemSnapshotList?.items?.isNotEmpty() == true
+                endReached && lazyPagingItems.itemSnapshotList.items.isNotEmpty()
             }
         }
     }
@@ -646,7 +647,11 @@ private fun ArtistDetailPane(
             textAlign = TextAlign.Center
         )
         Text(
-            text = stringResource(R.string.artist_detail_album_count, albumCount),
+            text = pluralStringResource(
+                R.plurals.artist_detail_album_count,
+                albumCount,
+                albumCount
+            ),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -658,7 +663,7 @@ private fun ArtistDetailPane(
 
 private val ArtistSaver = Saver<Artist?, String>(
     save = { artist -> artist?.let { Json.encodeToString(it) } },
-    restore = { json -> json?.let { Json.decodeFromString<Artist>(it) } }
+    restore = { json -> Json.decodeFromString<Artist>(json) }
 )
 
 private fun artistSortKey(artist: Artist): String {

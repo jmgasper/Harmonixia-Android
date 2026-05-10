@@ -1,0 +1,7 @@
+HAR-325 inline formatter scan
+timestamp_utc=20260504T064251Z
+
+73:    val bitUnit = resolveLabel(R.string.track_quality_unit_bit)
+116:    val unit = resolveLabel(R.string.track_quality_unit_khz)
+122:    val unit = resolveLabel(R.string.track_quality_unit_kbps)
+RESULT: PASS

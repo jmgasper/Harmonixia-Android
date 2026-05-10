@@ -30,9 +30,9 @@ import com.harmonixia.android.util.PlayerSelection
 @Composable
 fun PlayerIndicatorPill(
     selectedPlayer: Player?,
-    localPlayerId: String? = null,
     onClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    localPlayerId: String? = null
 ) {
     val isExternalPlayback = selectedPlayer != null &&
         !PlayerSelection.isLocalPlayer(selectedPlayer, localPlayerId)

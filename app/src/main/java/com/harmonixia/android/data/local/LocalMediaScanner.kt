@@ -3,8 +3,10 @@ package com.harmonixia.android.data.local
 import android.content.Context
 import android.media.MediaMetadataRetriever
 import android.net.Uri
+import androidx.core.net.toUri
 import androidx.documentfile.provider.DocumentFile
 import androidx.room.withTransaction
+import com.harmonixia.android.R
 import com.harmonixia.android.data.local.dao.LocalAlbumDao
 import com.harmonixia.android.data.local.dao.LocalArtistDao
 import com.harmonixia.android.data.local.dao.LocalTrackDao
@@ -27,12 +29,30 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
+internal fun reuseCachedTrackEntityIfUnchanged(
+    cachedTrack: LocalTrackEntity?,
+    lastModified: Long,
+    fileSize: Long,
+    mimeType: String
+): LocalTrackEntity? {
+    val unchangedTrack = cachedTrack?.takeIf {
+        it.lastModified == lastModified &&
+            it.fileSize == fileSize
+    } ?: return null
+    return unchangedTrack.copy(
+        id = 0L,
+        mimeType = mimeType,
+        fileSize = fileSize,
+        lastModified = lastModified
+    )
+}
+
 class LocalMediaScanner @Inject constructor(
     private val localTrackDao: LocalTrackDao,
     private val localAlbumDao: LocalAlbumDao,
     private val localArtistDao: LocalArtistDao,
     private val localMediaDatabase: LocalMediaDatabase,
-    @ApplicationContext private val context: Context,
+    @param:ApplicationContext private val context: Context,
     private val ioDispatcher: CoroutineDispatcher
 ) {
     private val scannerScope = CoroutineScope(SupervisorJob() + ioDispatcher)
@@ -42,6 +62,7 @@ class LocalMediaScanner @Inject constructor(
     private val audioFiles = mutableListOf<DocumentFile>()
     private var cachedTracksByPath: Map<String, LocalTrackEntity> = emptyMap()
     private var currentTracksAdded = 0
+    private val unknownMetadataValue = context.getString(R.string.local_media_scan_fallback_unknown_value)
 
     init {
         scannerScope.launch {
@@ -69,14 +90,22 @@ class LocalMediaScanner @Inject constructor(
 
     private suspend fun scanFolderInternal(folderUri: String): Result<ScanResult> = withContext(ioDispatcher) {
         if (folderUri.isBlank()) {
-            return@withContext failureResult("Local media folder URI is blank")
+            return@withContext failureResult(
+                context.getString(R.string.local_media_scan_validation_folder_uri_blank)
+            )
         }
-        val uri = runCatching { Uri.parse(folderUri) }.getOrNull()
-            ?: return@withContext failureResult("Invalid local media folder URI")
+        val uri = runCatching { folderUri.toUri() }.getOrNull()
+            ?: return@withContext failureResult(
+                context.getString(R.string.local_media_scan_validation_folder_uri_invalid)
+            )
         val root = DocumentFile.fromTreeUri(context, uri)
-            ?: return@withContext failureResult("Unable to access local media folder")
+            ?: return@withContext failureResult(
+                context.getString(R.string.local_media_scan_validation_folder_access_failed)
+            )
         if (!root.exists() || !root.isDirectory) {
-            return@withContext failureResult("Local media folder is not accessible")
+            return@withContext failureResult(
+                context.getString(R.string.local_media_scan_validation_folder_not_accessible)
+            )
         }
         val result = runCatching {
             cachedTracksByPath = localTrackDao.getAllTracks().first().associateBy { it.filePath }
@@ -122,8 +151,10 @@ class LocalMediaScanner @Inject constructor(
         }
         result.onFailure { throwable ->
             val message = when (throwable) {
-                is SecurityException -> "Permission denied for local media folder"
-                else -> throwable.message ?: "Unknown scan error"
+                is SecurityException ->
+                    context.getString(R.string.local_media_scan_validation_permission_denied)
+                else -> throwable.message
+                    ?: context.getString(R.string.local_media_scan_validation_unknown_error)
             }
             Logger.e(TAG, "Local media scan failed", throwable)
             _scanProgress.value = ScanProgress.Error(message)
@@ -149,37 +180,35 @@ class LocalMediaScanner @Inject constructor(
         val lastModified = documentFile.lastModified()
         val fileSize = documentFile.length()
         val cachedTrack = cachedTracksByPath[filePath]
-        val unchanged = cachedTrack != null &&
-            cachedTrack.lastModified == lastModified &&
-            cachedTrack.fileSize == fileSize
+        val unchangedTrack = reuseCachedTrackEntityIfUnchanged(
+            cachedTrack = cachedTrack,
+            lastModified = lastModified,
+            fileSize = fileSize,
+            mimeType = mimeType
+        )
 
-        val trackEntity = if (unchanged) {
-            cachedTrack!!.copy(
-                id = 0L,
-                mimeType = mimeType,
-                fileSize = fileSize,
-                lastModified = lastModified
-            )
+        val trackEntity = if (unchangedTrack != null) {
+            unchangedTrack
         } else {
             val fallbackTitle = documentFile.name
                 ?.substringBeforeLast('.')
                 ?.ifBlank { null }
-                ?: "Unknown"
+                ?: unknownMetadataValue
             val metadata = runCatching { readMetadata(fileUri) }
                 .getOrElse { throwable ->
                     Logger.w(TAG, "Failed to read metadata for $filePath", throwable)
                     TrackMetadata(
                         title = fallbackTitle,
-                        artist = "Unknown",
-                        album = "Unknown",
+                        artist = unknownMetadataValue,
+                        album = unknownMetadataValue,
                         albumArtist = null,
                         trackNumber = 0,
                         durationMs = 0L
                     )
                 }
             val title = metadata.title.trim().ifBlank { fallbackTitle }
-            val artist = metadata.artist.trim().ifBlank { "Unknown" }
-            val album = metadata.album.trim().ifBlank { "Unknown" }
+            val artist = metadata.artist.trim().ifBlank { unknownMetadataValue }
+            val album = metadata.album.trim().ifBlank { unknownMetadataValue }
             val albumArtist = metadata.albumArtist
                 ?.trim()
                 ?.takeIf { it.isNotBlank() }

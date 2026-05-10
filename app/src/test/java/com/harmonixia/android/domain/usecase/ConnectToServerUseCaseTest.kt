@@ -1,10 +1,13 @@
 package com.harmonixia.android.domain.usecase
 
+import android.content.Context
+import com.harmonixia.android.R
 import com.harmonixia.android.data.local.SettingsDataStore
 import com.harmonixia.android.domain.model.AuthMethod
 import com.harmonixia.android.domain.repository.MusicAssistantRepository
 import io.mockk.coEvery
 import io.mockk.coVerify
+import io.mockk.every
 import io.mockk.just
 import io.mockk.mockk
 import io.mockk.runs
@@ -15,9 +18,15 @@ import org.junit.Test
 
 class ConnectToServerUseCaseTest {
 
+    private val context = mockk<Context>(relaxed = true).apply {
+        every { getString(R.string.error_server_url_required) } returns ERROR_SERVER_URL_REQUIRED
+        every { getString(R.string.error_invalid_url) } returns ERROR_INVALID_URL
+        every { getString(R.string.error_username_required) } returns ERROR_USERNAME_REQUIRED
+        every { getString(R.string.error_password_required) } returns ERROR_PASSWORD_REQUIRED
+    }
     private val repository = mockk<MusicAssistantRepository>()
     private val settingsDataStore = mockk<SettingsDataStore>()
-    private val useCase = ConnectToServerUseCase(repository, settingsDataStore)
+    private val useCase = ConnectToServerUseCase(context, repository, settingsDataStore)
 
     @Test
     fun invoke_success_savesSettings() = runBlocking {
@@ -64,6 +73,80 @@ class ConnectToServerUseCaseTest {
     }
 
     @Test
+    fun invoke_normalizesUppercaseScheme() = runBlocking {
+        coEvery { repository.connect(any(), any()) } returns Result.success(Unit)
+        coEvery { settingsDataStore.saveServerUrl(any()) } just runs
+        coEvery { settingsDataStore.saveAuthToken(any()) } just runs
+        coEvery { settingsDataStore.saveAuthMethod(any()) } just runs
+        coEvery { settingsDataStore.saveUsername(any()) } just runs
+        coEvery { settingsDataStore.savePassword(any()) } just runs
+
+        val result = useCase(
+            serverUrl = "HTTPS://example.com/",
+            authToken = "token-123",
+            authMethod = AuthMethod.TOKEN
+        )
+
+        assertTrue(result.isSuccess)
+        coVerify { repository.connect("https://example.com", "token-123") }
+        coVerify { settingsDataStore.saveServerUrl("https://example.com") }
+    }
+
+    @Test
+    fun invoke_urlWithUserInfo_returnsFailure() = runBlocking {
+        val result = useCase(
+            serverUrl = "https://user:pass@example.com",
+            authToken = "token-123",
+            authMethod = AuthMethod.TOKEN
+        )
+
+        assertTrue(result.isFailure)
+        assertEquals(
+            ERROR_INVALID_URL,
+            result.exceptionOrNull()?.message
+        )
+        coVerify(exactly = 0) { repository.connect(any(), any()) }
+        coVerify(exactly = 0) { repository.loginWithCredentials(any(), any(), any()) }
+    }
+
+    @Test
+    fun invoke_urlWithOutOfRangePort_returnsFailure() = runBlocking {
+        val result = useCase(
+            serverUrl = "https://example.com:65536",
+            authToken = "token-123",
+            authMethod = AuthMethod.TOKEN
+        )
+
+        assertTrue(result.isFailure)
+        assertEquals(
+            ERROR_INVALID_URL,
+            result.exceptionOrNull()?.message
+        )
+        coVerify(exactly = 0) { repository.connect(any(), any()) }
+        coVerify(exactly = 0) { repository.loginWithCredentials(any(), any(), any()) }
+    }
+
+    @Test
+    fun invoke_ipv6LiteralUrl_success_savesSettings() = runBlocking {
+        coEvery { repository.connect(any(), any()) } returns Result.success(Unit)
+        coEvery { settingsDataStore.saveServerUrl(any()) } just runs
+        coEvery { settingsDataStore.saveAuthToken(any()) } just runs
+        coEvery { settingsDataStore.saveAuthMethod(any()) } just runs
+        coEvery { settingsDataStore.saveUsername(any()) } just runs
+        coEvery { settingsDataStore.savePassword(any()) } just runs
+
+        val result = useCase(
+            serverUrl = "https://[2001:db8::1]:8095/",
+            authToken = "token-123",
+            authMethod = AuthMethod.TOKEN
+        )
+
+        assertTrue(result.isSuccess)
+        coVerify { repository.connect("https://[2001:db8::1]:8095", "token-123") }
+        coVerify { settingsDataStore.saveServerUrl("https://[2001:db8::1]:8095") }
+    }
+
+    @Test
     fun invoke_emptyUrl_returnsFailure() = runBlocking {
         val result = useCase(
             serverUrl = "",
@@ -73,7 +156,7 @@ class ConnectToServerUseCaseTest {
 
         assertTrue(result.isFailure)
         assertEquals(
-            "Server URL cannot be empty",
+            ERROR_SERVER_URL_REQUIRED,
             result.exceptionOrNull()?.message
         )
         coVerify(exactly = 0) { repository.connect(any(), any()) }
@@ -158,7 +241,7 @@ class ConnectToServerUseCaseTest {
 
         assertTrue(result.isFailure)
         assertEquals(
-            "Username cannot be empty",
+            ERROR_USERNAME_REQUIRED,
             result.exceptionOrNull()?.message
         )
         coVerify(exactly = 0) { repository.loginWithCredentials(any(), any(), any()) }
@@ -176,7 +259,7 @@ class ConnectToServerUseCaseTest {
 
         assertTrue(result.isFailure)
         assertEquals(
-            "Password cannot be empty",
+            ERROR_PASSWORD_REQUIRED,
             result.exceptionOrNull()?.message
         )
         coVerify(exactly = 0) { repository.loginWithCredentials(any(), any(), any()) }
@@ -199,5 +282,12 @@ class ConnectToServerUseCaseTest {
         assertEquals(error, result.exceptionOrNull())
         coVerify { repository.loginWithCredentials("https://example.com", "user", "pass") }
         coVerify(exactly = 0) { repository.connect(any(), any()) }
+    }
+
+    companion object {
+        private const val ERROR_SERVER_URL_REQUIRED = "Server URL is required"
+        private const val ERROR_INVALID_URL = "Invalid URL format"
+        private const val ERROR_USERNAME_REQUIRED = "Username is required"
+        private const val ERROR_PASSWORD_REQUIRED = "Password is required"
     }
 }

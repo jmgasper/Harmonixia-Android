@@ -1,6 +1,6 @@
 package com.harmonixia.android.ui.theme
 
-import android.app.Activity
+import androidx.activity.compose.LocalActivity
 import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
@@ -37,7 +37,7 @@ data class AdaptiveSpacing(
 
 @Composable
 fun rememberAdaptiveSpacing(): AdaptiveSpacing {
-    val windowSizeClass = calculateWindowSizeClass(activity = LocalContext.current as Activity)
+    val windowSizeClass = calculateWindowSizeClass(activity = checkNotNull(LocalActivity.current))
     return remember(windowSizeClass.widthSizeClass) {
         when (windowSizeClass.widthSizeClass) {
             WindowWidthSizeClass.Compact -> AdaptiveSpacing(

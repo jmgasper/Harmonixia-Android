@@ -13,7 +13,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.QueueMusic
+import androidx.compose.material.icons.automirrored.outlined.QueueMusic
 import androidx.compose.material3.Card
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -57,11 +57,11 @@ fun PlaylistCard(
     playlist: Playlist,
     onClick: () -> Unit,
     isGrid: Boolean,
+    imageQualityManager: ImageQualityManager,
+    modifier: Modifier = Modifier,
     gridArtworkSize: Dp = 150.dp,
     onLongClick: (() -> Unit)? = null,
-    placeholderIcon: ImageVector = Icons.Outlined.QueueMusic,
-    imageQualityManager: ImageQualityManager,
-    modifier: Modifier = Modifier
+    placeholderIcon: ImageVector = Icons.AutoMirrored.Outlined.QueueMusic
 ) {
     val interactionModifier = if (onLongClick != null) {
         modifier.combinedClickable(
@@ -184,9 +184,9 @@ private fun PlaylistListContent(
 private fun PlaylistArtwork(
     playlist: Playlist,
     size: Dp,
-    placeholderIcon: ImageVector = Icons.Outlined.QueueMusic,
     imageQualityManager: ImageQualityManager,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    placeholderIcon: ImageVector = Icons.AutoMirrored.Outlined.QueueMusic
 ) {
     val placeholder = ColorPainter(MaterialTheme.colorScheme.surfaceVariant)
     val context = LocalContext.current

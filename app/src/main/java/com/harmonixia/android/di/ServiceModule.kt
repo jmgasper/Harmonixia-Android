@@ -42,11 +42,13 @@ object ServiceModule {
     @Provides
     @Singleton
     fun provideMediaLibraryBrowser(
+        @ApplicationContext context: Context,
         repository: MusicAssistantRepository,
         localMediaRepository: LocalMediaRepository,
         offlineLibraryRepository: OfflineLibraryRepository,
         networkConnectivityManager: NetworkConnectivityManager
     ): MediaLibraryBrowser = MediaLibraryBrowser(
+        context,
         repository,
         localMediaRepository,
         offlineLibraryRepository,

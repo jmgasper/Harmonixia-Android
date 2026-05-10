@@ -1,0 +1,7 @@
+
+ERROR: Harmonixia requires JDK 17 for local Gradle builds.
+Detected Java runtime: openjdk version "21.0.11" 2026-04-21 LTS
+
+Set JAVA_HOME to a JDK 17 installation and retry.
+If JAVA_HOME is unset, this wrapper can auto-detect common JDK 17 install locations.
+

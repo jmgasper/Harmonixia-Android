@@ -1,5 +1,7 @@
 package com.harmonixia.android.data.repository
 
+import android.content.Context
+import com.harmonixia.android.R
 import com.harmonixia.android.data.local.EqDataStore
 import com.harmonixia.android.data.local.EqPresetCache
 import com.harmonixia.android.data.local.EqPresetParser
@@ -7,6 +9,7 @@ import com.harmonixia.android.domain.model.EqPreset
 import com.harmonixia.android.domain.model.EqPresetDetails
 import com.harmonixia.android.domain.repository.EqPresetRepository
 import com.harmonixia.android.util.Logger
+import dagger.hilt.android.qualifiers.ApplicationContext
 import java.util.Locale
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -19,6 +22,7 @@ import kotlinx.coroutines.withContext
 
 @Singleton
 class EqPresetRepositoryImpl @Inject constructor(
+    @param:ApplicationContext private val context: Context,
     private val eqPresetCache: EqPresetCache,
     private val eqPresetParser: EqPresetParser,
     private val eqDataStore: EqDataStore
@@ -33,12 +37,12 @@ class EqPresetRepositoryImpl @Inject constructor(
     }
 
     override suspend fun loadPresets(forceRefresh: Boolean): Result<List<EqPreset>> {
-        val cached = presetsCache
-        if (cached != null && !forceRefresh) {
-            return Result.success(cached)
+        val inMemoryPresets = presetsCache
+        if (inMemoryPresets != null && !forceRefresh) {
+            return Result.success(inMemoryPresets)
         }
 
-        return withContext(Dispatchers.IO) {
+        val loadResult = withContext(Dispatchers.IO) {
             runCatching {
                 val cacheFile = eqPresetCache.getCacheFile()
                 val shouldDownload = forceRefresh || !eqPresetCache.isCacheValid(cacheFile)
@@ -53,19 +57,39 @@ class EqPresetRepositoryImpl @Inject constructor(
                 }
 
                 if (!databaseFile.exists()) {
-                    throw IllegalStateException("OPRA cache missing")
+                    throw IllegalStateException(
+                        context.getString(R.string.eq_validation_opra_cache_missing)
+                    )
                 }
 
                 val parsed = eqPresetCache.parseJsonl(databaseFile)
-                if (!shouldDownload && parsed.eqEntries.isEmpty()) {
-                    throw IllegalStateException("OPRA cache is empty")
+                if (parsed.eqEntries.isEmpty()) {
+                    throw IllegalStateException(
+                        context.getString(R.string.eq_validation_opra_cache_empty)
+                    )
                 }
                 val presets = eqPresetParser.normalizeOpraDatabase(parsed)
+                if (presets.isEmpty()) {
+                    throw IllegalStateException(
+                        context.getString(R.string.eq_validation_opra_presets_empty)
+                    )
+                }
                 presetsCache = presets
                 ensureSelectedPresetValid(presets)
                 presets
             }
         }
+
+        val loadFailure = loadResult.exceptionOrNull()
+        if (loadFailure != null) {
+            val fallback = inMemoryPresets?.takeIf { it.isNotEmpty() }
+            if (fallback != null) {
+                Logger.w(TAG, "Failed to load OPRA presets; using in-memory cache", loadFailure)
+                return Result.success(fallback)
+            }
+        }
+
+        return loadResult
     }
 
     override fun searchPresets(query: String): List<EqPreset> {
@@ -89,7 +113,8 @@ class EqPresetRepositoryImpl @Inject constructor(
     }
 
     override fun getPresetDetails(id: String): EqPresetDetails {
-        val preset = getPresetById(id) ?: throw IllegalArgumentException("Preset not found")
+        val preset = getPresetById(id)
+            ?: throw IllegalArgumentException(context.getString(R.string.eq_validation_preset_not_found))
         return eqPresetParser.buildPresetDetails(preset)
     }
 

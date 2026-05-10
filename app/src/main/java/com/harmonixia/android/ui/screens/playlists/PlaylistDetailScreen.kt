@@ -1,6 +1,6 @@
 package com.harmonixia.android.ui.screens.playlists
 
-import android.app.Activity
+import androidx.activity.compose.LocalActivity
 import android.content.res.Configuration
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -59,13 +59,15 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalResources
+import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
@@ -108,6 +110,7 @@ fun PlaylistDetailScreen(
     val imageQualityManager = viewModel.imageQualityManager
     val isFavoritesPlaylist = playlist?.itemId == "favorites" && playlist?.provider == "harmonixia"
     val context = LocalContext.current
+    val resources = LocalResources.current
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
 
@@ -127,7 +130,7 @@ fun PlaylistDetailScreen(
         viewModel.events.collect { event ->
             when (event) {
                 is PlaylistDetailUiEvent.ShowMessage -> {
-                    snackbarHostState.showSnackbar(context.getString(event.messageResId))
+                    snackbarHostState.showSnackbar(resources.getString(event.messageResId))
                 }
                 PlaylistDetailUiEvent.PlaylistCreated -> {
                     showCreateDialog = false
@@ -164,8 +167,10 @@ fun PlaylistDetailScreen(
         }
     }
 
-    val windowSizeClass = calculateWindowSizeClass(activity = LocalContext.current as Activity)
+    val windowSizeClass = calculateWindowSizeClass(activity = checkNotNull(LocalActivity.current))
     val configuration = LocalConfiguration.current
+    val windowInfo = LocalWindowInfo.current
+    val density = LocalDensity.current
     val spacing = rememberAdaptiveSpacing()
     val isExpanded = windowSizeClass.widthSizeClass == WindowWidthSizeClass.Expanded
     val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
@@ -181,13 +186,14 @@ fun PlaylistDetailScreen(
         }
     }
     val artworkSize = if (isLandscape) baseArtworkSize * 0.8f else baseArtworkSize
-    val useWideLayout by remember(windowSizeClass, configuration) {
+    val containerWidthDp = with(density) { windowInfo.containerSize.width.toDp() }
+    val useWideLayout by remember(windowSizeClass, containerWidthDp) {
         derivedStateOf {
             windowSizeClass.widthSizeClass == WindowWidthSizeClass.Expanded &&
-                configuration.screenWidthDp >= 800
+                containerWidthDp >= 800.dp
         }
     }
-    val isVeryWide = configuration.screenWidthDp > 1200
+    val isVeryWide = containerWidthDp > 1200.dp
     val sectionHeaderStyle = if (isExpanded) {
         MaterialTheme.typography.headlineSmall
     } else {
@@ -214,7 +220,6 @@ fun PlaylistDetailScreen(
         null
     }
     val listState = rememberLazyListState()
-    val density = LocalDensity.current
     val appBarArtworkSize = 32.dp
     val appBarRevealThresholdPx = with(density) {
         (artworkSize + spacing.large).toPx()
@@ -242,7 +247,7 @@ fun PlaylistDetailScreen(
         }
         if (blockReasonResId != null) {
             coroutineScope.launch {
-                snackbarHostState.showSnackbar(context.getString(blockReasonResId))
+                snackbarHostState.showSnackbar(resources.getString(blockReasonResId))
             }
             return@toggleReorder
         }
@@ -660,6 +665,7 @@ private fun PlaylistDetailContent(
     rowSpacing: Dp,
     listState: LazyListState,
     isRefreshing: Boolean,
+    modifier: Modifier = Modifier,
     isInitialLoading: Boolean = false,
     hasMore: Boolean,
     isLoadingMore: Boolean,
@@ -671,8 +677,7 @@ private fun PlaylistDetailContent(
     onAddToFavorites: (Track) -> Unit,
     onRemoveFromFavorites: (Track) -> Unit,
     onRemoveFromPlaylist: (Track, Int) -> Unit,
-    imageQualityManager: ImageQualityManager,
-    modifier: Modifier = Modifier
+    imageQualityManager: ImageQualityManager
 ) {
     val spacing = rememberAdaptiveSpacing()
     val allowTwoColumnLayout = isVeryWide && !isReordering
@@ -946,11 +951,11 @@ private fun TracksHeader(
 private fun PlaylistArtwork(
     playlist: Playlist?,
     displaySize: Dp,
-    requestSize: Dp = displaySize,
     cornerRadius: Dp,
-    useOptimizedDisplaySize: Boolean = requestSize == displaySize,
     imageQualityManager: ImageQualityManager,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    requestSize: Dp = displaySize,
+    useOptimizedDisplaySize: Boolean = requestSize == displaySize
 ) {
     val placeholder = ColorPainter(MaterialTheme.colorScheme.surfaceVariant)
     val context = LocalContext.current

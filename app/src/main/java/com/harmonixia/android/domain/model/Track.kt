@@ -1,12 +1,14 @@
 package com.harmonixia.android.domain.model
 
 import androidx.compose.runtime.Immutable
+import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonNames
 
 @Immutable
 @Serializable
+@OptIn(ExperimentalSerializationApi::class)
 data class Track(
     @SerialName("item_id")
     val itemId: String,

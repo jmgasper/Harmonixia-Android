@@ -1,0 +1,51 @@
+name: Build Debug APK (Testing Cadence)
+
+on:
+  push:
+    branches:
+      - master
+  schedule:
+    - cron: "0 12 * * 1-5"
+  workflow_dispatch:
+
+concurrency:
+  group: debug-apk-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-debug:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+          cache: gradle
+      - name: Make Gradle executable
+        run: chmod +x ./gradlew
+      - name: Build debug APK
+        run: ./gradlew --no-daemon :app:assembleDebug
+      - name: Package debug artifact
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts
+          cp app/build/outputs/apk/debug/app-debug.apk artifacts/Harmonixia-debug.apk
+          {
+            echo "git_sha=${GITHUB_SHA}"
+            echo "generated_at=$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+            echo "run_url=https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          } > artifacts/build-info.txt
+      - name: Upload debug APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: harmonixia-debug-apk
+          path: |
+            artifacts/Harmonixia-debug.apk
+            artifacts/build-info.txt
+          if-no-files-found: error
+          retention-days: 14

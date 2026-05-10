@@ -1,0 +1,6 @@
+HAR-329 inline duration formatting scan
+timestamp_utc=20260504T080812Z
+
+430:    val durationText = TrackDurationFormatter.formatDuration(
+432:        stringResource(R.string.track_duration_minutes_seconds_format)
+RESULT: PASS

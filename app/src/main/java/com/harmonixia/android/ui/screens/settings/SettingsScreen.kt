@@ -1,10 +1,7 @@
 package com.harmonixia.android.ui.screens.settings
 
-import android.app.Activity
-import android.content.Context
+import androidx.activity.compose.LocalActivity
 import android.content.Intent
-import android.net.Uri
-import android.provider.DocumentsContract
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -24,12 +21,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.text.ClickableText
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.ArrowBack
+import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.Dns
 import androidx.compose.material.icons.outlined.Info
@@ -48,12 +44,12 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationRail
 import androidx.compose.material3.NavigationRailItem
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.PrimaryTabRow
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
@@ -61,7 +57,6 @@ import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Tab
-import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
@@ -81,22 +76,21 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
-import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.LinkAnnotation
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.withLink
 import androidx.compose.ui.unit.dp
-import androidx.documentfile.provider.DocumentFile
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.harmonixia.android.R
-import com.harmonixia.android.data.local.LocalMediaScanner
 import com.harmonixia.android.data.remote.ConnectionState
 import com.harmonixia.android.domain.model.AuthMethod
 import com.harmonixia.android.ui.components.ConnectionStatusIndicator
@@ -106,6 +100,8 @@ import com.harmonixia.android.ui.components.PlayerSelectionAction
 import com.harmonixia.android.ui.playback.PlaybackViewModel
 import com.harmonixia.android.ui.screens.settings.eq.EqSettingsScreenContent
 import com.harmonixia.android.ui.screens.settings.eq.EqSettingsViewModel
+import com.harmonixia.android.ui.screens.settings.localmedia.LocalMediaSettingsTabContent
+import com.harmonixia.android.ui.screens.settings.localmedia.LocalMediaSettingsUiState
 
 @Composable
 fun SettingsScreen(
@@ -117,11 +113,10 @@ fun SettingsScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val selectedTab by viewModel.selectedTab.collectAsStateWithLifecycle()
-    val localMediaFolderUri by viewModel.localMediaFolderUri.collectAsStateWithLifecycle()
-    val localMediaTrackCount by viewModel.localMediaTrackCount.collectAsStateWithLifecycle()
+    val localMediaUiState by viewModel.localMediaUiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     val context = LocalContext.current
-    val activity = context as? ComponentActivity
+    val activity = LocalActivity.current as? ComponentActivity
     val playbackViewModel: PlaybackViewModel = if (activity != null) {
         hiltViewModel(activity)
     } else {
@@ -154,9 +149,7 @@ fun SettingsScreen(
         selectedTab = selectedTab,
         onTabSelected = viewModel::selectTab,
         snackbarHostState = snackbarHostState,
-        localMediaFolderUri = localMediaFolderUri,
-        localMediaTrackCount = localMediaTrackCount,
-        localMediaScanState = uiState.localMediaScanState,
+        localMediaUiState = localMediaUiState,
         onNavigateBack = onNavigateBack,
         onNavigateToPerformanceSettings = onNavigateToPerformanceSettings,
         onServerUrlChange = viewModel::updateServerUrl,
@@ -183,9 +176,7 @@ internal fun SettingsScreenContent(
     selectedTab: SettingsTab,
     onTabSelected: (SettingsTab) -> Unit,
     snackbarHostState: SnackbarHostState,
-    localMediaFolderUri: String,
-    localMediaTrackCount: Int,
-    localMediaScanState: LocalMediaScanState,
+    localMediaUiState: LocalMediaSettingsUiState,
     onNavigateBack: () -> Unit,
     onNavigateToPerformanceSettings: () -> Unit,
     onServerUrlChange: (String) -> Unit,
@@ -205,7 +196,7 @@ internal fun SettingsScreenContent(
 ) {
     val isConnecting = uiState is SettingsUiState.Connecting
     val isTesting = (uiState as? SettingsUiState.Connecting)?.isTesting == true
-    val windowSizeClass = calculateWindowSizeClass(activity = LocalContext.current as Activity)
+    val windowSizeClass = calculateWindowSizeClass(activity = checkNotNull(LocalActivity.current))
     val isWideLayout = windowSizeClass.widthSizeClass != WindowWidthSizeClass.Compact
     val tabItems = listOf(
         SettingsTabItem(
@@ -250,7 +241,7 @@ internal fun SettingsScreenContent(
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack, enabled = !isConnecting) {
                         Icon(
-                            imageVector = Icons.Outlined.ArrowBack,
+                            imageVector = Icons.AutoMirrored.Outlined.ArrowBack,
                             contentDescription = stringResource(R.string.action_back)
                         )
                     }
@@ -295,10 +286,8 @@ internal fun SettingsScreenContent(
                                 )
                             }
                         }
-                        SettingsTab.LOCAL_MEDIA -> LocalMediaTabContent(
-                            localMediaFolderUri = localMediaFolderUri,
-                            localMediaTrackCount = localMediaTrackCount,
-                            localMediaScanState = localMediaScanState,
+                        SettingsTab.LOCAL_MEDIA -> LocalMediaSettingsTabContent(
+                            uiState = localMediaUiState,
                             onSelectFolder = onSelectFolder,
                             onScanLocalMedia = onScanLocalMedia
                         )
@@ -333,7 +322,7 @@ internal fun SettingsScreenContent(
                 }
             } else {
                 Column(modifier = Modifier.fillMaxSize()) {
-                    TabRow(selectedTabIndex = selectedTab.ordinal) {
+                    PrimaryTabRow(selectedTabIndex = selectedTab.ordinal) {
                         tabItems.forEach { tabItem ->
                             Tab(
                                 selected = selectedTab == tabItem.tab,
@@ -387,7 +376,6 @@ private fun ConnectionTabContent(
 ) {
     val form = uiState.form
     val errorMessage = (uiState as? SettingsUiState.Error)?.message
-    val isSuccess = uiState is SettingsUiState.Success
     val scrollState = rememberScrollState()
     val focusManager = LocalFocusManager.current
     val tokenFocusRequester = remember { FocusRequester() }
@@ -443,9 +431,9 @@ private fun ConnectionTabContent(
                 )
             }
 
-            if (isSuccess) {
+            if (uiState is SettingsUiState.Success) {
                 Spacer(modifier = Modifier.height(16.dp))
-                StatusCard(message = (uiState as SettingsUiState.Success).message)
+                StatusCard(message = uiState.message)
             }
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -787,154 +775,8 @@ private fun EqualizerTabContent(
 }
 
 @Composable
-private fun LocalMediaTabContent(
-    localMediaFolderUri: String,
-    localMediaTrackCount: Int,
-    localMediaScanState: LocalMediaScanState,
-    onSelectFolder: () -> Unit,
-    onScanLocalMedia: () -> Unit
-) {
-    val scrollState = rememberScrollState()
-    val context = LocalContext.current
-    val displayFolderName = remember(localMediaFolderUri, context) {
-        resolveLocalMediaFolderName(localMediaFolderUri, context)
-    }
-
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(scrollState)
-            .padding(24.dp)
-    ) {
-        Text(
-            text = stringResource(R.string.section_local_media),
-            style = MaterialTheme.typography.titleMedium
-        )
-        Spacer(modifier = Modifier.height(12.dp))
-
-        Text(
-            text = stringResource(R.string.local_media_folder_label),
-            style = MaterialTheme.typography.titleSmall
-        )
-        Spacer(modifier = Modifier.height(8.dp))
-        OutlinedTextField(
-            value = displayFolderName.ifBlank {
-                stringResource(R.string.local_media_no_folder_selected)
-            },
-            onValueChange = {},
-            readOnly = true,
-            enabled = false,
-            modifier = Modifier
-                .fillMaxWidth()
-                .testTag("settings_local_media_folder")
-                .semantics {
-                    contentDescription = context.getString(R.string.content_desc_local_media_folder)
-                }
-        )
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        Text(
-            text = stringResource(R.string.local_media_available_files, localMediaTrackCount),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            OutlinedButton(
-                onClick = onSelectFolder,
-                enabled = !localMediaScanState.isScanning,
-                modifier = Modifier.weight(1f)
-            ) {
-                Text(text = stringResource(R.string.local_media_select_folder))
-            }
-
-            LoadingButton(
-                text = stringResource(R.string.local_media_refresh),
-                onClick = onScanLocalMedia,
-                enabled = localMediaFolderUri.isNotBlank() && !localMediaScanState.isScanning,
-                isLoading = localMediaScanState.isScanning,
-                modifier = Modifier.weight(1f),
-                testTag = "settings_scan_local_media"
-            )
-        }
-
-        when (val progress = localMediaScanState.progress) {
-            is LocalMediaScanner.ScanProgress.Scanning -> {
-                Spacer(modifier = Modifier.height(12.dp))
-                LinearProgressIndicator(
-                    progress = { progress.current.toFloat() / progress.total.toFloat() },
-                    modifier = Modifier.fillMaxWidth()
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = stringResource(
-                        R.string.local_media_scanning,
-                        progress.current,
-                        progress.total
-                    ),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-            is LocalMediaScanner.ScanProgress.Complete -> {
-                Spacer(modifier = Modifier.height(12.dp))
-                StatusCard(
-                    message = stringResource(
-                        R.string.local_media_scan_complete,
-                        progress.result.tracksAdded,
-                        progress.result.albumsAdded,
-                        progress.result.artistsAdded
-                    )
-                )
-            }
-            is LocalMediaScanner.ScanProgress.Error -> {
-                Spacer(modifier = Modifier.height(12.dp))
-                ErrorCard(
-                    message = stringResource(
-                        R.string.local_media_scan_error,
-                        progress.message
-                    ),
-                    onDismiss = { /* Clear error state if needed */ },
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
-            LocalMediaScanner.ScanProgress.Idle -> {
-                // No status to show
-            }
-        }
-    }
-}
-
-private fun resolveLocalMediaFolderName(
-    folderUri: String,
-    context: Context
-): String {
-    if (folderUri.isBlank()) {
-        return ""
-    }
-    val uri = runCatching { Uri.parse(folderUri) }.getOrNull() ?: return folderUri
-    val documentName = DocumentFile.fromTreeUri(context, uri)?.name
-    if (!documentName.isNullOrBlank()) {
-        return documentName
-    }
-    val treeId = runCatching { DocumentsContract.getTreeDocumentId(uri) }.getOrNull()
-    val rawName = treeId ?: uri.lastPathSegment ?: folderUri
-    val decoded = Uri.decode(rawName)
-    val afterColon = decoded.substringAfterLast(':', decoded)
-    val leafName = afterColon.substringAfterLast('/', afterColon)
-    return leafName.ifBlank { decoded.ifBlank { folderUri } }
-}
-
-@Composable
 private fun AboutTabContent() {
     val scrollState = rememberScrollState()
-    val uriHandler = LocalUriHandler.current
     val links = listOf(
         AboutLink(
             label = stringResource(R.string.about_link_android_label),
@@ -975,9 +817,12 @@ private fun AboutTabContent() {
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Spacer(modifier = Modifier.height(4.dp))
-                    ClickableText(
-                        text = AnnotatedString(link.url),
-                        onClick = { uriHandler.openUri(link.url) },
+                    Text(
+                        text = buildAnnotatedString {
+                            withLink(LinkAnnotation.Url(link.url)) {
+                                append(link.url)
+                            }
+                        },
                         style = MaterialTheme.typography.bodySmall.copy(
                             color = MaterialTheme.colorScheme.primary
                         )

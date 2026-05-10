@@ -1,6 +1,6 @@
 package com.harmonixia.android.ui.screens.nowplaying
 
-import android.app.Activity
+import androidx.activity.compose.LocalActivity
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
@@ -76,7 +76,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
@@ -152,7 +152,7 @@ fun SharedTransitionScope.NowPlayingScreen(
         !PlayerSelection.isLocalPlayer(it, localPlayerId)
     } == true
 
-    val windowSizeClass = calculateWindowSizeClass(activity = context as Activity)
+    val windowSizeClass = calculateWindowSizeClass(activity = checkNotNull(LocalActivity.current))
     val isExpanded = windowSizeClass.widthSizeClass == WindowWidthSizeClass.Expanded
     val horizontalPadding = when (windowSizeClass.widthSizeClass) {
         WindowWidthSizeClass.Compact -> 16.dp
@@ -792,9 +792,9 @@ private fun TrackInfoPanel(
     titleStyle: TextStyle,
     artistStyle: TextStyle,
     albumStyle: TextStyle,
+    modifier: Modifier = Modifier,
     onArtistClick: (() -> Unit)? = null,
     onAlbumClick: (() -> Unit)? = null,
-    modifier: Modifier = Modifier,
     horizontalAlignment: Alignment.Horizontal = Alignment.CenterHorizontally,
     textAlign: TextAlign = TextAlign.Center
 ) {

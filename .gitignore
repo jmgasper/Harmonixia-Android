@@ -36,6 +36,8 @@ proguard/
 
 # Log Files
 *.log
+!docs/evidence/
+!docs/evidence/*.log
 
 # Android Studio
 /*/build/
@@ -95,6 +97,7 @@ obj/
 .idea/gradle.xml
 .idea/jarRepositories.xml
 .idea/navEditor.xml
+.idea/deploymentTargetSelector.xml
 
 # Legacy Eclipse project files
 .classpath

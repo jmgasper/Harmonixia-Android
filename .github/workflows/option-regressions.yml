@@ -1,0 +1,88 @@
+name: Option Regressions
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - .github/workflows/option-regressions.yml
+      - scripts/agp9-phase2-audit.sh
+      - scripts/check-hardcoded-ui-text-literals.sh
+      - scripts/test-check-hardcoded-ui-text-literals.sh
+      - scripts/check-hardcoded-format-templates.sh
+      - scripts/test-agp9-phase2-audit-options.sh
+      - scripts/validate-local.sh
+      - scripts/test-validate-local-agp-gate-simulator.sh
+      - scripts/smoke-debug-emulator.sh
+      - scripts/test-*-options.sh
+      - scripts/test-local-validation-option-regressions*.sh
+      - docs/agp9-phase2-audit-scaffolding.md
+      - docs/local-validation-workflow.md
+  pull_request:
+    branches:
+      - master
+    paths:
+      - .github/workflows/option-regressions.yml
+      - scripts/agp9-phase2-audit.sh
+      - scripts/check-hardcoded-ui-text-literals.sh
+      - scripts/test-check-hardcoded-ui-text-literals.sh
+      - scripts/check-hardcoded-format-templates.sh
+      - scripts/test-agp9-phase2-audit-options.sh
+      - scripts/validate-local.sh
+      - scripts/test-validate-local-agp-gate-simulator.sh
+      - scripts/smoke-debug-emulator.sh
+      - scripts/test-*-options.sh
+      - scripts/test-local-validation-option-regressions*.sh
+      - docs/agp9-phase2-audit-scaffolding.md
+      - docs/local-validation-workflow.md
+  workflow_dispatch:
+
+concurrency:
+  group: option-regressions-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  option-regressions:
+    name: Option regressions (${{ matrix.mode.name }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      max-parallel: 1
+      matrix:
+        mode:
+          - name: syntax-only
+            command: ./scripts/test-local-validation-option-regressions.sh --syntax-only
+          - name: agp9-audit-options
+            command: ./scripts/test-agp9-phase2-audit-options.sh
+          - name: validate-local-agp-gate-simulator
+            command: ./scripts/test-validate-local-agp-gate-simulator.sh
+          - name: behavior-only
+            command: ./scripts/test-local-validation-option-regressions.sh --behavior-only
+          - name: dry-run-preview
+            command: ./scripts/test-local-validation-option-regressions.sh --dry-run
+          - name: runner-self-test
+            command: ./scripts/test-local-validation-option-regressions-runner.sh
+          - name: validate-local-options-direct
+            command: ./scripts/test-validate-local-options.sh
+          - name: smoke-options-direct
+            command: ./scripts/test-smoke-debug-emulator-options.sh
+          - name: format-template-scanner-direct
+            command: ./scripts/check-hardcoded-format-templates.sh
+          - name: ui-literal-scanner-direct
+            command: ./scripts/check-hardcoded-ui-text-literals.sh
+          - name: ui-literal-scanner-self-test-direct
+            command: ./scripts/test-check-hardcoded-ui-text-literals.sh
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Ensure ripgrep is available
+        run: |
+          if ! command -v rg >/dev/null 2>&1; then
+            sudo apt-get update
+            sudo apt-get install -y ripgrep
+          fi
+      - name: Run local validation option regressions (${{ matrix.mode.name }})
+        run: ${{ matrix.mode.command }}

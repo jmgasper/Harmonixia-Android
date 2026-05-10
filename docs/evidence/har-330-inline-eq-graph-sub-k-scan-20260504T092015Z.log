@@ -1,0 +1,15 @@
+HAR-330 inline EqGraph sub-kHz template scan
+Timestamp(UTC): 20260504T092015Z
+
+-- EqGraph.kt label template wiring --
+75:        frequencySubKFormat = stringResource(R.string.eq_graph_frequency_sub_k_format),
+188:                val label = EqGraphLabelFormatter.formatFrequencyLabel(freq, labelTemplates)
+
+-- EqGraphLabelFormatter sub-kHz formatting path --
+6:    val frequencySubKFormat: String,
+14:    fun formatFrequencyLabel(freq: Int, templates: EqGraphLabelTemplates): String {
+23:            String.format(Locale.US, templates.frequencySubKFormat, freq)
+
+-- EqGraphLabelFormatterTest sub-kHz template coverage --
+9:        frequencySubKFormat = "%1\$dHzX",
+27:    fun formatFrequencyLabel_usesSubKTemplateBelow1000() {

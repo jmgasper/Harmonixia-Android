@@ -1,5 +1,6 @@
 package com.harmonixia.android.di
 
+import android.content.Context
 import com.harmonixia.android.domain.repository.MusicAssistantRepository
 import com.harmonixia.android.domain.repository.EqPresetRepository
 import com.harmonixia.android.domain.usecase.ControlPlaybackUseCase
@@ -25,6 +26,7 @@ import com.harmonixia.android.service.playback.PlaybackStateManager
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
+import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import javax.inject.Singleton
 
@@ -35,55 +37,63 @@ object UseCaseModule {
     @Provides
     @Singleton
     fun providePlayAlbumUseCase(
+        @ApplicationContext context: Context,
         repository: MusicAssistantRepository,
         playbackStateManager: PlaybackStateManager
-    ): PlayAlbumUseCase = PlayAlbumUseCase(repository, playbackStateManager)
+    ): PlayAlbumUseCase = PlayAlbumUseCase(context, repository, playbackStateManager)
 
     @Provides
     @Singleton
     fun providePlayPlaylistUseCase(
+        @ApplicationContext context: Context,
         repository: MusicAssistantRepository,
         playbackStateManager: PlaybackStateManager
-    ): PlayPlaylistUseCase = PlayPlaylistUseCase(repository, playbackStateManager)
+    ): PlayPlaylistUseCase = PlayPlaylistUseCase(context, repository, playbackStateManager)
 
     @Provides
     @Singleton
     fun providePlayTrackUseCase(
+        @ApplicationContext context: Context,
         repository: MusicAssistantRepository,
         playbackStateManager: PlaybackStateManager
-    ): PlayTrackUseCase = PlayTrackUseCase(repository, playbackStateManager)
+    ): PlayTrackUseCase = PlayTrackUseCase(context, repository, playbackStateManager)
 
     @Provides
     @Singleton
     fun providePlayLocalTracksUseCase(
+        @ApplicationContext context: Context,
         repository: MusicAssistantRepository,
         playbackStateManager: PlaybackStateManager
-    ): PlayLocalTracksUseCase = PlayLocalTracksUseCase(repository, playbackStateManager)
+    ): PlayLocalTracksUseCase = PlayLocalTracksUseCase(context, repository, playbackStateManager)
 
     @Provides
     @Singleton
     fun provideControlPlaybackUseCase(
+        @ApplicationContext context: Context,
         repository: MusicAssistantRepository,
         playbackStateManager: PlaybackStateManager
-    ): ControlPlaybackUseCase = ControlPlaybackUseCase(repository, playbackStateManager)
+    ): ControlPlaybackUseCase = ControlPlaybackUseCase(context, repository, playbackStateManager)
 
     @Provides
     @Singleton
     fun provideDeletePlaylistUseCase(
+        @ApplicationContext context: Context,
         repository: MusicAssistantRepository
-    ): DeletePlaylistUseCase = DeletePlaylistUseCase(repository)
+    ): DeletePlaylistUseCase = DeletePlaylistUseCase(context, repository)
 
     @Provides
     @Singleton
     fun provideRenamePlaylistUseCase(
+        @ApplicationContext context: Context,
         repository: MusicAssistantRepository
-    ): RenamePlaylistUseCase = RenamePlaylistUseCase(repository)
+    ): RenamePlaylistUseCase = RenamePlaylistUseCase(context, repository)
 
     @Provides
     @Singleton
     fun provideSearchLibraryUseCase(
+        @ApplicationContext context: Context,
         repository: MusicAssistantRepository
-    ): SearchLibraryUseCase = SearchLibraryUseCase(repository)
+    ): SearchLibraryUseCase = SearchLibraryUseCase(context, repository)
 
     @Provides
     @Singleton
@@ -118,12 +128,14 @@ object UseCaseModule {
     @Provides
     @Singleton
     fun provideApplyEqPresetUseCase(
+        @ApplicationContext context: Context,
         repository: EqPresetRepository,
         eqDataStore: EqDataStore,
         eqPresetParser: EqPresetParser,
         equalizerManager: EqualizerManager,
         playbackServiceConnection: PlaybackServiceConnection
     ): ApplyEqPresetUseCase = ApplyEqPresetUseCase(
+        context,
         repository,
         eqDataStore,
         eqPresetParser,

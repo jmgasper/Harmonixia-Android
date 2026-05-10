@@ -16,10 +16,15 @@ fun formatTrackQualityLabel(
     val detail = if (!showLosslessDetail && labelRes == R.string.track_quality_lossless) {
         null
     } else {
-        qualityDetailLabel(normalized)
+        qualityDetailLabel(normalized, resolveLabel)
     }
     val resolved = when {
-        label != null && detail != null -> "$label $detail"
+        label != null && detail != null -> formatQualityTemplate(
+            R.string.track_quality_label_with_detail_format,
+            resolveLabel,
+            label,
+            detail
+        )
         label != null -> label
         detail != null -> detail
         else -> null
@@ -51,25 +56,41 @@ private fun qualityLabelRes(normalized: String): Int? {
     }
 }
 
-private fun qualityDetailLabel(normalized: String): String? {
+private fun qualityDetailLabel(normalized: String, resolveLabel: (Int) -> String): String? {
     val sampleRateKhz = parseSampleRateKhz(normalized)
     val bitDepth = parseBitDepth(normalized)
     val bitrateKbps = parseBitrateKbps(normalized)
-    val sampleRateDetail = formatSampleRateBitDepth(sampleRateKhz, bitDepth)
+    val sampleRateDetail = formatSampleRateBitDepth(sampleRateKhz, bitDepth, resolveLabel)
     return when {
-        isLosslessQuality(normalized) -> sampleRateDetail ?: bitrateKbps?.let { formatKbps(it) }
-        isLossyQuality(normalized) -> bitrateKbps?.let { formatKbps(it) } ?: sampleRateDetail
+        isLosslessQuality(normalized) -> sampleRateDetail ?: bitrateKbps?.let { formatKbps(it, resolveLabel) }
+        isLossyQuality(normalized) -> bitrateKbps?.let { formatKbps(it, resolveLabel) } ?: sampleRateDetail
         sampleRateDetail != null -> sampleRateDetail
-        bitrateKbps != null -> formatKbps(bitrateKbps)
+        bitrateKbps != null -> formatKbps(bitrateKbps, resolveLabel)
         else -> null
     }
 }
 
-private fun formatSampleRateBitDepth(sampleRateKhz: Double?, bitDepth: Int?): String? {
+private fun formatSampleRateBitDepth(
+    sampleRateKhz: Double?,
+    bitDepth: Int?,
+    resolveLabel: (Int) -> String
+): String? {
+    val bitUnit = resolveLabel(R.string.track_quality_unit_bit)
     return when {
-        sampleRateKhz != null && bitDepth != null -> "${formatKhz(sampleRateKhz)}/${bitDepth}-bit"
-        sampleRateKhz != null -> formatKhz(sampleRateKhz)
-        bitDepth != null -> "${bitDepth}-bit"
+        sampleRateKhz != null && bitDepth != null -> formatQualityTemplate(
+            R.string.track_quality_detail_sample_rate_bit_depth_format,
+            resolveLabel,
+            formatKhz(sampleRateKhz, resolveLabel),
+            bitDepth,
+            bitUnit
+        )
+        sampleRateKhz != null -> formatKhz(sampleRateKhz, resolveLabel)
+        bitDepth != null -> formatQualityTemplate(
+            R.string.track_quality_detail_bit_depth_format,
+            resolveLabel,
+            bitDepth,
+            bitUnit
+        )
         else -> null
     }
 }
@@ -106,14 +127,45 @@ private fun parseBitrateKbps(quality: String): Double? {
     return bitrateRegex.find(quality)?.groupValues?.getOrNull(1)?.toDoubleOrNull()
 }
 
-private fun formatKhz(value: Double): String {
-    val rounded = if (value % 1.0 == 0.0) value.toInt().toString() else String.format(Locale.US, "%.1f", value)
-    return "${rounded}kHz"
+private fun formatKhz(value: Double, resolveLabel: (Int) -> String): String {
+    val rounded = formatRoundedDecimal(value, resolveLabel)
+    val unit = resolveLabel(R.string.track_quality_unit_khz)
+    return formatQualityTemplate(
+        R.string.track_quality_detail_khz_format,
+        resolveLabel,
+        rounded,
+        unit
+    )
 }
 
-private fun formatKbps(value: Double): String {
-    val rounded = if (value % 1.0 == 0.0) value.toInt().toString() else String.format(Locale.US, "%.1f", value)
-    return "$rounded kbps"
+private fun formatKbps(value: Double, resolveLabel: (Int) -> String): String {
+    val rounded = formatRoundedDecimal(value, resolveLabel)
+    val unit = resolveLabel(R.string.track_quality_unit_kbps)
+    return formatQualityTemplate(
+        R.string.track_quality_detail_kbps_format,
+        resolveLabel,
+        rounded,
+        unit
+    )
+}
+
+private fun formatRoundedDecimal(value: Double, resolveLabel: (Int) -> String): String {
+    if (value % 1.0 == 0.0) {
+        return value.toInt().toString()
+    }
+    return String.format(
+        Locale.US,
+        resolveLabel(R.string.track_quality_decimal_one_place_format),
+        value
+    )
+}
+
+private fun formatQualityTemplate(
+    templateRes: Int,
+    resolveLabel: (Int) -> String,
+    vararg args: Any
+): String {
+    return String.format(Locale.getDefault(), resolveLabel(templateRes), *args)
 }
 
 private fun isHiResQuality(quality: String): Boolean {

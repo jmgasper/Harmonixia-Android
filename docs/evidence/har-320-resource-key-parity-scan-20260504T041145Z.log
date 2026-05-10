@@ -1,0 +1,24 @@
+HAR-320 resource key parity scan
+timestamp_utc=20260504T041145Z
+
+target_file_count=13
+app/src/main/res/values-bn/strings.xml
+app/src/main/res/values-de/strings.xml
+app/src/main/res/values-es/strings.xml
+app/src/main/res/values-fa/strings.xml
+app/src/main/res/values-fi/strings.xml
+app/src/main/res/values-fr/strings.xml
+app/src/main/res/values-hi/strings.xml
+app/src/main/res/values-it/strings.xml
+app/src/main/res/values-nb/strings.xml
+app/src/main/res/values-pt/strings.xml
+app/src/main/res/values-sv/strings.xml
+app/src/main/res/values-zh-rCN/strings.xml
+app/src/main/res/values/strings.xml
+
+OK eq_attribution_opra_license present in all target files
+OK eq_attribution_data_sources present in all target files
+OK eq_attribution_ladspa_concepts present in all target files
+OK eq_attribution_ladspa_license present in all target files
+
+RESULT: PASS

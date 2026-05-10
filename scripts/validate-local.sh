@@ -1,0 +1,404 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+repo_root="$(cd "${script_dir}/.." && pwd)"
+agp9_audit_script="${script_dir}/agp9-phase2-audit.sh"
+
+with_smoke="false"
+default_avd_name="Medium_Phone"
+avd_name="$default_avd_name"
+smoke_avd_explicit="false"
+smoke_serial=""
+smoke_no_launch="false"
+smoke_connect_timeout=""
+smoke_boot_timeout=""
+smoke_launch_wait=""
+smoke_app_id=""
+smoke_task=""
+smoke_keep_logs="false"
+smoke_list_avds="false"
+smoke_help="false"
+smoke_options_used="false"
+smoke_runtime_conflict_options_used="false"
+agp9_full_path="false"
+run_option_tests="false"
+run_compile="true"
+run_test="true"
+run_lint="true"
+
+usage() {
+    cat <<USAGE
+Usage: $(basename "$0") [options]
+
+Run local validation gates before committing:
+  1. AGP 9 Phase 2 static audit via scripts/agp9-phase2-audit.sh
+  2. :app:compileDebugKotlin
+  3. :app:testDebugUnitTest
+  4. :app:lintDebug
+Optional:
+  5. emulator smoke test via scripts/smoke-debug-emulator.sh
+
+Options:
+  --with-smoke         Include emulator smoke validation
+  --avd <name>         AVD name for smoke validation (default: ${default_avd_name}, alias: --smoke-avd)
+  --serial <id>        adb emulator serial for smoke validation (example: emulator-5554, alias: --smoke-serial)
+  --no-launch          Forward --no-launch to smoke validation (alias: --smoke-no-launch)
+  --connect-timeout <s> Forward smoke adb connect timeout in seconds (alias: --smoke-connect-timeout)
+  --boot-timeout <s>   Forward smoke boot completion timeout in seconds (alias: --smoke-boot-timeout)
+  --launch-wait <s>    Forward post-launch wait seconds to smoke validation (alias: --smoke-launch-wait)
+  --smoke-app-id <id>  Forward app id to smoke validation (alias: --app-id)
+  --smoke-task <task>  Forward Gradle install task to smoke validation (alias: --task)
+  --keep-logs          Forward --keep-logs to smoke validation (alias: --smoke-keep-logs)
+  --list-avds          List AVDs via smoke validation (implies smoke-only, alias: --smoke-list-avds)
+  --smoke-help         Print smoke script help and exit (implies smoke-only)
+  --agp9-full-path     Run AGP audit + compile/test/lint + smoke as one gate path
+  --smoke-only         Disable compile/test/lint gates and run smoke only
+  --option-tests       Run local option regression suites and exit
+  --skip-compile       Skip :app:compileDebugKotlin gate
+  --skip-test          Skip :app:testDebugUnitTest gate
+  --skip-lint          Skip :app:lintDebug gate
+  --help               Show this help
+
+Documentation:
+  docs/local-validation-workflow.md
+USAGE
+}
+
+require_option_value() {
+    local option="$1"
+    local value="${2:-}"
+    if [[ -z "$value" || "$value" == --* ]]; then
+        echo "Missing value for ${option}" >&2
+        usage >&2
+        exit 1
+    fi
+    printf '%s\n' "$value"
+}
+
+require_positive_integer() {
+    local option="$1"
+    local value="$2"
+    if ! [[ "$value" =~ ^[1-9][0-9]*$ ]]; then
+        echo "Invalid value for ${option}: ${value}" >&2
+        echo "Expected a positive integer." >&2
+        usage >&2
+        exit 1
+    fi
+    printf '%s\n' "$value"
+}
+
+require_emulator_serial() {
+    local option="$1"
+    local value="$2"
+    if ! [[ "$value" =~ ^emulator-[0-9]+$ ]]; then
+        echo "Invalid value for ${option}: ${value}" >&2
+        echo "Expected an emulator adb serial like emulator-5554." >&2
+        usage >&2
+        exit 1
+    fi
+    printf '%s\n' "$value"
+}
+
+print_shell_escaped_command() {
+    local prefix="$1"
+    shift
+    printf '%s' "$prefix"
+    local arg
+    for arg in "$@"; do
+        printf ' %q' "$arg"
+    done
+    printf '\n'
+}
+
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --with-smoke)
+            with_smoke="true"
+            shift
+            ;;
+        --avd|--smoke-avd)
+            avd_name="$(require_option_value "$1" "${2:-}")"
+            smoke_avd_explicit="true"
+            smoke_options_used="true"
+            smoke_runtime_conflict_options_used="true"
+            shift 2
+            ;;
+        --serial|--smoke-serial)
+            smoke_serial="$(require_emulator_serial "$1" "$(require_option_value "$1" "${2:-}")")"
+            smoke_options_used="true"
+            smoke_runtime_conflict_options_used="true"
+            shift 2
+            ;;
+        --no-launch|--smoke-no-launch)
+            smoke_no_launch="true"
+            smoke_options_used="true"
+            smoke_runtime_conflict_options_used="true"
+            shift
+            ;;
+        --connect-timeout|--smoke-connect-timeout)
+            smoke_connect_timeout="$(require_positive_integer "$1" "$(require_option_value "$1" "${2:-}")")"
+            smoke_options_used="true"
+            smoke_runtime_conflict_options_used="true"
+            shift 2
+            ;;
+        --boot-timeout|--smoke-boot-timeout)
+            smoke_boot_timeout="$(require_positive_integer "$1" "$(require_option_value "$1" "${2:-}")")"
+            smoke_options_used="true"
+            smoke_runtime_conflict_options_used="true"
+            shift 2
+            ;;
+        --launch-wait|--smoke-launch-wait)
+            smoke_launch_wait="$(require_positive_integer "$1" "$(require_option_value "$1" "${2:-}")")"
+            smoke_options_used="true"
+            smoke_runtime_conflict_options_used="true"
+            shift 2
+            ;;
+        --smoke-app-id|--app-id)
+            smoke_app_id="$(require_option_value "$1" "${2:-}")"
+            smoke_options_used="true"
+            smoke_runtime_conflict_options_used="true"
+            shift 2
+            ;;
+        --smoke-task|--task)
+            smoke_task="$(require_option_value "$1" "${2:-}")"
+            smoke_options_used="true"
+            smoke_runtime_conflict_options_used="true"
+            shift 2
+            ;;
+        --keep-logs|--smoke-keep-logs)
+            smoke_keep_logs="true"
+            smoke_options_used="true"
+            shift
+            ;;
+        --list-avds|--smoke-list-avds)
+            smoke_list_avds="true"
+            smoke_options_used="true"
+            with_smoke="true"
+            run_compile="false"
+            run_test="false"
+            run_lint="false"
+            shift
+            ;;
+        --smoke-help)
+            smoke_help="true"
+            with_smoke="true"
+            run_compile="false"
+            run_test="false"
+            run_lint="false"
+            shift
+            ;;
+        --agp9-full-path)
+            agp9_full_path="true"
+            with_smoke="true"
+            run_compile="true"
+            run_test="true"
+            run_lint="true"
+            shift
+            ;;
+        --smoke-only)
+            with_smoke="true"
+            run_compile="false"
+            run_test="false"
+            run_lint="false"
+            shift
+            ;;
+        --option-tests)
+            run_option_tests="true"
+            shift
+            ;;
+        --skip-compile)
+            run_compile="false"
+            shift
+            ;;
+        --skip-test)
+            run_test="false"
+            shift
+            ;;
+        --skip-lint)
+            run_lint="false"
+            shift
+            ;;
+        --help|-h)
+            usage
+            exit 0
+            ;;
+        *)
+            echo "Unknown argument: $1" >&2
+            usage >&2
+            exit 1
+            ;;
+    esac
+done
+
+if [[ "$run_option_tests" == "true" ]]; then
+    if [[ "$with_smoke" == "true" || "$smoke_options_used" == "true" || "$agp9_full_path" == "true" || "$run_compile" != "true" || "$run_test" != "true" || "$run_lint" != "true" ]]; then
+        echo "--option-tests cannot be combined with compile/test/lint toggles or smoke execution flags." >&2
+        echo "Run --option-tests by itself." >&2
+        usage >&2
+        exit 1
+    fi
+    echo "Running local validation option regression tests..."
+    "${script_dir}/test-local-validation-option-regressions.sh"
+    exit 0
+fi
+
+if [[ "$with_smoke" != "true" && "$smoke_options_used" == "true" ]]; then
+    echo "Smoke-specific flags require --with-smoke or --smoke-only." >&2
+    usage >&2
+    exit 1
+fi
+
+if [[ "$agp9_full_path" == "true" && ( "$smoke_help" == "true" || "$smoke_list_avds" == "true" ) ]]; then
+    echo "--agp9-full-path cannot be combined with informational smoke-only modes (--smoke-help or --list-avds)." >&2
+    usage >&2
+    exit 1
+fi
+
+if [[ "$agp9_full_path" == "true" && ( "$run_compile" != "true" || "$run_test" != "true" || "$run_lint" != "true" ) ]]; then
+    echo "--agp9-full-path cannot be combined with compile/test/lint skip flags." >&2
+    usage >&2
+    exit 1
+fi
+
+if [[ "$smoke_help" == "true" && ( "$smoke_runtime_conflict_options_used" == "true" || "$smoke_list_avds" == "true" ) ]]; then
+    echo "--smoke-help cannot be combined with runtime smoke options." >&2
+    echo "Remove selector/timeout/app/task flags (for example --serial, --connect-timeout, --app-id, --task, --list-avds), including any --smoke-* aliases." >&2
+    usage >&2
+    exit 1
+fi
+
+if [[ "$smoke_list_avds" != "true" && "$smoke_avd_explicit" == "true" && -n "$smoke_serial" ]]; then
+    echo "Cannot combine --avd with --serial. Choose one target selector." >&2
+    usage >&2
+    exit 1
+fi
+
+if [[ "$smoke_list_avds" != "true" && "$smoke_no_launch" == "true" && "$smoke_avd_explicit" == "true" && -z "$smoke_serial" ]]; then
+    echo "--no-launch cannot be combined with --avd unless --serial is also provided." >&2
+    usage >&2
+    exit 1
+fi
+
+if [[ "$smoke_list_avds" == "true" ]]; then
+    if [[ "$smoke_runtime_conflict_options_used" == "true" ]]; then
+        echo "--list-avds cannot be combined with runtime smoke options." >&2
+        echo "Remove selector/timeout/app/task flags (for example --serial, --connect-timeout, --app-id, --task), including any --smoke-* aliases, when listing AVDs." >&2
+        usage >&2
+        exit 1
+    fi
+fi
+
+skip_java_preflight="false"
+if [[ "$with_smoke" == "true" && "$run_compile" == "false" && "$run_test" == "false" && "$run_lint" == "false" && ( "$smoke_list_avds" == "true" || "$smoke_help" == "true" ) ]]; then
+    skip_java_preflight="true"
+fi
+
+if [[ "$skip_java_preflight" != "true" ]]; then
+    if [[ -z "${JAVA_HOME:-}" ]]; then
+        if [[ -d "$HOME/.jdks/jdk-17.0.17+10" ]]; then
+            export JAVA_HOME="$HOME/.jdks/jdk-17.0.17+10"
+            export PATH="$JAVA_HOME/bin:$PATH"
+        fi
+    fi
+
+    if ! command -v java >/dev/null 2>&1; then
+        echo "Java is required. Install JDK 17 and ensure java is on PATH." >&2
+        exit 1
+    fi
+
+    java_version_line="$(java -version 2>&1 | head -n 1)"
+    java_major="$(echo "${java_version_line}" | sed -E 's/.*version "([0-9]+).*/\1/')"
+    if [[ "${java_major}" != "17" ]]; then
+        echo "JDK 17 is required for local validation." >&2
+        echo "Detected: ${java_version_line}" >&2
+        echo "Set JAVA_HOME to a JDK 17 installation and retry." >&2
+        exit 1
+    fi
+fi
+
+gradle_tasks=()
+if [[ "$run_compile" == "true" ]]; then
+    gradle_tasks+=(":app:compileDebugKotlin")
+fi
+if [[ "$run_test" == "true" ]]; then
+    gradle_tasks+=(":app:testDebugUnitTest")
+fi
+if [[ "$run_lint" == "true" ]]; then
+    gradle_tasks+=(":app:lintDebug")
+fi
+
+if [[ "${#gradle_tasks[@]}" -gt 0 ]]; then
+    if [[ "$agp9_full_path" == "true" ]]; then
+        echo "Running AGP 9 full-path validation gate (audit + compile/test/lint + smoke)..."
+    fi
+
+    if [[ ! -x "$agp9_audit_script" ]]; then
+        echo "AGP 9 audit script is missing or not executable: $agp9_audit_script" >&2
+        exit 1
+    fi
+
+    echo "Running AGP 9 Phase 2 static audit gate..."
+    "$agp9_audit_script"
+
+    echo "Running Gradle validation gates: ${gradle_tasks[*]}"
+    (
+        cd "$repo_root"
+        ./gradlew --no-daemon "${gradle_tasks[@]}"
+    )
+elif [[ "$with_smoke" != "true" ]]; then
+    echo "No validation gates selected. Enable at least one gate or use --with-smoke/--smoke-only." >&2
+    echo "See docs/local-validation-workflow.md for examples." >&2
+    exit 1
+fi
+
+if [[ "$with_smoke" == "true" ]]; then
+    if [[ "$smoke_help" == "true" ]]; then
+        echo "Showing emulator smoke help..."
+    elif [[ "$smoke_list_avds" == "true" ]]; then
+        echo "Listing available AVDs via smoke validation..."
+    else
+        echo "Running emulator smoke gate..."
+    fi
+    smoke_args=()
+    if [[ "$smoke_help" == "true" ]]; then
+        smoke_args+=(--help)
+    elif [[ "$smoke_list_avds" == "true" ]]; then
+        smoke_args+=(--list-avds)
+    else
+        if [[ -n "$smoke_serial" ]]; then
+            smoke_args+=(--serial "$smoke_serial")
+        elif [[ "$smoke_no_launch" != "true" ]]; then
+            smoke_args+=(--avd "$avd_name")
+        fi
+        if [[ "$smoke_no_launch" == "true" ]]; then
+            smoke_args+=(--no-launch)
+        fi
+        if [[ -n "$smoke_connect_timeout" ]]; then
+            smoke_args+=(--connect-timeout "$smoke_connect_timeout")
+        fi
+        if [[ -n "$smoke_boot_timeout" ]]; then
+            smoke_args+=(--boot-timeout "$smoke_boot_timeout")
+        fi
+        if [[ -n "$smoke_launch_wait" ]]; then
+            smoke_args+=(--launch-wait "$smoke_launch_wait")
+        fi
+        if [[ -n "$smoke_app_id" ]]; then
+            smoke_args+=(--app-id "$smoke_app_id")
+        fi
+        if [[ -n "$smoke_task" ]]; then
+            smoke_args+=(--task "$smoke_task")
+        fi
+    fi
+    if [[ "$smoke_keep_logs" == "true" ]]; then
+        smoke_args+=(--keep-logs)
+    fi
+    smoke_command=("$script_dir/smoke-debug-emulator.sh" "${smoke_args[@]}")
+    print_shell_escaped_command "Smoke command:" "${smoke_command[@]}"
+    "${smoke_command[@]}"
+    if [[ "$smoke_help" == "true" || "$smoke_list_avds" == "true" ]]; then
+        exit 0
+    fi
+fi
+
+echo "Local validation passed."

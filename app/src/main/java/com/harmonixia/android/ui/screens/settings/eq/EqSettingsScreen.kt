@@ -14,9 +14,8 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.text.ClickableText
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.ArrowBack
+import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -32,16 +31,18 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.LocalActivity
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.LinkAnnotation
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.withLink
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.harmonixia.android.R
 import com.harmonixia.android.ui.components.EqGraphCanvas
@@ -63,7 +64,7 @@ fun EqSettingsScreen(
     val eqSettings by viewModel.eqSettings.collectAsStateWithLifecycle()
     val presetDetails by viewModel.presetDetails.collectAsStateWithLifecycle()
     val context = LocalContext.current
-    val activity = context as? ComponentActivity
+    val activity = LocalActivity.current as? ComponentActivity
     val playbackViewModel: PlaybackViewModel = if (activity != null) {
         hiltViewModel(activity)
     } else {
@@ -77,7 +78,7 @@ fun EqSettingsScreen(
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(
-                            imageVector = Icons.Outlined.ArrowBack,
+                            imageVector = Icons.AutoMirrored.Outlined.ArrowBack,
                             contentDescription = stringResource(R.string.action_back)
                         )
                     }
@@ -283,7 +284,6 @@ internal fun EqSettingsScreenContent(
 
 @Composable
 private fun AttributionCard() {
-    val uriHandler = LocalUriHandler.current
     val opraUrl = "https://github.com/opra-project/OPRA"
     val ladspaUrl = "https://github.com/pulseaudio-equalizer-ladspa/equalizer"
 
@@ -301,41 +301,47 @@ private fun AttributionCard() {
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text(
-                text = "EQ Presets: OPRA (Open Parametric Room Acoustics)",
+                text = stringResource(R.string.eq_attribution_opra_heading),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Text(
-                text = "Licensed under CC BY-SA 4.0",
+                text = stringResource(R.string.eq_attribution_opra_license),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Text(
-                text = "Data sources: AutoEQ, oratory1990, and community contributors",
+                text = stringResource(R.string.eq_attribution_data_sources),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            ClickableText(
-                text = AnnotatedString(opraUrl),
-                onClick = { uriHandler.openUri(opraUrl) },
+            Text(
+                text = buildAnnotatedString {
+                    withLink(LinkAnnotation.Url(opraUrl)) {
+                        append(opraUrl)
+                    }
+                },
                 style = MaterialTheme.typography.bodySmall.copy(
                     color = MaterialTheme.colorScheme.primary
                 )
             )
             Spacer(modifier = Modifier.height(12.dp))
             Text(
-                text = "EQ Implementation: Concepts from pulseaudio-equalizer-ladspa",
+                text = stringResource(R.string.eq_attribution_ladspa_concepts),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Text(
-                text = "Licensed under GPL-3.0",
+                text = stringResource(R.string.eq_attribution_ladspa_license),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            ClickableText(
-                text = AnnotatedString(ladspaUrl),
-                onClick = { uriHandler.openUri(ladspaUrl) },
+            Text(
+                text = buildAnnotatedString {
+                    withLink(LinkAnnotation.Url(ladspaUrl)) {
+                        append(ladspaUrl)
+                    }
+                },
                 style = MaterialTheme.typography.bodySmall.copy(
                     color = MaterialTheme.colorScheme.primary
                 )

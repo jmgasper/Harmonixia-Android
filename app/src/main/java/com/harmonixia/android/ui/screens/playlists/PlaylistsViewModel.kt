@@ -28,6 +28,7 @@ import com.harmonixia.android.util.matchesLocal
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -51,6 +52,7 @@ sealed class PlaylistsUiEvent {
     data class PlaylistRenamed(val playlist: Playlist) : PlaylistsUiEvent()
 }
 
+@OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class PlaylistsViewModel @Inject constructor(
     private val repository: MusicAssistantRepository,

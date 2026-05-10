@@ -15,6 +15,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.getValue
@@ -42,7 +43,7 @@ fun AlphabetFastScroller(
     content: @Composable BoxScope.() -> Unit
 ) {
     var alphabetRelativeDragYOffset by remember { mutableStateOf<Float?>(null) }
-    var alphabetDistanceFromTopOfScreen by remember { mutableStateOf(0F) }
+    var alphabetDistanceFromTopOfScreen by remember { mutableFloatStateOf(0F) }
     var lastLetter by remember { mutableStateOf<Char?>(null) }
 
     BoxWithConstraints(modifier = modifier) {
@@ -99,7 +100,7 @@ private fun AlphabetScroller(
     itemHeight: Dp,
     onAlphabetListDrag: (relativeDragYOffset: Float?, distanceFromTopOfScreen: Float) -> Unit
 ) {
-    var distanceFromTopOfScreen by remember { mutableStateOf(0F) }
+    var distanceFromTopOfScreen by remember { mutableFloatStateOf(0F) }
 
     Column(
         modifier = modifier

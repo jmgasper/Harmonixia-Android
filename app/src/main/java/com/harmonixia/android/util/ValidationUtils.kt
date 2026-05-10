@@ -1,5 +1,7 @@
 package com.harmonixia.android.util
 
+import java.net.Inet6Address
+import java.net.InetAddress
 import java.net.URI
 
 enum class UrlValidationError {
@@ -49,8 +51,14 @@ object ValidationUtils {
         val uri = runCatching { URI(normalized) }.getOrNull() ?: return false
         val scheme = uri.scheme?.lowercase() ?: return false
         if (scheme != "http" && scheme != "https") return false
+        if (uri.userInfo != null) return false
+        val port = uri.port
+        if (port != -1 && port !in 1..65535) return false
         val host = uri.host ?: return false
-        return host == "localhost" || isValidIpAddress(host) || isValidDomain(host)
+        return host == "localhost" ||
+            isValidIpAddress(host) ||
+            isValidIpv6Literal(host) ||
+            isValidDomain(host)
     }
 
     fun isValidIpAddress(input: String): Boolean {
@@ -61,12 +69,24 @@ object ValidationUtils {
         return domainRegex.matches(input)
     }
 
+    private fun isValidIpv6Literal(input: String): Boolean {
+        val candidate = input.removePrefix("[").removeSuffix("]")
+        if (!candidate.contains(':')) return false
+        val parsed = runCatching { InetAddress.getByName(candidate) }.getOrNull() ?: return false
+        return parsed is Inet6Address
+    }
+
     fun normalizeUrl(input: String): String {
         var normalized = input.trim().trimEnd('/')
         normalized = when {
-            normalized.startsWith("http://") || normalized.startsWith("https://") -> normalized
-            normalized.startsWith("ws://") -> "http://${normalized.removePrefix("ws://")}"
-            normalized.startsWith("wss://") -> "https://${normalized.removePrefix("wss://")}"
+            normalized.regionMatches(0, "http://", 0, 7, ignoreCase = true) ->
+                "http://${normalized.substring(7)}"
+            normalized.regionMatches(0, "https://", 0, 8, ignoreCase = true) ->
+                "https://${normalized.substring(8)}"
+            normalized.regionMatches(0, "ws://", 0, 5, ignoreCase = true) ->
+                "http://${normalized.substring(5)}"
+            normalized.regionMatches(0, "wss://", 0, 6, ignoreCase = true) ->
+                "https://${normalized.substring(6)}"
             else -> "http://$normalized"
         }
         return normalized.trimEnd('/')

@@ -1,0 +1,116 @@
+# HAR-539 non-dollar multiline-assignment comment-matrix re-audit (post HAR-538)
+# Generated: 20260510T175440Z
+
+## Escaped multiline-assignment candidates (Play ${title})
+   636	        contentDescription = "Play ${title}", // localized
+   637	        imageVector = Icons.Outlined.PlayArrow
+   638	    )
+   639	    Icon(
+   640	        contentDescription =
+   641	            "Play ${title}",
+   642	        imageVector = Icons.Outlined.PlayArrow
+   643	    )
+   644	    Icon(
+   645	        contentDescription =
+   646	            "Play ${title}", // localized
+   647	        imageVector = Icons.Outlined.PlayArrow
+   648	    )
+   649	    Icon(
+   650	        contentDescription =
+   651	            "Play ${title}", // localized trailing line-comment
+   652	        imageVector = Icons.Outlined.PlayArrow
+   653	    )
+   654	    Icon(
+   655	        contentDescription =
+   656	            "Play ${title}" /* localized */,
+   657	        imageVector = Icons.Outlined.PlayArrow
+   658	    )
+   659	    Icon(
+   660	        contentDescription =
+   661	            "Play ${title}" /* localized trailing block-comment */,
+   662	        imageVector = Icons.Outlined.PlayArrow
+   663	    )
+   664	    Icon(
+   665	        contentDescription =
+   666	            // localized
+   667	            "Play ${title}",
+   668	        imageVector = Icons.Outlined.PlayArrow
+   669	    )
+   670	    Icon(
+   671	        contentDescription =
+   672	            /* localized */ "Play ${title}",
+   673	        imageVector = Icons.Outlined.PlayArrow
+   674	    )
+   675	    Icon(
+   676	        contentDescription =
+   677	            /* localized
+   678	                */ "Play ${title}",
+   679	        imageVector = Icons.Outlined.PlayArrow
+   680	    )
+   681	    Icon(
+   682	        contentDescription =
+   683	            /* localized
+   684	                        */ "Play ${title}",
+   685	        imageVector = Icons.Outlined.PlayArrow
+   686	    )
+
+## Raw multiline-assignment candidates ("""Play ${title}""")
+   839	        contentDescription =
+   840	            """Play ${title}""",
+   841	        imageVector = Icons.Outlined.PlayArrow
+   842	    )
+   843	    Icon(
+   844	        contentDescription =
+   845	            """Play ${title}""", // localized
+   846	        imageVector = Icons.Outlined.PlayArrow
+   847	    )
+   848	    Icon(
+   849	        contentDescription =
+   850	            """Play ${title}""", // localized trailing line-comment
+   851	        imageVector = Icons.Outlined.PlayArrow
+   852	    )
+   853	    Icon(
+   854	        contentDescription =
+   855	            """Play ${title}""" /* localized */,
+   856	        imageVector = Icons.Outlined.PlayArrow
+   857	    )
+   858	    Icon(
+   859	        contentDescription =
+   860	            // localized
+   861	            """Play ${title}""",
+   862	        imageVector = Icons.Outlined.PlayArrow
+   863	    )
+   864	    Icon(
+   865	        contentDescription =
+   866	            /* localized */ """Play ${title}""",
+   867	        imageVector = Icons.Outlined.PlayArrow
+   868	    )
+   869	    Icon(
+   870	        contentDescription =
+   871	            /* localized
+   872	                */ """Play ${title}""",
+   873	        imageVector = Icons.Outlined.PlayArrow
+   874	    )
+   875	    Icon(
+   876	        contentDescription =
+   877	            /* localized
+   878	                        */ """Play ${title}""",
+   879	        imageVector = Icons.Outlined.PlayArrow
+   880	    )
+   881	    Icon(
+   882	        contentDescription = /* localized
+   883	            */ """Play ${title}""",
+   884	        imageVector = Icons.Outlined.PlayArrow
+   885	    )
+   886	    Icon(
+   887	        contentDescription = /* localized
+   888	                    */ """Play ${title}""",
+   889	        imageVector = Icons.Outlined.PlayArrow
+
+## Presence checks
+Escaped explicit trailing block-comment marker:
+660:        contentDescription =
+661:            "Play ${title}" /* localized trailing block-comment */,
+
+Raw explicit trailing block-comment marker:
+NO_MATCH

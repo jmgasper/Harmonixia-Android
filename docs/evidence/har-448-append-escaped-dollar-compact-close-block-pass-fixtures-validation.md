@@ -1,0 +1,28 @@
+# HAR-448 Validation — append Escaped-Dollar Compact Close-Block Pass Fixtures
+
+## Scope
+Extended pass-fixture coverage for escaped-string interpolation + escaped-dollar currency on `append(... text = ...)` using compact close-line block-comment formatting.
+
+## Code Change
+- Updated `scripts/test-check-hardcoded-ui-text-literals.sh` pass fixtures with:
+  - `append(end = ..., text = /* localized ... */ "Now ${title} costs \$5", start = ...)` in compact close-block form.
+- Purpose: ensure this interpolated escaped-string layout is not flagged by the scanner.
+
+## Validation Commands
+1. `./scripts/test-check-hardcoded-ui-text-literals.sh`
+2. `./scripts/check-hardcoded-ui-text-literals.sh`
+3. `./scripts/test-local-validation-option-regressions-runner.sh`
+4. `JAVA_HOME=$HOME/.local/jdks/temurin-17 PATH=$HOME/.local/jdks/temurin-17/bin:$PATH ./gradlew --no-daemon :app:compileDebugKotlin`
+5. `JAVA_HOME=$HOME/.local/jdks/temurin-17 PATH=$HOME/.local/jdks/temurin-17/bin:$PATH ./scripts/smoke-debug-emulator.sh --list-avds`
+6. `JAVA_HOME=$HOME/.local/jdks/temurin-17 PATH=$HOME/.local/jdks/temurin-17/bin:$PATH ./scripts/smoke-debug-emulator.sh --avd Medium_Phone --connect-timeout 90 --boot-timeout 240 --launch-wait 2 --task :app:installDebug`
+
+## Result
+All commands passed.
+
+## Evidence Logs
+- `docs/evidence/har-448-test-check-hardcoded-ui-text-literals-20260508T023940Z.log`
+- `docs/evidence/har-448-check-hardcoded-ui-text-literals-20260508T023940Z.log`
+- `docs/evidence/har-448-option-regressions-runner-20260508T023940Z.log`
+- `docs/evidence/har-448-compile-debug-kotlin-20260508T023940Z.log`
+- `docs/evidence/har-448-smoke-debug-emulator-list-avds-20260508T023940Z.log`
+- `docs/evidence/har-448-smoke-debug-emulator-install-debug-20260508T023940Z.log`

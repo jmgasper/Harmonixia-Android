@@ -1,6 +1,6 @@
 package com.harmonixia.android.ui.screens.playlists
 
-import android.app.Activity
+import androidx.activity.compose.LocalActivity
 import android.content.res.Configuration
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -21,12 +21,12 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.ViewList
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.GridView
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.Settings
-import androidx.compose.material.icons.outlined.ViewList
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -57,12 +57,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalResources
+import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.paging.LoadState
 import androidx.paging.compose.collectAsLazyPagingItems
@@ -94,14 +96,15 @@ fun PlaylistsScreen(
     val isOfflineMode by viewModel.isOfflineMode.collectAsStateWithLifecycle()
     val imageQualityManager = viewModel.imageQualityManager
     val viewMode by viewModel.viewMode.collectAsStateWithLifecycle()
-    val context = LocalContext.current
+    val resources = LocalResources.current
     val snackbarHostState = remember { SnackbarHostState() }
-    val favoritesPlaylist = remember {
+    val favoritesTitle = stringResource(R.string.home_favorites)
+    val favoritesPlaylist = remember(favoritesTitle) {
         Playlist(
             itemId = "favorites",
             provider = "harmonixia",
             uri = "",
-            name = "Favorites",
+            name = favoritesTitle,
             owner = null,
             isEditable = false,
             imageUrl = null
@@ -121,7 +124,7 @@ fun PlaylistsScreen(
         viewModel.events.collect { event ->
             when (event) {
                 is PlaylistsUiEvent.ShowMessage -> {
-                    snackbarHostState.showSnackbar(context.getString(event.messageResId))
+                    snackbarHostState.showSnackbar(resources.getString(event.messageResId))
                 }
                 PlaylistsUiEvent.PlaylistCreated -> {
                     showCreateDialog = false
@@ -140,8 +143,10 @@ fun PlaylistsScreen(
         }
     }
 
-    val windowSizeClass = calculateWindowSizeClass(activity = LocalContext.current as Activity)
+    val windowSizeClass = calculateWindowSizeClass(activity = checkNotNull(LocalActivity.current))
     val configuration = LocalConfiguration.current
+    val windowInfo = LocalWindowInfo.current
+    val density = LocalDensity.current
     val spacing = rememberAdaptiveSpacing()
     val isGrid by remember(viewMode, windowSizeClass) {
         derivedStateOf {
@@ -154,15 +159,17 @@ fun PlaylistsScreen(
         }
     }
     val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
-    val columns by remember(windowSizeClass, configuration) {
+    val containerWidthDp = with(density) { windowInfo.containerSize.width.toDp() }
+    val columns by remember(windowSizeClass, isLandscape, containerWidthDp) {
         derivedStateOf {
+            val containerWidth = containerWidthDp.value.toInt()
             when (windowSizeClass.widthSizeClass) {
                 WindowWidthSizeClass.Medium -> if (isLandscape) 3 else 2
                 WindowWidthSizeClass.Expanded -> {
                     if (isLandscape) {
-                        (configuration.screenWidthDp / 160).coerceIn(2, 8)
+                        (containerWidth / 160).coerceIn(2, 8)
                     } else {
-                        (configuration.screenWidthDp / 180).coerceIn(2, 6)
+                        (containerWidth / 180).coerceIn(2, 6)
                     }
                 }
                 else -> 2
@@ -246,7 +253,7 @@ fun PlaylistsScreen(
                     ) {
                         Icon(
                             imageVector = if (isGrid) {
-                                Icons.Outlined.ViewList
+                                Icons.AutoMirrored.Outlined.ViewList
                             } else {
                                 Icons.Outlined.GridView
                             },

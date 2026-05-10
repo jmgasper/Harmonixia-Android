@@ -1,10 +1,13 @@
 package com.harmonixia.android.domain.usecase
 
+import android.content.Context
+import com.harmonixia.android.R
 import com.harmonixia.android.domain.model.Playlist
 import com.harmonixia.android.domain.repository.MusicAssistantRepository
 import com.harmonixia.android.util.Logger
 
 class RenamePlaylistUseCase(
+    private val context: Context,
     private val repository: MusicAssistantRepository
 ) {
     suspend operator fun invoke(
@@ -14,10 +17,16 @@ class RenamePlaylistUseCase(
     ): Result<Playlist> {
         val trimmed = newName.trim()
         if (playlistId.isBlank() || provider.isBlank()) {
-            return Result.failure(IllegalArgumentException("Playlist details are required"))
+            return Result.failure(
+                IllegalArgumentException(
+                    context.getString(R.string.playlist_validation_details_required)
+                )
+            )
         }
         if (trimmed.isBlank()) {
-            return Result.failure(IllegalArgumentException("Playlist name is required"))
+            return Result.failure(
+                IllegalArgumentException(context.getString(R.string.playlist_validation_name_required))
+            )
         }
         return runCatching {
             val tracks = repository.getPlaylistTracks(playlistId, provider).getOrThrow()

@@ -1,0 +1,19 @@
+HAR-335 inline PlaybackViewModel duration template scan
+Timestamp(UTC): 20260504T114550Z
+
+-- PlaybackViewModel duration formatting path --
+34:import com.harmonixia.android.ui.components.TrackDurationFormatter
+290:        .map { formatDuration(it) }
+291:        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), formatDuration(0L))
+293:        .map { formatDuration(it) }
+294:        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), formatDuration(0L))
+1141:    private fun formatDuration(milliseconds: Long): String {
+1143:        val durationTemplate = context.getString(R.string.track_duration_minutes_seconds_format)
+1145:        return TrackDurationFormatter.formatDuration(safeSeconds, durationTemplate)
+
+-- TrackDurationFormatter behavior coverage --
+app/src/test/java/com/harmonixia/android/ui/components/TrackDurationFormatterTest.kt:6:class TrackDurationFormatterTest {
+app/src/test/java/com/harmonixia/android/ui/components/TrackDurationFormatterTest.kt:10:        assertEquals("2:05", TrackDurationFormatter.formatDuration(125, "%1\$d:%2\$02d"))
+app/src/test/java/com/harmonixia/android/ui/components/TrackDurationFormatterTest.kt:15:        assertEquals("0:00", TrackDurationFormatter.formatDuration(-15, "%1\$d:%2\$02d"))
+app/src/test/java/com/harmonixia/android/ui/components/TrackDurationFormatterTest.kt:22:            TrackDurationFormatter.formatDuration(187, "%1\$d m %2\$02d s")
+app/src/main/java/com/harmonixia/android/ui/components/TrackDurationFormatter.kt:6:    fun formatDuration(seconds: Int, minuteSecondFormat: String): String {

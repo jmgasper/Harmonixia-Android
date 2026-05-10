@@ -1,0 +1,8 @@
+HAR-327 inline formatter scan
+timestamp_utc=20260504T075929Z
+
+88:                    frequencyKhzFormat = stringResource(R.string.eq_value_frequency_khz_format),
+89:                    frequencyHzFormat = stringResource(R.string.eq_value_frequency_hz_format),
+90:                    gainDbFormat = stringResource(R.string.eq_value_gain_db_format),
+91:                    qFormat = stringResource(R.string.eq_value_q_format)
+RESULT: PASS

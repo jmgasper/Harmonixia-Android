@@ -1,6 +1,6 @@
 package com.harmonixia.android.ui.screens.artists
 
-import android.app.Activity
+import androidx.activity.compose.LocalActivity
 import android.content.res.Configuration
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -52,12 +52,15 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalResources
+import androidx.compose.ui.platform.LocalWindowInfo
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
@@ -88,7 +91,7 @@ fun ArtistDetailScreen(
     val playlists by viewModel.playlists.collectAsStateWithLifecycle()
     val isOfflineMode by viewModel.isOfflineMode.collectAsStateWithLifecycle()
     val imageQualityManager = viewModel.imageQualityManager
-    val context = LocalContext.current
+    val resources = LocalResources.current
     val snackbarHostState = remember { SnackbarHostState() }
 
     var showPlaylistPicker by remember { mutableStateOf(false) }
@@ -100,7 +103,7 @@ fun ArtistDetailScreen(
         viewModel.events.collect { event ->
             when (event) {
                 is ArtistDetailUiEvent.ShowMessage -> {
-                    snackbarHostState.showSnackbar(context.getString(event.messageResId))
+                    snackbarHostState.showSnackbar(resources.getString(event.messageResId))
                 }
                 ArtistDetailUiEvent.PlaylistCreated -> {
                     showCreateDialog = false
@@ -113,21 +116,24 @@ fun ArtistDetailScreen(
         }
     }
 
-    val windowSizeClass = calculateWindowSizeClass(activity = LocalContext.current as Activity)
+    val windowSizeClass = calculateWindowSizeClass(activity = checkNotNull(LocalActivity.current))
     val configuration = LocalConfiguration.current
+    val windowInfo = LocalWindowInfo.current
+    val density = LocalDensity.current
     val spacing = rememberAdaptiveSpacing()
     val isExpanded = windowSizeClass.widthSizeClass == WindowWidthSizeClass.Expanded
     val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
-    val columns by remember(windowSizeClass, configuration, isLandscape) {
+    val containerWidthDp = with(density) { windowInfo.containerSize.width.toDp() }
+    val columns by remember(windowSizeClass, isLandscape, containerWidthDp) {
         derivedStateOf {
             when (windowSizeClass.widthSizeClass) {
                 WindowWidthSizeClass.Compact -> if (isLandscape) 3 else 2
                 WindowWidthSizeClass.Medium -> if (isLandscape) 4 else 3
                 WindowWidthSizeClass.Expanded -> {
                     if (isLandscape) {
-                        (configuration.screenWidthDp / 160).coerceIn(4, 8)
+                        (containerWidthDp.value / 160f).toInt().coerceIn(4, 8)
                     } else {
-                        (configuration.screenWidthDp / 180).coerceIn(4, 6)
+                        (containerWidthDp.value / 180f).toInt().coerceIn(4, 6)
                     }
                 }
                 else -> if (isLandscape) 3 else 2
@@ -402,8 +408,9 @@ private fun ArtistDetailContent(
                             style = sectionHeaderStyle
                         )
                         Text(
-                            text = stringResource(
-                                R.string.artist_detail_album_count,
+                            text = pluralStringResource(
+                                R.plurals.artist_detail_album_count,
+                                libraryAlbums.size,
                                 libraryAlbums.size
                             ),
                             style = metaStyle
@@ -417,7 +424,7 @@ private fun ArtistDetailContent(
                     AlbumCard(
                         album = album,
                         onClick = { onAlbumClick(album) },
-                        onLongClick = onAlbumLongClick?.let { callback -> { callback(album) } },
+                        onLongClick = { onAlbumLongClick(album) },
                         artworkSize = artworkSize,
                         isOfflineMode = isOfflineMode,
                         imageQualityManager = imageQualityManager,
@@ -442,8 +449,9 @@ private fun ArtistDetailContent(
                             style = sectionHeaderStyle
                         )
                         Text(
-                            text = stringResource(
-                                R.string.artist_detail_album_count,
+                            text = pluralStringResource(
+                                R.plurals.artist_detail_album_count,
+                                allAlbums.size,
                                 allAlbums.size
                             ),
                             style = metaStyle
@@ -457,7 +465,7 @@ private fun ArtistDetailContent(
                     AlbumCard(
                         album = album,
                         onClick = { onAlbumClick(album) },
-                        onLongClick = onAlbumLongClick?.let { callback -> { callback(album) } },
+                        onLongClick = { onAlbumLongClick(album) },
                         artworkSize = artworkSize,
                         isOfflineMode = isOfflineMode,
                         imageQualityManager = imageQualityManager,

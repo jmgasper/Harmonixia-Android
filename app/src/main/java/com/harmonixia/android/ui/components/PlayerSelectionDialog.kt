@@ -19,11 +19,11 @@ import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.VolumeOff
+import androidx.compose.material.icons.automirrored.outlined.VolumeUp
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Speaker
-import androidx.compose.material.icons.outlined.VolumeOff
-import androidx.compose.material.icons.outlined.VolumeUp
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Button
@@ -63,13 +63,13 @@ import kotlin.math.roundToInt
 fun PlayerSelectionDialog(
     players: List<Player>,
     selectedPlayer: Player?,
-    localPlayerId: String? = null,
     onPlayerSelected: (Player) -> Unit,
     onPlayerVolumeChange: (Player, Int) -> Unit,
     onPlayerMuteChange: (Player, Boolean) -> Unit,
     onReconnect: () -> Unit,
     onDismiss: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    localPlayerId: String? = null
 ) {
     val spacing = rememberAdaptiveSpacing()
     val volumePlayer = remember(players, selectedPlayer) {
@@ -119,7 +119,7 @@ fun PlayerSelectionDialog(
                             .weight(1f)
                     ) {
                         Text(
-                            text = "No players available",
+                            text = stringResource(R.string.player_selection_no_players_available),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             textAlign = TextAlign.Center,
@@ -370,7 +370,7 @@ private fun PlayerVolumeBar(
                     if (isMuted) R.string.content_desc_unmute else R.string.content_desc_mute
                 )
                 Icon(
-                    imageVector = Icons.Outlined.VolumeOff,
+                    imageVector = Icons.AutoMirrored.Outlined.VolumeOff,
                     contentDescription = muteLabel,
                     tint = if (isMuted) {
                         MaterialTheme.colorScheme.primary
@@ -411,7 +411,7 @@ private fun PlayerVolumeBar(
                     .semantics { contentDescription = volumeLabel }
             )
             Icon(
-                imageVector = Icons.Outlined.VolumeUp,
+                imageVector = Icons.AutoMirrored.Outlined.VolumeUp,
                 contentDescription = stringResource(R.string.content_desc_volume_max),
                 tint = iconTint,
                 modifier = Modifier.size(24.dp)

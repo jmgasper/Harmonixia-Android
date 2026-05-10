@@ -1,6 +1,9 @@
 package com.harmonixia.android.data.remote
 
+import android.content.Context
+import com.harmonixia.android.R
 import com.harmonixia.android.util.Logger
+import dagger.hilt.android.qualifiers.ApplicationContext
 import java.util.ArrayDeque
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicInteger
@@ -42,6 +45,7 @@ import okhttp3.WebSocketListener
 import okio.ByteString
 
 open class MusicAssistantWebSocketClient(
+    @param:ApplicationContext private val context: Context,
     private val okHttpClient: OkHttpClient,
     private val json: Json
 ) {
@@ -87,7 +91,11 @@ open class MusicAssistantWebSocketClient(
 
         override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
             val isAuthFailure = isAuthFailure(response = response, throwable = t)
-            val message = if (isAuthFailure) AUTH_ERROR_MESSAGE else t.message ?: "WebSocket failure"
+            val message = if (isAuthFailure) {
+                authErrorMessage()
+            } else {
+                t.message ?: context.getString(R.string.status_connection_failed)
+            }
             Logger.e(TAG, message, t)
             _connectionState.value = ConnectionState.Error(message)
             if (isAuthFailure) {
@@ -110,11 +118,12 @@ open class MusicAssistantWebSocketClient(
         override fun onClosed(webSocket: WebSocket, code: Int, reason: String) {
             Logger.i(TAG, "WebSocket closed: $code $reason")
             if (isAuthFailure(closeCode = code, reason = reason)) {
-                _connectionState.value = ConnectionState.Error(AUTH_ERROR_MESSAGE)
-                connectDeferred?.completeExceptionally(IllegalStateException(AUTH_ERROR_MESSAGE))
+                val message = authErrorMessage()
+                _connectionState.value = ConnectionState.Error(message)
+                connectDeferred?.completeExceptionally(IllegalStateException(message))
                 connectDeferred = null
                 reconnectJob?.cancel()
-                failPendingRequests(AUTH_ERROR_MESSAGE)
+                failPendingRequests(message)
                 return
             }
             _connectionState.value = ConnectionState.Disconnected
@@ -139,7 +148,7 @@ open class MusicAssistantWebSocketClient(
         connectDeferred?.cancel()
         connectDeferred = null
         closeWebSocket("Manual disconnect")
-        failPendingRequests("Disconnected")
+        failPendingRequests(context.getString(R.string.status_disconnected))
         _connectionState.value = ConnectionState.Disconnected
     }
 
@@ -169,7 +178,9 @@ open class MusicAssistantWebSocketClient(
 
     private suspend fun connectInternal(): Result<Unit> {
         val url = serverUrl
-            ?: return Result.failure(IllegalStateException("Server URL is not set"))
+            ?: return Result.failure(
+                IllegalStateException(context.getString(R.string.connection_validation_server_url_not_set))
+            )
         val webSocketUrl = buildWebSocketUrl(url)
         _connectionState.value = ConnectionState.Connecting
         val deferred = CompletableDeferred<Unit>()
@@ -181,7 +192,8 @@ open class MusicAssistantWebSocketClient(
         webSocket = okHttpClient.newWebSocket(requestBuilder.build(), webSocketListener)
         val result = runCatching { withTimeout(CONNECT_TIMEOUT_MS) { deferred.await() } }
         if (result.isFailure) {
-            val message = result.exceptionOrNull()?.message ?: "Connection timeout"
+            val message = result.exceptionOrNull()?.message
+                ?: context.getString(R.string.error_connection_timeout)
             _connectionState.value = ConnectionState.Error(message)
             connectDeferred?.cancel()
             connectDeferred = null
@@ -368,7 +380,7 @@ open class MusicAssistantWebSocketClient(
         result.onSuccess {
             markConnectedAndFlush()
         }.onFailure { error ->
-            val message = error.message ?: AUTH_ERROR_MESSAGE
+            val message = error.message ?: authErrorMessage()
             _connectionState.value = ConnectionState.Error(message)
             connectDeferred?.completeExceptionally(error)
             connectDeferred = null
@@ -393,7 +405,8 @@ open class MusicAssistantWebSocketClient(
     private fun extractErrorMessage(payload: JsonObject): String? {
         val errorCode = payload["error_code"]?.jsonPrimitive?.intOrNull
         if (errorCode != null) {
-            return payload["details"]?.jsonPrimitive?.contentOrNull ?: "Server error ($errorCode)"
+            return payload["details"]?.jsonPrimitive?.contentOrNull
+                ?: context.getString(R.string.connection_validation_server_error_with_code, errorCode)
         }
         val error = payload["error"]
         if (error != null && error !is JsonNull) {
@@ -401,7 +414,6 @@ open class MusicAssistantWebSocketClient(
                 is JsonPrimitive -> error.content
                 is JsonObject -> error["message"]?.jsonPrimitive?.contentOrNull ?: error.toString()
                 is JsonArray -> error.toString()
-                else -> error.toString()
             }
         }
         return null
@@ -424,6 +436,8 @@ open class MusicAssistantWebSocketClient(
         }
         return JsonArray(combined)
     }
+
+    private fun authErrorMessage(): String = context.getString(R.string.status_auth_failed)
 
     private fun isAuthFailure(
         response: Response? = null,
@@ -458,7 +472,6 @@ open class MusicAssistantWebSocketClient(
         private const val MAX_RECONNECT_DELAY_MS = 30_000L
         private const val HTTP_UNAUTHORIZED = 401
         private const val HTTP_FORBIDDEN = 403
-        private const val AUTH_ERROR_MESSAGE = "Authentication failed. Please update your token."
         private val AUTH_ERROR_HINTS = listOf(
             "auth failed",
             "unauthorized",

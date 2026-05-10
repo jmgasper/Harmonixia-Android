@@ -1,7 +1,9 @@
 package com.harmonixia.android.ui.screens.home
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.harmonixia.android.R
 import com.harmonixia.android.data.remote.ConnectionState
 import com.harmonixia.android.domain.repository.LocalMediaRepository
 import com.harmonixia.android.domain.repository.MusicAssistantRepository
@@ -17,6 +19,7 @@ import com.harmonixia.android.util.Logger
 import com.harmonixia.android.util.NetworkConnectivityManager
 import com.harmonixia.android.util.PrefetchScheduler
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import kotlinx.coroutines.async
 import kotlinx.coroutines.CancellationException
@@ -42,6 +45,7 @@ class HomeViewModel @Inject constructor(
     private val prefetchScheduler: PrefetchScheduler,
     private val playTrackUseCase: PlayTrackUseCase,
     private val playbackStateManager: PlaybackStateManager,
+    @param:ApplicationContext private val context: Context,
     val imageQualityManager: ImageQualityManager
 ) : ViewModel() {
     val connectionState: StateFlow<ConnectionState> = getConnectionStateUseCase()
@@ -152,7 +156,7 @@ class HomeViewModel @Inject constructor(
             val recentlyAdded = recentlyAddedDeferred.await()
             val error = recentlyPlayed.exceptionOrNull() ?: recentlyAdded.exceptionOrNull()
             if (error != null) {
-                _uiState.value = HomeUiState.Error(error.message ?: "Unknown error")
+                _uiState.value = HomeUiState.Error(error.message ?: unknownErrorMessage())
                 return@supervisorScope
             }
             val recentlyPlayedList = recentlyPlayed.getOrDefault(emptyList())
@@ -192,7 +196,7 @@ class HomeViewModel @Inject constructor(
             throw cancelled
         } catch (error: Exception) {
             Logger.e(TAG, "Failed to load home data", error)
-            _uiState.value = HomeUiState.Error(error.message ?: "Unknown error")
+            _uiState.value = HomeUiState.Error(error.message ?: unknownErrorMessage())
         }
     }
 
@@ -218,6 +222,8 @@ class HomeViewModel @Inject constructor(
             )
         }
     }
+
+    private fun unknownErrorMessage(): String = context.getString(R.string.error_unknown)
 
     companion object {
         private const val TAG = "HomeViewModel"

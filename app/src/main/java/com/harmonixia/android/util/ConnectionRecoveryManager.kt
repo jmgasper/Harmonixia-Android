@@ -1,11 +1,15 @@
 package com.harmonixia.android.util
 
+import android.content.Context
 import android.os.SystemClock
+import androidx.annotation.VisibleForTesting
+import com.harmonixia.android.R
 import com.harmonixia.android.data.local.SettingsDataStore
 import com.harmonixia.android.data.remote.ConnectionState
 import com.harmonixia.android.domain.model.AuthMethod
 import com.harmonixia.android.domain.usecase.ConnectToServerUseCase
 import com.harmonixia.android.domain.usecase.GetConnectionStateUseCase
+import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import javax.inject.Singleton
 import java.util.concurrent.atomic.AtomicBoolean
@@ -19,6 +23,7 @@ import kotlinx.coroutines.launch
 
 @Singleton
 class ConnectionRecoveryManager @Inject constructor(
+    @param:ApplicationContext private val context: Context,
     private val settingsDataStore: SettingsDataStore,
     private val connectToServerUseCase: ConnectToServerUseCase,
     getConnectionStateUseCase: GetConnectionStateUseCase,
@@ -28,7 +33,10 @@ class ConnectionRecoveryManager @Inject constructor(
     private val connectionState: StateFlow<ConnectionState> = getConnectionStateUseCase()
     private val reconnectInFlight = AtomicBoolean(false)
     @Volatile private var lastReconnectAttemptAtMs = 0L
+    @Volatile private var suppressedInvalidServerUrl: String? = null
     private var networkMonitorJob: Job? = null
+    @VisibleForTesting
+    internal var elapsedRealtimeMsProvider: () -> Long = { SystemClock.elapsedRealtime() }
 
     fun start() {
         if (networkMonitorJob != null) return
@@ -55,16 +63,25 @@ class ConnectionRecoveryManager @Inject constructor(
         if (networkConnectivityManager.isOfflineMode()) return
         val state = connectionState.value
         if (state is ConnectionState.Connected || state is ConnectionState.Connecting) return
-        val now = SystemClock.elapsedRealtime()
-        if (lastReconnectAttemptAtMs > 0L &&
-            now - lastReconnectAttemptAtMs < MIN_RECONNECT_INTERVAL_MS
-        ) {
-            return
-        }
         if (!reconnectInFlight.compareAndSet(false, true)) return
         try {
             val serverUrl = settingsDataStore.getServerUrl().first().trim()
-            if (serverUrl.isBlank()) return
+            if (serverUrl.isBlank()) {
+                suppressedInvalidServerUrl = null
+                return
+            }
+            if (suppressedInvalidServerUrl == serverUrl) return
+            if (suppressedInvalidServerUrl != null && suppressedInvalidServerUrl != serverUrl) {
+                suppressedInvalidServerUrl = null
+                // Allow immediate reconnect retry after the user updates an invalid saved URL.
+                lastReconnectAttemptAtMs = 0L
+            }
+            val now = elapsedRealtimeMsProvider()
+            if (lastReconnectAttemptAtMs > 0L &&
+                now - lastReconnectAttemptAtMs < MIN_RECONNECT_INTERVAL_MS
+            ) {
+                return
+            }
             val authMethod = settingsDataStore.getAuthMethod().first()
             val username = settingsDataStore.getUsername().first().trim()
             val password = settingsDataStore.getPassword().first()
@@ -73,7 +90,7 @@ class ConnectionRecoveryManager @Inject constructor(
             ) {
                 return
             }
-            lastReconnectAttemptAtMs = SystemClock.elapsedRealtime()
+            lastReconnectAttemptAtMs = elapsedRealtimeMsProvider()
             val token = settingsDataStore.getAuthToken().first().trim()
             Logger.i(TAG, "Attempting reconnect ($reason) to ${Logger.sanitizeUrl(serverUrl)}")
             connectToServerUseCase(
@@ -83,12 +100,26 @@ class ConnectionRecoveryManager @Inject constructor(
                 username,
                 password,
                 persistSettings = false
-            ).onFailure { error ->
+            ).onSuccess {
+                suppressedInvalidServerUrl = null
+            }.onFailure { error ->
+                if (error is IllegalArgumentException &&
+                    error.message == context.getString(R.string.error_invalid_url)
+                ) {
+                    suppressedInvalidServerUrl = serverUrl
+                    Logger.w(TAG, "Skipping reconnect: persisted server URL is invalid")
+                    return@onFailure
+                }
                 Logger.w(TAG, "Reconnect failed: ${error.message}", error)
             }
         } finally {
             reconnectInFlight.set(false)
         }
+    }
+
+    @VisibleForTesting
+    internal suspend fun maybeReconnectForTest(reason: String) {
+        maybeReconnect(reason)
     }
 
     private companion object {

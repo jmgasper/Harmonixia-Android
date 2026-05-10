@@ -1,0 +1,414 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+repo_root="$(cd "${script_dir}/.." && pwd)"
+
+default_avd_name="Medium_Phone"
+default_app_id="com.harmonixia.android"
+default_gradle_task=":app:installDebug"
+default_connect_timeout_seconds=300
+default_boot_timeout_seconds=420
+default_launch_wait_seconds=5
+avd_name="$default_avd_name"
+app_id="$default_app_id"
+gradle_task="$default_gradle_task"
+connect_timeout_seconds="$default_connect_timeout_seconds"
+boot_timeout_seconds="$default_boot_timeout_seconds"
+launch_wait_seconds="$default_launch_wait_seconds"
+target_serial=""
+auto_launch="true"
+list_avds_only="false"
+avd_option_set="false"
+serial_option_set="false"
+no_launch_option_set="false"
+app_id_option_set="false"
+task_option_set="false"
+connect_timeout_option_set="false"
+boot_timeout_option_set="false"
+launch_wait_option_set="false"
+keep_logs_option_set="false"
+run_option_tests="false"
+log_suffix="${$}-${RANDOM}"
+uninstall_log="/tmp/harmonixia-smoke-uninstall-${log_suffix}.log"
+monkey_log="/tmp/harmonixia-smoke-monkey-${log_suffix}.log"
+emulator_log=""
+keep_monkey_log="false"
+keep_emulator_log="false"
+
+cleanup_logs() {
+    if [[ "$keep_logs_option_set" == "true" ]]; then
+        return
+    fi
+    rm -f "$uninstall_log"
+    if [[ "$keep_monkey_log" != "true" ]]; then
+        rm -f "$monkey_log"
+    fi
+    if [[ -n "$emulator_log" && "$keep_emulator_log" != "true" ]]; then
+        rm -f "$emulator_log"
+    fi
+}
+
+trap cleanup_logs EXIT
+
+usage() {
+    cat <<USAGE
+Usage: $(basename "$0") [options]
+
+Run a local emulator smoke test for the Harmonixia debug app:
+1. Ensure an emulator is online (launches one if needed)
+2. Wait for Android boot completion
+3. Uninstall existing app package (to avoid signature mismatch)
+4. Install debug APK via Gradle
+5. Launch app and verify it is running
+
+Options:
+  --avd <name>          AVD name to launch when no emulator is online (default: ${default_avd_name})
+  --serial <id>         Target specific emulator adb serial (example: emulator-5554)
+  --no-launch           Do not auto-launch an AVD when no emulator is online
+  --list-avds           Print available AVD names and exit
+  --app-id <id>         Android application id (default: ${default_app_id})
+  --task <gradle-task>  Gradle install task (default: ${default_gradle_task})
+  --connect-timeout <s> Emulator connect timeout in seconds (default: ${default_connect_timeout_seconds})
+  --boot-timeout <s>    Boot completion timeout in seconds (default: ${default_boot_timeout_seconds})
+  --launch-wait <s>     Wait after launch before verification (default: ${default_launch_wait_seconds})
+  --keep-logs           Retain per-run logs on exit (for debugging successful runs)
+  --option-tests        Run smoke option regression suite and exit
+  --help                Show this help
+
+Documentation:
+  docs/local-validation-workflow.md
+
+Notes:
+  - emulator binary is required for --list-avds and AVD auto-launch paths.
+  - --serial --no-launch can run without emulator when adb is available.
+USAGE
+}
+
+require_option_value() {
+    local option="$1"
+    local value="${2:-}"
+    if [[ -z "$value" || "$value" == --* ]]; then
+        echo "Missing value for ${option}" >&2
+        usage >&2
+        exit 1
+    fi
+    printf '%s\n' "$value"
+}
+
+require_positive_integer() {
+    local option="$1"
+    local value="$2"
+    if ! [[ "$value" =~ ^[1-9][0-9]*$ ]]; then
+        echo "Invalid value for ${option}: ${value}" >&2
+        echo "Expected a positive integer." >&2
+        usage >&2
+        exit 1
+    fi
+    printf '%s\n' "$value"
+}
+
+require_emulator_serial() {
+    local option="$1"
+    local value="$2"
+    if ! [[ "$value" =~ ^emulator-[0-9]+$ ]]; then
+        echo "Invalid value for ${option}: ${value}" >&2
+        echo "Expected an emulator adb serial like emulator-5554." >&2
+        usage >&2
+        exit 1
+    fi
+    printf '%s\n' "$value"
+}
+
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --avd)
+            avd_name="$(require_option_value "$1" "${2:-}")"
+            avd_option_set="true"
+            shift 2
+            ;;
+        --serial)
+            target_serial="$(require_emulator_serial "$1" "$(require_option_value "$1" "${2:-}")")"
+            serial_option_set="true"
+            shift 2
+            ;;
+        --no-launch)
+            auto_launch="false"
+            no_launch_option_set="true"
+            shift
+            ;;
+        --list-avds)
+            list_avds_only="true"
+            shift
+            ;;
+        --app-id)
+            app_id="$(require_option_value "$1" "${2:-}")"
+            app_id_option_set="true"
+            shift 2
+            ;;
+        --task)
+            gradle_task="$(require_option_value "$1" "${2:-}")"
+            task_option_set="true"
+            shift 2
+            ;;
+        --connect-timeout)
+            connect_timeout_seconds="$(require_positive_integer "$1" "$(require_option_value "$1" "${2:-}")")"
+            connect_timeout_option_set="true"
+            shift 2
+            ;;
+        --boot-timeout)
+            boot_timeout_seconds="$(require_positive_integer "$1" "$(require_option_value "$1" "${2:-}")")"
+            boot_timeout_option_set="true"
+            shift 2
+            ;;
+        --launch-wait)
+            launch_wait_seconds="$(require_positive_integer "$1" "$(require_option_value "$1" "${2:-}")")"
+            launch_wait_option_set="true"
+            shift 2
+            ;;
+        --keep-logs)
+            keep_logs_option_set="true"
+            shift
+            ;;
+        --option-tests)
+            run_option_tests="true"
+            shift
+            ;;
+        --help|-h)
+            usage
+            exit 0
+            ;;
+        *)
+            echo "Unknown argument: $1" >&2
+            usage >&2
+            exit 1
+            ;;
+    esac
+done
+
+if [[ "$run_option_tests" == "true" ]]; then
+    if [[ "$avd_option_set" == "true" || "$serial_option_set" == "true" || "$no_launch_option_set" == "true" || "$list_avds_only" == "true" || "$app_id_option_set" == "true" || "$task_option_set" == "true" || "$connect_timeout_option_set" == "true" || "$boot_timeout_option_set" == "true" || "$launch_wait_option_set" == "true" || "$keep_logs_option_set" == "true" ]]; then
+        echo "--option-tests cannot be combined with smoke execution flags." >&2
+        echo "Run --option-tests by itself." >&2
+        usage >&2
+        exit 1
+    fi
+    echo "Running smoke option regression tests..."
+    "${script_dir}/test-smoke-debug-emulator-options.sh"
+    exit 0
+fi
+
+if [[ "$list_avds_only" == "true" ]]; then
+    if [[ "$avd_option_set" == "true" || "$serial_option_set" == "true" || "$no_launch_option_set" == "true" || "$app_id_option_set" == "true" || "$task_option_set" == "true" || "$connect_timeout_option_set" == "true" || "$boot_timeout_option_set" == "true" || "$launch_wait_option_set" == "true" ]]; then
+        echo "--list-avds cannot be combined with runtime smoke options." >&2
+        echo "Remove --avd/--serial/--no-launch/--app-id/--task/--connect-timeout/--boot-timeout/--launch-wait when listing AVDs." >&2
+        usage >&2
+        exit 1
+    fi
+fi
+
+if [[ "$list_avds_only" != "true" && "$avd_option_set" == "true" && "$serial_option_set" == "true" ]]; then
+    echo "Cannot combine --avd with --serial. Choose one target selector." >&2
+    usage >&2
+    exit 1
+fi
+
+if [[ "$list_avds_only" != "true" && "$no_launch_option_set" == "true" && "$avd_option_set" == "true" && "$serial_option_set" != "true" ]]; then
+    echo "--no-launch cannot be combined with --avd unless --serial is also provided." >&2
+    usage >&2
+    exit 1
+fi
+
+sdk_root="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-$HOME/Android/Sdk}}"
+sdk_home="${ANDROID_SDK_HOME:-$HOME/.config/.android}"
+avd_home="${ANDROID_AVD_HOME:-$sdk_home/avd}"
+
+export ANDROID_SDK_ROOT="$sdk_root"
+export ANDROID_SDK_HOME="$sdk_home"
+export ANDROID_AVD_HOME="$avd_home"
+export PATH="$sdk_root/platform-tools:$sdk_root/emulator:$PATH"
+
+if [[ -z "${JAVA_HOME:-}" ]]; then
+    if [[ -d "$HOME/.jdks/jdk-17.0.17+10" ]]; then
+        export JAVA_HOME="$HOME/.jdks/jdk-17.0.17+10"
+        export PATH="$JAVA_HOME/bin:$PATH"
+    fi
+fi
+
+requires_emulator_binary="false"
+if [[ "$list_avds_only" == "true" || ( "$auto_launch" == "true" && "$serial_option_set" != "true" ) ]]; then
+    requires_emulator_binary="true"
+fi
+
+if [[ "$requires_emulator_binary" == "true" ]] && ! command -v emulator >/dev/null 2>&1; then
+    echo "emulator not found. Ensure Android emulator is installed under ${sdk_root}." >&2
+    exit 1
+fi
+
+if [[ "$list_avds_only" == "true" ]]; then
+    echo "Smoke settings: mode=list-avds"
+    list_avds_stderr="$(mktemp /tmp/harmonixia-smoke-list-avds.XXXXXX.err)"
+    if ! avd_list="$(emulator -list-avds 2>"$list_avds_stderr")"; then
+        echo "Failed to list AVDs via emulator -list-avds." >&2
+        echo "emulator stderr (first 40 lines):" >&2
+        sed -n '1,40p' "$list_avds_stderr" >&2 || true
+        rm -f "$list_avds_stderr"
+        exit 1
+    fi
+    rm -f "$list_avds_stderr"
+    if [[ -z "$avd_list" ]]; then
+        echo "No AVDs found under ${avd_home}." >&2
+        echo "Tip: create an AVD in Android Studio Device Manager, then rerun --list-avds." >&2
+        exit 1
+    fi
+    printf '%s\n' "$avd_list"
+    exit 0
+fi
+
+if ! command -v java >/dev/null 2>&1; then
+    echo "Java is required for smoke execution. Install JDK 17 and ensure java is on PATH." >&2
+    exit 1
+fi
+
+java_version_line="$(java -version 2>&1 | head -n 1)"
+java_major="$(echo "${java_version_line}" | sed -E 's/.*version "([0-9]+).*/\1/')"
+if [[ "${java_major}" != "17" ]]; then
+    echo "JDK 17 is required for smoke execution." >&2
+    echo "Detected: ${java_version_line}" >&2
+    echo "Set JAVA_HOME to a JDK 17 installation and retry." >&2
+    exit 1
+fi
+
+target_mode="first-online-emulator"
+if [[ -n "$target_serial" ]]; then
+    target_mode="serial:${target_serial}"
+elif [[ "$auto_launch" == "true" ]]; then
+    target_mode="avd:${avd_name}"
+fi
+echo "Smoke settings: target=${target_mode}, auto_launch=${auto_launch}, app_id=${app_id}, task=${gradle_task}, connect_timeout=${connect_timeout_seconds}s, boot_timeout=${boot_timeout_seconds}s, launch_wait=${launch_wait_seconds}s"
+
+if ! command -v adb >/dev/null 2>&1; then
+    echo "adb not found. Ensure Android platform-tools are installed under ${sdk_root}." >&2
+    exit 1
+fi
+
+if [[ ! -x "$repo_root/gradlew" ]]; then
+    echo "gradlew not found at $repo_root/gradlew" >&2
+    exit 1
+fi
+
+echo "Starting adb server..."
+adb start-server >/dev/null
+
+emulator_serial="$target_serial"
+if [[ -z "$emulator_serial" ]]; then
+    emulator_serial="$(adb devices | awk '/^emulator-/{print $1; exit}')"
+fi
+
+if [[ -z "$emulator_serial" && "$auto_launch" == "true" ]]; then
+    if ! emulator -list-avds | grep -Fx "$avd_name" >/dev/null 2>&1; then
+        echo "AVD '$avd_name' not found. Available AVDs:" >&2
+        echo "Tip: run --list-avds to choose a valid AVD, or use --serial <emulator-id> to target an already-running emulator." >&2
+        emulator -list-avds >&2 || true
+        exit 1
+    fi
+
+    emulator_log="/tmp/harmonixia-emulator-${avd_name}-${log_suffix}.log"
+    keep_emulator_log="true"
+    echo "Launching AVD '$avd_name' (log: $emulator_log)..."
+    nohup emulator -avd "$avd_name" -no-window -no-audio -no-boot-anim \
+        -gpu swiftshader_indirect -netdelay none -netspeed full >"$emulator_log" 2>&1 &
+elif [[ -z "$emulator_serial" ]]; then
+    echo "No emulator is online and --no-launch was specified." >&2
+    echo "Tip: start an emulator first, provide --serial <emulator-id>, or remove --no-launch to allow auto-launch." >&2
+    adb devices -l >&2 || true
+    exit 1
+fi
+
+echo "Waiting for emulator connection..."
+connect_deadline=$((SECONDS + connect_timeout_seconds))
+while true; do
+    if [[ -n "$target_serial" ]]; then
+        emulator_serial="$target_serial"
+        emulator_state="$(adb devices | awk -v serial="$target_serial" '$1 == serial {print $2; found=1} END {if (!found) print ""}')"
+    else
+        emulator_serial="$(adb devices | awk '/^emulator-/{print $1; exit}')"
+        emulator_state="$(adb devices | awk '/^emulator-/{print $2; exit}')"
+    fi
+    if [[ -n "$emulator_serial" && "$emulator_state" == "device" ]]; then
+        break
+    fi
+    if (( SECONDS >= connect_deadline )); then
+        if [[ -n "$target_serial" ]]; then
+            echo "Timed out waiting for adb serial '$target_serial' to become online." >&2
+        else
+            echo "Timed out waiting for emulator to connect." >&2
+        fi
+        echo "Tip: check 'adb devices -l' output and increase --connect-timeout if startup is slow." >&2
+        if [[ -n "$emulator_log" ]]; then
+            echo "Emulator launch log: ${emulator_log}" >&2
+        fi
+        adb devices -l >&2 || true
+        exit 1
+    fi
+    sleep 2
+done
+
+adb -s "$emulator_serial" wait-for-device >/dev/null
+
+echo "Waiting for Android boot completion on $emulator_serial..."
+boot_deadline=$((SECONDS + boot_timeout_seconds))
+while true; do
+    boot_completed="$(adb -s "$emulator_serial" shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')"
+    if [[ "$boot_completed" == "1" ]]; then
+        break
+    fi
+    if (( SECONDS >= boot_deadline )); then
+        echo "Timed out waiting for sys.boot_completed on $emulator_serial." >&2
+        echo "Tip: check emulator health in 'adb -s $emulator_serial shell getprop sys.boot_completed' and increase --boot-timeout if needed." >&2
+        if [[ -n "$emulator_log" ]]; then
+            echo "Emulator launch log: ${emulator_log}" >&2
+        fi
+        exit 1
+    fi
+    sleep 3
+done
+
+echo "Uninstalling existing package (if present): $app_id"
+adb -s "$emulator_serial" uninstall "$app_id" >"$uninstall_log" 2>&1 || true
+
+echo "Installing debug app via Gradle task '$gradle_task'..."
+(
+    cd "$repo_root"
+    ./gradlew --no-daemon "$gradle_task"
+)
+
+echo "Launching $app_id..."
+adb -s "$emulator_serial" shell monkey -p "$app_id" -c android.intent.category.LAUNCHER 1 \
+    >"$monkey_log" 2>&1
+sleep "$launch_wait_seconds"
+
+pid="$(adb -s "$emulator_serial" shell pidof "$app_id" 2>/dev/null | tr -d '\r' || true)"
+top_activity="$(adb -s "$emulator_serial" shell dumpsys activity activities \
+    | grep -m1 -E 'topResumedActivity|mResumedActivity' || true)"
+
+if [[ -z "$pid" ]]; then
+    echo "Smoke test failed: app process not running for $app_id." >&2
+    echo "Top activity: ${top_activity:-<none>}" >&2
+    echo "Tip: inspect ${monkey_log} and increase --launch-wait if app startup is slow." >&2
+    echo "Monkey log: ${monkey_log}" >&2
+    if [[ -n "$emulator_log" ]]; then
+        echo "Emulator launch log: ${emulator_log}" >&2
+    fi
+    echo "Monkey output:" >&2
+    sed -n '1,80p' "$monkey_log" >&2 || true
+    keep_monkey_log="true"
+    exit 1
+fi
+
+keep_emulator_log="false"
+
+echo "Smoke test passed"
+echo "  serial: $emulator_serial"
+echo "  pid: $pid"
+echo "  top activity: ${top_activity:-<unknown>}"

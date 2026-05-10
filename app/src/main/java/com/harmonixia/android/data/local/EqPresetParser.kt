@@ -1,9 +1,12 @@
 package com.harmonixia.android.data.local
 
+import android.content.Context
+import com.harmonixia.android.R
 import com.harmonixia.android.domain.model.EqBandConfig
 import com.harmonixia.android.domain.model.EqFilter
 import com.harmonixia.android.domain.model.EqPreset
 import com.harmonixia.android.domain.model.EqPresetDetails
+import dagger.hilt.android.qualifiers.ApplicationContext
 import java.util.Locale
 import java.util.UUID
 import javax.inject.Inject
@@ -15,7 +18,13 @@ import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.doubleOrNull
 import kotlinx.serialization.json.jsonPrimitive
 
-class EqPresetParser @Inject constructor() {
+class EqPresetParser @Inject constructor(
+    @param:ApplicationContext private val context: Context
+) {
+    private val fallbackPresetName: String by lazy(LazyThreadSafetyMode.NONE) {
+        context.getString(R.string.eq_fallback_preset_name)
+    }
+
     fun normalizeOpraDatabase(database: OpraDatabase): List<EqPreset> {
         return database.eqEntries.mapNotNull { entry ->
             normalizeOpraDatabaseEntry(entry, database.vendors, database.products)
@@ -32,7 +41,7 @@ class EqPresetParser @Inject constructor() {
             return data?.stringOrNull(*keys) ?: entry.stringOrNull(*keys)
         }
 
-        val name = stringOrNull("name", "preset_name", "title") ?: "EQ Preset"
+        val name = stringOrNull("name", "preset_name", "title") ?: fallbackPresetName
         val description = stringOrNull("description", "notes", "details")
         val creator = stringOrNull("creator", "author", "by")
         val productId = stringOrNull("product_id", "device_id")

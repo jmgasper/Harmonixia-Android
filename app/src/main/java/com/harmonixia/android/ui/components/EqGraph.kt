@@ -23,11 +23,12 @@ import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.harmonixia.android.R
 import com.harmonixia.android.domain.model.EqFilter
-import java.util.Locale
 import kotlin.math.cos
 import kotlin.math.ln
 import kotlin.math.log10
@@ -70,6 +71,13 @@ fun EqGraphCanvas(
         }
     }
     val labelSizePx = with(density) { 10.sp.toPx() }
+    val labelTemplates = EqGraphLabelTemplates(
+        frequencySubKFormat = stringResource(R.string.eq_graph_frequency_sub_k_format),
+        frequencyIntegerKFormat = stringResource(R.string.eq_graph_frequency_integer_k_format),
+        frequencyDecimalKFormat = stringResource(R.string.eq_graph_frequency_decimal_k_format),
+        gainPositiveFormat = stringResource(R.string.eq_graph_gain_positive_format),
+        gainDefaultFormat = stringResource(R.string.eq_graph_gain_default_format)
+    )
 
     Box(
         modifier = modifier.size(width, height),
@@ -177,7 +185,7 @@ fun EqGraphCanvas(
             val safeMaxLabelY = maxLabelY.coerceAtLeast(minLabelY)
             val freqLabelBaseline = safeMaxLabelY
             freqTicks.forEach { freq ->
-                val label = formatFrequencyLabel(freq)
+                val label = EqGraphLabelFormatter.formatFrequencyLabel(freq, labelTemplates)
                 val x = freqToX(freq.toDouble())
                 val textWidth = textPaint.measureText(label)
                 val maxLabelX = (size.width - textWidth - labelPadding).coerceAtLeast(labelPadding)
@@ -194,7 +202,7 @@ fun EqGraphCanvas(
                 val y = gainToY(gain.toDouble())
                 val labelY = (y - 4.dp.toPx()).coerceIn(minLabelY, safeMaxLabelY)
                 drawContext.canvas.nativeCanvas.drawText(
-                    formatGainLabel(gain),
+                    EqGraphLabelFormatter.formatGainLabel(gain, labelTemplates),
                     labelPadding,
                     labelY,
                     textPaint
@@ -266,27 +274,6 @@ private fun peakingResponse(filter: EqFilter, freq: Double): Double {
     val den = (a0 + a1 * cosW + a2 * cos2W).pow(2) + (a1 * sinW + a2 * sin2W).pow(2)
 
     return sqrt(num / den)
-}
-
-private fun formatFrequencyLabel(freq: Int): String {
-    return if (freq >= 1000) {
-        val value = freq / 1000.0
-        if (value % 1.0 == 0.0) {
-            "${value.toInt()}k"
-        } else {
-            String.format(Locale.US, "%.1fk", value)
-        }
-    } else {
-        freq.toString()
-    }
-}
-
-private fun formatGainLabel(gain: Int): String {
-    return if (gain > 0) {
-        "+$gain"
-    } else {
-        gain.toString()
-    }
 }
 
 private const val MIN_FREQUENCY = 20.0

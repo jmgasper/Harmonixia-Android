@@ -44,8 +44,8 @@ fun PlaybackControls(
     onPlayPause: () -> Unit,
     onNext: () -> Unit,
     onPrevious: () -> Unit,
-    enabled: Boolean = true,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true
 ) {
     val haptic = LocalHapticFeedback.current
     val inactiveTint = Color.White.copy(alpha = 0.62f)

@@ -1,12 +1,15 @@
 package com.harmonixia.android.service.playback
 
+import android.content.Context
 import android.net.Uri
 import android.os.Bundle
+import androidx.core.net.toUri
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.session.MediaConstants
+import com.harmonixia.android.R
 import com.harmonixia.android.data.paging.fetchAllPages
 import com.harmonixia.android.domain.model.Album
 import com.harmonixia.android.domain.model.Artist
@@ -17,11 +20,15 @@ import com.harmonixia.android.domain.repository.LocalMediaRepository
 import com.harmonixia.android.domain.repository.MusicAssistantRepository
 import com.harmonixia.android.domain.repository.OFFLINE_PROVIDER
 import com.harmonixia.android.domain.repository.OfflineLibraryRepository
-import com.harmonixia.android.util.mergeWithLocal
-import com.harmonixia.android.util.replaceWithLocalMatches
 import com.harmonixia.android.util.NetworkConnectivityManager
 import com.harmonixia.android.util.Logger
+import com.harmonixia.android.util.mergeWithLocal
+import com.harmonixia.android.util.normalizePlaybackUriOrOriginal
+import com.harmonixia.android.util.replaceWithLocalMatches
+import com.harmonixia.android.util.resolveAutoArtworkUrl
 import java.text.Collator
+import java.text.Normalizer
+import java.util.Locale
 import com.harmonixia.android.util.buildPlaybackExtras
 import com.harmonixia.android.util.playbackDurationMs
 import java.io.File
@@ -36,6 +43,7 @@ import kotlinx.coroutines.supervisorScope
 
 @UnstableApi
 class MediaLibraryBrowser(
+    private val context: Context,
     private val repository: MusicAssistantRepository,
     private val localMediaRepository: LocalMediaRepository,
     private val offlineLibraryRepository: OfflineLibraryRepository,
@@ -247,7 +255,7 @@ class MediaLibraryBrowser(
 
     private fun buildRootItem(): MediaItem {
         val metadata = MediaMetadata.Builder()
-            .setTitle(ROOT_TITLE)
+            .setTitle(context.getString(R.string.app_name))
             .setIsBrowsable(true)
             .setIsPlayable(false)
             .build()
@@ -269,41 +277,41 @@ class MediaLibraryBrowser(
             MediaConstants.EXTRAS_VALUE_CONTENT_STYLE_LIST_ITEM
         }
         return if (isOfflineMode()) {
-            listOf(buildCategoryItem(MEDIA_ID_LOCAL_MEDIA, TITLE_LOCAL_MEDIA))
+            listOf(
+                buildCategoryItem(
+                    MEDIA_ID_LOCAL_MEDIA,
+                    context.getString(R.string.section_local_media)
+                )
+            )
         } else {
             listOf(
                 buildCategoryItem(
                     MEDIA_ID_HOME,
-                    TITLE_HOME,
-                    mediaType = MediaMetadata.MEDIA_TYPE_FOLDER_MIXED,
-                    folderType = MediaMetadata.FOLDER_TYPE_MIXED
+                    context.getString(R.string.nav_home),
+                    mediaType = MediaMetadata.MEDIA_TYPE_FOLDER_MIXED
                 ),
                 buildCategoryItem(
                     MEDIA_ID_ALBUMS,
-                    TITLE_ALBUMS,
+                    context.getString(R.string.nav_albums),
                     mediaType = MediaMetadata.MEDIA_TYPE_FOLDER_ALBUMS,
-                    folderType = MediaMetadata.FOLDER_TYPE_ALBUMS,
                     browsableContentStyle = albumsStyle
                 ),
                 buildCategoryItem(
                     MEDIA_ID_ARTISTS,
-                    TITLE_ARTISTS,
+                    context.getString(R.string.nav_artists),
                     mediaType = MediaMetadata.MEDIA_TYPE_FOLDER_ARTISTS,
-                    folderType = MediaMetadata.FOLDER_TYPE_ARTISTS,
                     browsableContentStyle = letterGridStyle
                 ),
                 buildCategoryItem(
                     MEDIA_ID_PLAYLISTS,
-                    TITLE_PLAYLISTS,
+                    context.getString(R.string.nav_playlists),
                     mediaType = MediaMetadata.MEDIA_TYPE_FOLDER_PLAYLISTS,
-                    folderType = MediaMetadata.FOLDER_TYPE_PLAYLISTS,
                     browsableContentStyle = MediaConstants.EXTRAS_VALUE_CONTENT_STYLE_GRID_ITEM
                 ),
                 buildCategoryItem(
                     MEDIA_ID_LOCAL_MEDIA,
-                    TITLE_LOCAL_MEDIA,
-                    mediaType = MediaMetadata.MEDIA_TYPE_FOLDER_MIXED,
-                    folderType = MediaMetadata.FOLDER_TYPE_MIXED
+                    context.getString(R.string.section_local_media),
+                    mediaType = MediaMetadata.MEDIA_TYPE_FOLDER_MIXED
                 )
             )
         }
@@ -313,29 +321,25 @@ class MediaLibraryBrowser(
         return listOf(
             buildCategoryItem(
                 MEDIA_ID_HOME_RECENTLY_PLAYED,
-                TITLE_HOME_RECENTLY_PLAYED,
+                context.getString(R.string.home_recently_played),
                 mediaType = MediaMetadata.MEDIA_TYPE_FOLDER_ALBUMS,
-                folderType = MediaMetadata.FOLDER_TYPE_ALBUMS,
                 browsableContentStyle = MediaConstants.EXTRAS_VALUE_CONTENT_STYLE_GRID_ITEM
             ),
             buildCategoryItem(
                 MEDIA_ID_HOME_FAVORITES,
-                TITLE_HOME_FAVORITES,
-                mediaType = MediaMetadata.MEDIA_TYPE_MIXED,
-                folderType = MediaMetadata.FOLDER_TYPE_TITLES
+                context.getString(R.string.home_favorites),
+                mediaType = MediaMetadata.MEDIA_TYPE_MIXED
             ),
             buildCategoryItem(
                 MEDIA_ID_HOME_NEW_ALBUMS,
-                TITLE_HOME_NEW_ALBUMS,
+                context.getString(R.string.home_recently_added),
                 mediaType = MediaMetadata.MEDIA_TYPE_FOLDER_ALBUMS,
-                folderType = MediaMetadata.FOLDER_TYPE_ALBUMS,
                 browsableContentStyle = MediaConstants.EXTRAS_VALUE_CONTENT_STYLE_GRID_ITEM
             ),
             buildCategoryItem(
                 MEDIA_ID_HOME_PLAYLISTS,
-                TITLE_PLAYLISTS,
+                context.getString(R.string.nav_playlists),
                 mediaType = MediaMetadata.MEDIA_TYPE_FOLDER_PLAYLISTS,
-                folderType = MediaMetadata.FOLDER_TYPE_PLAYLISTS,
                 browsableContentStyle = MediaConstants.EXTRAS_VALUE_CONTENT_STYLE_GRID_ITEM
             )
         )
@@ -347,7 +351,6 @@ class MediaLibraryBrowser(
         subtitle: String? = null,
         artworkUrl: String? = null,
         mediaType: Int? = null,
-        folderType: Int? = null,
         browsableContentStyle: Int? = null,
         playableContentStyle: Int? = null
     ): MediaItem {
@@ -355,15 +358,11 @@ class MediaLibraryBrowser(
         val metadataBuilder = MediaMetadata.Builder()
             .setTitle(title)
             .setSubtitle(subtitle)
-            .setArtworkUri(resolvedArtworkUrl?.let { Uri.parse(it) })
+            .setArtworkUri(resolvedArtworkUrl?.toUri())
             .setIsBrowsable(true)
             .setIsPlayable(false)
         if (mediaType != null) {
             metadataBuilder.setMediaType(mediaType)
-        }
-        @Suppress("DEPRECATION")
-        if (folderType != null) {
-            metadataBuilder.setFolderType(folderType)
         }
         val styleExtras = buildContentStyleExtras(
             browsableContentStyle = browsableContentStyle,
@@ -462,23 +461,20 @@ class MediaLibraryBrowser(
         return listOf(
             buildCategoryItem(
                 MEDIA_ID_LOCAL_ALBUMS,
-                TITLE_LOCAL_ALBUMS,
+                context.getString(R.string.section_local_albums),
                 mediaType = MediaMetadata.MEDIA_TYPE_FOLDER_ALBUMS,
-                folderType = MediaMetadata.FOLDER_TYPE_ALBUMS,
                 browsableContentStyle = albumsStyle
             ),
             buildCategoryItem(
                 MEDIA_ID_LOCAL_ARTISTS,
-                TITLE_LOCAL_ARTISTS,
+                context.getString(R.string.section_local_artists),
                 mediaType = MediaMetadata.MEDIA_TYPE_FOLDER_ARTISTS,
-                folderType = MediaMetadata.FOLDER_TYPE_ARTISTS,
                 browsableContentStyle = letterGridStyle
             ),
             buildCategoryItem(
                 MEDIA_ID_LOCAL_TRACKS,
-                TITLE_LOCAL_TRACKS,
-                mediaType = MediaMetadata.MEDIA_TYPE_MIXED,
-                folderType = MediaMetadata.FOLDER_TYPE_TITLES
+                context.getString(R.string.section_local_tracks),
+                mediaType = MediaMetadata.MEDIA_TYPE_MIXED
             )
         )
     }
@@ -922,28 +918,6 @@ class MediaLibraryBrowser(
         return name?.trim()?.lowercase().orEmpty()
     }
 
-    private fun resolveAutoArtworkUrl(rawUrl: String?): String? {
-        val trimmed = rawUrl?.trim().orEmpty()
-        if (trimmed.isBlank()) return null
-        val uri = runCatching { Uri.parse(trimmed) }.getOrNull() ?: return trimmed
-        val encodedPath = uri.encodedPath ?: return trimmed
-        if (!encodedPath.endsWith("/imageproxy")) return trimmed
-        val pathParam = uri.getQueryParameter("path")?.trim().orEmpty()
-        if (pathParam.isBlank()) return trimmed
-        if (pathParam.startsWith("http://") || pathParam.startsWith("https://")) {
-            return pathParam
-        }
-        val provider = uri.getQueryParameter("provider").orEmpty()
-        if (provider == "builtin") {
-            val base = trimmed.substringBefore("/imageproxy")
-            val normalizedPath = pathParam.trimStart('/')
-            if (normalizedPath.isNotBlank()) {
-                return "$base/$normalizedPath"
-            }
-        }
-        return trimmed
-    }
-
     private fun buildContentStyleExtras(
         browsableContentStyle: Int?,
         playableContentStyle: Int?
@@ -998,17 +972,16 @@ class MediaLibraryBrowser(
         )
     }
 
-    private fun artistSortKey(artist: Artist): String {
-        return artist.name.trim()
-    }
-
-    private fun albumSortKey(album: Album): String {
-        return album.name.trim()
-    }
-
     private fun compareTitles(first: String, second: String): Int {
         val collator = titleCollator.get()
-        return collator.compare(first, second)
+        if (collator != null) {
+            return compareTitlesWithCollator(first, second, collator)
+        }
+
+        Logger.w(TAG, "Title collator was null; recreating for browse sorting")
+        val rebuiltCollator = createTitleCollator()
+        titleCollator.set(rebuiltCollator)
+        return compareTitlesWithCollator(first, second, rebuiltCollator)
     }
 
     private suspend fun buildOfflineArtistsList(page: Int, pageSize: Int): List<MediaItem> {
@@ -1070,8 +1043,9 @@ class MediaLibraryBrowser(
     }
 
     private suspend fun Track.toPlayableMediaItem(parentMediaId: String? = null): MediaItem {
+        val trackUri = normalizePlaybackUriOrOriginal(uri)
         val localFile = if (provider == OFFLINE_PROVIDER) {
-            val file = File(uri)
+            val file = File(trackUri)
             file.takeIf { it.exists() && it.length() > 0L }
         } else {
             null
@@ -1084,14 +1058,14 @@ class MediaLibraryBrowser(
             .setTitle(title)
             .setArtist(artist)
             .setAlbumTitle(album)
-            .setArtworkUri(resolvedArtworkUrl?.let { Uri.parse(it) })
+            .setArtworkUri(resolvedArtworkUrl?.toUri())
             .setDurationMs(durationMs)
             .setIsBrowsable(false)
             .setIsPlayable(true)
             .build()
         return MediaItem.Builder()
             .setMediaId("$MEDIA_ID_PREFIX_TRACK:$itemId:$provider")
-            .setUri(localFile?.let { Uri.fromFile(it) } ?: Uri.parse(uri))
+            .setUri(localFile?.let { Uri.fromFile(it) } ?: trackUri.toUri())
             .setMediaMetadata(metadata)
             .build()
             .also { cacheMediaItem(it) }
@@ -1113,7 +1087,7 @@ class MediaLibraryBrowser(
             metadataBuilder.setArtist(artistsLabel)
         }
         val metadata = metadataBuilder
-            .setArtworkUri(resolvedArtworkUrl?.let { Uri.parse(it) })
+            .setArtworkUri(resolvedArtworkUrl?.toUri())
             .setMediaType(MediaMetadata.MEDIA_TYPE_ALBUM)
             .setIsBrowsable(true)
             .setIsPlayable(false)
@@ -1139,7 +1113,7 @@ class MediaLibraryBrowser(
             metadataBuilder.setArtist(name)
         }
         val metadata = metadataBuilder
-            .setArtworkUri(resolvedArtworkUrl?.let { Uri.parse(it) })
+            .setArtworkUri(resolvedArtworkUrl?.toUri())
             .setMediaType(MediaMetadata.MEDIA_TYPE_ARTIST)
             .setIsBrowsable(true)
             .setIsPlayable(false)
@@ -1156,7 +1130,7 @@ class MediaLibraryBrowser(
             .setTitle(name)
             .setDisplayTitle(name)
             .setArtist(owner)
-            .setArtworkUri(resolvedArtworkUrl?.let { Uri.parse(it) })
+            .setArtworkUri(resolvedArtworkUrl?.toUri())
             .setMediaType(MediaMetadata.MEDIA_TYPE_PLAYLIST)
             .setIsBrowsable(true)
             .setIsPlayable(false)
@@ -1271,37 +1245,14 @@ class MediaLibraryBrowser(
         return "$MEDIA_ID_PREFIX_PLAYLIST:$playlistId:$provider"
     }
 
-    private val titleCollator = ThreadLocal.withInitial {
-        Collator.getInstance().apply {
-            strength = Collator.PRIMARY
-            decomposition = Collator.CANONICAL_DECOMPOSITION
-        }
-    }
+    private val titleCollator = ThreadLocal.withInitial(::createTitleCollator)
 
     private val ArtistAlphabeticalComparator = Comparator<Artist> { left, right ->
-        val primary = compareTitles(artistSortKey(left), artistSortKey(right))
-        if (primary != 0) {
-            primary
-        } else {
-            "${left.provider}:${left.itemId}".compareTo("${right.provider}:${right.itemId}")
-        }
+        compareArtistsAlphabetically(left, right, ::compareTitles)
     }
 
     private val AlbumAlphabeticalComparator = Comparator<Album> { left, right ->
-        val primary = compareTitles(albumSortKey(left), albumSortKey(right))
-        if (primary != 0) {
-            primary
-        } else {
-            val artistCompare = compareTitles(
-                left.artists.firstOrNull().orEmpty().trim(),
-                right.artists.firstOrNull().orEmpty().trim()
-            )
-            if (artistCompare != 0) {
-                artistCompare
-            } else {
-                "${left.provider}:${left.itemId}".compareTo("${right.provider}:${right.itemId}")
-            }
-        }
+        compareAlbumsAlphabetically(left, right, ::compareTitles)
     }
 
     private companion object {
@@ -1329,19 +1280,6 @@ class MediaLibraryBrowser(
         private const val MEDIA_ID_PREFIX_LOCAL_ARTISTS_LETTER = "local_artists_letter"
         private const val MEDIA_ID_PREFIX_LOCAL_ALBUMS_LETTER = "local_albums_letter"
 
-        private const val ROOT_TITLE = "Harmonixia"
-        private const val TITLE_HOME = "Home"
-        private const val TITLE_HOME_RECENTLY_PLAYED = "Recently Played"
-        private const val TITLE_HOME_FAVORITES = "Favourites"
-        private const val TITLE_HOME_NEW_ALBUMS = "New Albums"
-        private const val TITLE_ALBUMS = "Albums"
-        private const val TITLE_ARTISTS = "Artists"
-        private const val TITLE_PLAYLISTS = "Playlists"
-        private const val TITLE_LOCAL_MEDIA = "Local Media"
-        private const val TITLE_LOCAL_ALBUMS = "Local Albums"
-        private const val TITLE_LOCAL_ARTISTS = "Local Artists"
-        private const val TITLE_LOCAL_TRACKS = "Local Tracks"
-
         private const val DEFAULT_PAGE_SIZE = 50
         private const val SEARCH_LIMIT = 200
         private const val ALBUM_PAGE_LIMIT = 200
@@ -1355,3 +1293,55 @@ class MediaLibraryBrowser(
         private const val PLAYLIST_URI_CACHE_SIZE = 500
     }
 }
+
+internal fun createTitleCollator(): Collator = Collator.getInstance().apply {
+    strength = Collator.PRIMARY
+    decomposition = Collator.CANONICAL_DECOMPOSITION
+}
+
+internal fun compareTitlesWithCollator(first: String, second: String, collator: Collator?): Int {
+    if (collator != null) {
+        return collator.compare(first, second)
+    }
+    return fallbackTitleSortKey(first).compareTo(fallbackTitleSortKey(second))
+}
+
+internal fun compareArtistsAlphabetically(
+    left: Artist,
+    right: Artist,
+    compareTitles: (String, String) -> Int
+): Int {
+    val primary = compareTitles(left.name.trim(), right.name.trim())
+    if (primary != 0) {
+        return primary
+    }
+    return "${left.provider}:${left.itemId}".compareTo("${right.provider}:${right.itemId}")
+}
+
+internal fun compareAlbumsAlphabetically(
+    left: Album,
+    right: Album,
+    compareTitles: (String, String) -> Int
+): Int {
+    val primary = compareTitles(left.name.trim(), right.name.trim())
+    if (primary != 0) {
+        return primary
+    }
+
+    val artistCompare = compareTitles(
+        left.artists.firstOrNull().orEmpty().trim(),
+        right.artists.firstOrNull().orEmpty().trim()
+    )
+    if (artistCompare != 0) {
+        return artistCompare
+    }
+
+    return "${left.provider}:${left.itemId}".compareTo("${right.provider}:${right.itemId}")
+}
+
+private fun fallbackTitleSortKey(title: String): String {
+    val normalized = Normalizer.normalize(title.trim(), Normalizer.Form.NFD)
+    return TITLE_SORT_DIACRITICS_REGEX.replace(normalized, "").lowercase(Locale.ROOT)
+}
+
+private val TITLE_SORT_DIACRITICS_REGEX = Regex("\\p{M}+")
