@@ -1,0 +1,46 @@
+# HAR-548 explicit-marker matrix audit evidence (20260510T213004Z)
+
+Target file: scripts/test-check-hardcoded-ui-text-literals.sh
+
+## Matrix checks
+### Escaped trailing explicit line-comment marker
+651:            "Play ${title}", // localized trailing line-comment
+
+### Escaped trailing explicit block-comment marker (single-line)
+661:            "Play ${title}" /* localized trailing block-comment */,
+
+### Escaped trailing explicit block-comment marker (multiline close)
+MISSING: Escaped trailing explicit block-comment marker (multiline close)
+
+### Escaped leading explicit line-comment marker
+672:            // localized leading line-comment
+673:            "Play ${title}",
+
+### Escaped leading explicit block-comment marker (single-line)
+683:            /* localized leading block-comment */ "Play ${title}",
+
+### Escaped leading explicit block-comment marker (multiline close)
+688:            /* localized leading block-comment
+689:                */ "Play ${title}",
+
+### Raw trailing explicit line-comment marker
+867:            """Play ${title}""", // localized trailing line-comment
+
+### Raw trailing explicit block-comment marker (single-line)
+872:            """Play ${title}""" /* localized trailing block-comment */,
+882:            """Play ${title}""" /* localized trailing block-comment */,
+
+### Raw trailing explicit block-comment marker (multiline close)
+MISSING: Raw trailing explicit block-comment marker (multiline close)
+
+### Raw leading explicit line-comment marker
+893:            // localized leading line-comment
+894:            """Play ${title}""",
+
+### Raw leading explicit block-comment marker (single-line)
+904:            /* localized leading block-comment */ """Play ${title}""",
+
+### Raw leading explicit block-comment marker (multiline close)
+909:            /* localized leading block-comment
+910:                */ """Play ${title}""",
+
