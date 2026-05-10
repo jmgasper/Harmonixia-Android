@@ -1,14 +1,14 @@
-# HAR-509 Validation — Icon Escaped Reordered Named Multiline Assignment Quoted Interpolation Pass Fixture
+# HAR-509 Validation — Icon Escaped Reordered Named Multiline Leading Block-Comment Quoted Interpolation Pass Fixture
 
 ## Scope
-Extended pass-fixture coverage for escaped reordered named `Icon(...)` with quoted interpolation using multiline assignment layout for `contentDescription`.
+Extended pass-fixture coverage for escaped reordered named `Icon(...)` with quoted interpolation in multiline assignment layout where `contentDescription` value uses a leading block-comment annotation.
 
 ## Code Change
 - Updated `scripts/test-check-hardcoded-ui-text-literals.sh` pass fixtures with:
   - `contentDescription =`
-  - `    "Play \"$title\"",`
+  - `    /* localized */ "Play \"$title\"",`
   - `imageVector = Icons.Outlined.PlayArrow`
-- Purpose: ensure scanner pass behavior remains correct for reordered named escaped quoted interpolation with multiline assignment formatting.
+- Purpose: ensure scanner pass behavior remains correct for reordered named escaped quoted interpolation in multiline leading block-comment formatting.
 
 ## Validation Commands
 1. `./scripts/test-check-hardcoded-ui-text-literals.sh`
@@ -18,5 +18,5 @@ Extended pass-fixture coverage for escaped reordered named `Icon(...)` with quot
 Both commands passed.
 
 ## Evidence Logs
-- `docs/evidence/har-509-test-check-hardcoded-ui-text-literals-20260510T035912Z.log`
-- `docs/evidence/har-509-check-hardcoded-ui-text-literals-20260510T035912Z.log`
+- `docs/evidence/har-509-test-check-hardcoded-ui-text-literals-20260510T040119Z.log`
+- `docs/evidence/har-509-check-hardcoded-ui-text-literals-20260510T040119Z.log`
