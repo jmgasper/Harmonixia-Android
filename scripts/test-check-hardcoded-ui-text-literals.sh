@@ -680,6 +680,11 @@ fun Pass(title: String) {
     )
     Icon(
         contentDescription =
+            /* localized leading block-comment */ "Play ${title}",
+        imageVector = Icons.Outlined.PlayArrow
+    )
+    Icon(
+        contentDescription =
             /* localized
                 */ "Play ${title}",
         imageVector = Icons.Outlined.PlayArrow
