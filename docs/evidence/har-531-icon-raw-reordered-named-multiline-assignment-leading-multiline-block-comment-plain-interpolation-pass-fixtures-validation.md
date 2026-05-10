@@ -21,3 +21,10 @@ Both commands passed.
 ## Evidence Logs
 - `docs/evidence/har-531-test-check-hardcoded-ui-text-literals-20260510T151529Z.log`
 - `docs/evidence/har-531-check-hardcoded-ui-text-literals-20260510T151529Z.log`
+
+## Heartbeat Re-Validation (2026-05-11)
+- Re-ran both scanner commands on the current HAR-531 checkout to confirm this fixture still behaves as a pass case after subsequent fixture-matrix updates.
+- Result: both commands passed.
+- Additional logs:
+  - `docs/evidence/har-531-test-check-hardcoded-ui-text-literals-20260510T151706Z.log`
+  - `docs/evidence/har-531-check-hardcoded-ui-text-literals-20260510T151706Z.log`
