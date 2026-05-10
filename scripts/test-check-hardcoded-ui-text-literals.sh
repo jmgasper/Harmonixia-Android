@@ -663,6 +663,12 @@ fun Pass(title: String) {
     )
     Icon(
         contentDescription =
+            "Play ${title}" /* localized trailing block-comment
+                */,
+        imageVector = Icons.Outlined.PlayArrow
+    )
+    Icon(
+        contentDescription =
             // localized
             "Play ${title}",
         imageVector = Icons.Outlined.PlayArrow
