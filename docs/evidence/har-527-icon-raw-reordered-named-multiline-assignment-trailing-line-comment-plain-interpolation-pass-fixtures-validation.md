@@ -18,5 +18,7 @@ Extended pass-fixture coverage for raw reordered named `Icon(...)` with plain in
 Both commands passed.
 
 ## Evidence Logs
+- `docs/evidence/har-527-test-check-hardcoded-ui-text-literals-20260510T130337Z.log`
+- `docs/evidence/har-527-check-hardcoded-ui-text-literals-20260510T130337Z.log`
 - `docs/evidence/har-527-test-check-hardcoded-ui-text-literals-20260510T130124Z.log`
 - `docs/evidence/har-527-check-hardcoded-ui-text-literals-20260510T130124Z.log`
