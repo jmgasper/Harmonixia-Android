@@ -1,0 +1,206 @@
+# HAR-541 non-dollar multiline-assignment comment-matrix re-audit (post HAR-540)
+# Generated: 20260510T190438Z
+
+## Escaped multiline-assignment candidates ("Play ${title}")
+   635	    Icon(
+   636	        contentDescription = "Play ${title}", // localized
+   637	        imageVector = Icons.Outlined.PlayArrow
+   638	    )
+   639	    Icon(
+   640	        contentDescription =
+   641	            "Play ${title}",
+   642	        imageVector = Icons.Outlined.PlayArrow
+   643	    )
+   644	    Icon(
+   645	        contentDescription =
+   646	            "Play ${title}", // localized
+   647	        imageVector = Icons.Outlined.PlayArrow
+   648	    )
+   649	    Icon(
+   650	        contentDescription =
+   651	            "Play ${title}", // localized trailing line-comment
+   652	        imageVector = Icons.Outlined.PlayArrow
+   653	    )
+   654	    Icon(
+   655	        contentDescription =
+   656	            "Play ${title}" /* localized */,
+   657	        imageVector = Icons.Outlined.PlayArrow
+   658	    )
+   659	    Icon(
+   660	        contentDescription =
+   661	            "Play ${title}" /* localized trailing block-comment */,
+   662	        imageVector = Icons.Outlined.PlayArrow
+   663	    )
+   664	    Icon(
+   665	        contentDescription =
+   666	            // localized
+   667	            "Play ${title}",
+   668	        imageVector = Icons.Outlined.PlayArrow
+   669	    )
+   670	    Icon(
+   671	        contentDescription =
+   672	            /* localized */ "Play ${title}",
+   673	        imageVector = Icons.Outlined.PlayArrow
+   674	    )
+   675	    Icon(
+   676	        contentDescription =
+   677	            /* localized
+   678	                */ "Play ${title}",
+   679	        imageVector = Icons.Outlined.PlayArrow
+   680	    )
+   681	    Icon(
+   682	        contentDescription =
+   683	            /* localized
+   684	                        */ "Play ${title}",
+   685	        imageVector = Icons.Outlined.PlayArrow
+   686	    )
+
+## Raw multiline-assignment candidates ("""Play ${title}""")
+   836	    Icon(contentDescription = """Play ${title}""" /* localized */, imageVector = Icons.Outlined.PlayArrow)
+   837	    Icon(contentDescription = /* localized */ """Play ${title}""", imageVector = Icons.Outlined.PlayArrow)
+   838	    Icon(
+   839	        contentDescription =
+   840	            """Play ${title}""",
+   841	        imageVector = Icons.Outlined.PlayArrow
+   842	    )
+   843	    Icon(
+   844	        contentDescription =
+   845	            """Play ${title}""", // localized
+   846	        imageVector = Icons.Outlined.PlayArrow
+   847	    )
+   848	    Icon(
+   849	        contentDescription =
+   850	            """Play ${title}""", // localized trailing line-comment
+   851	        imageVector = Icons.Outlined.PlayArrow
+   852	    )
+   853	    Icon(
+   854	        contentDescription =
+   855	            """Play ${title}""" /* localized trailing block-comment */,
+   856	        imageVector = Icons.Outlined.PlayArrow
+   857	    )
+   858	    Icon(
+   859	        contentDescription =
+   860	            """Play ${title}""" /* localized */,
+   861	        imageVector = Icons.Outlined.PlayArrow
+   862	    )
+   863	    Icon(
+   864	        contentDescription =
+   865	            """Play ${title}""" /* localized trailing block-comment */,
+   866	        imageVector = Icons.Outlined.PlayArrow
+   867	    )
+   868	    Icon(
+   869	        contentDescription =
+   870	            // localized
+   871	            """Play ${title}""",
+   872	        imageVector = Icons.Outlined.PlayArrow
+   873	    )
+   874	    Icon(
+   875	        contentDescription =
+   876	            /* localized */ """Play ${title}""",
+   877	        imageVector = Icons.Outlined.PlayArrow
+   878	    )
+   879	    Icon(
+   880	        contentDescription =
+   881	            /* localized
+   882	                */ """Play ${title}""",
+   883	        imageVector = Icons.Outlined.PlayArrow
+   884	    )
+   885	    Icon(
+   886	        contentDescription =
+   887	            /* localized
+   888	                        */ """Play ${title}""",
+   889	        imageVector = Icons.Outlined.PlayArrow
+   890	    )
+   891	    Icon(
+   892	        contentDescription = /* localized
+   893	            */ """Play ${title}""",
+   894	        imageVector = Icons.Outlined.PlayArrow
+   895	    )
+   896	    Icon(
+   897	        contentDescription = /* localized
+   898	                    */ """Play ${title}""",
+   899	        imageVector = Icons.Outlined.PlayArrow
+   900	    )
+
+## Presence checks
+Escaped no-comment multiline-assignment:
+641:            "Play ${title}",
+667:            "Play ${title}",
+
+Escaped trailing line-comment:
+646:            "Play ${title}", // localized
+
+Escaped trailing explicit line-comment marker:
+651:            "Play ${title}", // localized trailing line-comment
+
+Escaped trailing block-comment:
+656:            "Play ${title}" /* localized */,
+
+Escaped trailing explicit block-comment marker:
+661:            "Play ${title}" /* localized trailing block-comment */,
+
+Escaped leading line-comment:
+71:        // localized
+90:        // localized
+99:            // localized
+549:            // localized
+601:            // localized
+666:            // localized
+742:            // localized
+810:            // localized
+870:            // localized
+937:            // localized
+
+Escaped leading block-comment \(single-line\):
+672:            /* localized */ "Play ${title}",
+
+Escaped leading block-comment \(multiline\):
+627:            */ "Play ${title}",
+632:                    */ "Play ${title}",
+678:                */ "Play ${title}",
+684:                        */ "Play ${title}",
+
+Escaped leading line-comment explicit marker:
+NO_MATCH
+
+Raw no-comment multiline-assignment:
+840:            """Play ${title}""",
+871:            """Play ${title}""",
+
+Raw trailing line-comment:
+845:            """Play ${title}""", // localized
+
+Raw trailing explicit line-comment marker:
+850:            """Play ${title}""", // localized trailing line-comment
+
+Raw trailing block-comment:
+860:            """Play ${title}""" /* localized */,
+
+Raw trailing explicit block-comment marker:
+855:            """Play ${title}""" /* localized trailing block-comment */,
+865:            """Play ${title}""" /* localized trailing block-comment */,
+
+Raw leading line-comment:
+71:        // localized
+90:        // localized
+99:            // localized
+549:            // localized
+601:            // localized
+666:            // localized
+742:            // localized
+810:            // localized
+870:            // localized
+937:            // localized
+
+Raw leading block-comment \(single-line\):
+876:            /* localized */ """Play ${title}""",
+
+Raw leading block-comment \(multiline\):
+882:                */ """Play ${title}""",
+888:                        */ """Play ${title}""",
+893:            */ """Play ${title}""",
+898:                    */ """Play ${title}""",
+
+Raw leading line-comment explicit marker:
+NO_MATCH
+
