@@ -1,0 +1,103 @@
+# HAR-546 matrix audit evidence (20260510T202127Z)
+
+## Target excerpt
+   660	        contentDescription =
+   661	            "Play ${title}" /* localized trailing block-comment */,
+   662	        imageVector = Icons.Outlined.PlayArrow
+   663	    )
+   664	    Icon(
+   665	        contentDescription =
+   666	            // localized
+   667	            "Play ${title}",
+   668	        imageVector = Icons.Outlined.PlayArrow
+   669	    )
+   670	    Icon(
+   671	        contentDescription =
+   672	            // localized leading line-comment
+   673	            "Play ${title}",
+   674	        imageVector = Icons.Outlined.PlayArrow
+   675	    )
+   676	    Icon(
+   677	        contentDescription =
+   678	            /* localized */ "Play ${title}",
+   679	        imageVector = Icons.Outlined.PlayArrow
+   680	    )
+   681	    Icon(
+   682	        contentDescription =
+   683	            /* localized leading block-comment */ "Play ${title}",
+   684	        imageVector = Icons.Outlined.PlayArrow
+   685	    )
+   686	    Icon(
+   687	        contentDescription =
+   688	            /* localized leading block-comment
+   689	                */ "Play ${title}",
+   690	        imageVector = Icons.Outlined.PlayArrow
+   691	    )
+   692	    Icon(
+   693	        contentDescription =
+   694	            /* localized
+   695	                */ "Play ${title}",
+   696	        imageVector = Icons.Outlined.PlayArrow
+   697	    )
+   698	    Icon(
+   699	        contentDescription =
+   700	            /* localized
+   701	                        */ "Play ${title}",
+   702	        imageVector = Icons.Outlined.PlayArrow
+   703	    )
+   704	    Icon(
+   705	        imageVector = Icons.Outlined.PlayArrow,
+   706	        contentDescription = /* localized
+   707	                    */ "Play ${title} for \$5"
+   708	    )
+   709	    Icon(imageVector = Icons.Outlined.PlayArrow, contentDescription = /* localized */ "Play ${title} for \$5")
+   710	    Icon(
+   711	        imageVector = Icons.Outlined.PlayArrow,
+   712	        contentDescription = "Play ${title} for \$5" // localized
+   713	    )
+   714	    Icon(
+   715	        imageVector = Icons.Outlined.PlayArrow,
+
+   888	            """Play ${title}""",
+   889	        imageVector = Icons.Outlined.PlayArrow
+   890	    )
+   891	    Icon(
+   892	        contentDescription =
+   893	            // localized leading line-comment
+   894	            """Play ${title}""",
+   895	        imageVector = Icons.Outlined.PlayArrow
+   896	    )
+   897	    Icon(
+   898	        contentDescription =
+   899	            /* localized */ """Play ${title}""",
+   900	        imageVector = Icons.Outlined.PlayArrow
+   901	    )
+   902	    Icon(
+   903	        contentDescription =
+   904	            /* localized leading block-comment */ """Play ${title}""",
+   905	        imageVector = Icons.Outlined.PlayArrow
+   906	    )
+   907	    Icon(
+   908	        contentDescription =
+   909	            /* localized
+   910	                */ """Play ${title}""",
+   911	        imageVector = Icons.Outlined.PlayArrow
+   912	    )
+   913	    Icon(
+   914	        contentDescription =
+   915	            /* localized
+   916	                        */ """Play ${title}""",
+   917	        imageVector = Icons.Outlined.PlayArrow
+   918	    )
+
+## Pattern checks
+### Escaped explicit leading multiline block-comment (expected: present)
+687:        contentDescription =
+688:            /* localized leading block-comment
+689:                */ "Play ${title}",
+
+### Raw explicit leading single-line block-comment (expected: present)
+904:            /* localized leading block-comment */ """Play ${title}""",
+
+### Raw explicit leading multiline block-comment (expected: missing)
+MISSING: raw explicit leading multiline block-comment pattern not found
