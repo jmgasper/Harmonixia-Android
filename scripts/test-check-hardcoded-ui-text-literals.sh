@@ -647,6 +647,12 @@ fun Pass(title: String) {
         imageVector = Icons.Outlined.PlayArrow
     )
     Icon(
+        contentDescription =
+            // localized
+            "Play ${title}",
+        imageVector = Icons.Outlined.PlayArrow
+    )
+    Icon(
         imageVector = Icons.Outlined.PlayArrow,
         contentDescription = /* localized
                     */ "Play ${title} for \$5"
@@ -797,6 +803,11 @@ fun Pass(title: String) {
     )
     Icon(contentDescription = """Play ${title}""" /* localized */, imageVector = Icons.Outlined.PlayArrow)
     Icon(contentDescription = /* localized */ """Play ${title}""", imageVector = Icons.Outlined.PlayArrow)
+    Icon(
+        contentDescription =
+            """Play ${title}""",
+        imageVector = Icons.Outlined.PlayArrow
+    )
     Icon(
         contentDescription = /* localized
             */ """Play ${title}""",
